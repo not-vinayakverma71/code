@@ -1,0 +1,165 @@
+# Production Configuration for MCP Tools
+
+[system]
+name = "MCP Tools Production"
+version = "1.0.0"
+environment = "production"
+
+[server]
+bind_address = "127.0.0.1:8080"
+max_connections = 1000
+connection_timeout_ms = 30000
+keep_alive_ms = 60000
+
+[mcp_tools]
+max_concurrent_executions = 100
+default_timeout_seconds = 30
+enable_sandboxing = true
+enable_metrics = true
+memory_limit_mb = 3
+
+[security]
+enable_rate_limiting = true
+enable_permissions = true
+enable_audit_logging = true
+
+[rate_limiting]
+max_requests_per_minute = 60
+max_requests_per_hour = 1000
+max_concurrent_requests = 10
+burst_size = 20
+cooldown_period_seconds = 60
+
+# Tool-specific rate limits
+[[rate_limiting.tool_limits]]
+tool_name = "execute_command"
+max_per_minute = 10
+max_per_hour = 100
+cost = 5
+
+[[rate_limiting.tool_limits]]
+tool_name = "write_to_file"
+max_per_minute = 30
+max_per_hour = 500
+cost = 2
+
+[[rate_limiting.tool_limits]]
+tool_name = "read_file"
+max_per_minute = 100
+max_per_hour = 2000
+cost = 1
+
+[permissions]
+default_role = "user"
+enable_role_inheritance = true
+
+# Role definitions
+[[permissions.roles]]
+name = "admin"
+permissions = [
+    "file:read:*",
+    "file:write:*",
+    "file:delete:*",
+    "process:execute:*",
+    "network:access:*",
+]
+
+[[permissions.roles]]
+name = "user"
+permissions = [
+    "file:read:/workspace/*",
+    "file:write:/workspace/*",
+    "file:delete:/workspace/*",
+    "process:execute:safe_commands",
+    "network:access:public",
+]
+
+[[permissions.roles]]
+name = "guest"
+permissions = [
+    "file:read:/workspace/public/*",
+    "file:list:/workspace/public/*",
+]
+
+[sandboxing]
+enable_network = false
+enable_filesystem = true
+max_memory_mb = 100
+max_cpu_percent = 50
+timeout_seconds = 30
+
+# Allowed paths for sandboxed operations
+allowed_paths = [
+    "/tmp",
+    "/workspace",
+]
+
+# Blocked commands
+blocked_commands = [
+    "rm -rf",
+    "dd",
+    "mkfs",
+    "fdisk",
+    "shutdown",
+    "reboot",
+]
+
+[resource_limits]
+max_memory_mb = 3
+max_cpu_percent = 80
+max_file_size_mb = 100
+max_open_files = 1000
+
+[logging]
+level = "info"
+format = "json"
+output = "stdout"
+file_path = "/var/log/mcp_tools.log"
+max_file_size_mb = 100
+max_files = 10
+enable_request_logging = true
+enable_performance_logging = true
+
+[metrics]
+enable = true
+export_interval_seconds = 60
+export_format = "prometheus"
+endpoint = "/metrics"
+
+# Performance thresholds for alerts
+[metrics.thresholds]
+max_latency_ms = 100
+max_memory_mb = 3
+max_error_rate = 0.01
+
+[cache]
+enable = true
+max_size_mb = 100
+ttl_seconds = 3600
+eviction_policy = "lru"
+
+[database]
+connection_string = "sqlite:///var/lib/mcp_tools/db.sqlite"
+max_connections = 10
+connection_timeout_seconds = 5
+
+[monitoring]
+enable_health_check = true
+health_check_interval_seconds = 30
+health_check_endpoint = "/health"
+enable_readiness_check = true
+readiness_check_endpoint = "/ready"
+
+[recovery]
+enable_auto_recovery = true
+max_retry_attempts = 3
+retry_delay_ms = 1000
+circuit_breaker_threshold = 5
+circuit_breaker_timeout_seconds = 60
+
+[deployment]
+enable_graceful_shutdown = true
+shutdown_timeout_seconds = 30
+enable_rolling_updates = true
+pre_stop_hook = "/scripts/pre_stop.sh"
+post_start_hook = "/scripts/post_start.sh"

@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package semantic_search;
+
+service SemanticSearchService {
+    rpc Index(IndexRequest) returns (IndexResponse);
+    rpc Search(SearchRequest) returns (SearchResponse);
+    rpc Delete(DeleteRequest) returns (DeleteResponse);
+    rpc HealthCheck(Empty) returns (HealthResponse);
+}
+
+message Empty {}
+
+message IndexRequest {
+    string id = 1;
+    string content = 2;
+    repeated float embedding = 3;
+}
+
+message IndexResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message SearchRequest {
+    string query = 1;
+    int32 top_k = 2;
+}
+
+message SearchResult {
+    string id = 1;
+    float score = 2;
+    string content = 3;
+}
+
+message SearchResponse {
+    repeated SearchResult results = 1;
+}
+
+message DeleteRequest {
+    string id = 1;
+}
+
+message DeleteResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message HealthResponse {
+    bool healthy = 1;
+    string status = 2;
+}

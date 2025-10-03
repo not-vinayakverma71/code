@@ -1,0 +1,1097 @@
+warning: /home/verma/lapce/lapce-ai-rust/lancedb/Cargo.toml: version requirement `=2.0.8+zstd.1.5.5` for dependency `zstd-sys` includes semver metadata which will be ignored, removing the metadata is recommended to avoid confusion
+warning: unused import: `snafu::ResultExt`
+  --> src/database/listing.rs:16:5
+   |
+16 | use snafu::ResultExt;
+   |     ^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `crate::Connection`
+ --> src/database/code_index_manager.rs:6:5
+  |
+6 | use crate::Connection;
+  |     ^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Error`
+ --> src/database/config_manager.rs:5:20
+  |
+5 | use crate::error::{Error, Result};
+  |                    ^^^^^
+
+warning: unused import: `std::collections::HashMap`
+ --> src/database/config_manager.rs:7:5
+  |
+7 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Context`
+ --> src/embeddings/compression.rs:4:22
+  |
+4 | use anyhow::{Result, Context};
+  |                      ^^^^^^^
+
+warning: unused import: `Context`
+ --> src/embeddings/mmap_storage.rs:4:22
+  |
+4 | use anyhow::{Result, Context};
+  |                      ^^^^^^^
+
+warning: unused import: `MmapMut`
+ --> src/embeddings/mmap_storage.rs:5:21
+  |
+5 | use memmap2::{Mmap, MmapMut, MmapOptions};
+  |                     ^^^^^^^
+
+warning: unused import: `Context`
+ --> src/embeddings/hierarchical_cache.rs:4:22
+  |
+4 | use anyhow::{Result, Context};
+  |                      ^^^^^^^
+
+warning: unused import: `std::collections::HashMap`
+ --> src/embeddings/hierarchical_cache.rs:7:5
+  |
+7 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `MmapEmbeddings`
+  --> src/embeddings/hierarchical_cache.rs:12:27
+   |
+12 | use super::mmap_storage::{MmapEmbeddings, ConcurrentMmapStorage};
+   |                           ^^^^^^^^^^^^^^
+
+warning: unused import: `AvailableEmbedders`
+  --> src/embeddings/optimized_embedder_wrapper.rs:12:77
+   |
+12 | use super::embedder_interface::{IEmbedder, EmbeddingResponse, EmbedderInfo, AvailableEmbedders};
+   |                                                                             ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `ValidationResult`
+ --> src/embeddings/openai_embedder.rs:7:69
+  |
+7 |     IEmbedder, EmbeddingResponse, EmbedderInfo, AvailableEmbedders, ValidationResult, EmbeddingUsage
+  |                                                                     ^^^^^^^^^^^^^^^^
+
+warning: unused import: `Serialize`
+  --> src/embeddings/openai_compatible_embedder.rs:11:26
+   |
+11 | use serde::{Deserialize, Serialize};
+   |                          ^^^^^^^^^
+
+warning: unused import: `Mutex`
+  --> src/embeddings/openai_compatible_embedder.rs:14:19
+   |
+14 | use tokio::sync::{Mutex, RwLock};
+   |                   ^^^^^
+
+warning: unused import: `std::collections::HashMap`
+ --> src/query/codebase_search.rs:9:5
+  |
+9 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `PathBuf`
+  --> src/query/codebase_search.rs:10:23
+   |
+10 | use std::path::{Path, PathBuf};
+   |                       ^^^^^^^
+
+warning: unused import: `crate::processors::scanner::CodeBlock`
+ --> src/processors/file_watcher.rs:9:5
+  |
+9 | use crate::processors::scanner::CodeBlock;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `TreeCursor`
+ --> src/processors/cst_to_ast_pipeline.rs:6:49
+  |
+6 | use tree_sitter::{Node, Tree, Parser, Language, TreeCursor};
+  |                                                 ^^^^^^^^^^
+
+warning: unused import: `Node`
+  --> src/processors/lapce_integration.rs:10:33
+   |
+10 | use tree_sitter::{Parser, Tree, Node};
+   |                                 ^^^^
+
+warning: unused import: `crate::processors::cst_to_ast_pipeline::AstNodeType`
+   --> src/processors/lapce_integration.rs:275:13
+    |
+275 |         use crate::processors::cst_to_ast_pipeline::AstNodeType;
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Config`
+ --> src/processors/native_file_watcher.rs:6:56
+  |
+6 | use notify::{Watcher, RecursiveMode, Event, EventKind, Config};
+  |                                                        ^^^^^^
+
+warning: unused import: `lance::dataset::Dataset`
+  --> src/search/semantic_search_engine.rs:12:5
+   |
+12 | use lance::dataset::Dataset;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Query as LanceQuery`
+  --> src/search/semantic_search_engine.rs:15:20
+   |
+15 | use crate::query::{Query as LanceQuery, ExecutableQuery, QueryBase};
+   |                    ^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Duration`
+  --> src/search/code_indexer.rs:11:17
+   |
+11 | use std::time::{Duration, Instant};
+   |                 ^^^^^^^^
+
+warning: unused imports: `ArrayRef`, `BinaryArray`, `FixedSizeListArray`, `Float64Array`, `StructArray`, and `UInt32Array`
+ --> src/search/optimized_lancedb_storage.rs:7:5
+  |
+7 |     ArrayRef, Float32Array, StringArray, Int32Array, BinaryArray, 
+  |     ^^^^^^^^                                         ^^^^^^^^^^^
+8 |     StructArray, RecordBatch, UInt32Array, Float64Array, FixedSizeListArray
+  |     ^^^^^^^^^^^               ^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `ArrowError`
+  --> src/search/optimized_lancedb_storage.rs:11:55
+   |
+11 | use arrow_schema::{DataType, Field, Schema, TimeUnit, ArrowError};
+   |                                                       ^^^^^^^^^^
+
+warning: unused import: `lance::dataset::Dataset`
+  --> src/search/optimized_lancedb_storage.rs:12:5
+   |
+12 | use lance::dataset::Dataset;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Query as LanceQuery`
+  --> src/search/optimized_lancedb_storage.rs:17:20
+   |
+17 | use crate::query::{Query as LanceQuery, ExecutableQuery, QueryBase, Select};
+   |                    ^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Duration`
+  --> src/search/optimized_lancedb_storage.rs:25:17
+   |
+25 | use std::time::{Duration, Instant};
+   |                 ^^^^^^^^
+
+warning: unused import: `lance_io::object_store::ObjectStoreParams`
+  --> src/search/optimized_lancedb_storage.rs:26:5
+   |
+26 | use lance_io::object_store::ObjectStoreParams;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::ops::Not`
+ --> src/search/ivf_metadata.rs:4:5
+  |
+4 | use std::ops::Not;
+  |     ^^^^^^^^^^^^^
+
+warning: unused import: `FixedSizeListArray`
+ --> src/search/ivf_metadata.rs:7:58
+  |
+7 | use arrow_array::{Float32Array, Int32Array, RecordBatch, FixedSizeListArray};
+  |                                                          ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `anyhow::Context`
+  --> src/search/ivf_metadata.rs:11:5
+   |
+11 | use anyhow::Context;
+   |     ^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::error::Error`
+  --> src/search/index_persistence.rs:10:5
+   |
+10 | use crate::error::Error;
+   |     ^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::embeddings::compression::CompressedEmbedding`
+ --> src/search/query_optimizer.rs:7:5
+  |
+7 | use crate::embeddings::compression::CompressedEmbedding;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::search::query_cache::QueryCache`
+ --> src/search/query_optimizer.rs:8:5
+  |
+8 | use crate::search::query_cache::QueryCache;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `CompressedSearchResult`
+ --> src/search/query_optimizer.rs:9:71
+  |
+9 | use crate::search::optimized_lancedb_storage::{OptimizedLanceStorage, CompressedSearchResult};
+  |                                                                       ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::collections::HashMap`
+  --> src/search/query_optimizer.rs:13:5
+   |
+13 | use std::collections::HashMap;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::processors::file_watcher::FileWatcher`
+ --> src/search/incremental_indexer.rs:6:5
+  |
+6 | use crate::processors::file_watcher::FileWatcher;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::collections::VecDeque`
+  --> src/search/incremental_indexer.rs:11:5
+   |
+11 | use std::collections::VecDeque;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `lance_index::scalar::FullTextSearchQuery`
+ --> src/search/hybrid_search.rs:7:5
+  |
+7 | use lance_index::scalar::FullTextSearchQuery;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::Table`
+  --> src/search/hybrid_search.rs:10:5
+   |
+10 | use crate::Table;
+   |     ^^^^^^^^^^^^
+
+warning: unused import: `SearchResult`
+ --> src/search/codebase_search_tool.rs:6:67
+  |
+6 | use crate::search::semantic_search_engine::{SemanticSearchEngine, SearchResult, SearchFilters};
+  |                                                                   ^^^^^^^^^^^^
+
+warning: unused import: `l2_norm`
+ --> src/optimization/exact_score.rs:5:49
+  |
+5 | use super::simd_ops::{dot_f32, dot_f32_blocked, l2_norm, compute_block_norms};
+  |                                                 ^^^^^^^
+
+warning: use of deprecated function `aws_config::load_from_env`: Use the `aws_config::load_defaults` function. If you don't care about future default behavior changes, you can continue to use this function by enabling the `behavior-version-latest` feature. Doing so will make this deprecation notice go away.
+   --> src/embeddings/service_factory.rs:366:34
+    |
+366 |         let config = aws_config::load_from_env().await;
+    |                                  ^^^^^^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated function `aws_config::from_env`: Use the `aws_config::defaults` function. If you don't care about future default behavior changes, you can continue to use this function by enabling the `behavior-version-latest` feature. Doing so will make this deprecation notice go away.
+   --> src/embeddings/service_factory.rs:379:34
+    |
+379 |         let config = aws_config::from_env()
+    |                                  ^^^^^^^^
+
+warning: use of deprecated function `base64::decode`: Use Engine::decode
+   --> src/embeddings/openai_compatible_embedder.rs:175:53
+    |
+175 | ...                   let bytes = base64::decode(base64_str).unwrap_or_default();
+    |                                           ^^^^^^
+
+warning: use of deprecated function `aws_config::from_env`: Use the `aws_config::defaults` function. If you don't care about future default behavior changes, you can continue to use this function by enabling the `behavior-version-latest` feature. Doing so will make this deprecation notice go away.
+   --> src/embeddings/aws_titan_production.rs:130:34
+    |
+130 |         let config = aws_config::from_env()
+    |                                  ^^^^^^^^
+
+warning: unused variable: `orchestrator`
+   --> src/database/code_index_manager.rs:301:21
+    |
+301 |         if let Some(orchestrator) = &self.orchestrator {
+    |                     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_orchestrator`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `state_manager`
+  --> src/index/orchestrator.rs:71:21
+   |
+71 |                 let state_manager = self.state_manager.clone();
+   |                     ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_state_manager`
+
+warning: unused variable: `file_paths`
+  --> src/index/orchestrator.rs:74:80
+   |
+74 |                 self.file_watcher.on_did_start_batch_processing(Box::new(move |file_paths| {
+   |                                                                                ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_file_paths`
+
+warning: unused variable: `path`
+   --> src/index/orchestrator.rs:424:9
+    |
+424 |         path: &Path,
+    |         ^^^^ help: if this is intentional, prefix it with an underscore: `_path`
+
+warning: unused variable: `on_batch_error`
+   --> src/index/orchestrator.rs:425:9
+    |
+425 |         on_batch_error: Box<dyn Fn(Error)>,
+    |         ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_on_batch_error`
+
+warning: unused variable: `on_blocks_indexed`
+   --> src/index/orchestrator.rs:426:9
+    |
+426 |         on_blocks_indexed: Box<dyn Fn(usize)>,
+    |         ^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_on_blocks_indexed`
+
+warning: unused variable: `on_file_parsed`
+   --> src/index/orchestrator.rs:427:9
+    |
+427 |         on_file_parsed: Box<dyn Fn(usize)>,
+    |         ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_on_file_parsed`
+
+warning: unused variable: `workspace_path`
+   --> src/query/codebase_search.rs:138:5
+    |
+138 |     workspace_path: &Path,
+    |     ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_workspace_path`
+
+warning: unused variable: `text`
+   --> src/query/codebase_search.rs:220:29
+    |
+220 | async fn generate_embedding(text: &str) -> Result<Vec<f32>> {
+    |                             ^^^^ help: if this is intentional, prefix it with an underscore: `_text`
+
+warning: unused variable: `directory`
+   --> src/processors/scanner.rs:590:21
+    |
+590 | async fn list_files(directory: &Path, recursive: bool, limit: usize) -> Result<Vec<PathBuf>> {
+    |                     ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_directory`
+
+warning: unused variable: `recursive`
+   --> src/processors/scanner.rs:590:39
+    |
+590 | async fn list_files(directory: &Path, recursive: bool, limit: usize) -> Result<Vec<PathBuf>> {
+    |                                       ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_recursive`
+
+warning: unused variable: `limit`
+   --> src/processors/scanner.rs:590:56
+    |
+590 | async fn list_files(directory: &Path, recursive: bool, limit: usize) -> Result<Vec<PathBuf>> {
+    |                                                        ^^^^^ help: if this is intentional, prefix it with an underscore: `_limit`
+
+warning: variable `last_error` is assigned to, but never used
+   --> src/processors/file_watcher.rs:349:29
+    |
+349 |                     let mut last_error = None;
+    |                             ^^^^^^^^^^
+    |
+    = note: consider using `_last_error` instead
+
+warning: value assigned to `last_error` is never read
+   --> src/processors/file_watcher.rs:355:33
+    |
+355 | ...                   last_error = Some(error);
+    |                       ^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+    = note: `#[warn(unused_assignments)]` on by default
+
+warning: value assigned to `processed_count` is never read
+   --> src/processors/file_watcher.rs:447:9
+    |
+447 |         processed_count = processed_count_after_files;
+    |         ^^^^^^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+
+warning: unused variable: `cst`
+  --> src/processors/lapce_integration.rs:41:13
+   |
+41 |         let cst = self.get_cst_from_mega_parser(path).await?;
+   |             ^^^ help: if this is intentional, prefix it with an underscore: `_cst`
+
+warning: unused variable: `path`
+  --> src/search/query_cache.rs:82:44
+   |
+82 |     pub async fn invalidate_by_path(&self, path: &str) {
+   |                                            ^^^^ help: if this is intentional, prefix it with an underscore: `_path`
+
+warning: unused variable: `column`
+   --> src/search/optimized_lancedb_storage.rs:350:9
+    |
+350 |         column: &str,
+    |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_column`
+
+warning: unused variable: `table`
+   --> src/search/optimized_lancedb_storage.rs:678:42
+    |
+678 |     pub async fn enable_mmap_mode(&self, table: &Arc<Table>) -> Result<()> {
+    |                                          ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `assignments`
+   --> src/search/ivf_metadata.rs:127:21
+    |
+127 |     let (centroids, assignments) = kmeans_lloyd(&sampled, num_lists, 25)?; // 25 iters
+    |                     ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_assignments`
+
+warning: unused variable: `watch_path`
+  --> src/search/incremental_indexer.rs:69:31
+   |
+69 |     pub async fn start(&self, watch_path: PathBuf) -> Result<()> {
+   |                               ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_watch_path`
+
+warning: unused variable: `change_buffer`
+  --> src/search/incremental_indexer.rs:71:13
+   |
+71 |         let change_buffer = self.change_buffer.clone();
+   |             ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_change_buffer`
+
+warning: unused variable: `code_indexer`
+  --> src/search/incremental_indexer.rs:72:13
+   |
+72 |         let code_indexer = self.code_indexer.clone();
+   |             ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_code_indexer`
+
+warning: unused variable: `query_cache`
+  --> src/search/incremental_indexer.rs:73:13
+   |
+73 |         let query_cache = self.query_cache.clone();
+   |             ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_query_cache`
+
+warning: unused variable: `rel_dir_path`
+  --> src/search/search_files_tool.rs:88:13
+   |
+88 |         let rel_dir_path = match rel_dir_path {
+   |             ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_rel_dir_path`
+
+warning: unused import: `futures::TryStreamExt`
+  --> src/search/semantic_search_engine.rs:11:5
+   |
+11 | use futures::TryStreamExt;
+   |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `snafu::ResultExt`
+  --> src/catalog/listing.rs:23:5
+   |
+23 | use snafu::ResultExt;
+   |     ^^^^^^^^^^^^^^^^
+
+warning: unused import: `futures::StreamExt`
+  --> src/search/optimized_lancedb_storage.rs:28:5
+   |
+28 | use futures::StreamExt;
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: unused variable: `orchestrator`
+   --> src/database/code_index_manager.rs:257:21
+    |
+257 |         if let Some(orchestrator) = &self.orchestrator {
+    |                     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_orchestrator`
+
+warning: unused variable: `state`
+   --> src/database/code_index_manager.rs:467:36
+    |
+467 |     pub fn set_system_state(&self, state: IndexingState, message: Option<String>) {
+    |                                    ^^^^^ help: if this is intentional, prefix it with an underscore: `_state`
+
+warning: unused variable: `message`
+   --> src/database/code_index_manager.rs:467:58
+    |
+467 |     pub fn set_system_state(&self, state: IndexingState, message: Option<String>) {
+    |                                                          ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_message`
+
+warning: variable `total_tokens` is assigned to, but never used
+   --> src/embeddings/service_factory.rs:401:17
+    |
+401 |         let mut total_tokens = 0;
+    |                 ^^^^^^^^^^^^
+    |
+    = note: consider using `_total_tokens` instead
+
+warning: unused variable: `provider`
+   --> src/embeddings/openai_embedder.rs:301:27
+    |
+301 | fn get_model_query_prefix(provider: &str, model: &str) -> Option<String> {
+    |                           ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_provider`
+
+warning: unused variable: `model`
+   --> src/embeddings/openai_embedder.rs:301:43
+    |
+301 | fn get_model_query_prefix(provider: &str, model: &str) -> Option<String> {
+    |                                           ^^^^^ help: if this is intentional, prefix it with an underscore: `_model`
+
+warning: unused variable: `metrics`
+   --> src/embeddings/aws_titan_production.rs:434:21
+    |
+434 |                 let metrics = self.get_metrics().await;
+    |                     ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_metrics`
+
+warning: unused variable: `state`
+   --> src/query/search_service.rs:200:36
+    |
+200 |     pub fn set_system_state(&self, state: IndexingState, message: Option<String>) {
+    |                                    ^^^^^ help: if this is intentional, prefix it with an underscore: `_state`
+
+warning: unused variable: `message`
+   --> src/query/search_service.rs:200:58
+    |
+200 |     pub fn set_system_state(&self, state: IndexingState, message: Option<String>) {
+    |                                                          ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_message`
+
+warning: value assigned to `chunk_start_line_index` is never read
+   --> src/processors/parser.rs:182:21
+    |
+182 |                     chunk_start_line_index = i;
+    |                     ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+
+warning: unused variable: `file_hash`
+   --> src/processors/parser.rs:107:9
+    |
+107 |         file_hash: &str,
+    |         ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_file_hash`
+
+warning: unused variable: `chunk_type`
+   --> src/processors/parser.rs:108:9
+    |
+108 |         chunk_type: &str,
+    |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_chunk_type`
+
+warning: unnecessary `unsafe` block
+   --> src/processors/cst_to_ast_pipeline.rs:307:26
+    |
+307 |             "rust" => Ok(unsafe { tree_sitter_rust::language() }),
+    |                          ^^^^^^ unnecessary `unsafe` block
+    |
+    = note: `#[warn(unused_unsafe)]` on by default
+
+warning: unnecessary `unsafe` block
+   --> src/processors/cst_to_ast_pipeline.rs:308:32
+    |
+308 |             "javascript" => Ok(unsafe { tree_sitter_javascript::language() }),
+    |                                ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+   --> src/processors/cst_to_ast_pipeline.rs:309:32
+    |
+309 |             "typescript" => Ok(unsafe { tree_sitter_typescript::language_typescript() }),
+    |                                ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+   --> src/processors/cst_to_ast_pipeline.rs:310:28
+    |
+310 |             "python" => Ok(unsafe { tree_sitter_python::language() }),
+    |                            ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+   --> src/processors/cst_to_ast_pipeline.rs:311:24
+    |
+311 |             "go" => Ok(unsafe { tree_sitter_go::language() }),
+    |                        ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+   --> src/processors/cst_to_ast_pipeline.rs:312:26
+    |
+312 |             "java" => Ok(unsafe { tree_sitter_java::language() }),
+    |                          ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+  --> src/processors/lapce_integration.rs:76:23
+   |
+76 |             "rust" => unsafe { tree_sitter_rust::language() },
+   |                       ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+  --> src/processors/lapce_integration.rs:77:29
+   |
+77 |             "javascript" => unsafe { tree_sitter_javascript::language() },
+   |                             ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+  --> src/processors/lapce_integration.rs:78:29
+   |
+78 |             "typescript" => unsafe { tree_sitter_typescript::language_typescript() },
+   |                             ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+  --> src/processors/lapce_integration.rs:79:25
+   |
+79 |             "python" => unsafe { tree_sitter_python::language() },
+   |                         ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+  --> src/processors/lapce_integration.rs:80:21
+   |
+80 |             "go" => unsafe { tree_sitter_go::language() },
+   |                     ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+  --> src/processors/lapce_integration.rs:81:23
+   |
+81 |             "java" => unsafe { tree_sitter_java::language() },
+   |                       ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `embedding`
+   --> src/search/optimized_lancedb_storage.rs:664:26
+    |
+664 |     fn lsh_filter(&self, embedding: &[f32], num_candidates: usize) -> Vec<usize> {
+    |                          ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_embedding`
+
+warning: unused variable: `table_name`
+   --> src/search/index_persistence.rs:208:36
+    |
+208 |     pub fn load_pq_codebook(&self, table_name: &str) -> Result<Vec<Vec<f32>>> {
+    |                                    ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_table_name`
+
+warning: unused variable: `table_name`
+   --> src/search/index_persistence.rs:227:36
+    |
+227 |     pub fn save_pq_codebook(&self, table_name: &str, codebook: &[Vec<f32>]) -> Result<()> {
+    |                                    ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_table_name`
+
+warning: type `CodebaseIndexConfigState` is more private than the item `ContextProxy::get_global_state`
+   --> src/database/config_manager.rs:546:5
+    |
+546 |     fn get_global_state(&self, key: &str) -> Option<CodebaseIndexConfigState>;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method `ContextProxy::get_global_state` is reachable at visibility `pub`
+    |
+note: but type `CodebaseIndexConfigState` is only usable at visibility `pub(self)`
+   --> src/database/config_manager.rs:531:1
+    |
+531 | struct CodebaseIndexConfigState {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: `#[warn(private_interfaces)]` on by default
+
+warning: type `IndexAction` is more private than the item `CodeIndexer::queue_file`
+   --> src/search/code_indexer.rs:176:5
+    |
+176 |     pub async fn queue_file(&self, path: PathBuf, action: IndexAction) {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method `CodeIndexer::queue_file` is reachable at visibility `pub`
+    |
+note: but type `IndexAction` is only usable at visibility `pub(self)`
+   --> src/search/code_indexer.rs:30:1
+    |
+30  | enum IndexAction {
+    | ^^^^^^^^^^^^^^^^
+
+warning: field `instances` is never read
+  --> src/database/code_index_manager.rs:26:5
+   |
+24 | pub struct CodeIndexManager {
+   |            ---------------- field in this struct
+25 |     // Line 22: Singleton instances map
+26 |     instances: Arc<Mutex<HashMap<PathBuf, Arc<CodeIndexManager>>>>,
+   |     ^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: field `compression_level` is never read
+   --> src/embeddings/compression.rs:247:5
+    |
+246 | pub struct BatchCompressor {
+    |            --------------- field in this struct
+247 |     compression_level: i32,
+    |     ^^^^^^^^^^^^^^^^^
+
+warning: method `predict_next_access` is never used
+   --> src/embeddings/mmap_storage.rs:388:8
+    |
+343 | impl ConcurrentMmapStorage {
+    | -------------------------- method in this implementation
+...
+388 |     fn predict_next_access(&self, current: &str) -> Option<String> {
+    |        ^^^^^^^^^^^^^^^^^^^
+
+warning: constant `PAGE_SIZE` is never used
+   --> src/embeddings/mmap_storage.rs:375:15
+    |
+375 |         const PAGE_SIZE: usize = 4096;
+    |               ^^^^^^^^^
+
+warning: struct `CacheEntry` is never constructed
+  --> src/embeddings/hierarchical_cache.rs:16:8
+   |
+16 | struct CacheEntry {
+   |        ^^^^^^^^^^
+
+warning: method `should_promote` is never used
+   --> src/embeddings/hierarchical_cache.rs:260:8
+    |
+119 | impl HierarchicalCache {
+    | ---------------------- method in this implementation
+...
+260 |     fn should_promote(&self, key: &str) -> bool {
+    |        ^^^^^^^^^^^^^^
+
+warning: method `process_single_text` is never used
+   --> src/embeddings/optimized_embedder_wrapper.rs:127:14
+    |
+94  | impl OptimizedEmbedderWrapper {
+    | ----------------------------- method in this implementation
+...
+127 |     async fn process_single_text(&self, text: &str) -> anyhow::Result<Vec<f32>> {
+    |              ^^^^^^^^^^^^^^^^^^^
+
+warning: field `model` is never read
+   --> src/embeddings/service_factory.rs:360:5
+    |
+355 | pub struct AwsTitanEmbedder {
+    |            ---------------- field in this struct
+...
+360 |     model: String, // fallback type when bedrock feature is disabled
+    |     ^^^^^
+
+warning: fields `workspace_path`, `url`, `vector_size`, and `api_key` are never read
+   --> src/embeddings/service_factory.rs:462:5
+    |
+461 | pub struct LanceDbVectorStore {
+    |            ------------------ fields in this struct
+462 |     workspace_path: PathBuf,
+    |     ^^^^^^^^^^^^^^
+463 |     url: String,
+    |     ^^^
+464 |     vector_size: usize,
+    |     ^^^^^^^^^^^
+465 |     api_key: Option<String>,
+    |     ^^^^^^^
+
+warning: fields `embedder`, `vector_store`, `parser`, `cache_manager`, and `ignore_instance` are never read
+   --> src/embeddings/service_factory.rs:515:5
+    |
+514 | pub struct DirectoryScanner {
+    |            ---------------- fields in this struct
+515 |     embedder: Arc<dyn IEmbedder>,
+    |     ^^^^^^^^
+516 |     vector_store: Arc<dyn IVectorStore>,
+    |     ^^^^^^^^^^^^
+517 |     parser: Arc<dyn ICodeParser>,
+    |     ^^^^^^
+518 |     cache_manager: Arc<CacheManager>,
+    |     ^^^^^^^^^^^^^
+519 |     ignore_instance: Arc<dyn Ignore>,
+    |     ^^^^^^^^^^^^^^^
+
+warning: multiple fields are never read
+   --> src/embeddings/service_factory.rs:542:5
+    |
+541 | pub struct FileWatcher {
+    |            ----------- fields in this struct
+542 |     workspace_path: PathBuf,
+    |     ^^^^^^^^^^^^^^
+543 |     context: Arc<dyn std::any::Any + Send + Sync>,
+    |     ^^^^^^^
+544 |     cache_manager: Arc<CacheManager>,
+    |     ^^^^^^^^^^^^^
+545 |     embedder: Arc<dyn IEmbedder>,
+    |     ^^^^^^^^
+546 |     vector_store: Arc<dyn IVectorStore>,
+    |     ^^^^^^^^^^^^
+547 |     ignore_instance: Arc<dyn Ignore>,
+    |     ^^^^^^^^^^^^^^^
+548 |     roo_ignore_controller: Option<Arc<RooIgnoreController>>,
+    |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `extra` is never read
+  --> src/embeddings/openai_compatible_embedder.rs:24:5
+   |
+21 | struct EmbeddingItem {
+   |        ------------- field in this struct
+...
+24 |     extra: serde_json::Map<String, serde_json::Value>,
+   |     ^^^^^
+   |
+   = note: `EmbeddingItem` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: method `max_tokens_per_minute` is never used
+  --> src/embeddings/aws_titan_production.rs:33:8
+   |
+23 | impl AwsTier {
+   | ------------ method in this implementation
+...
+33 |     fn max_tokens_per_minute(&self) -> usize {
+   |        ^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `text_hash` is never read
+  --> src/embeddings/aws_titan_production.rs:56:5
+   |
+54 | struct CachedEmbedding {
+   |        --------------- field in this struct
+55 |     embedding: Vec<f32>,
+56 |     text_hash: u64,
+   |     ^^^^^^^^^
+   |
+   = note: `CachedEmbedding` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: variants `BatchStart`, `BatchProgress`, and `BatchFinish` are never constructed
+   --> src/index/orchestrator.rs:395:5
+    |
+394 | enum WatcherSubscription {
+    |      ------------------- variants in this enum
+395 |     BatchStart,
+    |     ^^^^^^^^^^
+396 |     BatchProgress,
+    |     ^^^^^^^^^^^^^
+397 |     BatchFinish,
+    |     ^^^^^^^^^^^
+    |
+    = note: `WatcherSubscription` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: field `directory` is never read
+   --> src/processors/scanner.rs:570:5
+    |
+569 | struct RooIgnoreController {
+    |        ------------------- field in this struct
+570 |     directory: PathBuf,
+    |     ^^^^^^^^^
+
+warning: constant `QDRANT_CODE_BLOCK_NAMESPACE` is never used
+  --> src/processors/file_watcher.rs:20:7
+   |
+20 | const QDRANT_CODE_BLOCK_NAMESPACE: Uuid = Uuid::from_u128(0x12345678_1234_5678_1234_567812345678);
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MAX_FILE_SIZE_BYTES` is never used
+  --> src/processors/file_watcher.rs:21:7
+   |
+21 | const MAX_FILE_SIZE_BYTES: u64 = 10 * 1024 * 1024;
+   |       ^^^^^^^^^^^^^^^^^^^
+
+warning: constant `BATCH_SEGMENT_THRESHOLD` is never used
+  --> src/processors/file_watcher.rs:22:7
+   |
+22 | const BATCH_SEGMENT_THRESHOLD: usize = 100;
+   |       ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MAX_BATCH_RETRIES` is never used
+  --> src/processors/file_watcher.rs:23:7
+   |
+23 | const MAX_BATCH_RETRIES: usize = 3;
+   |       ^^^^^^^^^^^^^^^^^
+
+warning: constant `INITIAL_RETRY_DELAY_MS` is never used
+  --> src/processors/file_watcher.rs:24:7
+   |
+24 | const INITIAL_RETRY_DELAY_MS: u64 = 1000;
+   |       ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `BATCH_DEBOUNCE_DELAY_MS` is never used
+  --> src/processors/file_watcher.rs:25:7
+   |
+25 | const BATCH_DEBOUNCE_DELAY_MS: u64 = 500;
+   |       ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `FILE_PROCESSING_CONCURRENCY_LIMIT` is never used
+  --> src/processors/file_watcher.rs:26:7
+   |
+26 | const FILE_PROCESSING_CONCURRENCY_LIMIT: usize = 10;
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: multiple fields are never read
+  --> src/processors/file_watcher.rs:30:5
+   |
+29 | pub struct FileWatcher {
+   |            ----------- fields in this struct
+30 |     workspace_path: PathBuf,
+   |     ^^^^^^^^^^^^^^
+31 |     context: Arc<dyn std::any::Any + Send + Sync>,
+   |     ^^^^^^^
+32 |     cache_manager: Arc<dyn ICacheManager>,
+   |     ^^^^^^^^^^^^^
+33 |     embedder: Option<Arc<dyn IEmbedder>>,
+   |     ^^^^^^^^
+34 |     vector_store: Option<Arc<dyn IVectorStore>>,
+   |     ^^^^^^^^^^^^
+35 |     ignore_instance: Option<Arc<dyn Ignore>>,
+   |     ^^^^^^^^^^^^^^^
+36 |     ignore_controller: Option<Arc<RooIgnoreController>>,
+   |     ^^^^^^^^^^^^^^^^^
+
+warning: fields `path` and `event_type` are never read
+  --> src/processors/file_watcher.rs:45:5
+   |
+44 | struct FileEvent {
+   |        --------- fields in this struct
+45 |     path: PathBuf,
+   |     ^^^^
+46 |     event_type: FileEventType,
+   |     ^^^^^^^^^^
+   |
+   = note: `FileEvent` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: variants `Create`, `Change`, and `Delete` are never constructed
+  --> src/processors/file_watcher.rs:51:5
+   |
+50 | enum FileEventType {
+   |      ------------- variants in this enum
+51 |     Create,
+   |     ^^^^^^
+52 |     Change,
+   |     ^^^^^^
+53 |     Delete,
+   |     ^^^^^^
+   |
+   = note: `FileEventType` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: multiple methods are never used
+   --> src/processors/file_watcher.rs:103:14
+    |
+56  | impl FileWatcher {
+    | ---------------- methods in this implementation
+...
+103 |     async fn handle_file_created(&self, path: PathBuf) {
+    |              ^^^^^^^^^^^^^^^^^^^
+...
+115 |     async fn handle_file_changed(&self, path: PathBuf) {
+    |              ^^^^^^^^^^^^^^^^^^^
+...
+127 |     async fn handle_file_deleted(&self, path: PathBuf) {
+    |              ^^^^^^^^^^^^^^^^^^^
+...
+139 |     async fn schedule_batch_processing(&self) {
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+146 |     async fn trigger_batch_processing(&self) {
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^
+...
+167 |     async fn handle_batch_deletions(
+    |              ^^^^^^^^^^^^^^^^^^^^^^
+...
+245 |     async fn process_files_and_prepare_upserts(
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+335 |     async fn execute_batch_upsert_operations(
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+408 |     async fn process_batch(&self, events: HashMap<PathBuf, FileEvent>) {
+    |              ^^^^^^^^^^^^^
+...
+465 |     async fn process_file(&self, path: &Path) -> Result<FileProcessingResult> {
+    |              ^^^^^^^^^^^^
+
+warning: struct `ProcessedFile` is never constructed
+   --> src/processors/file_watcher.rs:598:8
+    |
+598 | struct ProcessedFile {
+    |        ^^^^^^^^^^^^^
+
+warning: field `directory` is never read
+   --> src/processors/file_watcher.rs:610:5
+    |
+609 | pub struct RooIgnoreController {
+    |            ------------------- field in this struct
+610 |     directory: PathBuf,
+    |     ^^^^^^^^^
+
+warning: field `mega_parser_path` is never read
+  --> src/processors/lapce_integration.rs:15:5
+   |
+13 | pub struct LapceTreeSitterBridge {
+   |            --------------------- field in this struct
+14 |     /// Reference to lapce-tree-sitter's MegaParser
+15 |     mega_parser_path: PathBuf,
+   |     ^^^^^^^^^^^^^^^^
+
+warning: field `config` is never read
+  --> src/search/semantic_search_engine.rs:73:5
+   |
+55 | pub struct SemanticSearchEngine {
+   |            -------------------- field in this struct
+...
+73 |     config: SearchConfig,
+   |     ^^^^^^
+
+warning: variants `Add`, `Update`, and `Delete` are never constructed
+  --> src/search/code_indexer.rs:31:5
+   |
+30 | enum IndexAction {
+   |      ----------- variants in this enum
+31 |     Add,
+   |     ^^^
+32 |     Update,
+   |     ^^^^^^
+33 |     Delete,
+   |     ^^^^^^
+   |
+   = note: `IndexAction` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: method `lsh_filter` is never used
+   --> src/search/optimized_lancedb_storage.rs:664:8
+    |
+121 | impl OptimizedLanceStorage {
+    | -------------------------- method in this implementation
+...
+664 |     fn lsh_filter(&self, embedding: &[f32], num_candidates: usize) -> Vec<usize> {
+    |        ^^^^^^^^^^
+
+warning: `lancedb` (lib) generated 138 warnings (run `cargo fix --lib -p lancedb` to apply 44 suggestions)
+   Compiling lancedb v0.22.1-beta.1 (/home/verma/lapce/lapce-ai-rust/lancedb)
+warning: unused variable: `warm_results`
+   --> tests/aws_titan_persistent_test.rs:170:13
+    |
+170 |         let warm_results = storage.query_compressed(&table, &query_embedding, 5).await.unwrap();
+    |             ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_warm_results`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `results`
+   --> tests/aws_titan_persistent_test.rs:222:17
+    |
+222 |             let results = storage.query_compressed(&table, &query_embedding, 5).await.unwrap();
+    |                 ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_results`
+
+warning: unused variable: `idx`
+   --> tests/aws_titan_persistent_test.rs:274:14
+    |
+274 |         for (idx, query_text) in query_texts.iter().enumerate() {
+    |              ^^^ help: if this is intentional, prefix it with an underscore: `_idx`
+
+warning: unused variable: `cold_results`
+   --> tests/aws_titan_persistent_test.rs:282:17
+    |
+282 |             let cold_results = storage.query_compressed(&table, query_vec, 5).await.unwrap();
+    |                 ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_cold_results`
+
+warning: unused variable: `warm_results`
+   --> tests/aws_titan_persistent_test.rs:287:17
+    |
+287 |             let warm_results = storage.query_compressed(&table, query_vec, 5).await.unwrap();
+    |                 ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_warm_results`
+
+warning: `lancedb` (test "aws_titan_persistent_test") generated 5 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 45s
+     Running tests/aws_titan_persistent_test.rs (target/debug/deps/aws_titan_persistent_test-f7c8769ebc13fd36)
+
+running 1 test
+
+🚀 AWS TITAN + PERSISTENT INDEX PERFORMANCE TEST
+================================================
+Testing:
+  • Persistent index reuse (eliminate rebuild)
+  • Query cache hit rates
+  • Cold vs warm query latency
+  • Real AWS Titan embeddings (1536-dim)
+  • 0% quality loss verification
+
+🔐 Initializing AWS Titan...
+✅ Connected: AWS Bedrock Titan configured (Tier: Standard, Cache: 0 entries)
+
+📁 Collecting source files...
+   Found 11 files
+
+🧠 PHASE 1: GENERATING EMBEDDINGS
+==================================
+📦 Processing batch 1/3
+   ✅ 3 embeddings in 1.58517557s
+📦 Processing batch 2/3
+   ✅ 5 embeddings in 2.772714804s
+📦 Processing batch 3/3
+   ✅ 1 embeddings in 540.548853ms
+
+📊 Generated 9 embeddings
+
+📝 PHASE 2: INITIAL INDEX CREATION
+==================================
+🔍 Generating query embedding: "optimized search implementation with caching"
+
+thread 'test_aws_titan_persistent_performance' panicked at tests/aws_titan_persistent_test.rs:158:54:
+called `Result::unwrap()` on an `Err` value: Runtime { message: "Failed to create IVF_PQ index: lance error: LanceError(Index): KMeans: can not train 16 centroids with 9 vectors, choose a smaller K (< 9) instead, /home/verma/.cargo/git/checkouts/lance-8cdf2ec69b3663b6/e842a8f/rust/lance-index/src/vector/kmeans.rs:893:21" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test test_aws_titan_persistent_performance ... FAILED
+
+failures:
+
+failures:
+    test_aws_titan_persistent_performance
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.50s
+
+error: test failed, to rerun pass `--test aws_titan_persistent_test`

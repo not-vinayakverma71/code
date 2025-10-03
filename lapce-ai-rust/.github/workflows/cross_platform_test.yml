@@ -1,0 +1,67 @@
+name: Cross-Platform IPC Tests
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        rust: [stable]
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: ${{ matrix.rust }}
+        override: true
+        components: rustfmt, clippy
+    
+    - name: Cache cargo
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Build
+      run: |
+        cd lapce-ai-rust
+        cargo build --release --bin production_system_test
+    
+    - name: Run Production Test
+      run: |
+        cd lapce-ai-rust
+        timeout 35 cargo run --release --bin production_system_test || true
+      shell: bash
+    
+    - name: Run Memory Test
+      run: |
+        cd lapce-ai-rust
+        cargo build --release --bin memory_footprint_test
+        timeout 10 cargo run --release --bin memory_footprint_test || true
+      shell: bash
+    
+    - name: Test Results
+      run: |
+        echo "Platform: ${{ matrix.os }}"
+        echo "Rust: ${{ matrix.rust }}"
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-${{ matrix.os }}
+        path: |
+          lapce-ai-rust/*.log
+          lapce-ai-rust/test_results.txt

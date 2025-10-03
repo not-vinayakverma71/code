@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package ipc;
+
+service IpcService {
+    rpc Write(WriteRequest) returns (WriteResponse);
+    rpc Read(ReadRequest) returns (ReadResponse);
+    rpc CacheGet(CacheGetRequest) returns (CacheGetResponse);
+    rpc CacheSet(CacheSetRequest) returns (CacheSetResponse);
+    rpc VectorSearch(SearchRequest) returns (SearchResponse);
+}
+
+message WriteRequest {
+    bytes data = 1;
+}
+
+message WriteResponse {
+    bool success = 1;
+}
+
+message ReadRequest {}
+
+message ReadResponse {
+    bytes data = 1;
+}
+
+message CacheGetRequest {
+    string key = 1;
+}
+
+message CacheGetResponse {
+    bool found = 1;
+    bytes value = 2;
+}
+
+message CacheSetRequest {
+    string key = 1;
+    bytes value = 2;
+}
+
+message CacheSetResponse {
+    bool success = 1;
+}
+
+message SearchRequest {
+    repeated float query_vector = 1;
+    int32 top_k = 2;
+}
+
+message SearchResponse {
+    repeated SearchResult results = 1;
+}
+
+message SearchResult {
+    int32 id = 1;
+    float score = 2;
+    string metadata = 3;
+}

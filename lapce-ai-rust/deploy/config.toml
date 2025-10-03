@@ -1,0 +1,90 @@
+# Production configuration for lapce-ai-rust IPC server
+# Place in /etc/lapce-ai/config.toml
+
+# IPC Configuration
+socket_path = "/var/run/lapce-ai/ipc.sock"
+max_connections = 1000
+idle_timeout_secs = 300
+max_message_size = 10485760  # 10MB
+buffer_pool_size = 100
+
+# Performance Tuning
+enable_compression = true
+compression_threshold = 1024
+rate_limit_per_second = 10000
+
+# Metrics & Monitoring
+enable_metrics = true
+metrics_port = 9090
+
+# TLS Configuration (optional)
+enable_tls = false
+# tls_cert_path = "/etc/lapce-ai/certs/server.crt"
+# tls_key_path = "/etc/lapce-ai/certs/server.key"
+
+# Provider Configuration
+[[providers]]
+name = "openai"
+enabled = true
+api_key = "${OPENAI_API_KEY}"  # Use environment variable
+default_model = "gpt-4-turbo-preview"
+max_retries = 3
+timeout_secs = 30
+rate_limit_per_minute = 500
+
+[[providers]]
+name = "anthropic"
+enabled = true
+api_key = "${ANTHROPIC_API_KEY}"
+default_model = "claude-3-opus-20240229"
+max_retries = 3
+timeout_secs = 30
+rate_limit_per_minute = 100
+
+[[providers]]
+name = "gemini"
+enabled = false
+api_key = "${GOOGLE_API_KEY}"
+default_model = "gemini-pro"
+max_retries = 3
+timeout_secs = 30
+
+[[providers]]
+name = "groq"
+enabled = false
+api_key = "${GROQ_API_KEY}"
+default_model = "mixtral-8x7b-32768"
+max_retries = 3
+timeout_secs = 20
+rate_limit_per_minute = 30
+
+[[providers]]
+name = "ollama"
+enabled = false
+base_url = "http://localhost:11434"
+default_model = "llama2"
+max_retries = 2
+timeout_secs = 60
+
+[[providers]]
+name = "mistral"
+enabled = false
+api_key = "${MISTRAL_API_KEY}"
+default_model = "mistral-large"
+max_retries = 3
+timeout_secs = 30
+
+[[providers]]
+name = "deepseek"
+enabled = false
+api_key = "${DEEPSEEK_API_KEY}"
+default_model = "deepseek-coder"
+max_retries = 3
+timeout_secs = 30
+
+# Provider Pool Configuration
+fallback_enabled = true
+fallback_order = ["openai", "anthropic", "gemini"]
+load_balance = false
+circuit_breaker_enabled = true
+circuit_breaker_threshold = 5

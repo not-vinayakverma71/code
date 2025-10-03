@@ -1,0 +1,87 @@
+# Production Configuration for Lapce AI IPC Server
+
+[ipc]
+socket_path = "/tmp/lapce-ai.sock"
+max_connections = 1000
+idle_timeout_secs = 300
+max_message_size = 10485760  # 10MB
+buffer_pool_size = 100
+connection_pool_max_idle = 500
+
+[shared_memory]
+slot_size = 1024  # 1KB per slot
+num_slots = 1024  # 1024 slots = 1MB total
+permissions = 0o600  # Owner read/write only
+
+[metrics]
+enable = true
+export_interval_secs = 60
+export_path = "/metrics"
+retention_hours = 24
+
+[monitoring]
+health_check_enabled = true
+health_check_port = 9090
+health_check_path = "/health"
+prometheus_enabled = true
+prometheus_port = 9091
+grafana_dashboard_path = "./dashboards"
+
+[reconnection]
+strategy = "exponential"  # "exponential", "linear", or "fixed"
+initial_delay_ms = 100
+max_delay_ms = 5000
+multiplier = 2.0
+max_retries = 10
+health_check_interval_secs = 30
+
+[providers.openai]
+enabled = true
+api_key = "${OPENAI_API_KEY}"
+base_url = "https://api.openai.com/v1"
+default_model = "gpt-4-turbo-preview"
+max_retries = 3
+timeout_secs = 30
+rate_limit_per_minute = 500
+
+[providers.anthropic]
+enabled = true
+api_key = "${ANTHROPIC_API_KEY}"
+base_url = "https://api.anthropic.com"
+default_model = "claude-3-opus"
+max_retries = 3
+timeout_secs = 30
+rate_limit_per_minute = 100
+
+[providers.gemini]
+enabled = true
+api_key = "${GEMINI_API_KEY}"
+base_url = "https://generativelanguage.googleapis.com"
+default_model = "gemini-pro"
+max_retries = 3
+timeout_secs = 30
+rate_limit_per_minute = 200
+
+[logging]
+level = "info"  # "trace", "debug", "info", "warn", "error"
+format = "json"  # "json" or "text"
+output = "stdout"  # "stdout", "file", or path to file
+rotation_size_mb = 100
+max_backups = 10
+
+[performance]
+zero_copy = true
+buffer_reuse = true
+connection_pooling = true
+cache_enabled = true
+cache_size_mb = 100
+cache_ttl_secs = 3600
+
+[security]
+tls_enabled = false
+tls_cert_path = ""
+tls_key_path = ""
+auth_enabled = false
+auth_token = ""
+rate_limiting = true
+max_requests_per_minute = 10000

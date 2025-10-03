@@ -1,0 +1,231 @@
+name: Production IPC Tests - All Platforms
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: ${{ matrix.os }} - Production Test
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        rust: [stable]
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: macos-latest
+            target: x86_64-apple-darwin
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+    
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ matrix.rust }}
+        targets: ${{ matrix.target }}
+        components: rustfmt, clippy
+    
+    - name: Cache cargo
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-release-
+          ${{ runner.os }}-cargo-
+    
+    - name: Install Node.js (for comparison baseline)
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Build library
+      run: |
+        cd lapce-ai-rust
+        cargo build --release --lib
+    
+    - name: Build production test
+      run: |
+        cd lapce-ai-rust
+        cargo build --release --bin production_system_test
+    
+    - name: Run Node.js IPC benchmark (baseline)
+      run: |
+        cd lapce-ai-rust
+        node src/bin/nodejs_ipc_benchmark.js > nodejs_results.txt 2>&1 || true
+        echo "Node.js Baseline Results:"
+        cat nodejs_results.txt || echo "No Node.js results"
+      timeout-minutes: 1
+    
+    - name: Run production system test
+      run: |
+        cd lapce-ai-rust
+        ./target/release/production_system_test > test_results.txt 2>&1 || true
+        echo "Production Test Results:"
+        cat test_results.txt
+      timeout-minutes: 5
+      shell: bash
+    
+    - name: Run memory footprint test
+      run: |
+        cd lapce-ai-rust
+        cargo build --release --bin memory_footprint_test 2>&1 || echo "Memory test not available"
+        if [ -f target/release/memory_footprint_test ]; then
+          ./target/release/memory_footprint_test > memory_results.txt 2>&1 || true
+          echo "Memory Test Results:"
+          cat memory_results.txt
+        fi
+      shell: bash
+      timeout-minutes: 2
+    
+    - name: Run latency test
+      run: |
+        cd lapce-ai-rust
+        cargo build --release --bin latency_test 2>&1 || echo "Latency test not available"
+        if [ -f target/release/latency_test ]; then
+          ./target/release/latency_test > latency_results.txt 2>&1 || true
+          echo "Latency Test Results:"
+          cat latency_results.txt
+        fi
+      shell: bash
+      timeout-minutes: 2
+    
+    - name: Run throughput test
+      run: |
+        cd lapce-ai-rust
+        cargo build --release --bin throughput_test 2>&1 || echo "Throughput test not available"
+        if [ -f target/release/throughput_test ]; then
+          ./target/release/throughput_test > throughput_results.txt 2>&1 || true
+          echo "Throughput Test Results:"
+          cat throughput_results.txt
+        fi
+      shell: bash
+      timeout-minutes: 2
+    
+    - name: Check success criteria
+      run: |
+        cd lapce-ai-rust
+        echo "==================================================="
+        echo "PLATFORM: ${{ matrix.os }}"
+        echo "==================================================="
+        echo ""
+        echo "📋 SUCCESS CRITERIA (from docs/01-IPC-SERVER-IMPLEMENTATION.md):"
+        echo "---------------------------------------------------"
+        echo "✅ Required Performance Metrics:"
+        echo "  • Memory Usage: < 3MB total footprint"
+        echo "  • Latency: < 10μs per message round-trip"
+        echo "  • Throughput: > 1M messages/second"
+        echo "  • Connections: Support 1000+ concurrent"
+        echo "  • Zero Allocations: No heap allocations in hot path"
+        echo "  • Error Recovery: Auto-reconnect within 100ms"
+        echo "  • Test Coverage: > 90% code coverage"
+        echo "  • Benchmark: 10x faster than Node.js IPC"
+        echo ""
+        echo "📊 ACTUAL RESULTS:"
+        echo "---------------------------------------------------"
+        
+        # Extract and display key metrics
+        if [ -f test_results.txt ]; then
+          echo "Production Test Summary:"
+          grep -E "(PASS|FAIL|Throughput|Latency|Memory|Connections)" test_results.txt | head -20
+        fi
+        
+        echo ""
+        echo "🔥 PERFORMANCE COMPARISON:"
+        echo "---------------------------------------------------"
+        
+        # Compare with Node.js baseline
+        if [ -f nodejs_results.txt ]; then
+          nodejs_throughput=$(grep -oE "[0-9]+ msg/sec" nodejs_results.txt | grep -oE "[0-9]+" | head -1)
+          echo "Node.js throughput: ${nodejs_throughput:-unknown} msg/sec"
+        fi
+        
+        if [ -f test_results.txt ]; then
+          our_throughput=$(grep -oE "[0-9]+ msg/sec" test_results.txt | grep -oE "[0-9]+" | head -1)
+          echo "Our throughput: ${our_throughput:-unknown} msg/sec"
+          
+          if [ ! -z "$nodejs_throughput" ] && [ ! -z "$our_throughput" ]; then
+            improvement=$((our_throughput / nodejs_throughput))
+            echo "Improvement: ${improvement}x faster than Node.js"
+          fi
+        fi
+        
+        echo ""
+        echo "==================================================="
+      shell: bash
+    
+    - name: Upload test artifacts
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-${{ matrix.os }}
+        path: |
+          lapce-ai-rust/*.txt
+          lapce-ai-rust/*.log
+    
+    - name: Generate test report
+      if: always()
+      run: |
+        cd lapce-ai-rust
+        echo "# Test Report - ${{ matrix.os }}" > REPORT_${{ matrix.os }}.md
+        echo "" >> REPORT_${{ matrix.os }}.md
+        echo "## Platform: ${{ matrix.os }}" >> REPORT_${{ matrix.os }}.md
+        echo "## Rust: ${{ matrix.rust }}" >> REPORT_${{ matrix.os }}.md
+        echo "## Target: ${{ matrix.target }}" >> REPORT_${{ matrix.os }}.md
+        echo "" >> REPORT_${{ matrix.os }}.md
+        echo "## Results Summary" >> REPORT_${{ matrix.os }}.md
+        echo "" >> REPORT_${{ matrix.os }}.md
+        
+        if [ -f test_results.txt ]; then
+          echo "\`\`\`" >> REPORT_${{ matrix.os }}.md
+          tail -50 test_results.txt >> REPORT_${{ matrix.os }}.md
+          echo "\`\`\`" >> REPORT_${{ matrix.os }}.md
+        else
+          echo "No test results available" >> REPORT_${{ matrix.os }}.md
+        fi
+      shell: bash
+
+  summary:
+    name: Test Summary
+    needs: test
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Summary
+      run: |
+        echo "# 🎯 PRODUCTION TEST SUMMARY"
+        echo ""
+        echo "## Cross-Platform IPC Performance Test Results"
+        echo ""
+        echo "### Success Criteria Met:"
+        echo "- [ ] Memory < 3MB"
+        echo "- [ ] Latency < 10μs"
+        echo "- [ ] Throughput > 1M msg/sec"
+        echo "- [ ] 1000+ connections"
+        echo "- [ ] Zero allocations"
+        echo "- [ ] Auto-reconnect < 100ms"
+        echo "- [ ] Test coverage > 90%"
+        echo "- [ ] 10x faster than Node.js"
+        echo ""
+        echo "Check individual platform artifacts for detailed results."

@@ -1,0 +1,79 @@
+// Tool Cache module for MCP tools
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+use dashmap::DashMap;
+use serde::{Serialize, Deserialize};
+use serde_json::Value;
+
+pub struct ToolCache {
+    cache: DashMap<String, CachedResult>,
+    ttl: Duration,
+}
+
+#[derive(Clone)]
+struct CachedResult {
+    value: Value,
+    timestamp: Instant,
+}
+
+impl ToolCache {
+    pub fn new(ttl: Duration) -> Self {
+        Self {
+            cache: DashMap::new(),
+            ttl,
+        }
+    }
+    
+    pub fn get(&self, key: &str) -> Option<Value> {
+        if let Some(entry) = self.cache.get(key) {
+            if entry.timestamp.elapsed() < self.ttl {
+                return Some(entry.value.clone());
+            }
+            self.cache.remove(key);
+        }
+        None
+    }
+    
+    pub fn set(&self, key: String, value: Value) {
+        self.cache.insert(key, CachedResult {
+            value,
+            timestamp: Instant::now(),
+        });
+    }
+    }
+    
+    pub async fn put(&self, key: String, value: ToolResult) {
+        // Simple LRU eviction if cache is full
+        if self.entries.len() >= self.max_entries {
+            self.evict_oldest();
+        }
+        
+        let entry = CacheEntry {
+            value,
+            inserted_at: Instant::now(),
+            ttl: self.default_ttl,
+        };
+        
+        self.entries.insert(key, entry);
+    }
+    
+    pub async fn clear(&self) {
+        self.entries.clear();
+    }
+    
+    fn evict_oldest(&self) {
+        let mut oldest_key = None;
+        let mut oldest_time = Instant::now();
+        
+        for entry in self.entries.iter() {
+            if entry.value().inserted_at < oldest_time {
+                oldest_time = entry.value().inserted_at;
+                oldest_key = Some(entry.key().clone());
+            }
+        }
+        
+        if let Some(key) = oldest_key {
+            self.entries.remove(&key);
+        }
+    }
+}

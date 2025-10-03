@@ -1,0 +1,18 @@
+{
+  "aws_api_time_sec": 97.322954451,
+  "cold_avg_sec": 3.115924319,
+  "cold_p50_sec": 3.402775468,
+  "cold_p95_sec": 3.876031611,
+  "elapsed_total_sec": 139.300858511,
+  "files_indexed": 100,
+  "index_throughput_fps": 0.8116654021622197,
+  "index_time_sec": 123.203477361,
+  "memory_after_mb": 70.4296875,
+  "memory_before_mb": 36.375,
+  "memory_used_mb": 34.0546875,
+  "run_dir": "runs/aws_100_files/index/20250929_160203",
+  "total_source_mb": 1.9243345260620117,
+  "warm_avg_ms": 0.014283,
+  "warm_p50_ms": 0.012778000000000001,
+  "warm_p95_ms": 0.021122
+}
