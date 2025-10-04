@@ -20,7 +20,7 @@ name = "lapce-proxy"
 path = "lapce-proxy/src/bin/lapce-proxy.rs"
 
 [workspace]
-members = ["lapce-app", "lapce-proxy", "lapce-rpc", "lapce-core"]
+members = ["lapce-app", "lapce-proxy", "lapce-rpc", "lapce-core", "syntax_test"]
 
 [workspace.package]
 version      = "0.4.5"
@@ -118,6 +118,10 @@ rev = "cacdb5bb3b72bad2c729227537979d95af75978f"
 [workspace.dependencies.windows-sys]
 version  = "0"
 features = ["Win32_Foundation"]
+
+[profile.release]
+opt-level = 3
+debug = false
 
 [profile.release-lto]
 inherits      = "release"
