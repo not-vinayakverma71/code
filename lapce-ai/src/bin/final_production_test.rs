@@ -304,11 +304,15 @@ async fn test_memory_footprint(results: &mut TestResults) {
     tokio::time::sleep(Duration::from_millis(100)).await;
     system.refresh_all();
     if let Some(process) = system.process(pid) {
-        results.memory_peak_mb = process.memory() as f64 / 1024.0 / 1024.0;
+        results.memory_peak_mb.store((process.memory() as f64 / 1024.0 / 1024.0) as u64, Ordering::Relaxed);
     }
     
-    results.memory_overhead_mb = results.memory_peak_mb - results.memory_baseline_mb;
-    println!("   ✅ Memory Overhead: {:.2} MB", results.memory_overhead_mb);
+    results.memory_overhead_mb.store(
+        (results.memory_peak_mb.load(Ordering::Relaxed) as f64 - 
+         results.memory_baseline_mb.load(Ordering::Relaxed) as f64) as u64,
+        Ordering::Relaxed
+    );
+    println!("   ✅ Memory Overhead: {:.2} MB", results.memory_overhead_mb.load(Ordering::Relaxed));
 }
 
 async fn test_reconnection(results: Arc<TestResults>) {

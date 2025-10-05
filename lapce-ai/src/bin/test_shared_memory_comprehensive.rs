@@ -3,7 +3,7 @@ use anyhow::Result;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use std::thread;
-use lapce_ai_rust::optimized_shared_memory::OptimizedSharedMemory;
+use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer;
 use sysinfo::{System, Pid, ProcessRefreshKind};
 
 #[tokio::main]
@@ -173,7 +173,7 @@ fn profile_memory_usage() -> Result<()> {
     println!("\n💾 Profiling memory usage...");
     
     let mut system = System::new();
-    system.refresh_processes(sysinfo::ProcessesToUpdate::All);
+    system.refresh_processes();
     let pid = Pid::from(std::process::id() as usize);
     let initial_memory = system.process(pid)
         .map(|p| p.memory())
@@ -185,7 +185,7 @@ fn profile_memory_usage() -> Result<()> {
         instances.push(OptimizedSharedMemory::create(&format!("test_mem_{}", i), 1024 * 1024)?);
     }
     
-    system.refresh_processes(sysinfo::ProcessesToUpdate::All);
+    system.refresh_processes();
     let final_memory = system.process(pid)
         .map(|p| p.memory())
         .unwrap_or(0);

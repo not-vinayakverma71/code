@@ -103,7 +103,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         handles.push(thread::spawn(move || {
             while !stop.load(Ordering::Relaxed) {
                 // Use REAL SharedMemoryBuffer read method (lock-free)
-                if buffer.read().unwrap_or(None).is_some() {
+                let mut temp = vec![0u8; 256];
+                if buffer.read(&mut temp).unwrap_or(0) > 0 {
                     metrics.messages_received.fetch_add(1, Ordering::Relaxed);
                 }
             }

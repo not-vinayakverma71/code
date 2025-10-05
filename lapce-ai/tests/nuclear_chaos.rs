@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 use tokio::time::{sleep, timeout};
-use lapce_ai_rust::ipc::ipc_server::{IpcServer;
+use lapce_ai_rust::{IpcServer, IpcConfig};
 use lapce_ai_rust::shared_memory_complete::SharedMemoryStream;
 use bytes::Bytes;
 use rand::Rng;

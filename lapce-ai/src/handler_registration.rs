@@ -150,10 +150,11 @@ impl CommandRegistry {
                     // Use block_on to call async function in sync context
                     let _ = tokio::task::block_in_place(|| {
                         tokio::runtime::Handle::current().block_on(
-                            visible_provider.post_message_to_webview(crate::ipc::WebviewMessage {
+                            visible_provider.post_message_to_webview(crate::task_connection_handling::WebviewMessage {
                                 msg_type: "action".to_string(),
-                                text: Some("accountButtonClicked".to_string()),
-                                data: None,
+                                data: serde_json::json!({
+                                    "text": "accountButtonClicked"
+                                }),
                             })
                         )
                     });

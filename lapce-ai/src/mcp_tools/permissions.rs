@@ -2,14 +2,13 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::path::Path;
-use parking_lot::RwLock;
-use dashmap::DashMap;
-use anyhow::{Result, bail};
+use std::fmt;
 use serde::{Serialize, Deserialize};
+use anyhow::{Result, bail};
 
 use crate::mcp_tools::system::UserId;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Hash, Eq, PartialEq)]
 pub enum Permission {
     FileRead(String),
     FileWrite(String),
@@ -20,10 +19,10 @@ pub enum Permission {
     Execute(String),
     GitAccess(String),
     SystemInfoRead,
-    CommandExecute(String),
+    ToolExecute(String),
+    RequestApproval(String),
     WorkspaceWrite,
     WorkspaceRead,
-    ToolExecute(String),
     ReadFile,
     WriteFile,
     ExecuteCommand,
@@ -32,6 +31,36 @@ pub enum Permission {
     EditFile,
     GitOperations,
     All,
+    CommandExecute(String),
+}
+
+impl fmt::Display for Permission {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Permission::FileRead(path) => write!(f, "FileRead({})", path),
+            Permission::FileWrite(path) => write!(f, "FileWrite({})", path),
+            Permission::FileDelete(path) => write!(f, "FileDelete({})", path),
+            Permission::ProcessExecute(cmd) => write!(f, "ProcessExecute({})", cmd),
+            Permission::NetworkAccess(host) => write!(f, "NetworkAccess({})", host),
+            Permission::SystemInfo => write!(f, "SystemInfo"),
+            Permission::Execute(name) => write!(f, "Execute({})", name),
+            Permission::GitAccess(repo) => write!(f, "GitAccess({})", repo),
+            Permission::SystemInfoRead => write!(f, "SystemInfoRead"),
+            Permission::ToolExecute(tool) => write!(f, "ToolExecute({})", tool),
+            Permission::RequestApproval(req) => write!(f, "RequestApproval({})", req),
+            Permission::WorkspaceWrite => write!(f, "WorkspaceWrite"),
+            Permission::WorkspaceRead => write!(f, "WorkspaceRead"),
+            Permission::ReadFile => write!(f, "ReadFile"),
+            Permission::WriteFile => write!(f, "WriteFile"),
+            Permission::ExecuteCommand => write!(f, "ExecuteCommand"),
+            Permission::ListFiles => write!(f, "ListFiles"),
+            Permission::SearchFiles => write!(f, "SearchFiles"),
+            Permission::EditFile => write!(f, "EditFile"),
+            Permission::GitOperations => write!(f, "GitOperations"),
+            Permission::All => write!(f, "All"),
+            Permission::CommandExecute(cmd) => write!(f, "CommandExecute({})", cmd),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
@@ -72,11 +101,11 @@ impl PermissionManager {
     
     pub fn with_role(mut self, role: Role) -> Self {
         self.role = role;
-        self.apply_role_permissions();
+        let _ = self.apply_role_permissions();
         self
     }
     
-    fn apply_role_permissions(&mut self) {
+    fn apply_role_permissions(&mut self) -> Result<()> {
         // Apply admin permissions
         self.role_permissions.insert(
             Role::Admin,

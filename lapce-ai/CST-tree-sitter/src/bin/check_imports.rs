@@ -7,22 +7,22 @@ fn main() {
     use tree_sitter::Parser;
     
     // Try to create parsers without using them
-    let _js = tree_sitter_javascript::LANGUAGE;
+    let _js = tree_sitter_javascript::language();
     println!("✅ JavaScript");
     
-    let _ts = tree_sitter_typescript::LANGUAGE_TYPESCRIPT;
+    let _ts = tree_sitter_typescript::language_typescript();
     println!("✅ TypeScript");
     
-    let _tsx = tree_sitter_typescript::LANGUAGE_TSX;
+    let _tsx = tree_sitter_typescript::language_tsx();
     println!("✅ TSX");
     
-    let _py = tree_sitter_python::LANGUAGE;
+    let _py = tree_sitter_python::LANGUAGE.into();
     println!("✅ Python");
     
-    let _rs = tree_sitter_rust::LANGUAGE;
+    let _rs = tree_sitter_rust::LANGUAGE.into();
     println!("✅ Rust");
     
-    let _go = tree_sitter_go::LANGUAGE;
+    let _go = tree_sitter_go::LANGUAGE.into();
     println!("✅ Go");
     
     // Check new parsers

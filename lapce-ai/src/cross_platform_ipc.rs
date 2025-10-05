@@ -37,9 +37,10 @@ impl IpcTransport for SharedMemoryTransport {
     }
     
     fn read(&mut self) -> Result<Vec<u8>> {
-        self.buffer.read()
-            .map_err(|e| anyhow!("Read error: {}", e))?
-            .ok_or_else(|| anyhow!("No data available"))
+        let mut buf = vec![0u8; 1024];
+        let n = self.buffer.read(&mut buf)?;
+        buf.truncate(n);
+        Ok(buf)
     }
     
     fn platform_name(&self) -> &str {

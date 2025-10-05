@@ -146,7 +146,7 @@ impl AutoReconnectionManager {
     fn calculate_delay(&self, retry_count: u32) -> u64 {
         match &self.strategy {
             ReconnectionStrategy::ExponentialBackoff { initial_delay_ms, max_delay_ms, multiplier } => {
-                let delay = (*initial_delay_ms as f64) * multiplier.powi(retry_count as i32);
+                let delay = (*initial_delay_ms as f64) * multiplier.powi(retry_count as usize);
                 delay.min(*max_delay_ms as f64) as u64
             }
             ReconnectionStrategy::Linear { delay_ms } => *delay_ms,
@@ -195,7 +195,7 @@ impl AutoReconnectionManager {
                 // Calculate delay based on strategy
                 let delay = match &strategy {
                     ReconnectionStrategy::ExponentialBackoff { initial_delay_ms, max_delay_ms, multiplier } => {
-                        let delay = (*initial_delay_ms as f64) * multiplier.powi(retry as i32);
+                        let delay = (*initial_delay_ms as f64) * multiplier.powi(retry as usize);
                         delay.min(*max_delay_ms as f64) as u64
                     }
                     ReconnectionStrategy::Linear { delay_ms } => {

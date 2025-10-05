@@ -162,7 +162,7 @@ mod tests {
     #[test]
     fn test_smart_parser_workflow() {
         let mut parser = Parser::new();
-        parser.set_language(unsafe { tree_sitter_rust::LANGUAGE }.into()).unwrap();
+        parser.set_language(tree_sitter_rust::LANGUAGE.into().into()).unwrap();
         
         let smart = SmartParser::new(parser, 100, 100);
         

@@ -10,10 +10,9 @@ use uuid::Uuid;
 use walkdir::WalkDir;
 use std::fs;
 
-// Import titan embedder
-#[path = "./titan_embedder.rs"]
-mod titan_embedder;
-use titan_embedder::{TitanEmbedder, TITAN_EMBEDDING_DIM};
+// Import titan embedding client
+use crate::titan_embedding_client::TitanEmbeddingClient as TitanEmbedder;
+pub use crate::titan_embedding_client::EMBEDDING_DIM as TITAN_EMBEDDING_DIM;
 
 // Additional imports for complete implementation
 use arrow_array::{RecordBatch, RecordBatchIterator, StringArray, Float32Array, Int32Array, Int64Array, FixedSizeListArray};
@@ -278,7 +277,7 @@ impl CompleteSearchEngine {
         }
         
         // Generate embedding
-        let query_embedding = self.embedder.embed_text(query).await?;
+        let query_embedding = self.embedder.embed(query).await?;
         
         // Search in LanceDB
         let table_lock = self.code_table.read().await;
@@ -420,7 +419,7 @@ impl CodeIndexer {
                 let chunks = parse_file(entry.path(), &content)?;
                 
                 for chunk in chunks {
-                    let embedding = self.search_engine.embedder.embed_text(&chunk.content).await?;
+                    let embedding = self.search_engine.embedder.embed(&chunk.content).await?;
                     embeddings.push(embedding);
                     metadata.push(ChunkMetadata {
                         path: entry.path().to_path_buf(),
@@ -455,7 +454,7 @@ impl CodeIndexer {
             Field::new("end_line", DataType::Int32, false),
             Field::new("vector", DataType::FixedSizeList(
                 Arc::new(Field::new("item", DataType::Float32, true)),
-                TITAN_EMBEDDING_DIM,
+                TITAN_EMBEDDING_DIM as i32,
             ), false),
             Field::new("metadata", DataType::Utf8, true),
             Field::new("timestamp", DataType::Int64, false),
@@ -495,7 +494,7 @@ impl CodeIndexer {
                 Arc::new(
                     FixedSizeListArray::new(
                         Arc::new(Field::new("item", DataType::Float32, true)),
-                        TITAN_EMBEDDING_DIM,
+                        TITAN_EMBEDDING_DIM as i32,
                         Arc::new(Float32Array::from(all_embeddings)),
                         None,
                     )
@@ -562,7 +561,7 @@ impl IncrementalIndexer {
                     let chunks = parse_file(&change.path, &content)?;
                     
                     for chunk in chunks {
-                        let embedding = self.search_engine.embedder.embed_text(&chunk.content).await?;
+                        let embedding = self.search_engine.embedder.embed(&chunk.content).await?;
                         // Insert into database...
                     }
                 }

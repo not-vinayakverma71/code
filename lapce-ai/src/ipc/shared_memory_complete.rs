@@ -357,13 +357,13 @@ impl SharedMemoryStream {
 }
 
 mod libc {
-    pub const PROT_READ: i32 = 0x1;
-    pub const PROT_WRITE: i32 = 0x2;
-    pub const MAP_SHARED: i32 = 0x01;
-    pub const MAP_ANONYMOUS: i32 = 0x20;
+    pub const PROT_READ: usize = 0x1;
+    pub const PROT_WRITE: usize = 0x2;
+    pub const MAP_SHARED: usize = 0x01;
+    pub const MAP_ANONYMOUS: usize = 0x20;
     pub const MAP_FAILED: *mut core::ffi::c_void = !0 as *mut core::ffi::c_void;
-    pub const O_CREAT: i32 = 0x40;
-    pub const O_RDWR: i32 = 0x2;
+    pub const O_CREAT: usize = 0x40;
+    pub const O_RDWR: usize = 0x2;
     
     extern "C" {
         pub fn shm_open(name: *const i8, oflag: i32, mode: u32) -> i32;

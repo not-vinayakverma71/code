@@ -6,15 +6,15 @@ fn main() {
     println!("================================");
     
     // Test JavaScript
-    let js_lang = unsafe { tree_sitter_javascript::LANGUAGE };
+    let js_lang = unsafe { tree_sitter_javascript::language() };
     test_language("JavaScript", js_lang.into(), "function test() { return 42; }");
     
     // Test Rust  
-    let rust_lang = unsafe { tree_sitter_rust::LANGUAGE };
+    let rust_lang = tree_sitter_rust::LANGUAGE.into();
     test_language("Rust", rust_lang.into(), "fn main() { println!(\"Hello\"); }");
     
     // Test Python
-    let py_lang = unsafe { tree_sitter_python::LANGUAGE };
+    let py_lang = tree_sitter_python::LANGUAGE.into();
     test_language("Python", py_lang.into(), "def test():\n    return 42");
 }
 

@@ -8,7 +8,7 @@ use anyhow::Result;
 use tracing::{info, debug};
 
 use crate::connection_pool_manager::{ConnectionPoolManager, PoolConfig};
-use crate::connection_metrics::ConnectionStats;
+use crate::connection_pool_manager::ConnectionStats;
 
 /// Adaptive scaler for connection pools
 pub struct AdaptiveScaler {
@@ -16,6 +16,21 @@ pub struct AdaptiveScaler {
     metrics: Arc<ConnectionStats>,
     config: Arc<RwLock<ScalerConfig>>,
     last_scale_time: Arc<RwLock<Instant>>,
+}
+
+#[derive(Debug, Clone)]
+struct DetailedStats {
+    total_connections: u64,
+    active_connections: u32,
+    idle_connections: u32,
+    failed_connections: u64,
+    avg_wait_time_ns: u64,
+}
+
+impl DetailedStats {
+    fn avg_wait_time_ms(&self) -> f64 {
+        self.avg_wait_time_ns as f64 / 1_000_000.0
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -84,7 +99,13 @@ impl AdaptiveScaler {
         }
         
         // Get current metrics
-        let stats = self.metrics.get_detailed_stats();
+        let stats = DetailedStats {
+            total_connections: self.metrics.total_connections.load(std::sync::atomic::Ordering::Relaxed),
+            active_connections: self.metrics.active_connections.load(std::sync::atomic::Ordering::Relaxed),
+            idle_connections: self.metrics.idle_connections.load(std::sync::atomic::Ordering::Relaxed),
+            failed_connections: self.metrics.failed_connections.load(std::sync::atomic::Ordering::Relaxed),
+            avg_wait_time_ns: self.metrics.avg_wait_time_ns.load(std::sync::atomic::Ordering::Relaxed),
+        };
         let total = stats.total_connections as f64;
         let active = stats.active_connections as f64;
         
@@ -93,7 +114,7 @@ impl AdaptiveScaler {
         }
         
         let utilization = active / total;
-        let avg_wait_time_ms = stats.avg_wait_time_ms;
+        let avg_wait_time_ms = stats.avg_wait_time_ms();
         
         // Decide on scaling action
         if utilization > config.scale_up_threshold || avg_wait_time_ms > 100.0 {
@@ -157,7 +178,13 @@ impl AdaptiveScaler {
     /// Get current scaler status
     pub async fn get_status(&self) -> ScalerStatus {
         let config = self.config.read().await;
-        let stats = self.metrics.get_detailed_stats();
+        let stats = DetailedStats {
+            total_connections: self.metrics.total_connections.load(std::sync::atomic::Ordering::Relaxed),
+            active_connections: self.metrics.active_connections.load(std::sync::atomic::Ordering::Relaxed),
+            idle_connections: self.metrics.idle_connections.load(std::sync::atomic::Ordering::Relaxed),
+            failed_connections: self.metrics.failed_connections.load(std::sync::atomic::Ordering::Relaxed),
+            avg_wait_time_ns: self.metrics.avg_wait_time_ns.load(std::sync::atomic::Ordering::Relaxed),
+        };
         let current_pool_config = self.pool.config.load();
         
         let utilization = if stats.total_connections > 0 {
@@ -171,7 +198,7 @@ impl AdaptiveScaler {
             min_connections: config.min_connections,
             max_connections: config.max_connections,
             utilization_percent: utilization,
-            avg_wait_time_ms: stats.avg_wait_time_ms,
+            avg_wait_time_ms: stats.avg_wait_time_ms(),
             last_scale_time: *self.last_scale_time.read().await,
         }
     }

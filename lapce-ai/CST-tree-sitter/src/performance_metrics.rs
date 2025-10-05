@@ -125,6 +125,44 @@ impl PerformanceTracker {
         self.query_times.write().push(duration);
     }
     
+    /// Get parse statistics
+    pub fn get_parse_stats(&self) -> ParseStats {
+        let parse_times = self.parse_times.read();
+        let total_parses = parse_times.len() as u64;
+        let average_time_ms = if parse_times.is_empty() {
+            0.0
+        } else {
+            parse_times.iter().map(|d| d.as_secs_f64() * 1000.0).sum::<f64>() / parse_times.len() as f64
+        };
+        
+        let lines = *self.lines_parsed.read();
+        let bytes = *self.bytes_parsed.read();
+        
+        let total_time = parse_times.iter()
+            .fold(Duration::from_secs(0), |acc, d| acc + *d);
+        let avg_time = if !parse_times.is_empty() {
+            total_time / parse_times.len() as u32
+        } else {
+            Duration::from_secs(0)
+        };
+        
+        let lines_per_second = if total_time.as_secs_f64() > 0.0 {
+            lines as f64 / total_time.as_secs_f64()
+        } else {
+            0.0
+        };
+        
+        ParseStats {
+            total_parses,
+            average_time_ms,
+            total_lines: lines,
+            total_bytes: bytes,
+            average_parse_time: avg_time,
+            lines_per_second,
+            bytes_per_second: bytes as f64 / total_time.as_secs_f64().max(0.001),
+        }
+    }
+    
     /// Get memory usage statistics
     pub fn get_memory_stats(&self) -> MemoryStats {
         let samples = self.memory_samples.read();
@@ -148,34 +186,6 @@ impl PerformanceTracker {
         }
     }
     
-    /// Get parse performance statistics
-    pub fn get_parse_stats(&self) -> ParseStats {
-        let parse_times = self.parse_times.read();
-        let lines = *self.lines_parsed.read();
-        let bytes = *self.bytes_parsed.read();
-        
-        let total_time = parse_times.iter().sum::<Duration>();
-        let avg_time = if parse_times.is_empty() {
-            Duration::from_secs(0)
-        } else {
-            total_time / parse_times.len() as u32
-        };
-        
-        let lines_per_second = if total_time.as_secs_f64() > 0.0 {
-            lines as f64 / total_time.as_secs_f64()
-        } else {
-            0.0
-        };
-        
-        ParseStats {
-            total_parses: parse_times.len(),
-            total_lines: lines,
-            total_bytes: bytes,
-            average_parse_time: avg_time,
-            lines_per_second,
-            bytes_per_second: bytes as f64 / total_time.as_secs_f64().max(0.001),
-        }
-    }
     
     /// Get cache statistics
     pub fn get_cache_stats(&self) -> CacheStats {
@@ -331,7 +341,8 @@ pub struct MemoryStats {
 /// Parse performance statistics
 #[derive(Debug, Clone)]
 pub struct ParseStats {
-    pub total_parses: usize,
+    pub total_parses: u64,
+    pub average_time_ms: f64,
     pub total_lines: u64,
     pub total_bytes: u64,
     pub average_parse_time: Duration,
@@ -374,7 +385,7 @@ pub struct QueryStats {
     pub p95_query_time: Duration,
 }
 
-/// Complete performance report
+/// Performance report combining all metrics
 #[derive(Debug, Clone)]
 pub struct PerformanceReport {
     pub memory: MemoryStats,

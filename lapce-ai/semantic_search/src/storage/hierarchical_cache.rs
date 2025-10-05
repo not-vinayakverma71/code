@@ -49,8 +49,7 @@ impl Default for CacheConfig {
 /// Cache entry with metadata
 #[derive(Debug, Clone)]
 struct CacheEntry {
-    id: String,
-    embedding: Option<Vec<f32>>,           // Uncompressed data (L1 only)
+    embedding: Option<Arc<[f32]>>,          // Uncompressed data (L1 only) - now Arc for zero-copy
     compressed: Option<CompressedEmbedding>, // Compressed data (L2/L3)
     size_bytes: usize,
     access_count: usize,
@@ -111,13 +110,13 @@ pub struct HierarchicalCache {
     config: CacheConfig,
     
     // L1: Hot cache (uncompressed)
-    l1_cache: Arc<RwLock<HashMap<String, CacheEntry>>>,
-    l1_lru: Arc<RwLock<VecDeque<String>>>,
+    l1_cache: Arc<RwLock<HashMap<Arc<str>, CacheEntry>>>,
+    l1_lru: Arc<RwLock<VecDeque<Arc<str>>>>,
     l1_size: Arc<RwLock<usize>>,
     
     // L2: Warm cache (compressed)
-    l2_cache: Arc<RwLock<HashMap<String, CacheEntry>>>,
-    l2_lru: Arc<RwLock<VecDeque<String>>>,
+    l2_cache: Arc<RwLock<HashMap<Arc<str>, CacheEntry>>>,
+    l2_lru: Arc<RwLock<VecDeque<Arc<str>>>>,
     l2_size: Arc<RwLock<usize>>,
     
     // L3: Cold storage (memory-mapped)
@@ -170,13 +169,16 @@ impl HierarchicalCache {
         let l1_size = *self.l1_size.read().unwrap();
         if l1_size + size_bytes > (self.config.l1_max_size_mb * 1024.0 * 1024.0) as usize {
             // Need to evict from L1
-            self.evict_from_l1()?;
+            self.evict_from_l1()?
         }
+        
+        // Convert to Arc<[f32]> for zero-copy sharing
+        let arc_embedding: Arc<[f32]> = Arc::from(embedding.into_boxed_slice());
+        let arc_id: Arc<str> = Arc::from(id);
         
         // Create cache entry
         let entry = CacheEntry {
-            id: id.to_string(),
-            embedding: Some(embedding),
+            embedding: Some(arc_embedding),
             compressed: None,
             size_bytes,
             access_count: 1,
@@ -186,10 +188,10 @@ impl HierarchicalCache {
         
         // Add to L1
         let mut l1_cache = self.l1_cache.write().unwrap();
-        l1_cache.insert(id.to_string(), entry);
+        l1_cache.insert(arc_id.clone(), entry);
         
         let mut l1_lru = self.l1_lru.write().unwrap();
-        l1_lru.push_back(id.to_string());
+        l1_lru.push_back(arc_id);
         
         let mut l1_size = self.l1_size.write().unwrap();
         *l1_size += size_bytes;
@@ -208,8 +210,8 @@ impl HierarchicalCache {
         Ok(())
     }
     
-    /// Get embedding from cache
-    pub fn get(&self, id: &str) -> Result<Option<Vec<f32>>> {
+    /// Get embedding from cache (returns Arc for zero-copy)
+    pub fn get(&self, id: &str) -> Result<Option<Arc<[f32]>>> {
         // Check bloom filter first
         {
             let bloom = self.bloom_filter.read().unwrap();
@@ -245,24 +247,36 @@ impl HierarchicalCache {
     }
     
     /// Get from L1 cache
-    fn get_from_l1(&self, id: &str) -> Result<Option<Vec<f32>>> {
+    fn get_from_l1(&self, id: &str) -> Result<Option<Arc<[f32]>>> {
         let mut l1_cache = self.l1_cache.write().unwrap();
         
-        if let Some(entry) = l1_cache.get_mut(id) {
-            entry.access_count += 1;
-            entry.last_access = Instant::now();
-            
-            // Move to end of LRU
-            let mut l1_lru = self.l1_lru.write().unwrap();
-            l1_lru.retain(|x| x != id);
-            l1_lru.push_back(id.to_string());
-            
-            if self.config.enable_statistics {
-                let mut stats = self.stats.write().unwrap();
-                stats.l1_hits += 1;
+        // Find matching Arc<str> key
+        let matching_key = l1_cache.keys().find(|k| k.as_ref() == id).cloned();
+        
+        if let Some(key) = matching_key {
+            if let Some(entry) = l1_cache.get_mut(&key) {
+                entry.access_count += 1;
+                entry.last_access = Instant::now();
+                
+                // Move to end of LRU
+                let mut l1_lru = self.l1_lru.write().unwrap();
+                l1_lru.retain(|x| x.as_ref() != id);
+                l1_lru.push_back(key);
+                
+                if self.config.enable_statistics {
+                    let mut stats = self.stats.write().unwrap();
+                    stats.l1_hits += 1;
+                }
+                
+                // Return Arc clone (cheap, no data copy)
+                Ok(entry.embedding.clone())
+            } else {
+                if self.config.enable_statistics {
+                    let mut stats = self.stats.write().unwrap();
+                    stats.l1_misses += 1;
+                }
+                Ok(None)
             }
-            
-            Ok(entry.embedding.clone())
         } else {
             if self.config.enable_statistics {
                 let mut stats = self.stats.write().unwrap();
@@ -273,29 +287,40 @@ impl HierarchicalCache {
     }
     
     /// Get from L2 cache
-    fn get_from_l2(&self, id: &str) -> Result<Option<Vec<f32>>> {
+    fn get_from_l2(&self, id: &str) -> Result<Option<Arc<[f32]>>> {
         let mut l2_cache = self.l2_cache.write().unwrap();
         
-        if let Some(entry) = l2_cache.get_mut(id) {
-            entry.access_count += 1;
-            entry.last_access = Instant::now();
-            
-            // Move to end of LRU
-            let mut l2_lru = self.l2_lru.write().unwrap();
-            l2_lru.retain(|x| x != id);
-            l2_lru.push_back(id.to_string());
-            
-            if self.config.enable_statistics {
-                let mut stats = self.stats.write().unwrap();
-                stats.l2_hits += 1;
-            }
-            
-            // Decompress
-            if let Some(compressed) = &entry.compressed {
-                let compressor = self.compressor.read().unwrap();
-                let embedding = compressor.decompress_embedding(compressed)?;
-                Ok(Some(embedding))
+        // Find matching Arc<str> key
+        let matching_key = l2_cache.keys().find(|k| k.as_ref() == id).cloned();
+        
+        if let Some(key) = matching_key {
+            if let Some(entry) = l2_cache.get_mut(&key) {
+                entry.access_count += 1;
+                entry.last_access = Instant::now();
+                
+                // Move to end of LRU
+                let mut l2_lru = self.l2_lru.write().unwrap();
+                l2_lru.retain(|x| x.as_ref() != id);
+                l2_lru.push_back(key);
+                
+                if self.config.enable_statistics {
+                    let mut stats = self.stats.write().unwrap();
+                    stats.l2_hits += 1;
+                }
+                
+                // Decompress and convert to Arc
+                if let Some(compressed) = &entry.compressed {
+                    let compressor = self.compressor.read().unwrap();
+                    let embedding = compressor.decompress_embedding(compressed)?;
+                    Ok(Some(Arc::from(embedding.into_boxed_slice())))
+                } else {
+                    Ok(None)
+                }
             } else {
+                if self.config.enable_statistics {
+                    let mut stats = self.stats.write().unwrap();
+                    stats.l2_misses += 1;
+                }
                 Ok(None)
             }
         } else {
@@ -308,7 +333,7 @@ impl HierarchicalCache {
     }
     
     /// Get from L3 storage
-    fn get_from_l3(&self, id: &str) -> Result<Option<Vec<f32>>> {
+    fn get_from_l3(&self, id: &str) -> Result<Option<Arc<[f32]>>> {
         if self.l3_storage.contains(id) {
             if self.config.enable_statistics {
                 let mut stats = self.stats.write().unwrap();
@@ -316,7 +341,7 @@ impl HierarchicalCache {
             }
             
             let embedding = self.l3_storage.get(id)?;
-            Ok(Some(embedding))
+            Ok(Some(Arc::from(embedding.into_boxed_slice())))
         } else {
             if self.config.enable_statistics {
                 let mut stats = self.stats.write().unwrap();
@@ -334,11 +359,14 @@ impl HierarchicalCache {
             let mut l1_cache = self.l1_cache.write().unwrap();
             
             if let Some(mut entry) = l1_cache.remove(&id) {
+                // Capture size BEFORE clearing embedding
+                let original_size_bytes = entry.embedding.as_ref().map(|e| e.len() * 4).unwrap_or(0);
+                
                 // Compress for L2
                 let mut compressor = self.compressor.write().unwrap();
                 let compressed = compressor.compress_embedding(
-                    entry.embedding.as_ref().unwrap(),
-                    &id,
+                    entry.embedding.as_ref().unwrap().as_ref(),
+                    id.as_ref(),
                 )?;
                 
                 // Update entry
@@ -360,9 +388,9 @@ impl HierarchicalCache {
                 let mut l2_lru = self.l2_lru.write().unwrap();
                 l2_lru.push_back(id);
                 
-                // Update sizes
+                // Update sizes - use captured size
                 let mut l1_size = self.l1_size.write().unwrap();
-                *l1_size -= entry.embedding.as_ref().map(|e| e.len() * 4).unwrap_or(0);
+                *l1_size -= original_size_bytes;
                 
                 let mut l2_size = self.l2_size.write().unwrap();
                 *l2_size += entry.size_bytes;
@@ -423,13 +451,17 @@ impl HierarchicalCache {
                 if let Some(embedding) = self.get_from_l2(id)? {
                     // Remove from L2
                     let mut l2_cache = self.l2_cache.write().unwrap();
-                    l2_cache.remove(id);
+                    let matching_key = l2_cache.keys().find(|k| k.as_ref() == id).cloned();
+                    if let Some(key) = matching_key {
+                        l2_cache.remove(&key);
+                        
+                        let mut l2_lru = self.l2_lru.write().unwrap();
+                        l2_lru.retain(|x| x.as_ref() != id);
+                    }
                     
-                    let mut l2_lru = self.l2_lru.write().unwrap();
-                    l2_lru.retain(|x| x != id);
-                    
-                    // Add to L1
-                    self.put(id, embedding)?;
+                    // Convert Arc back to Vec for put (which will re-convert to Arc)
+                    let vec_embedding = embedding.to_vec();
+                    self.put(id, vec_embedding)?;
                     
                     // Update stats
                     if self.config.enable_statistics {
@@ -535,11 +567,16 @@ mod tests {
         
         // Add to cache
         let embedding = vec![0.5; 384];
-        cache.put("test", embedding.clone()).unwrap();
+        let expected = embedding.clone();
+        cache.put("test", embedding).unwrap();
         
         // Access multiple times to trigger promotion
         for _ in 0..3 {
-            let _ = cache.get("test").unwrap();
+            let result = cache.get("test").unwrap();
+            // Verify embedding values are unchanged
+            if let Some(arc) = result {
+                assert_eq!(arc.as_ref(), expected.as_slice());
+            }
         }
         
         let stats = cache.get_stats();

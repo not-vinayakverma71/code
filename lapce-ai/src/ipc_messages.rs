@@ -482,6 +482,15 @@ pub enum ExtensionMessageType {
     InsertTextIntoTextarea,
 }
 
+/// IPC message types for bi-directional communication
+
+/// Message sent to webview
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WebviewMessage {
+    pub message_type: String,
+    pub payload: serde_json::Value,
+}
+
 /// Message types for IPC communication
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[repr(u32)]

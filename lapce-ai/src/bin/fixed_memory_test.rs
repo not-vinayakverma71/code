@@ -48,7 +48,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             for _ in 0..1000 {
                 let mut buf = buffer.write().await;
                 buf.write(&test_msg).ok();
-                buf.read().ok();
+                let mut temp = vec![0u8; 1024];
+                buf.read(&mut temp).ok();
                 drop(buf);
                 cnt.fetch_add(1, Ordering::Relaxed);
             }

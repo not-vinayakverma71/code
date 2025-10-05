@@ -68,18 +68,26 @@ impl CircuitBreaker {
         F: std::future::Future<Output = Result<T>>,
     {
         let state = self.state.read().await.clone();
-        
         match state {
-            CircuitState::Open(opened_at) => {
-                if opened_at.elapsed() > self.timeout {
-                    *self.state.write().await = CircuitState::HalfOpen;
-                    self.call(f).await
+            CircuitState::Open(last_failure) => {
+                if last_failure.elapsed() > self.timeout {
+                    let _permit = self.half_open_requests.try_acquire();
+                    match f.await {
+                        Ok(result) => {
+                            *self.state.write().await = CircuitState::Closed;
+                            Ok(result)
+                        }
+                        Err(e) => {
+                            *self.state.write().await = CircuitState::Open(Instant::now());
+                            Err(e)
+                        }
+                    }
                 } else {
-                    Err(LapceAiError::ServiceUnavailable("Circuit breaker open".into()).into())
+                    Err(anyhow::anyhow!("Circuit breaker is open"))
                 }
             }
             CircuitState::HalfOpen => {
-                let _permit = self.half_open_requests.acquire().await?;
+                // Transition state - same as Open for now
                 match f.await {
                     Ok(result) => {
                         *self.state.write().await = CircuitState::Closed;
@@ -395,7 +403,7 @@ pub fn init_production(config: ProductionConfig) -> Result<()> {
             .with_thread_names(true)
             .with_file(true)
             .with_line_number(true)
-            .json()
+            .with_target(true)
             .init();
     }
     

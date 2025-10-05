@@ -51,7 +51,8 @@ fn test_basic_shared_memory() {
         let start = Instant::now();
         for _ in 0..iterations {
             buffer.write(&data).unwrap();
-            let _ = buffer.read().unwrap();
+            let mut temp = vec![0u8; 1024];
+            let _ = buffer.read(&mut temp).unwrap();
         }
         let duration = start.elapsed();
         
@@ -92,7 +93,8 @@ async fn test_concurrent_messages() {
             
             for _ in 0..messages_per_thread {
                 buffer.write(&data).unwrap();
-                let _ = buffer.read().unwrap();
+                let mut temp = vec![0u8; 1024];
+            let _ = buffer.read(&mut temp).unwrap();
                 counter.fetch_add(2, Ordering::Relaxed);
             }
         });
@@ -138,7 +140,8 @@ fn test_large_messages() {
         let start = Instant::now();
         for _ in 0..iterations {
             buffer.write(&data).unwrap();
-            let _ = buffer.read().unwrap();
+            let mut temp = vec![0u8; 1024];
+            let _ = buffer.read(&mut temp).unwrap();
         }
         let duration = start.elapsed();
         

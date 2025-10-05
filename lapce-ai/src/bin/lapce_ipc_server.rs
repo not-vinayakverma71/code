@@ -8,11 +8,11 @@ use tracing::{info, error};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use lapce_ai_rust::{
-    ipc::ipc_server::IpcServer,
-    ai_providers::provider_pool::{ProviderPool, ProviderPoolConfig},
-    ipc::ipc_config::IpcConfig,
-    ipc::auto_reconnection::{AutoReconnectionManager, ReconnectionStrategy},
+    IpcServer,
+    IpcConfig,
+    AutoReconnectionManager, ReconnectionStrategy,
 };
+use lapce_ai_rust::provider_pool::{ProviderPool, ProviderPoolConfig};
 
 #[tokio::main]
 async fn main() -> Result<()> {

@@ -23,7 +23,8 @@ fn test_shared_memory() {
     let start = Instant::now();
     for _ in 0..iterations {
         buffer.write(&data).unwrap();
-        let _ = buffer.read().unwrap();
+        let mut temp = vec![0u8; 1024];
+        buffer.read(&mut temp).unwrap();
     }
     let duration = start.elapsed();
     

@@ -36,7 +36,7 @@ async fn test_parse_rust() -> Result<()> {
     println!("\n🦀 Testing Rust parser...");
     
     let mut parser = Parser::new();
-    parser.set_language(tree_sitter_rust::language())?;
+    parser.set_language(&tree_sitter_rust::LANGUAGE.into())?;
     
     let rust_code = r#"
 fn main() {
@@ -101,7 +101,7 @@ async fn test_parse_python() -> Result<()> {
     println!("\n🐍 Testing Python parser...");
     
     let mut parser = Parser::new();
-    parser.set_language(tree_sitter_python::language())?;
+    parser.set_language(&tree_sitter_python::LANGUAGE.into())?;
     
     let python_code = r#"
 import sys
@@ -167,7 +167,7 @@ async fn test_parse_javascript() -> Result<()> {
     println!("\n📜 Testing JavaScript parser...");
     
     let mut parser = Parser::new();
-    parser.set_language(tree_sitter_javascript::language())?;
+    parser.set_language(&tree_sitter_javascript::LANGUAGE.into())?;
     
     let js_code = r#"
 const greeting = "Hello, World!";
@@ -233,7 +233,7 @@ async fn test_parse_typescript() -> Result<()> {
     println!("\n📘 Testing TypeScript parser...");
     
     let mut parser = Parser::new();
-    parser.set_language(tree_sitter_typescript::language_typescript())?;
+    parser.set_language(&tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())?;
     
     let ts_code = r#"
 interface User {
@@ -308,7 +308,7 @@ async fn test_parse_go() -> Result<()> {
     println!("\n🐹 Testing Go parser...");
     
     let mut parser = Parser::new();
-    parser.set_language(tree_sitter_go::language())?;
+    parser.set_language(&tree_sitter_go::LANGUAGE.into())?;
     
     let go_code = r#"
 package main

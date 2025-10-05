@@ -47,7 +47,7 @@ impl TantivySearchEngine {
         let tags_field = self.schema.get_field("tags")?;
         let score_field = self.schema.get_field("score")?;
         
-        let mut doc = Document::new();
+        let mut doc = tantivy::TantivyDocument::new();
         doc.add_text(id_field, id);
         doc.add_text(title_field, title);
         doc.add_text(content_field, content);
@@ -77,20 +77,29 @@ impl TantivySearchEngine {
         
         let mut results = Vec::new();
         for (_score, doc_address) in top_docs {
-            let retrieved_doc = searcher.doc(doc_address)?;
+            let retrieved_doc: tantivy::TantivyDocument = searcher.doc(doc_address)?;
             
             let id = retrieved_doc.get_first(self.schema.get_field("id")?)
-                .and_then(|v| v.as_text())
+                .and_then(|v| match v {
+                    tantivy::schema::OwnedValue::Str(s) => Some(s.as_str()),
+                    _ => None,
+                })
                 .unwrap_or("")
                 .to_string();
             
             let title = retrieved_doc.get_first(self.schema.get_field("title")?)
-                .and_then(|v| v.as_text())
+                .and_then(|v| match v {
+                    tantivy::schema::OwnedValue::Str(s) => Some(s.as_str()),
+                    _ => None,
+                })
                 .unwrap_or("")
                 .to_string();
-                
+            
             let content = retrieved_doc.get_first(self.schema.get_field("content")?)
-                .and_then(|v| v.as_text())
+                .and_then(|v| match v {
+                    tantivy::schema::OwnedValue::Str(s) => Some(s.as_str()),
+                    _ => None,
+                })
                 .unwrap_or("")
                 .to_string();
                 

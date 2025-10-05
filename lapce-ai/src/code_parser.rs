@@ -2,10 +2,11 @@
 /// Merged from code_parser.rs and code_parser_impl.rs
 
 use tree_sitter::{Parser, Query, QueryCursor, Node, Language};
-use std::sync::Arc;
-use anyhow::Result;
 use std::path::{Path, PathBuf};
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+use anyhow::Result;
+use once_cell::sync::Lazy;
 use walkdir::WalkDir;
 
 // Consolidated CodeChunk structure
@@ -29,7 +30,7 @@ pub enum ChunkType {
 }
 
 pub struct CodeParser {
-    parsers: HashMap<String, Parser>,
+    parsers: Arc<HashMap<String, Arc<Mutex<Parser>>>>,
     chunk_size: usize,
     chunk_overlap: usize,
     max_chunk_size: usize,
@@ -40,17 +41,18 @@ impl CodeParser {
         let mut parsers = HashMap::new();
         
         // Initialize parsers for each language
-        parsers.insert("rust".to_string(), Self::create_parser(tree_sitter_rust::language())?);
-        parsers.insert("python".to_string(), Self::create_parser(tree_sitter_python::language())?);
-        parsers.insert("javascript".to_string(), Self::create_parser(tree_sitter_javascript::language())?);
-        parsers.insert("typescript".to_string(), Self::create_parser(tree_sitter_typescript::language_typescript())?);
-        parsers.insert("go".to_string(), Self::create_parser(tree_sitter_go::language())?);
-        parsers.insert("java".to_string(), Self::create_parser(tree_sitter_java::language())?);
-        parsers.insert("c".to_string(), Self::create_parser(tree_sitter_c::language())?);
-        parsers.insert("cpp".to_string(), Self::create_parser(tree_sitter_cpp::language())?);
+        parsers.insert("rust".to_string(), Arc::new(Mutex::new(Self::create_parser(tree_sitter_rust::LANGUAGE.into())?)));
+        parsers.insert("python".to_string(), Arc::new(Mutex::new(Self::create_parser(tree_sitter_python::LANGUAGE.into())?)));
+        parsers.insert("javascript".to_string(), Arc::new(Mutex::new(Self::create_parser(tree_sitter_javascript::LANGUAGE.into())?)));
+        parsers.insert("typescript".to_string(), Arc::new(Mutex::new(Self::create_parser(tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())?)));
+        parsers.insert("go".to_string(), Arc::new(Mutex::new(Self::create_parser(tree_sitter_go::LANGUAGE.into())?)));
+        parsers.insert("java".to_string(), Arc::new(Mutex::new(Self::create_parser(tree_sitter_java::LANGUAGE.into())?)));
+        parsers.insert("c".to_string(), Arc::new(Mutex::new(Self::create_parser(tree_sitter_c::LANGUAGE.into())?)));
+        parsers.insert("cpp".to_string(), Arc::new(Mutex::new(Self::create_parser(tree_sitter_cpp::LANGUAGE.into())?)));
+        parsers.insert("csharp".to_string(), Arc::new(Mutex::new(Self::create_parser(tree_sitter_c_sharp::LANGUAGE.into())?)));
         
         Ok(Self {
-            parsers,
+            parsers: Arc::new(parsers),
             chunk_size: 15,      // 15 lines per chunk
             chunk_overlap: 5,    // 5 lines overlap
             max_chunk_size: 512, // Max 512 tokens for embedding
@@ -59,7 +61,7 @@ impl CodeParser {
     
     fn create_parser(language: Language) -> Result<Parser> {
         let mut parser = Parser::new();
-        parser.set_language(language)?;
+        parser.set_language(&language).unwrap();
         Ok(parser)
     }
     
@@ -68,15 +70,20 @@ impl CodeParser {
         let language = Self::detect_language(file_path);
         
         // Use AST-aware chunking for supported languages
-        if let Some(parser) = self.parsers.get(&language) {
-            self.ast_aware_chunking(parser, &content, &language)
+        if self.parsers.contains_key(&language) {
+            if let Some(parser_mutex) = self.parsers.get(&language) {
+                let mut parser = parser_mutex.lock().unwrap();
+                self.ast_aware_chunking(&mut parser, &content, &language)
+            } else {
+                Ok(self.line_based_chunking(&content, &language))
+            }
         } else {
             // Fallback to line-based chunking
             Ok(self.line_based_chunking(&content, &language))
         }
     }
     
-    fn ast_aware_chunking(&self, parser: &Parser, content: &str, language: &str) -> Result<Vec<CodeChunk>> {
+    fn ast_aware_chunking(&self, parser: &mut Parser, content: &str, language: &str) -> Result<Vec<CodeChunk>> {
         let mut chunks = Vec::new();
         
         // Parse the content
@@ -122,11 +129,12 @@ impl CodeParser {
             let chunk_with_context = self.include_context(node, content, start_byte, end_byte);
             
             chunks.push(CodeChunk {
-                path: String::new(), // Path will be set by caller
+                file_path: String::new(), // Path will be set by caller
                 content: chunk_with_context,
                 language: language.to_string(),
-                start_line,
-                end_line,
+                start_line: start_line as u32,
+                end_line: end_line as u32,
+                chunk_type: Some(ChunkType::Function),
             });
         }
         
@@ -188,11 +196,12 @@ impl CodeParser {
             }
             
             chunks.push(CodeChunk {
-                path: String::new(), // Path will be set by caller
+                file_path: String::new(), // Path will be set by caller
                 content: chunk_content,
                 language: language.to_string(),
-                start_line: i + 1,
-                end_line: end,
+                start_line: (i + 1) as u32,
+                end_line: end as u32,
+                chunk_type: None,
             });
         }
         

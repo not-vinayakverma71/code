@@ -70,7 +70,8 @@ async fn run_client(
         {
             let mut buf = buffer.write().await;
             if buf.write(&test_msg).is_ok() {
-                if let Ok(Some(_)) = buf.read() {
+                let mut temp = vec![0u8; 256];
+                if buf.read(&mut temp).unwrap_or(0) > 0 {
                     let latency_ns = start.elapsed().as_nanos() as u64;
                     
                     metrics.total_messages.fetch_add(1, Ordering::Relaxed);

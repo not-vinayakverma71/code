@@ -31,7 +31,7 @@ pub fn run_comprehensive_benchmark() -> BenchmarkResult {
         ("CSS", tree_sitter_css::LANGUAGE.into(), CSS_CODE),
         ("JSON", tree_sitter_json::LANGUAGE.into(), JSON_CODE),
         ("HTML", tree_sitter_html::LANGUAGE.into(), HTML_CODE),
-        ("Elm", tree_sitter_elm::LANGUAGE.into(), ELM_CODE),
+        ("Elm", tree_sitter_elm::LANGUAGE().into(), ELM_CODE),
         ("OCaml", tree_sitter_ocaml::LANGUAGE_OCAML.into(), OCAML_CODE),
         // Excluded due to version conflicts:
         // - TOML (requires tree-sitter 0.20)

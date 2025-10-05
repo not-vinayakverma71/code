@@ -7,7 +7,7 @@ use tokio;
 use lapce_ai_rust::optimized_vector_search::OptimizedVectorSearch;
 use lapce_ai_rust::cache::final_cache::CacheV3;
 use lapce_ai_rust::cache::types::{CacheConfig, CacheKey, CacheValue};
-use lapce_ai_rust::optimized_shared_memory::OptimizedSharedMemory;
+use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer as OptimizedSharedMemory;
 
 #[tokio::main]
 async fn main() -> Result<()> {

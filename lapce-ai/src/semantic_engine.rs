@@ -1,13 +1,15 @@
 /// Semantic Search Engine with LanceDB
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use std::sync::Arc;
+use std::path::PathBuf;
+use std::collections::HashMap;
+use serde::{Serialize, Deserialize};
 use lancedb::{Connection, Table};
 use lancedb::query::ExecutableQuery;
 use arrow_array::{RecordBatch, RecordBatchIterator, StringArray, Float32Array, FixedSizeListArray};
 use arrow_schema::{Schema, Field, DataType};
 use aws_sdk_bedrockruntime::Client as BedrockClient;
 use aws_sdk_bedrockruntime::primitives::Blob;
-use serde::{Serialize, Deserialize};
 use serde_json::json;
 use futures::TryStreamExt;
 
@@ -27,17 +29,31 @@ pub struct SearchResult {
     pub end_line: usize,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct SearchFilters {
+    pub language: Option<String>,
+    pub path_pattern: Option<String>,
+    pub min_score: Option<f32>,
+    pub max_results: Option<usize>,
+}
+
+pub type SemanticSearchEngine = SemanticEngine;
+
 impl SemanticEngine {
-    pub async fn new(db_path: &str) -> Result<Self> {
-        let connection = lancedb::connect(db_path).execute().await?;
-        let config = aws_config::load_from_env().await;
-        let bedrock_client = BedrockClient::new(&config);
+    pub async fn new(db_path: PathBuf) -> Result<Self> {
+        let connection = lancedb::connect(&db_path.to_string_lossy()).execute().await?;
+        let bedrock_client = Self::create_bedrock_client().await?;
         
         Ok(Self {
-            connection,
+            lancedb: Arc::new(connection),
             bedrock_client,
             table: None,
         })
+    }
+    
+    async fn create_bedrock_client() -> Result<BedrockClient> {
+        let config = aws_config::load_from_env().await;
+        Ok(BedrockClient::new(&config))
     }
     
     pub async fn get_embedding(&self, text: &str) -> Result<Vec<f32>> {
@@ -47,25 +63,22 @@ impl SemanticEngine {
             "normalize": true
         });
         
-        let request_body = serde_json::to_vec(&request)?;
-        
         let response = self.bedrock_client
             .invoke_model()
-            .model_id("amazon.titan-embed-text-v2:0")
+            .model_id("amazon.titan-embed-text-v1")
             .content_type("application/json")
-            .body(Blob::new(request_body))
+            .body(Blob::new(request.to_string()))
             .send()
             .await?;
         
         let body = response.body().as_ref();
         let result: serde_json::Value = serde_json::from_slice(body)?;
         
-        let embedding = result["embedding"]
+        let embedding: Vec<f32> = result["embedding"]
             .as_array()
-            .ok_or_else(|| anyhow::anyhow!("No embedding in response"))?
+            .ok_or_else(|| anyhow!("Invalid embedding response"))?
             .iter()
-            .filter_map(|v| v.as_f64())
-            .map(|v| v as f32)
+            .map(|v| v.as_f64().unwrap_or(0.0) as f32)
             .collect();
         
         Ok(embedding)
@@ -76,6 +89,7 @@ impl SemanticEngine {
         let chunks = split_into_chunks(content, 500);
         
         for (i, chunk) in chunks.iter().enumerate() {
+            // Get embedding for this chunk
             let embedding = self.get_embedding(chunk).await?;
             
             // Store in LanceDB
@@ -109,7 +123,7 @@ impl SemanticEngine {
                 // Create an iterator for LanceDB
                 let batches = vec![Ok(batch.clone())];
                 let reader = RecordBatchIterator::new(batches.into_iter(), schema.clone());
-                let table = self.connection
+                let table = self.lancedb
                     .create_table("code_index", reader)
                     .execute()
                     .await?;
@@ -128,7 +142,7 @@ impl SemanticEngine {
         Ok(())
     }
     
-    pub async fn search(&self, query: &str, limit: usize) -> Result<Vec<SearchResult>> {
+    pub async fn search(&self, query: &str, limit: usize, filters: Option<SearchFilters>) -> Result<Vec<SearchResult>> {
         if self.table.is_none() {
             return Ok(vec![]);
         }
@@ -160,11 +174,26 @@ impl SemanticEngine {
             let scores = batch.column_by_name("_distance")
                 .and_then(|col| col.as_any().downcast_ref::<Float32Array>());
             
-            for i in 0..file_paths.len() {
+            let file_paths = batch.column_by_name("file_path")
+                .unwrap()
+                .as_any()
+                .downcast_ref::<StringArray>()
+                .unwrap();
+            
+            let num_rows = batch.num_rows();
+            for i in 0..num_rows {
+                let doc_content = contents.value(i).to_string();
+                let score = scores.map(|s| s.value(i)).unwrap_or(0.0);
+                let file_path = file_paths.value(i).to_string();
+                
+                let mut metadata = HashMap::new();
+                metadata.insert("language".to_string(), "unknown".to_string());
+                metadata.insert("path".to_string(), file_path.clone());
+                
                 search_results.push(SearchResult {
-                    file_path: file_paths.value(i).to_string(),
-                    content: contents.value(i).to_string(),
-                    score: scores.map(|s| s.value(i)).unwrap_or(0.0),
+                    file_path,
+                    score,
+                    content: doc_content,
                     start_line: 0,
                     end_line: 0,
                 });

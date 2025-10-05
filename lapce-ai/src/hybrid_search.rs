@@ -1,8 +1,9 @@
 /// Hybrid Search Implementation - Semantic + Keyword with Reciprocal Rank Fusion
 /// Following docs/06-SEMANTIC-SEARCH-LANCEDB.md specification
 
-use std::path::PathBuf;
+use crate::semantic_engine::{SemanticSearchEngine, SearchResult, SearchFilters};
 use std::sync::Arc;
+use std::path::PathBuf;
 use std::collections::HashMap;
 use anyhow::Result;
 
@@ -16,7 +17,7 @@ use tantivy::{
     IndexReader,
 };
 
-use crate::lancedb_semantic_search::{SemanticSearchEngine, SearchResult, SearchFilters};
+// Already imported from semantic_engine above
 
 /// Hybrid search combining semantic and keyword search
 pub struct HybridSearcher {
@@ -60,7 +61,7 @@ impl HybridSearcher {
     
     /// Add document to keyword index
     pub async fn add_document(&self, id: &str, path: &str, content: &str) -> Result<()> {
-        let mut doc = Document::default();
+        let mut doc = tantivy::TantivyDocument::new();
         doc.add_text(self.id_field, id);
         doc.add_text(self.path_field, path);
         doc.add_text(self.content_field, content);
@@ -124,30 +125,36 @@ impl HybridSearcher {
         let top_docs = searcher.search(&query, &TopDocs::with_limit(limit))?;
         
         let mut results = Vec::new();
-        for (score, doc_address) in top_docs {
-            let doc = searcher.doc(doc_address)?;
+        for (i, (score, doc_address)) in top_docs.into_iter().enumerate() {
+            let doc: tantivy::TantivyDocument = searcher.doc(doc_address)?;
             
             let id = doc.get_first(self.id_field)
-                .and_then(|f| f.as_text())
+                .and_then(|f| match f {
+                    tantivy::schema::OwnedValue::Str(s) => Some(s.as_str()),
+                    _ => None,
+                })
                 .unwrap_or("").to_string();
                 
             let path = doc.get_first(self.path_field)
-                .and_then(|f| f.as_text())
+                .and_then(|f| match f {
+                    tantivy::schema::OwnedValue::Str(s) => Some(s.as_str()),
+                    _ => None,
+                })
                 .unwrap_or("").to_string();
                 
             let content = doc.get_first(self.content_field)
-                .and_then(|f| f.as_text())
+                .and_then(|f| match f {
+                    tantivy::schema::OwnedValue::Str(s) => Some(s.as_str()),
+                    _ => None,
+                })
                 .unwrap_or("").to_string();
             
             results.push(SearchResult {
-                id,
-                path: PathBuf::from(path),
-                content,
+                file_path: path,
                 score,
-                language: None,
+                content,
                 start_line: 0,
                 end_line: 0,
-                metadata: None,
             });
         }
         
@@ -180,19 +187,21 @@ impl HybridSearcher {
         // Score semantic results with weight
         for (rank, result) in semantic.iter().enumerate() {
             let score = self.fusion_weight / (k + rank as f32 + 1.0);
-            scores.entry(result.id.clone())
+            let key = result.file_path.clone();
+            scores.entry(key.clone())
                 .and_modify(|s| *s += score)
                 .or_insert(score);
-            result_map.insert(result.id.clone(), result.clone());
+            result_map.insert(key, result.clone());
         }
         
         // Score keyword results with (1 - weight)
         for (rank, result) in keyword.iter().enumerate() {
             let score = (1.0 - self.fusion_weight) / (k + rank as f32 + 1.0);
-            scores.entry(result.id.clone())
+            let key = result.file_path.clone();
+            scores.entry(key.clone())
                 .and_modify(|s| *s += score)
                 .or_insert(score);
-            result_map.entry(result.id.clone())
+            result_map.entry(key)
                 .or_insert_with(|| result.clone());
         }
         

@@ -233,7 +233,7 @@ pub fn parse_file_with_tree_sitter(source: &str, language_str: &str) -> Option<S
         "scala" => tree_sitter_scala::LANGUAGE.into(),
         "bash" | "sh" => tree_sitter_bash::LANGUAGE.into(),
         "json" => tree_sitter_json::LANGUAGE.into(),
-        "elm" => tree_sitter_elm::LANGUAGE.into(),
+        "elm" => tree_sitter_elm::LANGUAGE().into(),
         // Languages with version conflicts - return None for now
         "kotlin" | "kt" | "kts" => return None,  // Requires tree-sitter 0.21+
         "solidity" | "sol" => return None,  // Requires tree-sitter 0.22+

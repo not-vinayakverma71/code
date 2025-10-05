@@ -19,7 +19,7 @@ pub fn get_missing_language(extension: &str) -> Option<Language> {
             "kt" | "kts" => Some(tree_sitter_kotlin::language()),
             
             // OCaml
-            "ml" | "mli" => Some(Language::from(tree_sitter_ocaml::LANGUAGE_OCAML)),
+            "ml" | "mli" => Some(tree_sitter_ocaml::LANGUAGE_OCAML.into()),
             
             // SystemRDL
             // "rdl" => Some(tree_sitter_systemrdl::language()), // Not available
@@ -34,7 +34,7 @@ pub fn get_missing_language(extension: &str) -> Option<Language> {
             // "el" => Some(tree_sitter_elisp::language()), // Not available
             
             // HTML
-            "html" | "htm" => Some(Language::from(tree_sitter_html::LANGUAGE)),
+            "html" | "htm" => Some(tree_sitter_html::LANGUAGE.into()),
             
             // Visual Basic .NET
             // "vb" => Some(tree_sitter_vb::language()), // Not available

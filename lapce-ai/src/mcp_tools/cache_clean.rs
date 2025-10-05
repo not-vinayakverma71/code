@@ -33,7 +33,7 @@ struct CacheArgs {
 }
 
 #[async_trait]
-impl Tool for CacheTool {
+impl crate::mcp_tools::core::Tool for CacheTool {
     fn name(&self) -> &str {
         &self.name
     }
@@ -203,7 +203,7 @@ impl CacheMetricsTool {
 }
 
 #[async_trait]
-impl Tool for CacheMetricsTool {
+impl crate::mcp_tools::core::Tool for CacheMetricsTool {
     fn name(&self) -> &str {
         &self.name
     }

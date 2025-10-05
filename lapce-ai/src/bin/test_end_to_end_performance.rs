@@ -11,10 +11,10 @@ use lapce_ai_rust::tools_translation::*;
 use lapce_ai_rust::global_settings_exact_translation::*;
 
 // Import performance modules
-use lapce_ai_rust::optimized_shared_memory::OptimizedSharedMemory;
+use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer as OptimizedSharedMemory;
 use lapce_ai_rust::optimized_cache::OptimizedCache;
 use lapce_ai_rust::optimized_vector_search::OptimizedVectorSearch;
-use lapce_ai_rust::working_connection_pool::WorkingConnectionPool;
+use lapce_ai_rust::connection_pool_complete::ConnectionPool as WorkingConnectionPool;
 
 #[tokio::main]
 async fn main() {

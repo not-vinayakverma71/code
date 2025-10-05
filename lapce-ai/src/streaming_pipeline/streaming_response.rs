@@ -3,11 +3,7 @@ use std::pin::Pin;
 use serde::{Deserialize, Serialize};
 use crate::streaming_pipeline::stream_transform::{ApiStreamChunk, ApiStreamError, ApiStreamUsageChunk};
 use crate::streaming_pipeline::xml_matcher::XmlMatcher;
-use crate::streaming_pipeline::types::{
-    MessageParam, ChatCompletionMessageParam, ChatMessageContent,
-    convert_to_r1_format, convert_to_simple_messages, convert_to_openai_messages,
-    ChatCompletionRequest, ChatCompletionStream
-};
+use crate::streaming_pipeline::types::*;
 
 pub const DEEP_SEEK_DEFAULT_TEMPERATURE: f32 = 0.7;
 
@@ -42,7 +38,10 @@ pub struct OpenAiHandlerOptions {
     pub openai_legacy_format: Option<bool>,
 }
 
-pub struct ApiHandlerCreateMessageMetadata;
+pub struct ApiHandlerCreateMessageMetadata {
+    pub model_id: Option<String>,
+    pub provider_id: Option<String>,
+}
 
 impl OpenAiHandler {
     /// createMessage with streaming - exact translation lines 81-250
@@ -53,7 +52,7 @@ impl OpenAiHandler {
         metadata: Option<ApiHandlerCreateMessageMetadata>,
     ) -> Pin<Box<dyn Stream<Item = ApiStreamChunk> + Send>> {
         let options = self.options.read().await;
-        let (model_info, reasoning) = self.get_model(&options).await;
+        let (model_info, reasoning) = self.get_model(&*options).await;
         let model_url = options.openai_base_url.clone().unwrap_or_default();
         let model_id = options.openai_model_id.clone().unwrap_or_default();
         let enabled_r1_format = options.openai_r1_format_enabled.unwrap_or(false);

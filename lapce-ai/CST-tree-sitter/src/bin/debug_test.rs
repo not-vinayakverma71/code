@@ -7,7 +7,7 @@ fn main() {
     // Test 1: JavaScript
     print!("JavaScript parser: ");
     let mut parser = Parser::new();
-    match parser.set_language(&tree_sitter_javascript::LANGUAGE.into()) {
+    match parser.set_language(&tree_sitter_javascript::language().into()) {
         Ok(_) => println!("✅"),
         Err(e) => println!("❌ {}", e),
     }
@@ -15,7 +15,7 @@ fn main() {
     // Test 2: TypeScript
     print!("TypeScript parser: ");
     let mut parser = Parser::new();
-    match parser.set_language(&tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into()) {
+    match parser.set_language(&tree_sitter_typescript::language_typescript().into()) {
         Ok(_) => println!("✅"),
         Err(e) => println!("❌ {}", e),
     }

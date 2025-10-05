@@ -14,20 +14,9 @@ pub struct ModelInfo {
     pub context_window: u32,
 }
 
-// OpenAI handler types
-pub struct OpenAiHandler {
-    pub options: Arc<RwLock<OpenAiHandlerOptions>>,
-}
+// OpenAiHandler moved to streaming_response.rs to avoid duplication
 
-#[derive(Debug, Clone)]
-pub struct OpenAiHandlerOptions {
-    pub openai_api_key: String,
-    pub openai_base_url: Option<String>,
-    pub openai_model_id: Option<String>,
-    pub openai_r1_format_enabled: Option<bool>,
-    pub openai_legacy_format: Option<bool>,
-    pub openai_streaming_enabled: Option<bool>,
-}
+pub use super::streaming_response::{OpenAiHandler, OpenAiHandlerOptions};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MessageParam {

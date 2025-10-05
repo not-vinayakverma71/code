@@ -408,7 +408,7 @@ impl RooIgnoreController {
         Ok(())
     }
     
-    pub async fn post_message_to_webview(&self, message: crate::ipc::WebviewMessage) -> Result<(), String> {
+    pub async fn post_message_to_webview(&self, message: crate::task_connection_handling::WebviewMessage) -> Result<(), String> {
         // Initialize ignore patterns
         Ok(())
     }

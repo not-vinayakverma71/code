@@ -34,13 +34,13 @@ impl ProcessSandbox {
             gid: Some(Gid::from_raw(65534)), // nogroup
             enable_namespaces: true,
             enable_seccomp: true,
-            resource_limits: Some(ResourceLimits {
+            resource_limits: ResourceLimits {
                 cpu_time: Some(30),
                 memory: Some(512 * 1024 * 1024),
                 file_size: Some(100 * 1024 * 1024),
                 process_count: Some(10),
                 open_files: Some(100),
-            }),
+            },
         }
     }
     
@@ -49,10 +49,10 @@ impl ProcessSandbox {
         cmd.arg("-c").arg(command);
         // Setup the sandbox environment
         let enable_namespaces = self.enable_namespaces;
-        let resource_limits = self.resource_limits.clone();
+        let resource_limits: Option<ResourceLimits> = None;
         let enable_user_namespace = false;
         let enable_mount_namespace = false;
-        let sandbox_dir = None;
+        let sandbox_dir: Option<String> = None;
         
         unsafe {
             cmd.pre_exec(move || {

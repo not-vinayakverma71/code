@@ -71,7 +71,7 @@ impl ParserPool {
             FileType::Elixir => parser.set_language(&tree_sitter_elixir::LANGUAGE.into()),
             FileType::Html => parser.set_language(&tree_sitter_html::LANGUAGE.into()),
             FileType::Ocaml => parser.set_language(&tree_sitter_ocaml::LANGUAGE_OCAML.into()),
-            FileType::Elm => parser.set_language(&tree_sitter_elm::LANGUAGE.into()),
+            FileType::Elm => parser.set_language(&tree_sitter_elm::LANGUAGE().into()),
             FileType::Svelte => return Err("Svelte parser version conflict".into()),
             FileType::Erlang => return Err("Erlang parser not available".into()),
             FileType::Nim => return Err("Nim parser not available".into()),

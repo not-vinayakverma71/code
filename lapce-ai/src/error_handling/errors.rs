@@ -310,11 +310,9 @@ impl LapceError {
 /// Helper function to stringify errors - matches TypeScript stringifyError
 pub fn stringify_error(error: &dyn std::error::Error) -> String {
     // Match TypeScript: return error.stack || error.message
-    if let Some(backtrace) = error.backtrace() {
-        format!("{}\n{}", error, backtrace)
-    } else {
-        error.to_string()
-    }
+    // Note: backtrace is not available on the standard Error trait
+    // We'll just use the error string representation
+    error.to_string()
 }
 
 #[cfg(test)]

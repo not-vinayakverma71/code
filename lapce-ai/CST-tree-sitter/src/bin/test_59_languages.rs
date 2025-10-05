@@ -3,32 +3,32 @@ use tree_sitter::{Parser, Language};
 
 fn main() {
     println!("\n🚀 FINAL TEST: 59 LANGUAGES WITH TREE-SITTER 0.24");
-    println!("=" . repeat(70));
+    println!("{}", "=".repeat(70));
     
     let languages = vec![
         // Original 22 languages
-        ("JavaScript", tree_sitter_javascript::LANGUAGE),
-        ("TypeScript", tree_sitter_typescript::LANGUAGE_TYPESCRIPT),
-        ("TSX", tree_sitter_typescript::LANGUAGE_TSX),
-        ("Python", tree_sitter_python::LANGUAGE),
-        ("Rust", tree_sitter_rust::LANGUAGE),
-        ("Go", tree_sitter_go::LANGUAGE),
-        ("C", tree_sitter_c::LANGUAGE),
-        ("C++", tree_sitter_cpp::LANGUAGE),
-        ("C#", tree_sitter_c_sharp::LANGUAGE),
-        ("Ruby", tree_sitter_ruby::LANGUAGE),
-        ("Java", tree_sitter_java::LANGUAGE),
-        ("PHP", tree_sitter_php::LANGUAGE_PHP),
-        ("Swift", tree_sitter_swift::LANGUAGE),
-        ("Lua", tree_sitter_lua::LANGUAGE),
-        ("Elixir", tree_sitter_elixir::LANGUAGE),
-        ("Scala", tree_sitter_scala::LANGUAGE),
-        ("Bash", tree_sitter_bash::LANGUAGE),
-        ("CSS", tree_sitter_css::LANGUAGE),
-        ("JSON", tree_sitter_json::LANGUAGE),
-        ("HTML", tree_sitter_html::LANGUAGE),
-        ("Elm", tree_sitter_elm::LANGUAGE),
-        ("OCaml", tree_sitter_ocaml::LANGUAGE_OCAML),
+        ("JavaScript", tree_sitter_javascript::language()),
+        ("TypeScript", tree_sitter_typescript::language_typescript()),
+        ("TSX", tree_sitter_typescript::language_tsx()),
+        ("Python", tree_sitter_python::LANGUAGE.into()),
+        ("Rust", tree_sitter_rust::LANGUAGE.into()),
+        ("Go", tree_sitter_go::LANGUAGE.into()),
+        ("C", tree_sitter_c::LANGUAGE.into()),
+        ("C++", tree_sitter_cpp::LANGUAGE.into()),
+        ("C#", tree_sitter_c_sharp::LANGUAGE.into()),
+        ("Ruby", tree_sitter_ruby::LANGUAGE.into()),
+        ("Java", tree_sitter_java::LANGUAGE.into()),
+        ("PHP", tree_sitter_php::LANGUAGE_PHP.into()),
+        ("Swift", tree_sitter_swift::LANGUAGE.into()),
+        ("Lua", tree_sitter_lua::LANGUAGE.into()),
+        ("Elixir", tree_sitter_elixir::LANGUAGE.into()),
+        ("Scala", tree_sitter_scala::LANGUAGE.into()),
+        ("Bash", tree_sitter_bash::LANGUAGE.into()),
+        ("CSS", tree_sitter_css::LANGUAGE.into()),
+        ("JSON", tree_sitter_json::LANGUAGE.into()),
+        ("HTML", tree_sitter_html::LANGUAGE.into()),
+        ("Elm", tree_sitter_elm::LANGUAGE()),
+        ("OCaml", tree_sitter_ocaml::LANGUAGE_OCAML.into()),
         
         // Phase 2 languages (17 added)
         ("Kotlin", tree_sitter_kotlin::language()),

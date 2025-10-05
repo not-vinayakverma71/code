@@ -216,11 +216,11 @@ pub trait TestTraitDefinition {
 fn main() {
     println!("🔍 CODEX FORMAT VERIFICATION TEST\n");
     println!("Comparing Rust implementation vs Codex TypeScript output\n");
-    println!("="=60);
+    println!("{}", "=".repeat(60));
     
     // Test JavaScript
     println!("\n📝 TEST 1: JavaScript");
-    println!("-".repeat(60));
+    println!("{}", "-".repeat(60));
     test_language("javascript", SAMPLE_JAVASCRIPT, &[
         "testFunctionDefinition",
         "testAsyncFunctionDefinition",
@@ -232,7 +232,7 @@ fn main() {
     
     // Test Python
     println!("\n📝 TEST 2: Python");
-    println!("-".repeat(60));
+    println!("{}", "-".repeat(60));
     test_language("python", SAMPLE_PYTHON, &[
         "test_function_definition",
         "TestClassDefinition",
@@ -242,7 +242,7 @@ fn main() {
     
     // Test Rust
     println!("\n📝 TEST 3: Rust");
-    println!("-".repeat(60));
+    println!("{}", "-".repeat(60));
     test_language("rust", SAMPLE_RUST, &[
         "test_function_definition",
         "TestStructDefinition",
@@ -251,7 +251,7 @@ fn main() {
         "TestTraitDefinition",
     ]);
     
-    println!("\n{"=".repeat(60)}");
+    println!("\n{}", "=".repeat(60));
     println!("✅ VERIFICATION COMPLETE");
     println!("\nNOTE: If output format doesn't match Codex exactly,");
     println!("      check codex_exact_format.rs for discrepancies.");

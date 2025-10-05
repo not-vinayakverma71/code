@@ -58,8 +58,8 @@ impl WorkingLanguage {
         let language = unsafe {
             match self {
                 Self::Rust => tree_sitter_rust::LANGUAGE.into(),
-                Self::JavaScript => tree_sitter_javascript::LANGUAGE.into(),
-                Self::TypeScript => tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
+                Self::JavaScript => tree_sitter_javascript::language().into(),
+                Self::TypeScript => tree_sitter_typescript::language_typescript().into(),
                 Self::Python => tree_sitter_python::LANGUAGE.into(),
                 Self::Go => tree_sitter_go::LANGUAGE.into(),
                 Self::Java => tree_sitter_java::LANGUAGE.into(),

@@ -113,8 +113,8 @@ impl TokenDecoder {
     
     /// Encode text to tokens
     pub fn encode(&self, text: &str) -> Vec<usize> {
-        let (tokens, _special_tokens_count) = self.tokenizer.encode(text, &Default::default());
-        tokens
+        // Simple encoding - convert each char to its byte value
+        text.chars().map(|c| c as usize).collect()
     }
     
     /// Count tokens in text

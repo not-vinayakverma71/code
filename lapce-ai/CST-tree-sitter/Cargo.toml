@@ -5,8 +5,104 @@ edition = "2021"
 build = "build.rs"
 
 [[bin]]
-name = "benchmark_25_languages"
-path = "src/bin/benchmark_25_languages.rs"
+name = "test_integration"
+path = "src/bin/test_integration.rs"
+
+[[bin]]
+name = "test_success_criteria"
+path = "src/bin/test_success_criteria.rs"
+
+[[bin]]
+name = "test_real_cst_memory"
+path = "src/bin/test_real_cst_memory.rs"
+
+[[bin]]
+name = "test_parser_only_memory"
+path = "src/bin/test_parser_only_memory.rs"
+
+[[bin]]
+name = "deep_memory_investigation"
+path = "src/bin/deep_memory_investigation.rs"
+
+[[bin]]
+name = "test_tree_compression"
+path = "src/bin/test_tree_compression.rs"
+
+[[bin]]
+name = "benchmark_compressed_cache"
+path = "src/bin/benchmark_compressed_cache.rs"
+
+[[bin]]
+name = "test_compressed_benchmark"
+path = "src/bin/test_compressed_benchmark.rs"
+
+[[bin]]
+name = "benchmark_dynamic_cache"
+path = "src/bin/benchmark_dynamic_cache.rs"
+
+[[bin]]
+name = "validate_compact_equivalence"
+path = "src/bin/validate_compact_equivalence.rs"
+
+[[bin]]
+name = "test_compact_basic"
+path = "src/bin/test_compact_basic.rs"
+
+[[bin]]
+name = "debug_compact_bp"
+path = "src/bin/debug_compact_bp.rs"
+
+[[bin]]
+name = "debug_compact_bp2"
+path = "src/bin/debug_compact_bp2.rs"
+
+[[bin]]
+name = "debug_compact_bp3"
+path = "src/bin/debug_compact_bp3.rs"
+
+[[bin]]
+name = "debug_child_count"
+path = "src/bin/debug_child_count.rs"
+
+[[bin]]
+name = "test_single_validation"
+path = "src/bin/test_single_validation.rs"
+
+[[bin]]
+name = "test_position_issue"
+path = "src/bin/test_position_issue.rs"
+
+[[bin]]
+name = "debug_positions"
+path = "src/bin/debug_positions.rs"
+
+[[bin]]
+name = "test_validation_simple"
+path = "src/bin/test_validation_simple.rs"
+
+[[bin]]
+name = "validate_single_file"
+path = "src/bin/validate_single_file.rs"
+
+[[bin]]
+name = "test_phase2_integration"
+path = "src/bin/test_phase2_integration.rs"
+
+[[bin]]
+name = "test_complete_system"
+path = "src/bin/test_complete_system.rs"
+
+[[bin]]
+name = "test_massive_codebase_real"
+path = "src/bin/test_massive_codebase_real.rs"
+
+[[bin]]
+name = "comprehensive_intern_benchmark"
+path = "benches/comprehensive_intern_benchmark.rs"
+
+[[bin]]
+name = "k_25_languages"
+path = "src/bin/k_25_languages.rs"
 authors = ["Lapce Contributors"]
 license = "Apache-2.0"
 description = "Native tree-sitter integration for Lapce - replacing WASM with native FFI bindings"
@@ -14,12 +110,16 @@ repository = "https://github.com/lapce/lapce"
 keywords = ["tree-sitter", "parsing", "syntax-highlighting", "code-intelligence"]
 categories = ["parsing", "text-editors"]
 
+[workspace]
+
 [features]
 default = []
 ffi-languages = []
+compact-cst = []
+global-interning = ["lasso"]
 
 [dependencies]
-tree-sitter = "0.23"
+tree-sitter = "0.23.0"
 tree-sitter-highlight = "0.23"
 streaming-iterator = "0.1"
 once_cell = "1.18"
@@ -33,7 +133,7 @@ log = "0.4"
 futures = "0.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-dashmap = "5.5"
+dashmap = { version = "5.5", optional = false }
 parking_lot = "0.12"
 lazy_static = "1.4"
 bytes = "1.5"
@@ -43,6 +143,11 @@ ignore = "0.4"  # For gitignore support in directory traversal
 sha2 = "0.10"  # For cache key generation
 tokio = { version = "1.35", features = ["fs", "rt", "rt-multi-thread", "macros", "time"] }
 sysinfo = "0.30"  # For memory monitoring
+zstd = "0.13"  # For tree compression
+lz4 = "1.24"  # For tree compression
+rand = "0.8"  # For benchmark simulation
+lasso = { version = "0.7", optional = true, features = ["multi-threaded"] }  # For global string interning
+crc32fast = "1.4"  # For delta codec validation
 # Core tree-sitter - using consistent version
 # ACTUALLY WORKING languages (tested and compile)
 tree-sitter-rust = "0.23"
@@ -69,7 +174,7 @@ tree-sitter-elixir = "0.3.1"
 tree-sitter-html = "0.23"
 # tree-sitter-svelte = "0.10.2" # Version conflict with tree-sitter 0.24
 # tree-sitter-markdown = "0.7.1" # Version conflict with tree-sitter 0.24
-tree-sitter-elm = "5.7.0"  # Compatible with tree-sitter 0.23
+tree-sitter-elm = { path = "external-grammars/tree-sitter-elm" }
 
 # Phase 3: Adding 23 critical missing languages via path dependencies
 # High Priority 10 (Phase 1)
@@ -146,7 +251,7 @@ tree-sitter-objc = "3.0.1"
 # tree-sitter-matlab = "1.0.2"  # Does not exist
 # tree-sitter-fortran = "0.0.2"  # Version conflict
 # tree-sitter-ada = "0.2.0"  # Does not exist on crates.io
-tree-sitter-cobol = "0.1.0"
+tree-sitter-cobol = { path = "external-grammars/tree-sitter-cobol" }
 # tree-sitter-perl = "1.1.0"  # Does not exist
 # tree-sitter-tcl = "0.0.1"  # Does not exist
 tree-sitter-groovy = "0.1.1"
@@ -154,7 +259,7 @@ tree-sitter-groovy = "0.1.1"
 # tree-sitter-solidity = "1.2.13"  # Using external grammar
 # tree-sitter-fsharp = "0.1.0"  # Using external grammar
 # tree-sitter-powershell = "0.25.9"  # Using external grammar
-tree-sitter-systemverilog = "0.1.0"  # Compatible with tree-sitter 0.23
+tree-sitter-systemverilog = { path = "external-grammars/tree-sitter-systemverilog" }
 # tree-sitter-vue = "0.1.0"  # Version conflict
 # tree-sitter-svelte = "1.0.0"  # Version conflict
 tree-sitter-embedded-template = "0.23.2"
@@ -223,7 +328,6 @@ crossbeam = "0.8"
 # Async runtime
 async-trait = "0.1"
 tower-lsp = "0.20"
-rand = "0.8"
 
 # Error handling already included above
 
@@ -241,7 +345,7 @@ chrono = "0.4"
 pathdiff = "0.2"
 
 [build-dependencies]
-cc = "1.0"
+cc = "1.2"
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }

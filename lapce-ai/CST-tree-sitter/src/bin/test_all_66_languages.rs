@@ -7,10 +7,10 @@ fn main() {
     
     let languages = vec![
         // Systems & Low-Level (10)
-        ("C", tree_sitter_c::LANGUAGE),
-        ("C++", tree_sitter_cpp::LANGUAGE),
-        ("Rust", tree_sitter_rust::LANGUAGE),
-        ("Go", tree_sitter_go::LANGUAGE),
+        ("C", tree_sitter_c::LANGUAGE.into()),
+        ("C++", tree_sitter_cpp::LANGUAGE.into()),
+        ("Rust", tree_sitter_rust::LANGUAGE.into()),
+        ("Go", tree_sitter_go::LANGUAGE.into()),
         ("Zig", tree_sitter_zig::language()),
         ("D", tree_sitter_d::LANGUAGE),
         ("Nim", tree_sitter_nim::language()),
@@ -19,24 +19,24 @@ fn main() {
         ("Assembly", tree_sitter_asm::LANGUAGE),
         
         // Web & Application (14)
-        ("JavaScript", tree_sitter_javascript::LANGUAGE),
-        ("TypeScript", tree_sitter_typescript::LANGUAGE_TYPESCRIPT),
-        ("TSX", tree_sitter_typescript::LANGUAGE_TSX),
-        ("HTML", tree_sitter_html::LANGUAGE),
-        ("CSS", tree_sitter_css::LANGUAGE),
-        ("PHP", tree_sitter_php::LANGUAGE_PHP),
-        ("Ruby", tree_sitter_ruby::LANGUAGE),
-        ("Elixir", tree_sitter_elixir::LANGUAGE),
-        ("Java", tree_sitter_java::LANGUAGE),
-        ("C#", tree_sitter_c_sharp::LANGUAGE),
+        ("JavaScript", tree_sitter_javascript::language()),
+        ("TypeScript", tree_sitter_typescript::language_typescript()),
+        ("TSX", tree_sitter_typescript::language_tsx()),
+        ("HTML", tree_sitter_html::LANGUAGE.into()),
+        ("CSS", tree_sitter_css::LANGUAGE.into()),
+        ("PHP", tree_sitter_php::LANGUAGE_PHP.into()),
+        ("Ruby", tree_sitter_ruby::LANGUAGE.into()),
+        ("Elixir", tree_sitter_elixir::LANGUAGE.into()),
+        ("Java", tree_sitter_java::LANGUAGE.into()),
+        ("C#", tree_sitter_c_sharp::LANGUAGE.into()),
         ("Kotlin", tree_sitter_kotlin::language()),
-        ("Swift", tree_sitter_swift::LANGUAGE),
+        ("Swift", tree_sitter_swift::LANGUAGE.into()),
         ("Objective-C", tree_sitter_objc::LANGUAGE),
-        ("Scala", tree_sitter_scala::LANGUAGE),
+        ("Scala", tree_sitter_scala::LANGUAGE.into()),
         ("Groovy", tree_sitter_groovy::LANGUAGE),
         
         // Data Science (6)
-        ("Python", tree_sitter_python::LANGUAGE),
+        ("Python", tree_sitter_python::LANGUAGE.into()),
         ("R", tree_sitter_r::language()),
         ("Julia", tree_sitter_julia::language()),
         ("MATLAB", tree_sitter_matlab::language()),
@@ -44,9 +44,9 @@ fn main() {
         ("GraphQL", tree_sitter_graphql::language()),
         
         // Scripting (5)
-        ("Bash", tree_sitter_bash::LANGUAGE),
+        ("Bash", tree_sitter_bash::LANGUAGE.into()),
         ("PowerShell", tree_sitter_powershell::LANGUAGE),
-        ("Lua", tree_sitter_lua::LANGUAGE),
+        ("Lua", tree_sitter_lua::LANGUAGE.into()),
         ("Perl", tree_sitter_perl::language()),
         ("Tcl", tree_sitter_tcl::LANGUAGE),
         
@@ -64,7 +64,7 @@ fn main() {
         
         // Hardware (4)
         ("Verilog", tree_sitter_verilog::LANGUAGE),
-        ("SystemVerilog", tree_sitter_systemverilog::LANGUAGE),
+        ("SystemVerilog", tree_sitter_systemverilog::LANGUAGE()),
         ("GLSL", tree_sitter_glsl::LANGUAGE),
         ("HLSL", tree_sitter_hlsl::LANGUAGE),
         ("WGSL", tree_sitter_wgsl::LANGUAGE),
@@ -72,8 +72,8 @@ fn main() {
         // Functional (8)
         ("Haskell", tree_sitter_haskell::language()),
         ("Scheme", tree_sitter_scheme::LANGUAGE),
-        ("OCaml", tree_sitter_ocaml::LANGUAGE_OCAML),
-        ("Elm", tree_sitter_elm::LANGUAGE),
+        ("OCaml", tree_sitter_ocaml::LANGUAGE_OCAML.into()),
+        ("Elm", tree_sitter_elm::LANGUAGE()),
         ("F#", tree_sitter_fsharp::LANGUAGE),
         ("Clojure", tree_sitter_clojure::language()),
         ("Racket", tree_sitter_racket::language()),
@@ -81,7 +81,7 @@ fn main() {
         ("Fennel", tree_sitter_fennel::LANGUAGE),
         
         // Other (8)
-        ("JSON", tree_sitter_json::LANGUAGE),
+        ("JSON", tree_sitter_json::LANGUAGE.into()),
         ("LaTeX", tree_sitter_latex::LANGUAGE),
         ("Pascal", tree_sitter_pascal::LANGUAGE),
         ("COBOL", tree_sitter_cobol::LANGUAGE),

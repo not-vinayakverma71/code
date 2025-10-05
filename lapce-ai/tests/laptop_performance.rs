@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
-use lapce_ai_rust::ipc_server::IpcServer;
+use lapce_ai_rust::{IpcServer, IpcConfig};
 use lapce_ai_rust::ipc_messages::MessageType;
 use lapce_ai_rust::shared_memory_complete::SharedMemoryStream;
 use bytes::Bytes;
@@ -226,7 +226,7 @@ fn get_process_memory_mb() -> f64 {
     use sysinfo::System;
     
     let mut sys = System::new_all();
-    sys.refresh_processes(sysinfo::ProcessesToUpdate::All);
+    sys.refresh_processes();
     
     let pid = sysinfo::Pid::from(std::process::id() as usize);
     if let Some(process) = sys.process(pid) {

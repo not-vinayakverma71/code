@@ -17,10 +17,10 @@ pub struct HumanRelayResponse {
 pub type HumanRelayCallback = Arc<dyn Fn(Option<String>) + Send + Sync>;
 
 /// Global callbacks mapping - exact translation line 2
-lazy_static::lazy_static! {
-    static ref HUMAN_RELAY_CALLBACKS: Arc<RwLock<HashMap<String, HumanRelayCallback>>> = 
-        Arc::new(RwLock::new(HashMap::new()));
-}
+use once_cell::sync::Lazy;
+
+static HUMAN_RELAY_CALLBACKS: Lazy<Arc<RwLock<HashMap<String, HumanRelayCallback>>>> = 
+    Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
 
 /// Register a callback function for human relay response - exact translation lines 9-10
 pub async fn register_human_relay_callback(request_id: String, callback: HumanRelayCallback) {

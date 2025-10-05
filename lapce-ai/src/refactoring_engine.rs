@@ -197,7 +197,7 @@ impl RefactoringEngine {
                 result = result.replace("86400", "SECONDS_IN_DAY");
                 result = result.replace("3600", "SECONDS_IN_HOUR");
                 result = result.replace("1024", "KILOBYTE");
-                format!("const SECONDS_IN_DAY: i32 = 86400;\nconst SECONDS_IN_HOUR: i32 = 3600;\nconst KILOBYTE: i32 = 1024;\n\n{}", result)
+                format!("const SECONDS_IN_DAY: usize = 86400;\nconst SECONDS_IN_HOUR: usize = 3600;\nconst KILOBYTE: usize = 1024;\n\n{}", result)
             },
             test: |original, refactored| refactored.contains("const "),
         });

@@ -158,7 +158,7 @@ mod tests {
     
     #[test]
     fn test_incremental_parsing_performance() {
-        let lang = unsafe { tree_sitter_rust::LANGUAGE };
+        let lang = tree_sitter_rust::LANGUAGE.into();
         let mut parser = IncrementalParser::new(lang.into()).unwrap();
         
         // Initial parse

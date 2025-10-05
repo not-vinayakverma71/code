@@ -117,11 +117,10 @@ impl RipgrepSearch {
         // Add file type filters
         if let Some(types) = file_types {
             for file_type in types {
-                let types = ignore::types::TypesBuilder::new()
-                    .add_defaults()
-                    .select(file_type)
-                    .build()
-                    .unwrap();
+                let mut types_builder = ignore::types::TypesBuilder::new();
+                types_builder.add_defaults();
+                types_builder.select(&file_type);
+                let types = types_builder.build().unwrap();
                 builder.types(types);
             }
         }

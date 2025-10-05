@@ -61,7 +61,7 @@ async fn main() -> Result<()> {
         circuit_breaker_threshold: 5,
     };
     
-    let provider_pool = Arc::new(ProviderPool::new(provider_config).await?);
+    let provider_pool = Arc::new(ProviderPool::new().await?);
     ipc_server.register_provider_pool(provider_pool);
     info!("✅ Provider pool registered with {} providers", 2);
     

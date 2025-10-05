@@ -1,5 +1,8 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId, Throughput};
-use lapce_ai_rust::ipc::{IpcServer, ServerConfig, MessageType, Message};
+use lapce_ai_rust::ipc_server::IpcServer;
+use lapce_ai_rust::cross_platform_ipc::SharedMemoryTransport;
+use lapce_ai_rust::ipc_config::IpcConfig;
+use lapce_ai_rust::ipc_messages::MessageType;
 use std::sync::Arc;
 use std::time::Duration;
 use bytes::Bytes;

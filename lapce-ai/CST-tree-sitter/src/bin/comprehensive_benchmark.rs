@@ -184,91 +184,91 @@ fn analyze_language_coverage() {
 fn get_language_tests() -> Vec<(&'static str, LanguageTest)> {
     vec![
         ("JavaScript", LanguageTest {
-            language: unsafe { tree_sitter_javascript::LANGUAGE.into() },
+            language: tree_sitter_javascript::language().into(),
             sample_code: generate_js_code(500),
         }),
         ("TypeScript", LanguageTest {
-            language: unsafe { tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into() },
+            language: tree_sitter_typescript::language_typescript().into(),
             sample_code: generate_ts_code(500),
         }),
         ("Python", LanguageTest {
-            language: unsafe { tree_sitter_python::LANGUAGE.into() },
+            language: tree_sitter_python::LANGUAGE.into(),
             sample_code: generate_python_code(500),
         }),
         ("Rust", LanguageTest {
-            language: unsafe { tree_sitter_rust::LANGUAGE.into() },
+            language: tree_sitter_rust::LANGUAGE.into(),
             sample_code: generate_rust_code(500),
         }),
         ("Go", LanguageTest {
-            language: unsafe { tree_sitter_go::LANGUAGE.into() },
+            language: tree_sitter_go::LANGUAGE.into(),
             sample_code: generate_go_code(500),
         }),
         ("C", LanguageTest {
-            language: unsafe { tree_sitter_c::LANGUAGE.into() },
+            language: tree_sitter_c::LANGUAGE.into(),
             sample_code: generate_c_code(500),
         }),
         ("C++", LanguageTest {
-            language: unsafe { tree_sitter_cpp::LANGUAGE.into() },
+            language: tree_sitter_cpp::LANGUAGE.into(),
             sample_code: generate_cpp_code(500),
         }),
         ("C#", LanguageTest {
-            language: unsafe { tree_sitter_c_sharp::LANGUAGE.into() },
+            language: tree_sitter_c_sharp::LANGUAGE.into(),
             sample_code: generate_csharp_code(500),
         }),
         ("Java", LanguageTest {
-            language: unsafe { tree_sitter_java::LANGUAGE.into() },
+            language: tree_sitter_java::LANGUAGE.into(),
             sample_code: generate_java_code(500),
         }),
         ("Ruby", LanguageTest {
-            language: unsafe { tree_sitter_ruby::LANGUAGE.into() },
+            language: tree_sitter_ruby::LANGUAGE.into(),
             sample_code: generate_ruby_code(500),
         }),
         ("PHP", LanguageTest {
-            language: unsafe { tree_sitter_php::LANGUAGE_PHP.into() },
+            language: tree_sitter_php::LANGUAGE_PHP.into(),
             sample_code: generate_php_code(500),
         }),
         ("Swift", LanguageTest {
-            language: unsafe { tree_sitter_swift::LANGUAGE.into() },
+            language: tree_sitter_swift::LANGUAGE.into(),
             sample_code: generate_swift_code(500),
         }),
         ("Lua", LanguageTest {
-            language: unsafe { tree_sitter_lua::LANGUAGE.into() },
+            language: tree_sitter_lua::LANGUAGE.into(),
             sample_code: generate_lua_code(500),
         }),
         ("Elixir", LanguageTest {
-            language: unsafe { tree_sitter_elixir::LANGUAGE.into() },
+            language: tree_sitter_elixir::LANGUAGE.into(),
             sample_code: generate_elixir_code(500),
         }),
         ("Scala", LanguageTest {
-            language: unsafe { tree_sitter_scala::LANGUAGE.into() },
+            language: tree_sitter_scala::LANGUAGE.into(),
             sample_code: generate_scala_code(500),
         }),
         ("Bash", LanguageTest {
-            language: unsafe { tree_sitter_bash::LANGUAGE.into() },
+            language: tree_sitter_bash::LANGUAGE.into(),
             sample_code: generate_bash_code(500),
         }),
         ("CSS", LanguageTest {
-            language: unsafe { tree_sitter_css::LANGUAGE.into() },
+            language: tree_sitter_css::LANGUAGE.into(),
             sample_code: generate_css_code(500),
         }),
         ("JSON", LanguageTest {
-            language: unsafe { tree_sitter_json::LANGUAGE.into() },
+            language: tree_sitter_json::LANGUAGE.into(),
             sample_code: generate_json_code(),
         }),
         ("HTML", LanguageTest {
-            language: unsafe { tree_sitter_html::LANGUAGE.into() },
+            language: tree_sitter_html::LANGUAGE.into(),
             sample_code: generate_html_code(500),
         }),
         ("TSX", LanguageTest {
-            language: unsafe { tree_sitter_typescript::LANGUAGE_TSX.into() },
+            language: tree_sitter_typescript::language_tsx().into(),
             sample_code: generate_tsx_code(500),
         }),
         ("Elm", LanguageTest {
-            language: unsafe { tree_sitter_elm::LANGUAGE.into() },
+            language: tree_sitter_elm::LANGUAGE().into(),
             sample_code: generate_elm_code(500),
         }),
         ("OCaml", LanguageTest {
-            language: unsafe { tree_sitter_ocaml::LANGUAGE_OCAML.into() },
+            language: tree_sitter_ocaml::LANGUAGE_OCAML.into(),
             sample_code: generate_ocaml_code(500),
         }),
     ]

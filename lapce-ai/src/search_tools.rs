@@ -4,6 +4,7 @@
 
 use anyhow::{Result, anyhow};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -13,9 +14,9 @@ pub struct VectorStoreSearchResult {
     pub file_path: String,
     pub score: f32,
     pub content: String,
-    pub start_line: i32,
-    pub end_line: i32,
-    pub metadata: Option<HashMap<String, String>>,
+    pub start_line: Option<usize>,
+    pub end_line: Option<usize>,
+    pub metadata: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -62,6 +63,7 @@ pub async fn codebase_search_tool(
             language: None,
             path_pattern: Some(path.to_string_lossy().to_string()),
             min_score: None,
+            max_results: None,
         }
     });
     
@@ -83,11 +85,11 @@ pub async fn codebase_search_tool(
     let formatted_results: Vec<SearchResultFormatted> = search_results
         .into_iter()
         .map(|result| SearchResultFormatted {
-            file_path: result.path,
+            file_path: result.file_path.clone(),
             score: result.score,
             content: result.content,
-            start_line: result.start_line,
-            end_line: result.end_line,
+            start_line: result.start_line as i32,
+            end_line: result.end_line as i32,
         })
         .collect();
     

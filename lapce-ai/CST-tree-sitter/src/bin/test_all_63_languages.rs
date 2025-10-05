@@ -213,10 +213,14 @@ fn try_parse_file(file_path: &str, lang_name: &str) -> Result<usize, String> {
         "svelte" => SupportedLanguage::Svelte,
         "abap" => SupportedLanguage::Abap,
         // External grammars
-        // These are external grammars that may not be in enum
-        "scheme" | "fennel" | "gleam" | "astro" | "wgsl" | "glsl" | "tcl" | "cairo" => {
-            return Err(format!("Language {} uses external grammar - skipping for now", lang_name));
-        }
+        "scheme" => SupportedLanguage::Scheme,
+        "fennel" => SupportedLanguage::Fennel, 
+        "gleam" => SupportedLanguage::Gleam,
+        "astro" => SupportedLanguage::Astro,
+        "wgsl" => SupportedLanguage::Wgsl,
+        "glsl" => SupportedLanguage::Glsl,
+        "tcl" => SupportedLanguage::Tcl,
+        "cairo" => SupportedLanguage::Cairo,
         _ => return Err(format!("Unknown language: {}", lang_name)),
     };
     

@@ -142,7 +142,7 @@ fn count_nodes(node: &tree_sitter::Node) -> usize {
 
 // Language tests with sample code
 fn get_js_test() -> (Language, String) {
-    (tree_sitter_javascript::LANGUAGE.into(), r#"
+    (tree_sitter_javascript::language().into(), r#"
 function fibonacci(n) {
     if (n <= 1) return n;
     return fibonacci(n - 1) + fibonacci(n - 2);
@@ -165,7 +165,7 @@ console.log(calc.add(5).result);
 }
 
 fn get_ts_test() -> (Language, String) {
-    (tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(), r#"
+    (tree_sitter_typescript::language_typescript().into(), r#"
 interface User {
     id: number;
     name: string;
@@ -187,7 +187,7 @@ class UserService {
 }
 
 fn get_tsx_test() -> (Language, String) {
-    (tree_sitter_typescript::LANGUAGE_TSX.into(), r#"
+    (tree_sitter_typescript::language_tsx().into(), r#"
 import React from 'react';
 
 interface Props {
@@ -537,7 +537,7 @@ fn get_html_test() -> (Language, String) {
 }
 
 fn get_elm_test() -> (Language, String) {
-    (tree_sitter_elm::LANGUAGE.into(), r#"
+    (tree_sitter_elm::LANGUAGE().into(), r#"
 module Main exposing (main)
 
 import Html exposing (text)

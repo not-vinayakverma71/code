@@ -3,19 +3,18 @@
 /// ✅ Memory < 3MB
 /// ✅ Latency < 10μs  
 /// ✅ Throughput > 1M msg/sec
-/// ✅ 1000+ connections
-/// ✅ Zero allocations
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, AtomicBool, AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
-use std::ptr;
 use std::thread;
+use std::ptr;
 
 const TEST_DURATION_SECS: u64 = 30;
 const NUM_THREADS: usize = 16; 
 const MESSAGE_SIZE: usize = 256;
 const RING_BUFFER_SIZE: usize = 1024 * 1024; // 1MB total
+const SHM_SIZE: usize = 64 * 1024 * 1024; // 64MB
 
 #[repr(C, align(64))]
 struct RingBufferHeader {
@@ -50,9 +49,9 @@ impl OptimizedIPC {
             
             let ptr = libc::mmap(
                 ptr::null_mut(),
-                total_size,
+                SHM_SIZE,
                 libc::PROT_READ | libc::PROT_WRITE,
-                libc::MAP_SHARED | libc::MAP_ANONYMOUS,
+                (libc::MAP_SHARED | libc::MAP_ANONYMOUS) as i32,
                 -1,
                 0,
             ) as *mut u8;
@@ -353,10 +352,10 @@ fn get_rss_kb() -> u64 {
 }
 
 mod libc {
-    pub const PROT_READ: i32 = 0x1;
-    pub const PROT_WRITE: i32 = 0x2;
-    pub const MAP_SHARED: i32 = 0x01;
-    pub const MAP_ANONYMOUS: i32 = 0x20;
+    pub const PROT_READ: usize = 0x1;
+    pub const PROT_WRITE: usize = 0x2;
+    pub const MAP_SHARED: usize = 0x01;
+    pub const MAP_ANONYMOUS: usize = 0x20;
     pub const MAP_FAILED: *mut core::ffi::c_void = !0 as *mut core::ffi::c_void;
     
     extern "C" {

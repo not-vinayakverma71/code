@@ -2,7 +2,8 @@ use std::sync::Arc;
 use std::path::{Path, PathBuf};
 use async_trait::async_trait;
 use anyhow::{Result, Context};
-use serde_json::{json, Value};
+use serde_json::json;
+use serde_json::Value;
 use tokio::fs;
 use memmap2::MmapOptions;
 use std::fs::File;
@@ -60,6 +61,7 @@ impl ListCodeDefinitionsTool {
     pub fn new() -> Self { Self }
 }
 
+#[async_trait]
 impl crate::mcp_tools::core::Tool for ListCodeDefinitionsTool {
     fn name(&self) -> &str {
         "list_code_definitions"
@@ -78,12 +80,14 @@ impl crate::mcp_tools::core::Tool for ListCodeDefinitionsTool {
         })
     }
     
-    async fn execute(&self, args: serde_json::Value, _context: crate::mcp_tools::core::ToolContext) -> Result<crate::mcp_tools::core::ToolResult, anyhow::Error> {
+    async fn execute(&self, args: Value, _context: ToolContext) -> Result<ToolResult> {
         Ok(crate::mcp_tools::core::ToolResult {
-            content: serde_json::json!({
-                "definitions": []
-            }),
+            success: true,
             error: None,
+            data: Some(serde_json::json!({
+                "definitions": []
+            })),
+            metadata: None,
         })
     }
 }
@@ -269,7 +273,7 @@ impl FileSystemTool {
 }
 
 #[async_trait]
-impl Tool for FileSystemTool {
+impl crate::mcp_tools::core::Tool for FileSystemTool {
     fn name(&self) -> &str {
         "fs_operations"
     }

@@ -82,6 +82,16 @@ pub enum SupportedLanguage {
     Markdown,
     Svelte,
     
+    // External grammars
+    Scheme,
+    Fennel,
+    Gleam,
+    Astro,
+    Wgsl,
+    Glsl,
+    Tcl,
+    Cairo,
+    
     // Bonus: TSX/JSX variants
     Tsx,
     Jsx,
@@ -113,7 +123,7 @@ impl SupportedLanguage {
                 Self::Scala => Ok(tree_sitter_scala::LANGUAGE.into()),
                 Self::Elixir => Ok(tree_sitter_elixir::LANGUAGE.into()),
                 Self::Html => Ok(tree_sitter_html::LANGUAGE.into()),
-                Self::Elm => Ok(tree_sitter_elm::LANGUAGE.into()),
+                Self::Elm => Ok(tree_sitter_elm::LANGUAGE()),
                 
                 // Extended languages - with proper error handling
                 Self::Toml => Err("TOML parser blocked: version conflict (needs update to tree-sitter 0.23+)".into()),
@@ -132,8 +142,7 @@ impl SupportedLanguage {
                 Self::Hlsl => Err("HLSL parser blocked: version conflict (needs update to tree-sitter 0.23+)".into()),
                 Self::ObjectiveC => Ok(tree_sitter_objc::LANGUAGE.into()),
                 Self::Cobol => {
-                    // COBOL needs special handling
-                    Err("COBOL parser compilation issue".into())
+                    Ok(tree_sitter_cobol::language())
                 },
                 Self::Groovy => Ok(tree_sitter_groovy::LANGUAGE.into()),
                 
@@ -153,7 +162,7 @@ impl SupportedLanguage {
                 
                 // SystemVerilog
                 Self::SystemVerilog => {
-                    Ok(tree_sitter_systemverilog::LANGUAGE.into())
+                    Ok(tree_sitter_systemverilog::LANGUAGE())
                 },
                 
                 // Embedded Template
@@ -187,6 +196,16 @@ impl SupportedLanguage {
                 Self::Xml => Ok(tree_sitter_xml::language()),
                 Self::Markdown => Ok(tree_sitter_md::language()),
                 Self::Svelte => Ok(tree_sitter_svelte::language()),
+                
+                // External grammars
+                Self::Scheme => Ok(tree_sitter_scheme::language()),
+                Self::Fennel => Ok(tree_sitter_fennel::language()),
+                Self::Gleam => Ok(tree_sitter_gleam::language()),
+                Self::Astro => Ok(tree_sitter_astro::language()),
+                Self::Wgsl => Ok(tree_sitter_wgsl::language()),
+                Self::Glsl => Ok(tree_sitter_glsl::language()),
+                Self::Tcl => Ok(tree_sitter_tcl::language()),
+                Self::Cairo => Ok(tree_sitter_cairo::language()),
             }
         }
     }
@@ -287,6 +306,14 @@ impl SupportedLanguage {
             Self::Xml => vec!["xml", "xsl", "xslt"],
             Self::Markdown => vec!["md", "markdown"],
             Self::Svelte => vec!["svelte"],
+            Self::Scheme => vec!["scm", "ss"],
+            Self::Fennel => vec!["fnl"],
+            Self::Gleam => vec!["gleam"],
+            Self::Astro => vec!["astro"],
+            Self::Wgsl => vec!["wgsl"],
+            Self::Glsl => vec!["glsl", "vert", "frag"],
+            Self::Tcl => vec!["tcl"],
+            Self::Cairo => vec!["cairo"],
         }
     }
     

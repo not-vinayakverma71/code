@@ -5,7 +5,7 @@ fn main() {
     println!("Step 1: Creating JavaScript parser");
     use tree_sitter::Parser;
     let mut parser = Parser::new();
-    let lang = tree_sitter_javascript::LANGUAGE;
+    let lang = tree_sitter_javascript::language();
     parser.set_language(&lang.into()).expect("Failed to set language");
     println!("✅ Parser created\n");
     

@@ -155,8 +155,6 @@ fn test_events_system() {
             TokenUsage {
                 total_tokens_in: 1000,
                 total_tokens_out: 2000,
-                total_cache_writes: Some(100),
-                total_cache_reads: Some(200),
                 total_cost: 0.01,
                 context_tokens: 1500,
             },

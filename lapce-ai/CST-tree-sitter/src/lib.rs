@@ -2,14 +2,21 @@
 //! ZERO ERRORS - MASSIVE PERFORMANCE - COMPLETE IMPLEMENTATION
 
 // Core modules
-pub mod native_parser_manager;
-pub mod cache_impl;
+pub mod compressed_cache;
+pub mod cst_codec;
+pub mod default_queries;
+pub mod dynamic_compressed_cache;
+pub mod compact;
+pub mod lru_cache;
+pub mod cache;
+pub mod dual_representation;
 pub mod parser_pool;
 pub mod query_cache;
 pub mod incremental_parser;
 pub mod incremental_parser_v2;
-pub mod lru_cache;
-pub mod smart_parser;
+pub mod native_parser_manager;
+pub mod native_parser_manager_v2;
+pub mod cache_impl;
 pub mod syntax_highlighter;
 pub mod code_intelligence;
 pub mod async_api;
@@ -25,6 +32,11 @@ pub mod all_languages_support;
 pub mod enhanced_codex_format;
 pub mod performance_metrics;
 pub mod fixed_language_support;
+
+// New integrated modules
+pub mod code_intelligence_v2;
+pub mod syntax_highlighter_v2;
+pub mod integrated_system;
 
 // Production modules
 pub mod error;
@@ -102,8 +114,8 @@ impl TreeSitterIntegration {
         self.parsers.entry("rust".to_string())
             .or_insert_with(|| {
                 let mut p = Parser::new();
-                let lang = unsafe { tree_sitter_rust::LANGUAGE };
-                p.set_language(&lang.into()).unwrap();
+                let lang: tree_sitter::Language = tree_sitter_rust::LANGUAGE.into();
+                p.set_language(&lang).unwrap();
                 p
             })
             .parse(code, None)

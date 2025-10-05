@@ -14,7 +14,7 @@ use serde_json::{json, Value};
 pub struct ProviderConfig;
 pub struct StreamHandler;
 pub struct RooCodeEventName;
-use crate::types_message::{ClineMessage, ClineAsk, ClineSay};
+use crate::ipc_messages::{ClineMessage, ClineAsk, ClineSay};
 use crate::types_tool::ToolUsageEntry;
 use crate::streaming_pipeline::stream_transform::{ApiStreamChunk, ApiError, ApiStream};
 use crate::task_connection_handling::AskResponse;
@@ -216,14 +216,22 @@ impl Task {
     async fn say(&self, say_type: &str, text: Option<String>, images: Option<Vec<String>>, partial: Option<bool>) {
         // Implementation for say
         let ts = crate::task_connection_handling::get_current_timestamp();
-        self.add_to_cline_messages(ClineMessage::Say {
-            say: ClineSay::UserFeedback,
+        self.add_to_cline_messages(crate::ipc_messages::ClineMessage {
+            ts,
+            msg_type: "say".to_string(),
+            ask: None,
+            say: Some(say_type.to_string()),
             text,
-            diff: None,
-            current_html: None,
+            images,
             partial,
+            reasoning: None,
+            conversation_history_index: None,
+            checkpoint: None,
             progress_status: None,
+            context_condense: None,
             is_protected: None,
+            api_protocol: None,
+            metadata: None,
         }).await;
     }
     
@@ -365,10 +373,8 @@ impl ClineMessage {
     }
     
     pub fn is_complete_text_say(&self) -> bool {
-        match self {
-            ClineMessage::Say { .. } => true,
-            _ => false,
-        }
+        // Check if this is a say message type
+        self.msg_type == "say" && self.say.is_some()
     }
 }
 

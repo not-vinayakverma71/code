@@ -85,7 +85,7 @@ pub trait MetricsWriter {
     async fn flush(&mut self) -> Result<(), Box<dyn std::error::Error>>;
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub struct MetricsSnapshot {
     pub timestamp: SystemTime,
     pub tool_metrics: HashMap<String, ToolMetrics>,

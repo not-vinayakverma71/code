@@ -45,7 +45,8 @@ fn test_shared_memory() -> Result<(), Box<dyn std::error::Error>> {
     
     // Test 3: Read from buffer
     println!("  Reading from buffer...");
-    match buffer.read() {
+    let mut temp = vec![0u8; 1024];
+    match buffer.read(&mut temp) {
         Ok(Some(data)) => {
             println!("  ✅ Read operation: WORKS");
             if data == test_data {

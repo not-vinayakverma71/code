@@ -229,12 +229,7 @@ impl Task {
         
         // Implementation continues in next part...
         Ok(AskResponse {
-            response: crate::task_exact_translation::ClineAskResponse {
-                response: "continue".to_string(),
-                text: None,
-                images: None,
-                metadata: None,
-            },
+            response: crate::ipc_messages::ClineAskResponse::Approved,
             text: None,
             images: None,
         })

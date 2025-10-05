@@ -3,6 +3,7 @@
 
 use anyhow::Result;
 use std::sync::Arc;
+use std::collections::HashMap;
 use std::time::{Duration, Instant};
 use lru::LruCache;
 use tokio::sync::RwLock;
@@ -21,13 +22,12 @@ impl LanceDBEngine {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SearchResult {
     pub path: std::path::PathBuf,
     pub content: String,
     pub score: f32,
-    pub line_start: usize,
-    pub line_end: usize,
+    pub metadata: HashMap<String, String>,
 }
 
 /// Multi-tier cache system for ultra-fast queries
@@ -45,7 +45,7 @@ struct CachedResult {
     hit_count: u32,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct CacheStats {
     pub l1_hits: u64,
     pub l1_misses: u64,

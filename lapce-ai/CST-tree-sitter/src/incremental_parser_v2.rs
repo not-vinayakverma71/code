@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tree_sitter::{Parser, Tree, InputEdit, Point};
 use parking_lot::RwLock;
+use std::time::SystemTime;
 
 #[derive(Debug, Clone)]
 pub struct Edit {
@@ -37,9 +38,50 @@ pub struct IncrementalParseResult {
     pub time_saved_ms: f64,
 }
 
+/// Edit journal entry
+#[derive(Debug, Clone)]
+pub struct LoggedEdit {
+    pub edit: Edit,
+    pub timestamp: SystemTime,
+    pub sequence_id: u64,
+}
+
+/// Edit journal for replay
+#[derive(Debug, Clone)]
+pub struct EditJournal {
+    pub edits: Vec<LoggedEdit>,
+    pub base_snapshot_id: u64,
+    pub created_at: SystemTime,
+}
+
+impl EditJournal {
+    pub fn new(snapshot_id: u64) -> Self {
+        Self {
+            edits: Vec::new(),
+            base_snapshot_id: snapshot_id,
+            created_at: SystemTime::now(),
+        }
+    }
+    
+    pub fn add_edit(&mut self, edit: Edit) {
+        let sequence_id = self.edits.len() as u64;
+        self.edits.push(LoggedEdit {
+            edit,
+            timestamp: SystemTime::now(),
+            sequence_id,
+        });
+    }
+    
+    pub fn len(&self) -> usize {
+        self.edits.len()
+    }
+}
+
 pub struct IncrementalParserV2 {
     parser: Arc<RwLock<Parser>>,
     old_trees: Arc<RwLock<std::collections::HashMap<PathBuf, (Tree, Vec<u8>)>>>,
+    edit_journals: Arc<RwLock<std::collections::HashMap<PathBuf, EditJournal>>>,
+    snapshot_counter: Arc<std::sync::atomic::AtomicU64>,
 }
 
 impl IncrementalParserV2 {
@@ -47,6 +89,8 @@ impl IncrementalParserV2 {
         Self {
             parser: Arc::new(RwLock::new(parser)),
             old_trees: Arc::new(RwLock::new(std::collections::HashMap::new())),
+            edit_journals: Arc::new(RwLock::new(std::collections::HashMap::new())),
+            snapshot_counter: Arc::new(std::sync::atomic::AtomicU64::new(0)),
         }
     }
 
@@ -85,8 +129,24 @@ impl IncrementalParserV2 {
                     let reused = old_node_count.saturating_sub(reparsed);
                     
                     // Store new tree
-                    trees.insert(path.clone(), (new_tree.clone(), new_source.to_vec()));
-                    
+                trees.insert(path.clone(), (new_tree.clone(), new_source.to_vec()));
+                
+                // Add to edit journal
+                let mut journals = self.edit_journals.write();
+                let journal = journals.entry(path.clone())
+                    .or_insert_with(|| {
+                        let id = self.snapshot_counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                        EditJournal::new(id)
+                    });
+                journal.add_edit(edit.clone());
+                
+                // Trim journal if too long (keep last 256 edits)
+                const MAX_JOURNAL_SIZE: usize = 256;
+                if journal.len() > MAX_JOURNAL_SIZE {
+                    let to_skip = journal.len() - MAX_JOURNAL_SIZE;
+                    journal.edits = journal.edits[to_skip..].to_vec();
+                }
+                
                     let elapsed = start.elapsed();
                     
                     // Estimate time saved (full parse would take ~10x longer)
@@ -134,20 +194,68 @@ impl IncrementalParserV2 {
     }
 
     /// Get number of cached trees
-    pub fn cached_count(&self) -> usize {
+    pub fn cached_tree_count(&self) -> usize {
         self.old_trees.read().len()
+    }
+    
+    /// Replay edits to reconstruct tree from base snapshot
+    pub fn replay_edits(
+        &self,
+        path: &PathBuf,
+        base_source: &[u8],
+        journal: &EditJournal,
+    ) -> Result<Tree, String> {
+        let mut parser = self.parser.write();
+        
+        // Start with base parse
+        let mut tree = parser.parse(base_source, None)
+            .ok_or_else(|| "Failed to parse base source".to_string())?;
+        
+        let mut current_source = base_source.to_vec();
+        
+        // Apply each edit in sequence
+        for logged_edit in &journal.edits {
+            let edit = &logged_edit.edit;
+            
+            // Apply edit to tree
+            let input_edit: InputEdit = edit.clone().into();
+            tree.edit(&input_edit);
+            
+            // Apply edit to source
+            let old_len = edit.old_end_byte - edit.start_byte;
+            let new_content = vec![b'X'; edit.new_end_byte - edit.start_byte]; // Placeholder content
+            
+            current_source.splice(
+                edit.start_byte..edit.old_end_byte,
+                new_content.iter().cloned()
+            );
+            
+            // Reparse with edited tree
+            tree = parser.parse(&current_source, Some(&tree))
+                .ok_or_else(|| format!("Failed to replay edit {}", logged_edit.sequence_id))?;
+        }
+        
+        Ok(tree)
+    }
+    
+    /// Get edit journal for a file
+    pub fn get_journal(&self, path: &PathBuf) -> Option<EditJournal> {
+        let journals = self.edit_journals.read();
+        journals.get(path).cloned()
+    }
+    
+    /// Clear journal for a file
+    pub fn clear_journal(&self, path: &PathBuf) {
+        let mut journals = self.edit_journals.write();
+        journals.remove(path);
     }
 }
 
 fn count_nodes(node: tree_sitter::Node) -> usize {
     let mut count = 1;
-    let mut cursor = node.walk();
-    if cursor.goto_first_child() {
-        loop {
-            count += count_nodes(cursor.node());
-            if !cursor.goto_next_sibling() {
-                break;
-            }
+    for i in 0..node.child_count() {
+        if let Some(child) = node.child(i) {
+            count += count_nodes(child);
         }
     }
     count
@@ -200,7 +308,7 @@ mod tests {
     #[test]
     fn test_incremental_speedup() {
         let mut parser = Parser::new();
-        parser.set_language(unsafe { tree_sitter_rust::LANGUAGE }.into()).unwrap();
+        parser.set_language(tree_sitter_rust::LANGUAGE.into().into()).unwrap();
         
         let incremental = IncrementalParserV2::new(parser);
         

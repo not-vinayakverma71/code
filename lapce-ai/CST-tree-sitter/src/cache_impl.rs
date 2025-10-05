@@ -54,6 +54,15 @@ pub struct CacheStats {
     pub parse_time_saved_ms: f64,
 }
 
+#[derive(Debug, Clone)]
+pub struct CacheStatsReport {
+    pub hit_rate: f64,
+    pub total_requests: u64,
+    pub cache_hits: u64,
+    pub cache_misses: u64,
+    pub evictions: u64,
+}
+
 impl TreeSitterCache {
     pub fn new() -> Self {
         Self {
@@ -145,30 +154,13 @@ impl TreeSitterCache {
         self.query_cache.get(key)
     }
     
-    /// Invalidate cache for a file
     pub fn invalidate(&self, path: &Path) {
         let path_buf = path.to_path_buf();
         self.hot_trees.invalidate(&path_buf);
         self.warm_trees.invalidate(&path_buf);
-        
-        // Invalidate related queries
-        self.query_cache.invalidate_all();
-        self.stats.write().evictions += 1;
     }
     
-    /// Get cache statistics
-    pub fn get_stats(&self) -> CacheStats {
-        let stats = self.stats.read();
-        CacheStats {
-            total_requests: stats.total_requests,
-            cache_hits: stats.cache_hits,
-            cache_misses: stats.cache_misses,
-            evictions: stats.evictions,
-            parse_time_saved_ms: stats.parse_time_saved_ms,
-        }
-    }
-    
-    /// Calculate hit rate
+    /// Get cache hit rate
     pub fn hit_rate(&self) -> f64 {
         let stats = self.stats.read();
         if stats.total_requests == 0 {
@@ -184,6 +176,24 @@ impl TreeSitterCache {
         self.warm_trees.invalidate_all();
         self.query_cache.invalidate_all();
         *self.stats.write() = CacheStats::default();
+    }
+    
+    /// Get cache statistics with hit rate
+    pub fn get_stats(&self) -> CacheStatsReport {
+        let stats = self.stats.read();
+        let hit_rate = if stats.total_requests > 0 {
+            stats.cache_hits as f64 / stats.total_requests as f64
+        } else {
+            0.0
+        };
+        
+        CacheStatsReport {
+            hit_rate,
+            total_requests: stats.total_requests,
+            cache_hits: stats.cache_hits,
+            cache_misses: stats.cache_misses,
+            evictions: stats.evictions,
+        }
     }
 }
 
@@ -216,7 +226,7 @@ mod tests {
         // First access - miss
         let _ = cache.get_or_parse(path, hash, || {
             let mut parser = Parser::new();
-            let lang = unsafe { tree_sitter_rust::LANGUAGE };
+            let lang = tree_sitter_rust::LANGUAGE.into();
             parser.set_language(&lang.into()).unwrap();
             Ok((parser.parse(source, None).unwrap(), 1.0))
         });

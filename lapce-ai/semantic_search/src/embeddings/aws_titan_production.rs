@@ -52,7 +52,7 @@ impl AwsTier {
 /// Cache entry for embeddings
 #[derive(Debug, Clone)]
 struct CachedEmbedding {
-    embedding: Vec<f32>,
+    embedding: Arc<[f32]>,  // Changed to Arc for zero-copy
     text_hash: u64,
     created_at: Instant,
     access_count: usize,
@@ -160,7 +160,7 @@ impl AwsTitanProduction {
     }
     
     /// Check cache for embedding
-    async fn check_cache(&self, text: &str) -> Option<Vec<f32>> {
+    async fn check_cache(&self, text: &str) -> Option<Arc<[f32]>> {
         let hash = self.hash_text(text);
         let mut cache = self.cache.write().await;
         
@@ -174,7 +174,7 @@ impl AwsTitanProduction {
                 metrics.cached_requests += 1;
                 
                 debug!("Cache hit for text hash: {}", hash);
-                return Some(entry.embedding.clone());
+                return Some(entry.embedding.clone());  // Arc clone is cheap
             } else {
                 // Remove expired entry
                 cache.remove(&hash);
@@ -185,7 +185,7 @@ impl AwsTitanProduction {
     }
     
     /// Update cache with new embedding
-    async fn update_cache(&self, text: &str, embedding: Vec<f32>) {
+    async fn update_cache(&self, text: &str, embedding: Arc<[f32]>) {
         let hash = self.hash_text(text);
         let mut cache = self.cache.write().await;
         
@@ -200,7 +200,7 @@ impl AwsTitanProduction {
         }
         
         cache.insert(hash, CachedEmbedding {
-            embedding,
+            embedding,  // Store the Arc directly
             text_hash: hash,
             created_at: Instant::now(),
             access_count: 1,
@@ -333,7 +333,7 @@ impl AwsTitanProduction {
             for text in chunk {
                 // Check cache first
                 if let Some(cached) = self.check_cache(text).await {
-                    batch_embeddings.push(cached);
+                    batch_embeddings.push(cached.to_vec());  // Convert Arc to Vec at the edge
                     continue;
                 }
                 
@@ -346,8 +346,9 @@ impl AwsTitanProduction {
                 // Execute with retry
                 match self.execute_with_retry(text).await {
                     Ok(embedding) => {
-                        // Update cache
-                        self.update_cache(text, embedding.clone()).await;
+                        // Convert to Arc for cache
+                        let arc_embedding: Arc<[f32]> = Arc::from(embedding.clone().into_boxed_slice());
+                        self.update_cache(text, arc_embedding).await;
                         batch_embeddings.push(embedding);
                     }
                     Err(e) => {

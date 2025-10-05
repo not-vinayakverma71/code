@@ -8,6 +8,7 @@ use std::time::{SystemTime, Instant};
 use dashmap::DashMap;
 use parking_lot::RwLock;
 use bytes::Bytes;
+use crate::dynamic_compressed_cache::{DynamicCompressedCache, DynamicCacheConfig};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[allow(non_camel_case_types)]
@@ -88,19 +89,18 @@ pub enum FileType {
 }
 
 pub struct NativeParserManager {
-    // Language parsers (shared instances)
     parsers: DashMap<FileType, Arc<RwLock<Parser>>>,
     
     // Compiled queries for each language
     queries: DashMap<FileType, Arc<CompiledQueries>>,
     
-    // Tree cache with incremental parsing
-    tree_cache: Arc<TreeCache>,
+    // Dynamic compressed cache with frequency-based management
+    cache: Arc<DynamicCompressedCache>,
     
     // Language detection
-    detector: LanguageDetector,
+    pub detector: LanguageDetector,
     
-    // Metrics
+    // Performance metrics
     metrics: Arc<ParserMetrics>,
 }
 
@@ -253,10 +253,22 @@ impl NativeParserManager {
             }
         }
         
+        // Configure dynamic cache based on available memory
+        let cache_config = DynamicCacheConfig {
+            max_memory_mb: 500,  // 500 MB default, can be adjusted
+            hot_tier_percent: 0.4,
+            warm_tier_percent: 0.3,
+            hot_threshold: 5,
+            warm_threshold: 2,
+            decay_interval_secs: 300,
+            adaptive_sizing: true,
+            cold_compression_level: 3,
+        };
+        
         Ok(Self {
             parsers,
             queries: DashMap::new(),
-            tree_cache: Arc::new(TreeCache::new(100)),
+            cache: Arc::new(DynamicCompressedCache::new(cache_config)),
             detector: LanguageDetector::new(),
             metrics: Arc::new(ParserMetrics::new()),
         })
@@ -312,7 +324,7 @@ impl NativeParserManager {
             FileType::Erlang => return Err("Erlang parser not available".into()),
             FileType::Html => parser.set_language(&tree_sitter_html::LANGUAGE.into()),
             FileType::Ocaml => parser.set_language(&tree_sitter_ocaml::LANGUAGE_OCAML.into()),
-            FileType::Elm => parser.set_language(&tree_sitter_elm::LANGUAGE.into()),
+            FileType::Elm => parser.set_language(&tree_sitter_elm::LANGUAGE().into()),
             FileType::Nim => return Err("Nim parser not available".into()),
             // Phase 2 languages - NOW WORKING
             FileType::Kotlin => {
@@ -386,12 +398,35 @@ impl NativeParserManager {
             },
             FileType::FSharp => return Err("F# parser not available".into()),
             FileType::PowerShell => return Err("PowerShell parser not available".into()),
-            FileType::SystemVerilog => parser.set_language(&tree_sitter_systemverilog::LANGUAGE.into()),
+            FileType::SystemVerilog => parser.set_language(&tree_sitter_systemverilog::LANGUAGE().into()),
             FileType::Cairo => return Err("Cairo parser not available".into()),
             FileType::Assembly => return Err("Assembly parser not available".into()),
         } };
         result?;
         Ok(parser)
+    }
+    
+    pub fn get_loaded_languages(&self) -> Vec<FileType> {
+        self.parsers.iter().map(|e| *e.key()).collect()
+    }
+    
+    pub fn get_language(&self, file_type: FileType) -> Option<Language> {
+        match file_type {
+            FileType::Rust => Some(tree_sitter_rust::LANGUAGE.into()),
+            FileType::JavaScript => Some(tree_sitter_javascript::language()),
+            FileType::TypeScript => Some(tree_sitter_typescript::language_typescript()),
+            FileType::Python => Some(tree_sitter_python::LANGUAGE.into()),
+            FileType::Go => Some(tree_sitter_go::LANGUAGE.into()),
+            FileType::Java => Some(tree_sitter_java::LANGUAGE.into()),
+            FileType::C => Some(tree_sitter_c::LANGUAGE.into()),
+            FileType::Cpp => Some(tree_sitter_cpp::LANGUAGE.into()),
+            _ => None,
+        }
+    }
+    
+    pub fn clear_cache(&self) {
+        // Clear the dynamic cache
+        self.cache.clear();
     }
     
     pub async fn parse_file(&self, path: &Path) -> Result<ParseResult, Box<dyn std::error::Error>> {
@@ -400,47 +435,39 @@ impl NativeParserManager {
         // Detect language
         let file_type = self.detector.detect(path)?;
         
-        // Get parser for language
+        // Read file content
+        let content = tokio::fs::read(path).await?;
+        let content_bytes = Bytes::from(content.clone());
+        
+        // Compute hash for content
+        let source_hash = self.compute_hash(&content_bytes);
+        
+        // Get parser for this language
         let parser_lock = self.parsers
             .get(&file_type)
             .ok_or("No parser for language")?
             .clone();
-            
-        // Read file content
-        let content = tokio::fs::read(path).await?;
-        let content_bytes = Bytes::from(content);
         
-        // Check cache
-        if let Some(cached) = self.tree_cache.get(path).await {
-            if cached.is_valid(&content_bytes) {
-                self.metrics.record_cache_hit();
-                return Ok(ParseResult {
-                    tree: cached.tree,
-                    source: cached.source,
-                    file_type: cached.file_type,
-                    parse_time: start.elapsed(),
-                });
+        // Use dynamic cache with frequency-based management
+        let (tree, source) = self.cache.get_or_parse(
+            path,
+            source_hash,
+            || {
+                // Parse function called only on cache miss
+                let parse_start = Instant::now();
+                let tree = {
+                    let mut parser = parser_lock.write();
+                    parser.parse(&content_bytes, None)
+                        .ok_or_else(|| Box::new(std::io::Error::new(std::io::ErrorKind::Other, "Parse failed")) as Box<dyn std::error::Error>)?
+                };
+                let parse_time = parse_start.elapsed().as_secs_f64() * 1000.0;
+                
+                Ok((tree, content_bytes.clone(), parse_time))
             }
-        }
-        
-        // Parse with incremental parsing if possible
-        let tree = {
-            let mut parser = parser_lock.write();
-            parser.parse(&content_bytes, None)
-                .ok_or("Parse failed")?
-        };
-        
-        // Cache the tree
-        self.tree_cache.insert(path.to_owned(), CachedTree {
-            tree: tree.clone(),
-            source: content_bytes.clone(),
-            version: self.compute_version(&content_bytes),
-            last_modified: SystemTime::now(),
-            file_type,
-        }).await;
+        ).await?;
         
         // Record metrics
-        self.metrics.record_parse(start.elapsed(), content_bytes.len());
+        self.metrics.record_parse(start.elapsed(), source.len());
         
         Ok(ParseResult {
             tree,
@@ -448,6 +475,14 @@ impl NativeParserManager {
             file_type,
             parse_time: start.elapsed(),
         })
+    }
+    
+    fn compute_hash(&self, content: &[u8]) -> u64 {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        let mut hasher = DefaultHasher::new();
+        content.hash(&mut hasher);
+        hasher.finish()
     }
     
     fn compute_version(&self, content: &[u8]) -> u64 {
@@ -465,6 +500,10 @@ impl TreeCache {
             cache: moka::sync::Cache::new(max_size as u64),
             max_size,
         }
+    }
+    
+    pub fn clear(&self) {
+        self.cache.invalidate_all();
     }
     
     pub async fn get(&self, path: &Path) -> Option<CachedTree> {

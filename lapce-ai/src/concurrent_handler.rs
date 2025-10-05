@@ -6,33 +6,7 @@ use std::sync::Arc;
 use tokio::sync::{Semaphore, RwLock};
 use tokio::task::JoinSet;
 use std::time::{Duration, Instant};
-// use crate::lancedb_integration::{SemanticSearchEngine, SearchResult, SearchFilters};
-
-// Placeholder types
-pub struct SemanticSearchEngine;
-
-impl SemanticSearchEngine {
-    pub async fn search(&self, _query: &str, _filters: SearchFilters, _limit: usize) -> Result<Vec<SearchResult>> {
-        // Placeholder implementation
-        Ok(vec![])
-    }
-}
-
-#[derive(Clone)]
-pub struct SearchResult {
-    pub id: String,
-    pub path: std::path::PathBuf,
-    pub content: String,
-    pub score: f32,
-    pub line_start: usize,
-    pub line_end: usize,
-}
-
-pub struct SearchFilters {
-    pub language: Option<String>,
-    pub path_pattern: Option<String>,
-    pub max_results: usize,
-}
+use crate::semantic_engine::{SemanticSearchEngine, SearchResult, SearchFilters};
 
 /// Request queue for managing concurrent queries
 pub struct ConcurrentQueryHandler {
@@ -75,7 +49,7 @@ impl ConcurrentQueryHandler {
         // Execute with timeout
         let result = tokio::time::timeout(
             self.timeout,
-            self.search_engine.search(&query, limit, filters)
+            self.search_engine.search(&query, limit, filters.clone())
         ).await;
         
         // Update counter

@@ -59,7 +59,7 @@ impl Language67 {
                 Self::Scala => Ok(tree_sitter_scala::LANGUAGE.into()),
                 Self::Elixir => Ok(tree_sitter_elixir::LANGUAGE.into()),
                 Self::Html => Ok(tree_sitter_html::LANGUAGE.into()),
-                Self::Elm => Ok(tree_sitter_elm::LANGUAGE.into()),
+                Self::Elm => Ok(tree_sitter_elm::LANGUAGE().into()),
                 Self::Tsx => Ok(tree_sitter_typescript::language_tsx()),
                 Self::Jsx => Ok(tree_sitter_javascript::language()),
                 
@@ -78,7 +78,7 @@ impl Language67 {
                 Self::Solidity => Ok(tree_sitter_solidity::language()),
                 Self::FSharp => Ok(tree_sitter_fsharp::language_fsharp()),
                 Self::PowerShell => Err("PowerShell parser not available".into()),
-                Self::SystemVerilog => Ok(tree_sitter_systemverilog::LANGUAGE.into()),
+                Self::SystemVerilog => Ok(tree_sitter_systemverilog::LANGUAGE().into()),
                 Self::EmbeddedTemplate => Ok(tree_sitter_embedded_template::LANGUAGE.into()),
                 
                 // === EXTERNAL GRAMMARS (use language() function) ===

@@ -232,7 +232,7 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let config = L2Config {
             max_size: 1_000_000,
-            compression: super::types::CompressionType::None,
+            compression: crate::cache::types::CompressionType::None,
             cache_dir: temp_dir.path().to_path_buf(),
         };
         
@@ -263,7 +263,7 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let config = L2Config {
             max_size: 1_000_000,
-            compression: super::types::CompressionType::Lz4, // Enable compression
+            compression: crate::cache::types::CompressionType::Lz4, // Enable compression
             cache_dir: temp_dir.path().to_path_buf(),
         };
         

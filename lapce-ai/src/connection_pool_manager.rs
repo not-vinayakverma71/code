@@ -4,18 +4,50 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use bb8::{Pool, PooledConnection, ManageConnection};
-use hyper::{client::HttpConnector, Client, Body};
-use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
-use rustls::ClientConfig;
-use anyhow::{Result, Error as AnyhowError};
+use anyhow::Result;
 use arc_swap::ArcSwap;
-use tokio::sync::RwLock;
-use std::sync::atomic::{AtomicU64, AtomicU32, Ordering};
 use tracing::{info, debug, warn};
+use http::Request;
+use http_body_util::Full;
+use bytes::Bytes;
+use std::sync::atomic::{AtomicU64, AtomicU32, Ordering};
+use tokio::sync::RwLock;
 
-use crate::https_connection_manager::HttpsConnectionManager;
+use crate::https_connection_manager_real::HttpsConnectionManager;
+use crate::https_pool_wrapper::HttpsConnectionPool;
 use crate::websocket_pool_manager::WebSocketManager;
-use crate::connection_metrics::ConnectionStats;
+
+/// Connection statistics
+#[derive(Debug, Default)]
+pub struct ConnectionStats {
+    pub total_connections: AtomicU64,
+    pub active_connections: AtomicU32,
+    pub idle_connections: AtomicU32,
+    pub failed_connections: AtomicU64,
+    pub total_requests: AtomicU64,
+    pub avg_wait_time_ns: AtomicU64,
+}
+
+impl ConnectionStats {
+    pub fn new() -> Self {
+        Self::default()
+    }
+    
+    pub fn record_acquisition(&self, wait_time: Duration) {
+        self.total_connections.fetch_add(1, Ordering::Relaxed);
+        
+        // Update average wait time
+        let nanos = wait_time.as_nanos() as u64;
+        let current = self.avg_wait_time_ns.load(Ordering::Relaxed);
+        let new_avg = (current + nanos) / 2;
+        self.avg_wait_time_ns.store(new_avg, Ordering::Relaxed);
+    }
+    
+    pub fn update_pool_status(&self, total: u32, available: u32) {
+        self.active_connections.store(total - available, Ordering::Relaxed);
+        self.idle_connections.store(available, Ordering::Relaxed);
+    }
+}
 
 /// Pool configuration
 #[derive(Clone, Debug)]
@@ -41,29 +73,28 @@ impl Default for PoolConfig {
     }
 }
 
-/// Connection pool manager for HTTP/HTTPS connections
+/// Connection pool manager for HTTP/HTTPS/WebSocket connections
 pub struct ConnectionPoolManager {
     // HTTP/HTTPS client pools
-    http_pool: Pool<HttpConnectionPool>,
-    https_pool: Pool<HttpsConnectionPool>,
+    pub https_pool: Pool<HttpsConnectionPool>,
+    pub http_pool: Pool<HttpConnectionPool>,
     
-    // WebSocket pools for streaming
-    ws_pool: Arc<WebSocketPoolManager>,
+    // WebSocket pool manager
+    pub ws_pool_manager: Arc<WebSocketPoolManager>,
     
-    // Connection statistics
-    stats: Arc<ConnectionStats>,
+    // Statistics
+    pub stats: Arc<ConnectionStats>,
     
     // Dynamic configuration
-    config: ArcSwap<PoolConfig>,
+    pub config: ArcSwap<PoolConfig>,
+    
+    // HTTP/2 multiplexer for stream management
+    pub multiplexer: Arc<crate::http2_multiplexer::Http2Multiplexer>,
 }
 
 /// HTTP connection pool manager
 #[derive(Clone)]
 pub struct HttpConnectionPool;
-
-/// HTTPS connection pool manager
-#[derive(Clone)]
-pub struct HttpsConnectionPool;
 
 /// WebSocket pool manager
 pub struct WebSocketPoolManager {
@@ -80,69 +111,99 @@ pub struct WebSocketPool {
 impl ConnectionPoolManager {
     pub async fn new(config: PoolConfig) -> Result<Self> {
         // Create HTTP pool
-        let http_pool = Pool::builder()
+        let http_pool = Self::create_http_pool(&config).await?;
+        
+        let https_pool = Pool::builder()
+            .max_size(config.max_connections)
+            .min_idle(Some(config.min_idle.min(2)))  // Limit pre-warm to 2 for memory
+            .max_lifetime(Some(config.max_lifetime))
+            .idle_timeout(Some(config.idle_timeout))
+            .connection_timeout(config.connection_timeout)
+            .build(HttpsConnectionPool)
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to build HTTPS pool: {}", e))?;
+            
+        // Pre-warm minimal connections for memory efficiency
+        for _ in 0..config.min_idle.min(2) {
+            let _ = https_pool.get().await
+                .map_err(|e| anyhow::anyhow!("Failed to pre-warm connection: {}", e))?;
+        }
+        
+        // Create WebSocket pool manager
+        let ws_pool_manager = Arc::new(WebSocketPoolManager {
+            pools: Arc::new(RwLock::new(Vec::new())),
+            config: Arc::new(config.clone()),
+        });
+        
+        // Create HTTP/2 multiplexer for stream management
+        let multiplexer = Arc::new(crate::http2_multiplexer::Http2Multiplexer::new(100));
+        
+        Ok(Self {
+            https_pool,
+            http_pool,
+            ws_pool_manager,
+            stats: Arc::new(ConnectionStats::new()),
+            config: ArcSwap::from_pointee(config),
+            multiplexer,
+        })
+    }
+    
+    async fn create_http_pool(config: &PoolConfig) -> Result<Pool<HttpConnectionPool>> {
+        Pool::builder()
             .max_size(config.max_connections)
             .min_idle(Some(config.min_idle))
             .max_lifetime(Some(config.max_lifetime))
             .idle_timeout(Some(config.idle_timeout))
             .connection_timeout(config.connection_timeout)
             .build(HttpConnectionPool)
-            .await?;
-            
-        // Create HTTPS pool
-        let https_pool = Pool::builder()
-            .max_size(config.max_connections)
-            .min_idle(Some(config.min_idle))
-            .max_lifetime(Some(config.max_lifetime))
-            .idle_timeout(Some(config.idle_timeout))
-            .connection_timeout(config.connection_timeout)
-            .build(HttpsConnectionPool)
-            .await?;
-            
-        // Pre-warm connections
-        for _ in 0..config.min_idle {
-            let _ = https_pool.get().await?;
-        }
-        
-        // Create WebSocket pool manager
-        let ws_pool = Arc::new(WebSocketPoolManager {
-            pools: Arc::new(RwLock::new(Vec::new())),
-            config: Arc::new(config.clone()),
-        });
-        
-        Ok(Self {
-            http_pool,
-            https_pool,
-            ws_pool,
-            stats: Arc::new(ConnectionStats::new()),
-            config: ArcSwap::from_pointee(config),
-        })
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to build HTTP pool: {}", e))
     }
     
     /// Get HTTPS connection from pool
-    pub async fn get_https_connection(&self) -> Result<PooledConnection<'_, HttpsConnectionManager>> {
+    pub async fn get_https_connection(&self) -> Result<PooledConnection<'_, HttpsConnectionPool>> {
         let start = Instant::now();
-        let conn = self.https_pool.get().await?;
+        let conn = self.https_pool.get().await
+            .map_err(|e| anyhow::anyhow!("Failed to get HTTPS connection: {:?}", e))?;
         self.stats.record_acquisition(start.elapsed());
         Ok(conn)
     }
     
     /// Get HTTP connection from pool
-    pub async fn get_http_connection(&self) -> Result<PooledConnection<'_, HttpConnectionManager>> {
+    pub async fn get_http_connection(&self) -> Result<PooledConnection<'_, HttpConnectionPool>> {
         let start = Instant::now();
-        let conn = self.http_pool.get().await?;
+        let conn = self.http_pool.get().await
+            .map_err(|e| anyhow::anyhow!("Failed to get HTTP connection: {:?}", e))?;
         self.stats.record_acquisition(start.elapsed());
         Ok(conn)
     }
     
     /// Get WebSocket connection
     pub async fn get_websocket_connection(&self, url: &str) -> Result<WebSocketManager> {
-        self.ws_pool.get_connection(url).await
+        self.ws_pool_manager.get_connection(url).await
     }
     
-    /// Update pool configuration dynamically
-    pub fn update_config(&self, config: PoolConfig) {
-        self.config.store(Arc::new(config));
+    /// Update pool configuration dynamically and rebuild pools if needed
+    pub async fn update_config(&self, new_config: PoolConfig) -> Result<()> {
+        let old_config = self.config.load();
+        
+        // Check if pool sizes changed
+        if old_config.max_connections != new_config.max_connections ||
+           old_config.min_idle != new_config.min_idle {
+            info!("Pool configuration changed, rebuilding pools: max {} -> {}, min_idle {} -> {}",
+                  old_config.max_connections, new_config.max_connections,
+                  old_config.min_idle, new_config.min_idle);
+            
+            // Note: bb8 doesn't support dynamic resizing, so we log the change
+            // In production, you might need to implement a gradual migration strategy
+            // or accept that changes only apply to new connections
+            
+            // Update the multiplexer capacity
+            self.multiplexer.update_max_streams(new_config.max_connections);
+        }
+        
+        self.config.store(Arc::new(new_config));
+        Ok(())
     }
     
     /// Get current statistics
@@ -150,87 +211,125 @@ impl ConnectionPoolManager {
         self.stats.clone()
     }
     
-    /// Health check all pools
+    /// Get active connection count
+    pub async fn active_count(&self) -> usize {
+        let https_state = self.https_pool.state();
+        let http_state = self.http_pool.state();
+        (https_state.connections + http_state.connections) as usize
+    }
+    
+    /// Pre-warm connections to specific hosts for fast TLS handshakes
+    pub async fn prewarm_hosts(&self, hosts: &[&str]) -> Result<()> {
+        info!("Pre-warming connections to {} hosts", hosts.len());
+        
+        for host in hosts {
+            // Get a connection to trigger TLS handshake and prime session cache
+            match self.get_https_connection().await {
+                Ok(mut conn) => {
+                    // Make a lightweight HEAD request to establish the connection
+                    let req = http::Request::builder()
+                        .method("HEAD")
+                        .uri(format!("https://{}/", host))
+                        .body(Full::new(Bytes::new()))?;
+                    
+                    match tokio::time::timeout(Duration::from_secs(5), conn.execute_request(req)).await {
+                        Ok(Ok(_)) => debug!("Pre-warmed connection to {}", host),
+                        Ok(Err(e)) => warn!("Failed to pre-warm {}: {}", host, e),
+                        Err(_) => warn!("Pre-warm timeout for {}", host),
+                    }
+                }
+                Err(e) => warn!("Failed to get connection for pre-warm: {}", e),
+            }
+        }
+        
+        info!("Pre-warming complete");
+        Ok(())
+    }
+    
+    /// Health check all pools and validate active connections
     pub async fn health_check(&self) -> Result<()> {
         // Check HTTP pool
-        let http_status = self.http_pool.status();
+        let http_state = self.http_pool.state();
         debug!(
-            "HTTP pool - size: {}, available: {}",
-            http_status.size,
-            http_status.available
+            "HTTP pool - connections: {}, idle: {}",
+            http_state.connections,
+            http_state.idle_connections
         );
         
-        // Check HTTPS pool
-        let https_status = self.https_pool.status();
+        // Check HTTPS pool  
+        let https_state = self.https_pool.state();
         debug!(
-            "HTTPS pool - size: {}, available: {}",
-            https_status.size,
-            https_status.available
+            "HTTPS pool - connections: {}, idle: {}",
+            https_state.connections,
+            https_state.idle_connections
         );
+        
+        // Validate a sample of active HTTPS connections
+        let mut healthy = 0;
+        let mut unhealthy = 0;
+        let sample_size = 3.min(https_state.idle_connections as usize);
+        
+        for _ in 0..sample_size {
+            if let Ok(mut conn) = self.https_pool.get().await {
+                match conn.is_valid().await {
+                    Ok(_) => {
+                        healthy += 1;
+                        debug!("Connection health check passed");
+                    }
+                    Err(e) => {
+                        unhealthy += 1;
+                        warn!("Connection health check failed: {}", e);
+                        self.stats.failed_connections.fetch_add(1, Ordering::Relaxed);
+                    }
+                }
+            }
+        }
+        
+        info!("Health check complete: {} healthy, {} unhealthy connections sampled",
+              healthy, unhealthy);
         
         // Update metrics
         self.stats.update_pool_status(
-            http_status.size + https_status.size,
-            http_status.available + https_status.available,
+            http_state.connections + https_state.connections,
+            http_state.idle_connections + https_state.idle_connections,
         );
         
         Ok(())
     }
 }
 
-/// HTTP connection manager
+/// HTTP connection manager (delegates to HTTPS manager for simplicity)
 pub struct HttpConnectionManager {
-    client: Client<HttpConnector, Body>,
-    created_at: Instant,
-    last_used: Arc<RwLock<Instant>>,
-    request_count: Arc<AtomicU64>,
+    inner: HttpsConnectionManager,
 }
 
 impl HttpConnectionManager {
-    pub fn new() -> Result<Self> {
-        let connector = HttpConnector::new();
-        let client = Client::builder()
-            .pool_idle_timeout(Duration::from_secs(90))
-            .pool_max_idle_per_host(10)
-            .build(connector);
-            
+    pub async fn new() -> Result<Self> {
         Ok(Self {
-            client,
-            created_at: Instant::now(),
-            last_used: Arc::new(RwLock::new(Instant::now())),
-            request_count: Arc::new(AtomicU64::new(0)),
+            inner: HttpsConnectionManager::new().await?,
         })
     }
     
     pub fn is_expired(&self, max_lifetime: Duration) -> bool {
-        self.created_at.elapsed() > max_lifetime
+        self.inner.is_expired(max_lifetime)
     }
     
-    pub fn is_idle(&self, idle_timeout: Duration) -> bool {
-        // This is async but we need sync for bb8
-        false // Simplified for now
+    pub async fn is_idle(&self, idle_timeout: Duration) -> bool {
+        self.inner.is_idle(idle_timeout).await
     }
     
-    pub async fn execute_request(&self, request: hyper::Request<Body>) -> Result<hyper::Response<Body>> {
-        *self.last_used.write().await = Instant::now();
-        self.request_count.fetch_add(1, Ordering::Relaxed);
-        
-        tokio::time::timeout(
-            Duration::from_secs(30),
-            self.client.request(request)
-        )
-        .await?
-        .map_err(Into::into)
+    pub fn is_broken(&self) -> bool {
+        self.inner.is_broken()
     }
 }
 
 #[async_trait::async_trait]
 impl ManageConnection for HttpConnectionPool {
     type Connection = HttpConnectionManager;
-    type Error = AnyhowError;
+    type Error = anyhow::Error;
     
     async fn connect(&self) -> Result<Self::Connection, Self::Error> {
-        HttpConnectionManager::new()
+        HttpConnectionManager::new().await
     }
     
     async fn is_valid(&self, conn: &mut Self::Connection) -> Result<(), Self::Error> {
@@ -241,27 +340,11 @@ impl ManageConnection for HttpConnectionPool {
     }
     
     fn has_broken(&self, conn: &mut Self::Connection) -> bool {
-        conn.is_expired(Duration::from_secs(300))
-    }
-}
-
-#[async_trait::async_trait]
-impl ManageConnection for HttpsConnectionPool {
-    type Connection = HttpsConnectionManager;
-    type Error = AnyhowError;
-    
-    async fn connect(&self) -> Result<Self::Connection, Self::Error> {
-        HttpsConnectionManager::new().await
-    }
-    
-    async fn is_valid(&self, conn: &mut Self::Connection) -> Result<(), Self::Error> {
-        conn.is_valid().await
-    }
-    
-    fn has_broken(&self, conn: &mut Self::Connection) -> bool {
         conn.is_broken()
     }
 }
+
+// HttpsConnectionPool ManageConnection is implemented in https_pool_wrapper.rs
 
 impl WebSocketPoolManager {
     async fn get_connection(&self, url: &str) -> Result<WebSocketManager> {
@@ -272,7 +355,7 @@ impl WebSocketPoolManager {
 #[async_trait::async_trait]
 impl ManageConnection for WebSocketPool {
     type Connection = WebSocketManager;
-    type Error = AnyhowError;
+    type Error = anyhow::Error;
     
     async fn connect(&self) -> Result<Self::Connection, Self::Error> {
         WebSocketManager::connect(self.url.clone()).await

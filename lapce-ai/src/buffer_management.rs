@@ -164,6 +164,7 @@ mod tests {
         
         let error_chunk = crate::streaming_pipeline::stream_transform::ApiStreamChunk::error("ERROR".to_string(), "Test error".to_string());
         assert!(error_chunk.is_error());
+    }
     
     #[test]
     fn test_stream_buffer() {
@@ -177,3 +178,4 @@ mod tests {
         assert_eq!(buffer.get_usage(), (10, 5));
         assert_eq!(buffer.get_chunks().len(), 3);
     }
+}

@@ -1,58 +1,51 @@
-# REALITY CHECK - What We Actually Did vs What Works
+# THE BRUTAL REALITY
 
-## What Codex ACTUALLY Has (from their code):
-**29 languages with queries:**
-1. JavaScript (.js, .jsx)
-2. TypeScript (.ts) 
-3. TSX (.tsx)
-4. Python (.py)
-5. Rust (.rs)
-6. Go (.go)
-7. C (.c, .h)
-8. C++ (.cpp, .hpp)
-9. C# (.cs)
-10. Ruby (.rb)
-11. Java (.java)
-12. PHP (.php)
-13. Swift (.swift)
-14. Kotlin (.kt, .kts)
-15. CSS (.css)
-16. HTML (.html, .htm)
-17. OCaml (.ml, .mli)
-18. Solidity (.sol)
-19. TOML (.toml)
-20. Vue (.vue)
-21. Lua (.lua)
-22. SystemRDL (.rdl)
-23. TLA+ (.tla)
-24. Zig (.zig)
-25. Embedded Template (.ejs, .erb)
-26. Elisp (.el)
-27. Elixir (.ex, .exs)
-28. Scala (.scala)
-29. Markdown (.md, .markdown) - special parser
+## Your Goal
+```
+Compete with Windsurf at 5-10x LESS memory
+Windsurf: 4 GB for 10K files
+Target: 400-800 MB for 10K files
+```
 
-## What We ACTUALLY Have Working:
-**~22 languages with basic queries** (many incomplete/broken):
-- JavaScript, TypeScript, Python, Rust, Go
-- C, C++, C#, Ruby, Java, PHP, Swift
-- Lua, Elixir, Scala, CSS, JSON, TOML, Bash
-- Elm, Markdown, Dockerfile
+## Our Result
+```
+Our CSTs alone: 7,500 MB for 10K files
+Over target by: 9-18x
 
-## What We Did Wrong:
-1. **Added 59+ dependencies** in Cargo.toml - USELESS without queries
-2. **No query files** for 37+ languages
-3. **No file extension mapping** for new languages
-4. **No testing** of any new languages
-5. **Claimed 66 languages** - COMPLETELY FALSE
+We're not even close.
+```
 
-## To Actually Match Codex (29 languages):
-1. Need to add queries for: Kotlin, HTML, OCaml, Solidity, Vue, SystemRDL, TLA+, Zig, Embedded Template, Elisp, TSX
-2. Fix processCaptures logic to match Codex exactly
-3. Map file extensions correctly
-4. Test with real code
+## The Math
+```
+Target per file: 40-80 KB
+Our actual: 768 KB per file
+Bloat: 9-19x over target
+```
 
-## The Truth:
-- We have **22 partially working** languages
-- Codex has **29 fully working** languages
-- We claimed **66 languages** but 44 are COMPLETELY BROKEN
+## What This Means
+
+We fucked up. Massively.
+
+Tree-sitter nodes at 12 KB per file means:
+- 10K files = 120 MB just for trees
+- Add source: 3 MB
+- Add overhead: 50 MB
+- **Should be ~173 MB total**
+
+But we're measuring 7,500 MB.
+
+**That's 43x more than it should be.**
+
+## Where Did We Go Wrong?
+
+Something is catastrophically wrong with either:
+1. Our measurement
+2. Our storage
+3. Tree-sitter itself
+4. Our test methodology
+
+I need to:
+1. Run valgrind to check for leaks
+2. Check if trees are being duplicated
+3. Verify our RSS measurement is correct
+4. Find where the other 7,327 MB is hiding

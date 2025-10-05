@@ -60,8 +60,6 @@ fn main() {
             TokenUsage {
                 total_tokens_in: 100,
                 total_tokens_out: 200,
-                total_cache_writes: Some(50),
-                total_cache_reads: Some(25),
                 total_cost: 0.005,
                 context_tokens: 150,
             },

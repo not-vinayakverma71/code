@@ -30,11 +30,14 @@ codegen-units = 1
 default = ["local_models"]
 local_models = ["candle-core", "candle-transformers", "candle-nn"]
 onnx = ["ort"]
-mimalloc = ["dep:mimalloc"]
 
 [[bin]]
 name = "cli_tools"
 path = "src/bin/cli.rs"
+
+[[bin]]
+name = "test_providers"
+path = "src/bin/test_providers.rs"
 
 [[bench]]
 name = "benchmarks"
@@ -44,21 +47,27 @@ harness = false
 tonic-build = "0.11"
 
 [dev-dependencies]
-criterion = { version = "0.5", features = ["html_reports"] }
-mockito = "1.2"
+criterion = "0.5"
+tempfile = "3.5"
+num_cpus = "1.16"
+sysinfo = "0.30"
+quickcheck = "1.0"
+test-case = "3.0"
+rstest = "0.18"
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", features = ["handleapi", "memoryapi", "winnt", "minwindef"] }
-anyhow = "1.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 libc = "0.2"
-anyhow = "1.0"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
 [dependencies]
+chrono = { version = "0.4", features = ["serde"] }
+once_cell = "1.19"
+mimalloc = { version = "0.1", default-features = false }
 # Core
 anyhow = "1.0"
 tokio = { version = "1.35", features = ["full"] }
@@ -82,10 +91,8 @@ rayon = "1.10"
 parking_lot = "0.12"
 dashmap = "6.0"
 arc-swap = "1.7"
-once_cell = "1.19"
-
 # System & Platform
-sysinfo = "0.31"
+sysinfo = "0.30"
 nix = { version = "0.29", features = ["signal", "resource", "user"] }
 sd-notify = "0.4"
 num_cpus = "1.16"
@@ -131,6 +138,8 @@ ndarray = "0.16"
 aws-config = "1.5"
 aws-sdk-bedrock = "1.72"
 aws-sdk-bedrockruntime = "1.39"
+aws-credential-types = "1.2"
+aws-types = "1.3"
 
 # Web & HTTP
 reqwest = { version = "0.12", features = ["json", "stream"] }
@@ -152,10 +161,11 @@ bb8-redis = "0.15"
 
 # HTTP/HTTPS Clients
 hyper = { version = "1.0", features = ["full"] }
-hyper-util = "0.1"
-hyper-rustls = "0.26"
+hyper-util = { version = "0.1", features = ["client", "client-legacy", "http1", "http2", "tokio"] }
+hyper-rustls = { version = "0.26", features = ["http1", "http2", "native-tokio", "tls12"] }
 http-body-util = "0.1"
 http = "1.0"
+tower-service = "0.3"
 
 # WebSocket
 tokio-tungstenite = { version = "0.21", features = ["rustls-tls-native-roots"] }
@@ -163,6 +173,12 @@ tungstenite = "0.21"
 
 # DNS Resolution
 hickory-resolver = "0.24"
+
+# Additional dependencies
+sys-info = "0.9"
+lru = "0.12"
+webpki-roots = "0.26"
+rustls-native-certs = "0.7"
 
 # LSP
 lsp-types = "0.95"
@@ -180,7 +196,6 @@ indicatif = "0.17"
 
 # Utilities
 regex = "1.10"
-chrono = "0.4"
 uuid = { version = "1.11", features = ["v4", "serde"] }
 rand = "0.8"
 url = "2.5"
@@ -211,7 +226,6 @@ rustls-pemfile = "1.0"
 rkyv = { version = "0.7", features = ["validation"] }
 shared_memory = "0.12"
 raw_sync = "0.1"
-mimalloc = { version = "0.1", optional = true }
 
 # Scripting
 mlua = { version = "0.10", features = ["lua54", "vendored", "async", "send"] }
@@ -233,12 +247,9 @@ tree-sitter-c-sharp = "0.23.1"
 
 # Other
 heed = "0.20"
+dotenv = "0.15"
+colored = "2.0"
+html-escape = "0.2"
 
 [workspace]
-members = [
-    ".",
-    "CST-tree-sitter",
-    "optimized_ipc",
-    "true_1to1_port",
-    "working_ipc"
-]
+members = [".", "optimized_ipc"]

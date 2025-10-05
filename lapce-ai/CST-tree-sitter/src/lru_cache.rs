@@ -174,7 +174,7 @@ mod tests {
         let cache = LRUParseCache::new(2, 1); // 2 entries max, 1 MB max
         
         let mut parser = Parser::new();
-        parser.set_language(unsafe { tree_sitter_rust::LANGUAGE }.into()).unwrap();
+        parser.set_language(tree_sitter_rust::LANGUAGE.into().into()).unwrap();
         
         // Add 3 files
         let code1 = "fn a() {}";

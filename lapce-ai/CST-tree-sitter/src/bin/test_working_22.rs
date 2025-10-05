@@ -2,7 +2,7 @@ use lapce_tree_sitter::codex_exact_format::parse_source_code_definitions_for_fil
 
 fn main() {
     println!("Testing 22 Working Languages\n");
-    println!("="  .repeat(50));
+    println!("{}", "=".repeat(50));
     
     let mut passed = 0;
     let mut failed = Vec::new();

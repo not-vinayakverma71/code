@@ -7,9 +7,9 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 // Global mode storage
-lazy_static::lazy_static! {
-    static ref CURRENT_MODE: Arc<RwLock<String>> = Arc::new(RwLock::new("normal".to_string()));
-}
+use once_cell::sync::Lazy;
+
+static CURRENT_MODE: Lazy<Arc<RwLock<String>>> = Lazy::new(|| Arc::new(RwLock::new("normal".to_string())));
 pub struct SwitchModeTool;
 impl SwitchModeTool {
     pub fn new() -> Self { Self }

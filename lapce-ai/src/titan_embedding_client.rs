@@ -2,7 +2,8 @@
 /// Uses AWS SDK to generate 1024-dimensional embeddings
 
 use anyhow::{Result, anyhow};
-use aws_sdk_bedrockruntime::{Client, types::Blob};
+use aws_sdk_bedrockruntime::primitives::Blob;
+use aws_sdk_bedrockruntime::Client;
 use aws_config::{Region, BehaviorVersion};
 use serde::{Serialize, Deserialize};
 use std::sync::Arc;
@@ -10,10 +11,10 @@ use tokio::sync::{RwLock, Semaphore};
 use std::collections::HashMap;
 use std::time::Duration;
 
-const TITAN_MODEL: &str = "amazon.titan-embed-text-v2:0";
-const EMBEDDING_DIM: usize = 1024;
-const MAX_BATCH_SIZE: usize = 25;  // Titan's limit
-const MAX_INPUT_LENGTH: usize = 8192;  // Titan's token limit
+pub const TITAN_MODEL: &str = "amazon.titan-embed-text-v2:0";
+pub const EMBEDDING_DIM: usize = 1024;
+pub const MAX_BATCH_SIZE: usize = 25;  // Titan's limit
+pub const MAX_INPUT_LENGTH: usize = 8192;  // Titan's token limit
 
 #[derive(Debug, Serialize)]
 struct TitanRequest {
@@ -36,7 +37,7 @@ pub struct TitanEmbeddingClient {
     stats: Arc<RwLock<EmbeddingStats>>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct EmbeddingStats {
     pub api_calls: u64,
     pub cache_hits: u64,
@@ -55,13 +56,6 @@ impl TitanEmbeddingClient {
         // let client = Client::new(&config);
         
         return Err(anyhow::anyhow!("AWS temporarily disabled"));
-        
-        Ok(Self {
-            client: Arc::new(client),
-            cache: Arc::new(RwLock::new(HashMap::new())),
-            rate_limiter: Arc::new(Semaphore::new(10)), // 10 concurrent requests max
-            stats: Arc::new(RwLock::new(EmbeddingStats::default())),
-        })
     }
     
     /// Initialize with explicit credentials
@@ -94,15 +88,6 @@ impl TitanEmbeddingClient {
         //     .load()
         //     .await;
         return Err(anyhow::anyhow!("AWS temporarily disabled"));
-        
-        let client = Client::new(&config);
-        
-        Ok(Self {
-            client: Arc::new(client),
-            cache: Arc::new(RwLock::new(HashMap::new())),
-            rate_limiter: Arc::new(Semaphore::new(10)),
-            stats: Arc::new(RwLock::new(EmbeddingStats::default())),
-        })
     }
     
     /// Generate embedding for single text

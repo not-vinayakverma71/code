@@ -7,19 +7,19 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::fs;
 
-use crate::shared_memory_complete::{SharedMemoryListener, SharedMemoryStream};
-use crate::auto_reconnection::{AutoReconnectionManager, ReconnectionStrategy, ConnectionState};
-use crate::connection_pool_complete::ConnectionPool;
+use anyhow::{anyhow, Result, Context};
 use tokio::sync::{mpsc, RwLock, Semaphore, broadcast, Mutex};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use bytes::{Bytes, BytesMut};
 use dashmap::DashMap;
 use parking_lot::Mutex as ParkingMutex;
 
 use crate::ipc_messages::{MessageType, ClineMessage, AIRequest, Message as IpcMessage};
 use crate::events_exact_translation::TaskEvent;
+use crate::shared_memory_complete::{SharedMemoryListener, SharedMemoryStream};
+use crate::auto_reconnection::{AutoReconnectionManager, ReconnectionStrategy, ConnectionState};
 
 use serde::{Deserialize, Serialize};
-use anyhow::{Result, Context};
 use tracing::{info, warn, error, debug};
 
 const MAX_MESSAGE_SIZE: usize = 10 * 1024 * 1024; // 10MB
@@ -101,7 +101,7 @@ pub struct IpcServerComplete {
     config: Arc<IpcConfig>,
     listener: Arc<Mutex<Option<SharedMemoryListener>>>,
     handlers: Arc<DashMap<MessageType, Handler>>,
-    connections: Arc<ConnectionPool>,
+    connections: Arc<crate::connection_pool_manager::ConnectionPoolManager>,
     provider_pool: Option<Arc<dyn std::any::Any + Send + Sync>>,
     reconnect_manager: Arc<AutoReconnectionManager>,
     metrics: Arc<Metrics>,
@@ -144,14 +144,22 @@ impl IpcServerComplete {
         // Create health checker
         let health_checker = Arc::new(HealthChecker::new());
         
+        let pool_config = crate::connection_pool_manager::PoolConfig {
+            max_connections: 100,
+            idle_timeout: Duration::from_secs(300),
+            ..Default::default()
+        };
+        let connections = Arc::new(
+            crate::connection_pool_manager::ConnectionPoolManager::new(pool_config)
+                .await
+                .map_err(|e| anyhow!("Failed to create connection pool: {}", e))?
+        );
+        
         let server = Arc::new(Self {
             config: Arc::new(config.clone()),
             listener: Arc::new(Mutex::new(Some(listener))),
             handlers: Arc::new(DashMap::with_capacity(32)),
-            connections: Arc::new(ConnectionPool::new(
-                config.max_connections,
-                Duration::from_secs(config.idle_timeout_secs),
-            )),
+            connections,
             provider_pool: None,
             reconnect_manager,
             metrics: Arc::new(Metrics::new()),
@@ -389,7 +397,7 @@ impl IpcServerComplete {
         
         // Wait for reconnection (must be <100ms)
         let start = Instant::now();
-        while self.reconnect_manager.get_state().await != ConnectionState::Connected {
+        while self.reconnect_manager.get_state().await != crate::auto_reconnection::ConnectionState::Connected {
             if start.elapsed() > Duration::from_millis(100) {
                 anyhow::bail!("Recovery timeout exceeded 100ms");
             }
@@ -479,9 +487,9 @@ impl IpcServerComplete {
         
         // Wait for existing connections to complete (max 30s)
         let start = Instant::now();
-        while self.connections.active_count() > 0 {
+        while self.connections.active_count().await > 0 {
             if start.elapsed() > Duration::from_secs(30) {
-                warn!("Force closing {} remaining connections", self.connections.active_count());
+                warn!("Force closing {} remaining connections", self.connections.active_count().await);
                 break;
             }
             tokio::time::sleep(Duration::from_millis(100)).await;

@@ -137,7 +137,7 @@ pub trait Tool: Send + Sync {
     }
     
     fn required_permissions(&self) -> Vec<Permission> {
-        vec![Permission::Execute]
+        vec![Permission::ExecuteCommand]
     }
     
     fn parameters(&self) -> Vec<ToolParameter> {
@@ -205,7 +205,8 @@ impl McpToolSystem {
             .clone();
         
         // 2. Check permissions
-        self.permissions.check_permission(&context.user_id, tool_name, "execute")?;
+        let permission = Permission::ToolExecute(tool_name.to_string());
+        self.permissions.check_permission(&context.user, &permission.to_string(), "execute")?;
         
         // 3. Check rate limit
         if self.config.enable_rate_limiting {
@@ -242,8 +243,8 @@ impl McpToolSystem {
     }
     
     pub async fn check_permission(&self, user: &str, tool: &str, operation: &str) -> Result<()> {
-        let permission = crate::mcp_tools::permissions::Permission::ToolExecute(tool.to_string());
-        self.permissions.check_permission(user, &permission, operation)
+        let permission = Permission::ToolExecute(tool.to_string());
+        self.permissions.check_permission(&user.to_string(), &permission.to_string(), operation)
     }
     
     pub async fn list_tools(&self) -> Vec<String> {

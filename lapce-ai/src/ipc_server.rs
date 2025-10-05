@@ -15,7 +15,7 @@ use parking_lot::Mutex;
 
 use crate::ipc_messages::{MessageType, ClineMessage, AIRequest, Message as IpcMessage};
 use crate::events_exact_translation::TaskEvent;
-use crate::connection_pool_complete::ConnectionPool;
+// use crate::connection_pool_complete::ConnectionPool; // Module doesn't exist
 // use crate::provider_pool::{ProviderPool, ProviderPoolConfig, ProviderResponse};
 
 const MAX_MESSAGE_SIZE: usize = 10 * 1024 * 1024; // 10MB
@@ -51,6 +51,9 @@ pub enum IpcError {
     
     #[error("Server shutdown")]
     Shutdown,
+    
+    #[error("Connection error: {0}")]
+    ConnectionError(anyhow::Error),
 }
 
 /// Connection metrics
@@ -181,7 +184,7 @@ impl BufferPool {
 pub struct IpcServer {
     listener: Arc<tokio::sync::Mutex<Option<SharedMemoryListener>>>,
     handlers: Arc<DashMap<MessageType, Handler>>,
-    connections: Arc<ConnectionPool>,
+    connections: Arc<crate::connection_pool_manager::ConnectionPoolManager>,
     buffer_pool: Arc<BufferPool>,
     metrics: Arc<Metrics>,
     shutdown: broadcast::Sender<()>,
@@ -195,15 +198,17 @@ impl IpcServer {
         
         let (shutdown_tx, _) = broadcast::channel(1);
         
+        let pool_config = crate::connection_pool_manager::PoolConfig::default();
+        let connections = Arc::new(crate::connection_pool_manager::ConnectionPoolManager::new(pool_config).await.map_err(|e| IpcError::ConnectionError(e))?);
+        
         Ok(Self {
             listener: Arc::new(tokio::sync::Mutex::new(Some(listener))),
             handlers: Arc::new(DashMap::with_capacity(32)),
-            connections: Arc::new(ConnectionPool::new(MAX_CONNECTIONS, Duration::from_secs(300))),
+            connections,
             buffer_pool: Arc::new(BufferPool::new()),
             metrics: Arc::new(Metrics::new()),
             shutdown: shutdown_tx,
             socket_path: socket_path.to_string(),
-            provider_pool: None,
         })
     }
     

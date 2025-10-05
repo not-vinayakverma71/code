@@ -1,51 +1,50 @@
 /// Monitoring & Metrics Implementation (Days 43-44)
 use prometheus::{Encoder, TextEncoder, Counter, Gauge, Histogram, HistogramOpts};
-use lazy_static::lazy_static;
 use std::time::Instant;
 use anyhow::Result;
 
-lazy_static! {
-    // Counters
-    pub static ref MESSAGES_PROCESSED: Counter = Counter::new(
-        "ipc_messages_processed_total", "Total messages processed"
-    ).unwrap();
-    
-    pub static ref CACHE_HITS: Counter = Counter::new(
-        "cache_hits_total", "Total cache hits"
-    ).unwrap();
-    
-    pub static ref CACHE_MISSES: Counter = Counter::new(
-        "cache_misses_total", "Total cache misses"
-    ).unwrap();
-    
-    pub static ref ERRORS_TOTAL: Counter = Counter::new(
-        "errors_total", "Total errors"
-    ).unwrap();
-    
-    // Gauges
-    pub static ref ACTIVE_CONNECTIONS: Gauge = Gauge::new(
-        "active_connections", "Current active connections"
-    ).unwrap();
-    
-    pub static ref MEMORY_USAGE_BYTES: Gauge = Gauge::new(
-        "memory_usage_bytes", "Current memory usage in bytes"
-    ).unwrap();
-    
-    pub static ref CPU_USAGE_PERCENT: Gauge = Gauge::new(
-        "cpu_usage_percent", "Current CPU usage percentage"
-    ).unwrap();
-    
-    // Histograms
-    pub static ref MESSAGE_LATENCY: Histogram = Histogram::with_opts(
-        HistogramOpts::new("message_latency_seconds", "Message processing latency")
-            .buckets(vec![0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0])
-    ).unwrap();
-    
-    pub static ref CACHE_OPERATION_DURATION: Histogram = Histogram::with_opts(
-        HistogramOpts::new("cache_operation_duration_seconds", "Cache operation duration")
-            .buckets(vec![0.00001, 0.0001, 0.001, 0.01, 0.1])
-    ).unwrap();
-}
+use once_cell::sync::Lazy;
+
+// Counters
+pub static MESSAGES_PROCESSED: Lazy<Counter> = Lazy::new(|| Counter::new(
+    "ipc_messages_processed_total", "Total messages processed"
+).unwrap());
+
+pub static CACHE_HITS: Lazy<Counter> = Lazy::new(|| Counter::new(
+    "cache_hits_total", "Total cache hits"
+).unwrap());
+
+pub static CACHE_MISSES: Lazy<Counter> = Lazy::new(|| Counter::new(
+    "cache_misses_total", "Total cache misses"
+).unwrap());
+
+pub static ERRORS_TOTAL: Lazy<Counter> = Lazy::new(|| Counter::new(
+    "errors_total", "Total errors"
+).unwrap());
+
+// Gauges
+pub static ACTIVE_CONNECTIONS: Lazy<Gauge> = Lazy::new(|| Gauge::new(
+    "active_connections", "Current active connections"
+).unwrap());
+
+pub static MEMORY_USAGE_BYTES: Lazy<Gauge> = Lazy::new(|| Gauge::new(
+    "memory_usage_bytes", "Current memory usage in bytes"
+).unwrap());
+
+pub static CPU_USAGE_PERCENT: Lazy<Gauge> = Lazy::new(|| Gauge::new(
+    "cpu_usage_percent", "Current CPU usage percentage"
+).unwrap());
+
+// Histograms
+pub static MESSAGE_LATENCY: Lazy<Histogram> = Lazy::new(|| Histogram::with_opts(
+    HistogramOpts::new("message_latency_seconds", "Message processing latency")
+        .buckets(vec![0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0])
+).unwrap());
+
+pub static CACHE_OPERATION_DURATION: Lazy<Histogram> = Lazy::new(|| Histogram::with_opts(
+    HistogramOpts::new("cache_operation_duration_seconds", "Cache operation duration")
+        .buckets(vec![0.00001, 0.0001, 0.001, 0.01, 0.1])
+).unwrap());
 
 pub struct MetricsCollector {
     start_time: Instant,
