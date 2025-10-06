@@ -1,6 +1,6 @@
 /// IPC Server Main Entry Point with Health Monitoring
 use std::sync::Arc;
-use lapce_ai_rust::ipc::{IpcServer, HealthServer};
+use lapce_ai_rust::ipc::{IpcServer, IpcConfig};
 use tokio::signal;
 use tracing_subscriber;
 

@@ -1,5 +1,5 @@
 // Day 22: Complete AI Refactoring Engine - ALL 10 FEATURES
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 

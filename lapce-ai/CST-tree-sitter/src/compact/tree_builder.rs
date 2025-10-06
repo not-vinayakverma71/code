@@ -2,7 +2,6 @@
 //! Walks tree in preorder, extracting structure and attributes
 
 use tree_sitter::{Tree, Node, TreeCursor};
-use super::bitvec::BitVec;
 use super::packed_array::PackedArray;
 use super::varint::{DeltaEncoder, PrefixSumIndex};
 use super::tree::CompactTree;
@@ -65,9 +64,6 @@ impl CompactTreeBuilder {
         let mut cursor = tree.walk();
         self.visit_node(&mut cursor, source, None);
         
-        // Convert to packed format
-        let bp = BitVec::from_bits(&self.bp_sequence);
-        
         // Pack kind_ids (typically <256 kinds, so 8 bits suffice)
         let max_kind = *self.kind_ids.iter().max().unwrap_or(&0);
         let kind_bits = if max_kind == 0 {
@@ -81,18 +77,21 @@ impl CompactTreeBuilder {
             kind_array.push(kid as u64);
         }
         
-        // Create bitvectors for flags
-        let is_named_bv = BitVec::from_bits(&self.is_named);
-        let is_missing_bv = BitVec::from_bits(&self.is_missing);
-        let is_extra_bv = BitVec::from_bits(&self.is_extra);
-        let is_error_bv = BitVec::from_bits(&self.is_error);
-        let field_present_bv = BitVec::from_bits(&self.field_present);
+        // Keep flags as vectors for now (simplified)
+        let is_named_vec = self.is_named.clone();
+        let is_missing_vec = self.is_missing.clone();
+        let is_extra_vec = self.is_extra.clone();
+        let is_error_vec = self.is_error.clone();
+        let field_present_vec = self.field_present.clone();
         
         // Pack field_ids (sparse, only for nodes with fields)
         let mut field_array = PackedArray::new(8);
         for &fid in &self.field_ids {
             field_array.push(fid as u64);
         }
+        
+        // Import VarInt
+        use super::varint::VarInt;
         
         // Delta-encode positions (only start_bytes are monotonic)
         let mut start_encoder = DeltaEncoder::new();
@@ -104,9 +103,6 @@ impl CompactTreeBuilder {
         for &len in &self.len_bytes {
             VarInt::encode_u64(len, &mut len_bytes_encoded);
         }
-        
-        // Import VarInt
-        use super::varint::VarInt;
         
         // Create prefix sum index for fast position access
         let position_index = PrefixSumIndex::from_values(&self.start_bytes, 256);
@@ -135,13 +131,12 @@ impl CompactTreeBuilder {
         }
         
         CompactTree::new(
-            bp,
             kind_array,
-            is_named_bv,
-            is_missing_bv,
-            is_extra_bv,
-            is_error_bv,
-            field_present_bv,
+            is_named_vec,
+            is_missing_vec,
+            is_extra_vec,
+            is_error_vec,
+            field_present_vec,
             field_array,
             start_bytes_encoded,
             len_bytes_encoded,

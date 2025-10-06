@@ -3,8 +3,6 @@
 
 use std::sync::atomic::{AtomicU64, AtomicU32, Ordering};
 use std::time::{Duration, Instant};
-use std::sync::Arc;
-use tokio::sync::RwLock;
 
 /// Connection pool statistics
 #[derive(Debug)]

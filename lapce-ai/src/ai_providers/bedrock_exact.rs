@@ -6,21 +6,22 @@ use std::collections::HashMap;
 use anyhow::{Result, bail};
 use async_trait::async_trait;
 use futures::stream::{self, StreamExt, BoxStream};
-use serde::{Deserialize, Serialize};
 use serde_json::json;
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 use tokio::sync::RwLock;
-use chrono::{DateTime, Utc};
 use sha2::{Sha256, Digest};
 use hmac::{Hmac, Mac};
 
 use crate::ai_providers::core_trait::{
     AiProvider, CompletionRequest, CompletionResponse, ChatRequest, ChatResponse,
     StreamToken, HealthStatus, Model, ProviderCapabilities, RateLimits, Usage,
-    ChatMessage, ChatChoice
+    ChatMessage, ChatChoice, CompletionChoice
+};
+use crate::ai_providers::sse_decoder::{SseDecoder, SseEvent};
+use crate::ai_providers::streaming_integration::{
+    process_sse_response, ProviderType
 };
 
-/// Bedrock configuration
 #[derive(Debug, Clone)]
 pub struct BedrockConfig {
     pub region: String,

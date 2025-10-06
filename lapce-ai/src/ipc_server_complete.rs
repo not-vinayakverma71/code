@@ -8,19 +8,17 @@ use std::path::Path;
 use std::fs;
 
 use anyhow::{anyhow, Result, Context};
-use tokio::sync::{mpsc, RwLock, Semaphore, broadcast, Mutex};
+use tokio::sync::{Semaphore, broadcast, Mutex};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use bytes::{Bytes, BytesMut};
 use dashmap::DashMap;
-use parking_lot::Mutex as ParkingMutex;
 
-use crate::ipc_messages::{MessageType, ClineMessage, AIRequest, Message as IpcMessage};
-use crate::events_exact_translation::TaskEvent;
+use crate::ipc_messages::MessageType;
 use crate::shared_memory_complete::{SharedMemoryListener, SharedMemoryStream};
-use crate::auto_reconnection::{AutoReconnectionManager, ReconnectionStrategy, ConnectionState};
+use crate::auto_reconnection::{AutoReconnectionManager, ReconnectionStrategy};
 
 use serde::{Deserialize, Serialize};
-use tracing::{info, warn, error, debug};
+use tracing::{info, warn, error};
 
 const MAX_MESSAGE_SIZE: usize = 10 * 1024 * 1024; // 10MB
 const MAX_CONNECTIONS: usize = 1000;

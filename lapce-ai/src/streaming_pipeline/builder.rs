@@ -5,9 +5,7 @@
 use anyhow::Result;
 use crate::streaming_pipeline::pipeline::StreamingPipeline;
 use crate::streaming_pipeline::transformer::StreamTransformer;
-use crate::streaming_pipeline::stream_backpressure::{StreamBackpressureController, BackpressureConfig};
-use crate::streaming_pipeline::metrics::StreamMetrics;
-use std::sync::Arc;
+use crate::streaming_pipeline::stream_backpressure::BackpressureConfig;
 
 /// Builder for constructing streaming pipelines
 pub struct StreamPipelineBuilder {

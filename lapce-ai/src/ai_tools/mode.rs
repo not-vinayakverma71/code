@@ -1,5 +1,4 @@
-use crate::types_tool::ToolParameter;
-use crate::mcp_tools::{core::{Tool, ToolContext, ToolResult, JsonSchema, ResourceLimits}, permissions::Permission};
+use crate::mcp_tools::{core::{Tool, ToolContext, ToolResult}, permissions::Permission};
 use async_trait::async_trait;
 use serde_json::{json, Value};
 use anyhow::Result;

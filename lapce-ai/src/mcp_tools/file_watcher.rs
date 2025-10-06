@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-use std::sync::Arc;
 use tokio::sync::mpsc;
 use notify::{Watcher, RecursiveMode, recommended_watcher, Event};
 use anyhow::Result;

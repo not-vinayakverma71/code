@@ -4,9 +4,8 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use anyhow::{Result, anyhow};
-use hyper::{Request, Response, Uri};
+use hyper::{Request, Response};
 use hyper::body::Incoming;
-use hyper::client::conn::http2::Builder;
 use hyper_util::client::legacy::Client;
 use http::StatusCode;
 use hyper_rustls::{HttpsConnectorBuilder, HttpsConnector, ConfigBuilderExt};
@@ -15,7 +14,6 @@ use tokio::sync::RwLock;
 use std::sync::atomic::{AtomicU64, Ordering};
 use tracing::{debug, warn, info};
 use http_body_util::{BodyExt, Empty, Full};
-use hyper::body::SizeHint;
 use bytes::Bytes;
 use async_trait::async_trait;
 use bb8::ManageConnection;
@@ -101,7 +99,8 @@ impl HttpsConnectionManager {
     
     /// Check if connection is expired
     pub fn is_expired(&self, max_age: Duration) -> bool {
-        self.created_at.elapsed() > max_age
+        // Don't expire connections too quickly - they should be reused
+        self.created_at.elapsed() > max_age && self.created_at.elapsed() > Duration::from_secs(3600)
     }
     
     /// Check if connection is idle

@@ -7,10 +7,7 @@ use std::time::{Duration, Instant};
 use std::collections::HashMap;
 use tokio::sync::{RwLock, Semaphore};
 use anyhow::{Result, anyhow};
-use hyper::{Request, Response};
-use http_body_util::Full;
-use bytes::Bytes;
-use tracing::{debug, warn, info};
+use tracing::{debug, info};
 
 /// Stream state for HTTP/2 multiplexing
 #[derive(Debug, Clone, Copy, PartialEq)]

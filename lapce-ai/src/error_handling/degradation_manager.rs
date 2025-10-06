@@ -3,8 +3,6 @@
 
 use std::collections::HashMap;
 use dashmap::DashMap;
-use async_trait::async_trait;
-use super::errors::Result;
 
 /// Manages graceful degradation of features
 pub struct DegradationManager {

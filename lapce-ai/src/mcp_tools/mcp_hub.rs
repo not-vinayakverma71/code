@@ -1,8 +1,6 @@
 // EXACT 1:1 TRANSLATION FROM TYPESCRIPT McpHub
 // Critical: NO CHANGES to message formats - must match TypeScript exactly
 
-use super::config::McpServerConfig;
-use super::types::*;
 // use super::protocol::*;  // TODO: Create protocol module
 // use super::server_manager::McpServerManager;  // TODO: Create server_manager module
 // use jsonschema::{Draft, JSONSchema};  

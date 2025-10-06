@@ -4,7 +4,6 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::sync::Arc;
 use async_trait::async_trait;
 
 use crate::cache_integration::{get_cache, init_global_cache, CacheConfig};

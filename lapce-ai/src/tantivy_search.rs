@@ -1,5 +1,5 @@
 /// Tantivy Full-Text Search - Day 33 PM
-use tantivy::{schema::*, Index, IndexWriter, Document};
+use tantivy::{schema::*, Index, IndexWriter};
 use tantivy::query::QueryParser;
 use tantivy::collector::TopDocs;
 use anyhow::Result;

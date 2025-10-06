@@ -174,7 +174,7 @@ fn test_shared_memory_stress(num_docs: usize) -> Result<()> {
     let mut written = 0;
     for i in 0..total_messages {
         let data = vec![((i % 256) as u8); data_size];
-        if shm.write(&data) {
+        if shm.write(&data).is_ok() {
             written += 1;
         }
         
@@ -196,7 +196,8 @@ fn test_shared_memory_stress(num_docs: usize) -> Result<()> {
     let start = Instant::now();
     let mut read_count = 0;
     for _ in 0..1000 {
-        if shm.read().is_some() {
+        let mut buf = [0u8; 1024];
+        if shm.read(&mut buf).is_ok() {
             read_count += 1;
         }
     }
@@ -293,7 +294,7 @@ fn report_memory_usage(label: &str) {
     use sysinfo::{System, Pid};
     
     let mut system = System::new_all();
-    system.refresh_processes(sysinfo::ProcessesToUpdate::All);
+    system.refresh_processes();
     
     if let Some(process) = system.process(Pid::from(std::process::id() as usize)) {
         let memory_mb = process.memory() / 1024 / 1024;

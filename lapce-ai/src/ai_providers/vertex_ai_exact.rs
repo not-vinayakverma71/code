@@ -6,20 +6,20 @@ use std::collections::HashMap;
 use anyhow::{Result, bail};
 use async_trait::async_trait;
 use futures::stream::{self, StreamExt, BoxStream};
-use serde::{Deserialize, Serialize};
 use serde_json::json;
-use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE, AUTHORIZATION};
 use tokio::sync::RwLock;
 
 use crate::ai_providers::core_trait::{
     AiProvider, CompletionRequest, CompletionResponse, ChatRequest, ChatResponse,
     StreamToken, HealthStatus, Model, ProviderCapabilities, RateLimits, Usage,
-    ChatMessage, ChatChoice
+    ChatMessage, ChatChoice, CompletionChoice
+};
+use crate::ai_providers::sse_decoder::parsers::parse_gemini_stream;
+use crate::ai_providers::streaming_integration::{
+    process_response_with_pipeline, ProviderType
 };
 
-/// Vertex AI configuration
-#[derive(Debug, Clone)]
-pub struct VertexAiConfig {
+struct VertexAiConfig {
     pub project_id: String,
     pub location: String,
     pub access_token: String, // OAuth2 access token

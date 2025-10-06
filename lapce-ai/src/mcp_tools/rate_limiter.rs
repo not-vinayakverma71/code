@@ -1,12 +1,11 @@
 // Rate Limiter for MCP Tools - REAL IMPLEMENTATION
 use std::sync::Arc;
-use std::collections::{HashMap, VecDeque};
-use std::time::{Duration, Instant, SystemTime};
+use std::collections::VecDeque;
+use std::time::{Duration, Instant};
 use std::num::NonZeroU32;
 use dashmap::DashMap;
 use tokio::sync::RwLock;
 use anyhow::{Result, bail};
-use serde_json::{json, Value};
 use governor::{Quota, RateLimiter as Gov, clock::DefaultClock, state::NotKeyed, state::InMemoryState};
 
 // Alias for compatibility

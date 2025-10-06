@@ -1,6 +1,5 @@
-use crate::types_tool::ToolParameter;
 use crate::mcp_tools::{
-    core::{Tool, ToolContext, ToolResult, JsonSchema, ResourceLimits},
+    core::{Tool, ToolContext, ToolResult, ResourceLimits},
     permissions::Permission,
 };
 use async_trait::async_trait;

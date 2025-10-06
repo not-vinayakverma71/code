@@ -1,6 +1,5 @@
 /// Promotion Policy - EXACT implementation from docs lines 374-409
 use std::sync::Arc;
-use std::time::Duration;
 
 use super::{
     types::{CacheKey, CacheValue, CacheLevel},

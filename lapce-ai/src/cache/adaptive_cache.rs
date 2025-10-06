@@ -1,9 +1,3 @@
-/// Adaptive Cache Implementation
-/// Dynamically adjusts cache strategy based on access patterns
-
-use std::sync::Arc;
-use std::time::{Duration, Instant};
-use anyhow::Result;
 
 use super::types::{CacheKey, CacheValue};
 

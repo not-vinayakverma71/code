@@ -1,13 +1,12 @@
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
-use anyhow::{Context, Result};
+use anyhow::Result;
 use serde_json::{json, Value};
 use grep::{
     regex::RegexMatcher,
-    searcher::{BinaryDetection, SearcherBuilder, Searcher},
+    searcher::{BinaryDetection, SearcherBuilder},
     matcher::Matcher,
 };
-use ignore::{WalkBuilder, WalkState};
+use ignore::WalkBuilder;
 use tokio::sync::mpsc;
 
 pub struct RipgrepSearch {

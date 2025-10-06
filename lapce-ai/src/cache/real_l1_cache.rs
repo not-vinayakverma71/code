@@ -2,14 +2,12 @@
 /// Production-ready with TTL, LRU eviction, and metrics
 
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 use moka::future::Cache as MokaCache;
 use anyhow::Result;
-use async_trait::async_trait;
 
 use super::types::{CacheKey, CacheValue, L1Config};
 use super::cache_metrics::CacheMetrics;
-use std::collections::HashMap;
 
 /// Real L1 in-memory cache using Moka
 pub struct RealL1Cache {

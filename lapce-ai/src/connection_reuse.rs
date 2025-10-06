@@ -2,7 +2,7 @@
 /// Monitors and optimizes connection reuse patterns
 
 use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, AtomicU32, Ordering};
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::{Duration, Instant};
 use std::collections::HashMap;
 use tokio::sync::RwLock;

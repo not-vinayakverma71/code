@@ -1,0 +1,258 @@
+name: IPC Nuclear Stress Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_level:
+        description: 'Test intensity level'
+        required: true
+        default: 'medium'
+        type: choice
+        options:
+        - light
+        - medium
+        - heavy
+        - nuclear
+  schedule:
+    # Run weekly on Sunday at 2 AM UTC
+    - cron: '0 2 * * 0'
+
+env:
+  RUST_BACKTRACE: full
+  CARGO_TERM_COLOR: always
+
+jobs:
+  stress-test-matrix:
+    name: Stress Test (${{ matrix.os }}, ${{ matrix.test_level }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 360  # 6 hours max
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        test_level: ['${{ github.event.inputs.test_level || "medium" }}']
+        include:
+          # Use larger runners for nuclear tests
+          - os: ubuntu-latest
+            runner_size: ubuntu-latest-16-cores
+            test_level: nuclear
+          - os: macos-latest  
+            runner_size: macos-13-xlarge
+            test_level: nuclear
+          - os: windows-latest
+            runner_size: windows-latest-8-cores
+            test_level: nuclear
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt, clippy
+        
+    - name: Cache cargo dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+          
+    - name: Install system dependencies (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          clang \
+          llvm \
+          libc6-dev \
+          sysstat \
+          htop
+          
+    - name: Install system dependencies (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        brew install llvm
+        brew install htop
+        
+    - name: Install system dependencies (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        choco install llvm -y
+        choco install sysinternals -y
+        
+    - name: Configure test environment
+      run: |
+        echo "RUN_NUCLEAR_TESTS=${{ matrix.test_level == 'nuclear' && '1' || '0' }}" >> $GITHUB_ENV
+        echo "TEST_LEVEL=${{ matrix.test_level }}" >> $GITHUB_ENV
+      shell: bash
+      
+    - name: Build release binaries
+      run: cargo build --release --all-targets
+      
+    - name: Run standard tests
+      if: matrix.test_level == 'light'
+      run: cargo test --release --test laptop_performance -- --nocapture
+      
+    - name: Run extended tests
+      if: matrix.test_level == 'medium'
+      run: |
+        cargo test --release --test laptop_performance -- --nocapture
+        cargo test --release --test quick_performance -- --nocapture
+        
+    - name: Run heavy tests
+      if: matrix.test_level == 'heavy'
+      run: |
+        cargo test --release --all-targets -- --nocapture
+        timeout-minutes: 120
+        
+    - name: Run nuclear stress tests
+      if: matrix.test_level == 'nuclear'
+      run: |
+        cargo test --release --test nuclear_stress_tests --features nuclear-tests -- --nocapture --test-threads=1
+      env:
+        RUN_NUCLEAR_TESTS: "1"
+        
+    - name: Monitor system resources (Linux/macOS)
+      if: (runner.os == 'Linux' || runner.os == 'macOS') && matrix.test_level == 'nuclear'
+      run: |
+        # Start monitoring in background
+        (while true; do 
+          echo "$(date): $(free -h | grep Mem | awk '{print $3 "/" $2}')" >> memory_usage.log
+          ps aux | head -10 >> process_usage.log
+          sleep 10
+        done) &
+        MONITOR_PID=$!
+        echo "MONITOR_PID=$MONITOR_PID" >> $GITHUB_ENV
+      shell: bash
+      
+    - name: Monitor system resources (Windows)
+      if: runner.os == 'Windows' && matrix.test_level == 'nuclear'
+      run: |
+        Start-Job -ScriptBlock {
+          while ($true) {
+            Get-Date | Out-File -Append memory_usage.log
+            Get-Process | Sort-Object -Property WS -Descending | Select-Object -First 10 | Out-File -Append process_usage.log
+            Start-Sleep -Seconds 10
+          }
+        }
+      shell: pwsh
+      
+    - name: Collect test metrics
+      if: always()
+      run: |
+        echo "## Test Results Summary" > test_summary.md
+        echo "- OS: ${{ runner.os }}" >> test_summary.md
+        echo "- Test Level: ${{ matrix.test_level }}" >> test_summary.md
+        echo "- Duration: ${{ job.duration }}" >> test_summary.md
+        
+        if [ -f memory_usage.log ]; then
+          echo "### Memory Usage" >> test_summary.md
+          tail -20 memory_usage.log >> test_summary.md
+        fi
+      shell: bash
+      
+    - name: Upload test artifacts
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: stress-test-results-${{ runner.os }}-${{ matrix.test_level }}
+        path: |
+          test_summary.md
+          memory_usage.log
+          process_usage.log
+          target/release/deps/*.json
+          **/*metrics*.json
+          **/*benchmark*.json
+        retention-days: 30
+        
+    - name: Upload test report
+      if: always() && matrix.test_level == 'nuclear'
+      uses: actions/upload-artifact@v3
+      with:
+        name: nuclear-test-report-${{ runner.os }}
+        path: |
+          target/criterion/
+          target/release/build/**/output
+        retention-days: 90
+        
+    - name: Stop monitoring
+      if: runner.os != 'Windows' && env.MONITOR_PID != ''
+      run: kill ${{ env.MONITOR_PID }} || true
+      shell: bash
+      
+    - name: Check for memory leaks
+      if: matrix.test_level == 'nuclear'
+      run: |
+        if [ -f memory_usage.log ]; then
+          START=$(head -1 memory_usage.log | awk '{print $3}' | cut -d'/' -f1)
+          END=$(tail -1 memory_usage.log | awk '{print $3}' | cut -d'/' -f1)
+          echo "Memory usage: Start=$START, End=$END"
+        fi
+      shell: bash
+
+  analyze-results:
+    name: Analyze Test Results
+    needs: stress-test-matrix
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+      
+    - name: Generate consolidated report
+      run: |
+        echo "# IPC Stress Test Report" > consolidated_report.md
+        echo "Date: $(date)" >> consolidated_report.md
+        echo "" >> consolidated_report.md
+        
+        for dir in stress-test-results-*; do
+          if [ -d "$dir" ]; then
+            echo "## $dir" >> consolidated_report.md
+            if [ -f "$dir/test_summary.md" ]; then
+              cat "$dir/test_summary.md" >> consolidated_report.md
+            fi
+            echo "" >> consolidated_report.md
+          fi
+        done
+        
+    - name: Upload consolidated report
+      uses: actions/upload-artifact@v3
+      with:
+        name: consolidated-stress-test-report
+        path: consolidated_report.md
+        retention-days: 90
+        
+    - name: Comment PR with results (if PR)
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const report = fs.readFileSync('consolidated_report.md', 'utf8');
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: report
+          })
+          
+    - name: Notify on failure
+      if: failure()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        text: 'IPC Nuclear Stress Tests Failed!'
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        fields: repo,message,commit,author,action,eventName,ref,workflow

@@ -1,7 +1,3 @@
-/// Wrapper to make HttpsConnectionManager work with bb8
-/// Implements ManageConnection trait for bb8 pool
-
-use std::time::Duration;
 use anyhow::Result;
 use bb8::ManageConnection;
 use async_trait::async_trait;
@@ -40,12 +36,16 @@ impl ManageConnection for HttpsConnectionPool {
     }
     
     async fn is_valid(&self, conn: &mut Self::Connection) -> Result<(), Self::Error> {
-        // Use the real validation method
-        conn.is_valid().await.map_err(Into::into)
+        // Don't do health checks on every acquisition - trust the connection
+        // This was causing every acquisition to make a network request
+        if conn.is_broken() {
+            return Err(PoolError("Connection is broken".to_string()));
+        }
+        Ok(())
     }
     
     fn has_broken(&self, conn: &mut Self::Connection) -> bool {
-        // Check if connection is broken
-        conn.is_broken() || conn.is_expired(Duration::from_secs(300))
+        // Only mark as broken if truly broken, not just expired
+        conn.is_broken()
     }
 }

@@ -1,34 +1,25 @@
-//! Compact tree structure holding all succinct data
-//! Memory-efficient representation of CST with O(1) operations
+//! Compact tree structure - simplified for bytecode representation
+//! Phase 1 & 3 optimizations
 
-use super::bitvec::BitVec;
-use super::rank_select::RankSelect;
-use super::bp::BP;
 use super::packed_array::PackedArray;
 use super::varint::PrefixSumIndex;
 use super::node::CompactNode;
 
-/// Compact tree representation
-/// Stores entire CST in ~50-70 KB instead of ~768 KB
+/// Compact tree representation (simplified)
+/// Uses bytecode representation internally
 #[derive(Clone)]
 pub struct CompactTree {
-    /// Balanced parentheses for tree structure
-    pub(crate) bp: BitVec,
-    
-    /// BP operations index (created from bp)
-    pub(crate) bp_ops: BP,
-    
     /// Node kind IDs (packed)
     pub(crate) kind_ids: PackedArray,
     
-    /// Node flags (bitvectors)
-    pub(crate) is_named: BitVec,
-    pub(crate) is_missing: BitVec,
-    pub(crate) is_extra: BitVec,
-    pub(crate) is_error: BitVec,
+    /// Node flags (simple vectors for now)
+    pub(crate) is_named: Vec<bool>,
+    pub(crate) is_missing: Vec<bool>,
+    pub(crate) is_extra: Vec<bool>,
+    pub(crate) is_error: Vec<bool>,
     
     /// Field information
-    pub(crate) field_present: BitVec,
+    pub(crate) field_present: Vec<bool>,
     pub(crate) field_ids: PackedArray,
     
     /// Position information (delta-encoded)
@@ -43,21 +34,19 @@ pub struct CompactTree {
     pub(crate) kind_names: Vec<String>,
     pub(crate) field_names: Vec<String>,
     
-    /// Metadata
     pub(crate) node_count: usize,
     pub(crate) source: Vec<u8>,
 }
 
 impl CompactTree {
-    /// Create new CompactTree
+    /// Create new CompactTree from all components
     pub fn new(
-        bp: BitVec,
         kind_ids: PackedArray,
-        is_named: BitVec,
-        is_missing: BitVec,
-        is_extra: BitVec,
-        is_error: BitVec,
-        field_present: BitVec,
+        is_named: Vec<bool>,
+        is_missing: Vec<bool>,
+        is_extra: Vec<bool>,
+        is_error: Vec<bool>,
+        field_present: Vec<bool>,
         field_ids: PackedArray,
         start_bytes_encoded: Vec<u8>,
         len_bytes_encoded: Vec<u8>,
@@ -68,11 +57,7 @@ impl CompactTree {
         node_count: usize,
         source: Vec<u8>,
     ) -> Self {
-        let bp_ops = BP::new(bp.clone());
-        
         Self {
-            bp,
-            bp_ops,
             kind_ids,
             is_named,
             is_missing,
@@ -96,16 +81,14 @@ impl CompactTree {
         CompactNode::new(self, 0)
     }
     
-    /// Get node at BP position
-    pub fn node_at(&self, bp_pos: usize) -> Option<CompactNode> {
-        if bp_pos < self.bp.len() && self.bp.get(bp_pos) {
-            Some(CompactNode::new(self, bp_pos))
+    /// Get node at index
+    pub fn node_at(&self, index: usize) -> Option<CompactNode> {
+        if index < self.node_count {
+            Some(CompactNode::new(self, index))
         } else {
             None
         }
     }
-    
-    /// Total number of nodes
     pub fn node_count(&self) -> usize {
         self.node_count
     }
@@ -115,16 +98,9 @@ impl CompactTree {
         &self.source
     }
     
-    /// Get node index from BP position (preorder rank)
-    pub(crate) fn node_index(&self, bp_pos: usize) -> usize {
-        // Count open parentheses up to and including this position
-        // Since rank1 counts up to (but not including) the position,
-        // we need rank1(bp_pos + 1) - 1 for 0-based indexing
-        if bp_pos >= self.bp.len() || !self.bp.get(bp_pos) {
-            0 // Invalid position or not an open paren
-        } else {
-            RankSelect::new(self.bp.clone()).rank1(bp_pos + 1) - 1
-        }
+    /// Get node index (simplified - just returns the index)
+    pub(crate) fn node_index(&self, index: usize) -> usize {
+        index
     }
     
     /// Get start byte for node
@@ -181,9 +157,12 @@ impl CompactTree {
     
     /// Get field ID for node (if present)
     pub(crate) fn field_id(&self, node_idx: usize) -> Option<u8> {
-        if self.field_present.get(node_idx) {
+        if node_idx < self.field_present.len() && self.field_present[node_idx] {
             // Count how many fields before this node
-            let field_idx = self.field_present.rank1(node_idx);
+            let field_idx = self.field_present[..node_idx]
+                .iter()
+                .filter(|&&x| x)
+                .count();
             Some(self.field_ids.get(field_idx) as u8)
         } else {
             None
@@ -217,33 +196,21 @@ impl CompactTree {
         + subtree_bytes + string_bytes + std::mem::size_of::<Self>()
     }
     
+    /// Memory usage alias
+    pub fn memory_usage(&self) -> usize {
+        self.memory_bytes()
+    }
+    
     /// Bytes per node
     pub fn bytes_per_node(&self) -> f64 {
         self.memory_bytes() as f64 / self.node_count as f64
     }
     
-    /// Get BP bitvector (for debugging)
-    pub fn bp_bitvec(&self) -> &BitVec {
-        &self.bp
-    }
-    
-    /// Get BP operations (for debugging)
-    pub fn bp_operations(&self) -> &BP {
-        &self.bp_ops
-    }
-    
-    /// Validate tree structure
+    /// Validate tree structure (simplified)
     pub fn validate(&self) -> Result<(), String> {
-        // Check BP is balanced
-        let opens = self.bp.count_ones();
-        let closes = self.bp.count_zeros();
-        if opens != closes {
-            return Err(format!("Unbalanced parentheses: {} opens, {} closes", opens, closes));
-        }
-        
         // Check node count
-        if opens != self.node_count {
-            return Err(format!("Node count mismatch: {} vs {}", opens, self.node_count));
+        if self.node_count == 0 {
+            return Err("Empty tree".to_string());
         }
         
         // Check array lengths

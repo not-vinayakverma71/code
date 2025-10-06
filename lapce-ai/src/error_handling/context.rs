@@ -2,7 +2,6 @@
 // Based on context collection patterns from codex-reference
 
 use std::collections::HashMap;
-use std::sync::Arc;
 use std::time::SystemTime;
 use serde::{Serialize, Deserialize};
 use super::errors::{LapceError, ErrorSeverity};

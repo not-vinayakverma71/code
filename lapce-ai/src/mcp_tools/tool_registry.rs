@@ -1,10 +1,9 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use anyhow::{Result, bail};
+use anyhow::Result;
 use dashmap::DashMap;
 use serde_json::Value;
 use tokio::sync::RwLock;
-use async_trait::async_trait;
 
 use crate::mcp_tools::{
     core::{Tool, ToolContext, ToolResult},

@@ -1,210 +1,255 @@
 [package]
 name = "lapce-ai-rust"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
-authors = ["Lapce AI Team"]
-license = "MIT"
-description = "High-performance AI integration for Lapce IDE"
-repository = "https://github.com/lapce/lapce-ai-rust"
+authors = ["Your Name <your@email.com>"]
+description = "AI-powered semantic code search and analysis for Lapce IDE"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/yourusername/lapce-ai-rust"
+keywords = ["ide", "semantic-search", "ai", "code-analysis", "lapce"]
+categories = ["development-tools", "text-processing"]
 
-[lib]
-name = "lapce_ai_rust"
-path = "src/lib.rs"
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+debug = false
+
+[profile.dev]
+opt-level = 0
+debug = true
+incremental = true
+
+[profile.bench]
+opt-level = 3
+lto = true
+codegen-units = 1
+
+[features]
+default = ["local_models"]
+local_models = ["candle-core", "candle-transformers", "candle-nn"]
+onnx = ["ort"]
 
 [[bin]]
-name = "lapce-ai-rust"
-path = "src/main.rs"
+name = "cli_tools"
+path = "src/bin/cli.rs"
 
-[[example]]
-name = "verify_cache_performance"
-path = "examples/verify_cache_performance.rs"
-
-[[example]]
-name = "comprehensive_architecture_test"
-path = "examples/comprehensive_architecture_test.rs"
-
-[[example]]
-name = "standalone_8_criteria_test"
-path = "examples/standalone_8_criteria_test.rs"
-
-[[example]]
-name = "test_100k_files"
-path = "examples/test_100k_files.rs"
-
-[[example]]
-name = "test_real_search"
-path = "examples/test_real_search.rs"
-
-[[example]]
-name = "benchmark_real_server"
-path = "examples/benchmark_real_server.rs"
-
-[[example]]
-name = "shared_memory_benchmark"
-path = "examples/shared_memory_benchmark.rs"
-
-[[example]]
-name = "honest_benchmark"
-path = "examples/honest_benchmark.rs"
-
-[[example]]
-name = "simple_working_test"
-path = "examples/simple_working_test.rs"
-
-[[example]]
-name = "truly_integrated_server"
-path = "examples/truly_integrated_server.rs"
-
-[dependencies]
-uuid = { version = "1.0", features = ["v4"] }
-# Core dependencies for MCP tools
-async-trait = "0.1"
-thiserror = "1.0"
-tokio-util = { version = "0.7", features = ["codec"] }
-anyhow = "1.0"
-tokio = { version = "1.39", features = ["full"] }
-tracing = "0.1"
-
-# Existing dependencies
-notify = "6.0"
-notify-debouncer-full = "0.3"
-futures-util = "0.3"
-# ort = { version = "1.16", features = ["download-binaries"] } # Disabled - compilation errors
-clap = { version = "4.5", features = ["derive"] }
-dirs = "5.0"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-blake3 = "1.8"
-walkdir = "2.4"
-# LanceDB and Arrow for vector database
-lancedb = "0.4"
-arrow = "51.0"
-arrow-array = "51.0"
-arrow-schema = "51.0"
-# Pin zstd versions to resolve conflicts
-zstd = "0.13"
-zstd-safe = "7.2.4"
-zstd-sys = "2.0.13"
-
-# Temporarily disable Qdrant
-# qdrant-client = "1.7"
-
-# Candle for BERT embeddings
-candle-core = "0.3"
-candle-nn = "0.3"
-candle-transformers = "0.3"
-tokenizers = "0.15"
-
-# Tantivy for keyword search
-tantivy = "0.21"
-
-# Alternative: use fastembed for embeddings (lighter weight)
-# fastembed = "3.0"
-
-nix = { version = "0.27", features = ["process", "resource"] }
-pin-project = "1.1"
-rustix = { version = "0.38", features = ["thread"] }
-
-# Error handling
-# anyhow = "1.0" # Already defined above at line 63
-
-# HTTP client for Titan Embeddings - using existing reqwest dependency above
-aws-sigv4 = "1.1"
-aws-credential-types = "1.1"
-hmac = "0.12"
-sha2 = "0.10"
-# hex = "0.4" # duplicate
-dotenv = "0.15"
-
-# Logging already included above
-
-# Caching
-# sled = "0.34" # Already defined above
-redis = { version = "0.24", features = ["tokio-comp", "aio", "connection-manager"] }
-bloomfilter = "1.0.14"
-
-# Tree-sitter for code parsing
-tree-sitter = "0.20"
-tree-sitter-rust = "0.20"
-tree-sitter-python = "0.20"
-tree-sitter-javascript = "0.20"
-tree-sitter-typescript = "0.20"
-
-# Additional dependencies (mio, nix, libc, chrono already declared above)
-
-# Networking
-
-# IPC True Port Dependencies
-validator = { version = "0.18", features = ["derive"] }
-lazy_static = "1.5"
-
-# HTTP & Networking  
-# reqwest = { version = "0.12", features = ["json", "stream", "rustls-tls"] } # Already defined above
-bb8 = "0.8"
-# axum = "0.7" # Duplicate - already declared above
-# Performance monitoring (additional metrics libraries)
-rocksdb = { version = "0.21", default-features = false, features = ["lz4", "snappy"] }
-metrics-exporter-prometheus = "0.15"
-prometheus = "0.13"
-# lazy_static = "1.4" # Already defined above
-# csv = "1.3" # Already defined above
-# Duplicates removed - already defined above
-
-# Monitoring & Metrics
-opentelemetry = { version = "0.21", features = ["trace"] }
-opentelemetry-otlp = { version = "0.13", features = ["tonic", "trace"] }
-pprof = { version = "0.13", features = ["flamegraph", "protobuf-codec"] }
-jemalloc-ctl = "0.5"
-sysinfo = "0.30"
-
-# Compression already defined above
-
-# Vector search and embeddings - PRODUCTION READY
-hf-hub = { version = "0.3", features = ["tokio"] }  # Hugging Face model downloads
-# ort already defined above for MiniLM embeddings
-# ndarray already defined above
-
-# Caching and utilities
-# blake3 = "1.8" # Already defined above
-# moka = { version = "0.12", features = ["future"] } # Already defined above
-# notify = "6.1" # Already defined above
-# notify-debouncer-full = "0.3" # Already defined above
-# uuid = { version = "1.7", features = ["v4", "serde"] } # Duplicate
-lru = "0.12"
-
-# Tree-sitter
-# tree-sitter = "0.22.6" # Duplicate
-# tree-sitter-rust = "0.13" # Duplicate
-# tree-sitter-python = "0.21" # Duplicate
-# tree-sitter-javascript = "0.21" # Duplicate
-# tree-sitter-typescript = "0.21" # Duplicate
-
-# Text search
-dashmap = "5.5"
-bytes = "1.5"
-http = "1.0"
-
-# Performance monitoring
-tokio-tungstenite = "0.21"
-
-# String interning
-lasso = { version = "0.7", features = ["multi-threaded"] }
-# walkdir = "2.5" # Already declared above
-
-# Utilities
-# once_cell = "1.19" # Already defined above
-
-# MCP Tools dependencies
-# quick-xml = "0.31" # Already defined above
-shell-words = "1.1"
-
-[dev-dependencies]
-tempfile = "3.8"
-criterion = "0.5"
+[[bin]]
+name = "test_providers"
+path = "src/bin/test_providers.rs"
 
 [[bench]]
-name = "performance_benchmark"
+name = "benchmarks"
 harness = false
-proptest = "1.5"
-tempfile = "3.10"
-tokio-test = "0.4"
+
+[build-dependencies]
+tonic-build = "0.11"
+
+[dev-dependencies]
+criterion = "0.5"
+tempfile = "3.5"
+num_cpus = "1.16"
+sysinfo = "0.30"
+quickcheck = "1.0"
+test-case = "3.0"
+rstest = "0.18"
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["handleapi", "memoryapi", "winnt", "minwindef"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+libc = "0.2"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[dependencies]
+chrono = { version = "0.4", features = ["serde"] }
+once_cell = "1.19"
+mimalloc = { version = "0.1", default-features = false }
+# Core
+anyhow = "1.0"
+tokio = { version = "1.35", features = ["full"] }
+tokio-stream = "0.1"
+tokio-util = { version = "0.7", features = ["io"] }
+async-trait = "0.1"
+async-stream = "0.3.6"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+futures = "0.3"
+futures-util = "0.3"
+toml = "0.8"
+bytes = "1.5"
+bincode = "1.3"
+rmp-serde = "1.1"
+
+# Concurrency & Performance
+crossbeam = "0.8"
+rayon = "1.10"
+parking_lot = "0.12"
+dashmap = "6.0"
+arc-swap = "1.7"
+# System & Platform
+sysinfo = "0.30"
+nix = { version = "0.29", features = ["signal", "resource", "user"] }
+sd-notify = "0.4"
+num_cpus = "1.16"
+dirs = "5.0"
+directories = "5.0"
+tempfile = "3.8"
+# CLI & Configuration
+clap = { version = "4.5", features = ["derive"] }
+
+# Compression
+flate2 = "1.0"
+lz4_flex = "0.11"
+zstd = "0.13"
+
+# Storage & Caching
+sled = "0.34"
+redis = { version = "0.24", features = ["aio", "tokio-comp", "connection-manager"] }
+moka = { version = "0.12", features = ["future"] }
+
+# Database
+lancedb = "0.10"  # Use compatible version
+tantivy = "0.22"
+sea-orm = { version = "1.1", features = ["runtime-tokio-rustls", "sqlx-sqlite"] }
+sea-orm-migration = "1.1"
+
+# Arrow & Data
+arrow = "52.0"
+arrow-array = "52.0"
+arrow-schema = "52.0"
+arrow-cast = "52.0"
+
+# AI & ML
+tokenizers = "0.21"
+tiktoken-rs = "0.7.0"
+hf-hub = "0.3"
+candle-core = { version = "0.8", optional = true }
+candle-transformers = { version = "0.8", optional = true }
+candle-nn = { version = "0.8", optional = true }
+ort = { version = "2.0.0-rc.8", optional = true, features = ["download-binaries"] }
+ndarray = "0.16"
+
+# AWS
+aws-config = "1.5"
+aws-sdk-bedrock = "1.72"
+aws-sdk-bedrockruntime = "1.39"
+aws-credential-types = "1.2"
+aws-types = "1.3"
+
+# Web & HTTP
+reqwest = { version = "0.12", features = ["json", "stream"] }
+warp = "0.3"
+axum = "0.7"
+tower = "0.5"
+tower-http = { version = "0.5", features = ["full"] }
+tonic = "0.11"
+prost = "0.12"
+juniper = "0.16"
+async-graphql = "7.0"
+async-graphql-axum = "7.0"
+utoipa = { version = "5.2", features = ["axum_extras"] }
+utoipa-swagger-ui = { version = "8.0", features = ["axum"] }
+
+# Connection Pool
+bb8 = "0.8"
+bb8-redis = "0.15"
+
+# HTTP/HTTPS Clients
+hyper = { version = "1.0", features = ["full"] }
+hyper-util = { version = "0.1", features = ["client", "client-legacy", "http1", "http2", "tokio"] }
+hyper-rustls = { version = "0.26", features = ["http1", "http2", "native-tokio", "tls12"] }
+http-body-util = "0.1"
+http = "1.0"
+tower-service = "0.3"
+
+# WebSocket
+tokio-tungstenite = { version = "0.21", features = ["rustls-tls-native-roots"] }
+tungstenite = "0.21"
+
+# DNS Resolution
+hickory-resolver = "0.24"
+
+# Additional dependencies
+sys-info = "0.9"
+lru = "0.12"
+webpki-roots = "0.26"
+rustls-native-certs = "0.7"
+
+# LSP
+lsp-types = "0.95"
+lsp-server = "0.7"
+ropey = "1.6"
+
+# Tracing & Metrics
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-opentelemetry = "0.22"
+opentelemetry = "0.21"
+opentelemetry-otlp = "0.14"
+prometheus = "0.13"
+indicatif = "0.17"
+
+# Utilities
+regex = "1.10"
+uuid = { version = "1.11", features = ["v4", "serde"] }
+rand = "0.8"
+url = "2.5"
+base64 = "0.21"
+thiserror = "1.0"
+arbitrary = { version = "1.3", features = ["derive"] }
+
+# File System
+notify = "6.0"
+memmap2 = "0.9"
+ignore = "0.4"
+walkdir = "2.5"
+git2 = "0.18"
+grep = "0.3"
+governor = "0.6"
+
+# Security & Crypto
+blake3 = "1.5"
+sha2 = "0.10"
+hmac = "0.12"
+aes-gcm = "0.10"
+argon2 = "0.5"
+pbkdf2 = "0.12"
+rustls = "0.21"
+rustls-pemfile = "1.0"
+
+# Serialization & Memory
+rkyv = { version = "0.7", features = ["validation"] }
+shared_memory = "0.12"
+raw_sync = "0.1"
+
+# Scripting
+mlua = { version = "0.10", features = ["lua54", "vendored", "async", "send"] }
+
+# Tree-sitter parsers
+tree-sitter = "0.23"
+
+# JSON Schema validation
+jsonschema = "0.18"
+tree-sitter-rust = "0.23"
+tree-sitter-python = "0.23"
+tree-sitter-javascript = "0.23"
+tree-sitter-typescript = "0.23"
+tree-sitter-go = "0.23"
+tree-sitter-cpp = "0.23"
+tree-sitter-c = "0.23"
+tree-sitter-java = "0.23"
+tree-sitter-c-sharp = "0.23.1"
+
+# Other
+heed = "0.20"
+dotenv = "0.15"
+colored = "2.0"
+html-escape = "0.2"
+
+[workspace]
+members = [".", "optimized_ipc"]

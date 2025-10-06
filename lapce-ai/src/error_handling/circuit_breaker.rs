@@ -5,7 +5,6 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use std::sync::atomic::{AtomicU32, Ordering};
 use tokio::sync::RwLock;
-use async_trait::async_trait;
 use std::future::Future;
 
 use super::errors::{LapceError, Result};

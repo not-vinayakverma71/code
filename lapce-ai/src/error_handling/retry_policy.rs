@@ -3,7 +3,6 @@
 
 use std::time::Duration;
 use std::future::Future;
-use async_trait::async_trait;
 use super::errors::{LapceError, Result};
 
 /// Retry policy with exponential backoff

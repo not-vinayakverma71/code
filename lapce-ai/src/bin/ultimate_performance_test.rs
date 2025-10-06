@@ -141,11 +141,11 @@ async fn main() -> Result<()> {
     // TEST 2: Latency measurement
     println!("\n⏱️ Testing latency (warmup + {} iterations)...", TEST_ITERATIONS);
     
-    // Warmup
-    for _ in 0..WARMUP_ITERATIONS {
-        let data = vec![0u8; MESSAGE_SIZE];
-        buffer.write(&data)?;
-        buffer.read()?;
+    // Warmup phase
+    for _ in 0..1000 {
+        buffer.write(&vec![0x42u8; MESSAGE_SIZE])?;
+        let mut buf = [0u8; 1024];
+        buffer.read(&mut buf)?;
     }
     
     // Actual latency test
@@ -155,7 +155,8 @@ async fn main() -> Result<()> {
         
         let start = Instant::now();
         buffer.write(&data)?;
-        let _ = buffer.read()?;
+        let mut buf = [0u8; 1024];
+        let _ = buffer.read(&mut buf)?;
         let elapsed = start.elapsed();
         
         latencies.push(elapsed.as_nanos() as f64 / 1000.0); // Convert to microseconds
@@ -176,7 +177,8 @@ async fn main() -> Result<()> {
     
     while start.elapsed() < Duration::from_secs(10) {
         throughput_buffer.write(&test_data)?;
-        throughput_buffer.read()?;
+        let mut buf = [0u8; 1024];
+        throughput_buffer.read(&mut buf)?;
         operations += 2; // Count both read and write
     }
     

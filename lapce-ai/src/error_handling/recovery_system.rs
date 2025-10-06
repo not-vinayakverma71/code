@@ -6,7 +6,6 @@ use std::sync::Arc;
 use std::time::Duration;
 use async_trait::async_trait;
 use dashmap::DashMap;
-use tokio::sync::RwLock;
 
 use super::errors::{LapceError, ErrorType, Result};
 use super::classifier::ErrorClassifier;

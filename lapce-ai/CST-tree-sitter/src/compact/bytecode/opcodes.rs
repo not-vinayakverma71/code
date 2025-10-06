@@ -14,6 +14,9 @@ pub enum Opcode {
     Enter = 0x01,       // Enter node (followed by kind_id, flags)
     Exit = 0x02,        // Exit node
     Leaf = 0x03,        // Leaf node (followed by kind_id, flags, length)
+    Node = 0x04,        // Generic node marker
+    Text = 0x05,        // Text content (followed by length, bytes)
+    Children = 0x06,    // Children count (followed by count)
     
     // Position opcodes
     SetPos = 0x10,      // Set absolute position (followed by varint)
@@ -39,6 +42,9 @@ impl Opcode {
             0x01 => Some(Opcode::Enter),
             0x02 => Some(Opcode::Exit),
             0x03 => Some(Opcode::Leaf),
+            0x04 => Some(Opcode::Node),
+            0x05 => Some(Opcode::Text),
+            0x06 => Some(Opcode::Children),
             0x10 => Some(Opcode::SetPos),
             0x11 => Some(Opcode::DeltaPos),
             0x20 => Some(Opcode::Field),
@@ -177,16 +183,15 @@ impl BytecodeStream {
         self.bytes.len() +
         self.jump_table.len() * 4 +
         self.checkpoints.len() * 16 +
-        self.kind_names.iter().map(|s| s.len()).sum::<usize>() +
         self.field_names.iter().map(|s| s.len()).sum::<usize>() +
         std::mem::size_of::<Self>()
     }
 }
 
-/// Bytecode reader for decoding
+/// Bytecode reader for bytecode streams
 pub struct BytecodeReader<'a> {
-    bytes: &'a [u8],
-    pos: usize,
+    pub bytes: &'a [u8],
+    pub pos: usize,
 }
 
 impl<'a> BytecodeReader<'a> {
@@ -195,13 +200,28 @@ impl<'a> BytecodeReader<'a> {
     }
     
     /// Read next opcode
-    pub fn read_op(&mut self) -> Option<Opcode> {
+    pub fn read_opcode(&mut self) -> Option<Opcode> {
         if self.pos >= self.bytes.len() {
             return None;
         }
         let byte = self.bytes[self.pos];
         self.pos += 1;
         Opcode::from_byte(byte)
+    }
+    
+    /// Alias for read_opcode
+    pub fn read_op(&mut self) -> Option<Opcode> {
+        self.read_opcode()
+    }
+    
+    /// Read next byte
+    pub fn read_byte(&mut self) -> Option<u8> {
+        if self.pos >= self.bytes.len() {
+            return None;
+        }
+        let byte = self.bytes[self.pos];
+        self.pos += 1;
+        Some(byte)
     }
     
     /// Read varint
@@ -242,16 +262,6 @@ impl<'a> BytecodeReader<'a> {
                 (encoded >> 1) as i64
             }
         })
-    }
-    
-    /// Read byte
-    pub fn read_byte(&mut self) -> Option<u8> {
-        if self.pos >= self.bytes.len() {
-            return None;
-        }
-        let byte = self.bytes[self.pos];
-        self.pos += 1;
-        Some(byte)
     }
     
     /// Seek to position

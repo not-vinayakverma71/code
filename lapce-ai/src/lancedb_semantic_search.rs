@@ -1,8 +1,6 @@
 /// LanceDB semantic search implementation
 use anyhow::Result;
-use lancedb::{Connection, Table};
-use arrow_array::{RecordBatch, StringArray, Float32Array};
-use arrow_schema::{DataType, Field, Schema};
+use lancedb::Connection;
 use std::sync::Arc;
 use std::path::PathBuf;
 

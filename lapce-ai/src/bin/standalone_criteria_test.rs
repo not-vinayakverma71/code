@@ -39,7 +39,8 @@ fn main() {
         
         // Round-trip: write + read
         buffer.write(&test_msg).unwrap();
-        buffer.read().unwrap();
+        let mut temp = vec![0u8; 1024];
+        buffer.read(&mut temp).unwrap();
         
         let latency_ns = msg_start.elapsed().as_nanos() as u64;
         total_latency_ns += latency_ns;
@@ -114,7 +115,8 @@ fn main() {
     // Hot path test
     for _ in 0..10000 {
         hot_buffer.write(&msg).unwrap();
-        hot_buffer.read().unwrap();
+        let mut temp = vec![0u8; 1024];
+        hot_buffer.read(&mut temp).unwrap();
     }
     
     println!("  10,000 operations completed");

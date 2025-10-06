@@ -5,9 +5,8 @@
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::path::PathBuf;
-use tokio::sync::RwLock;
 use serde::{Serialize, Deserialize};
-use crate::events_exact_translation::{RooCodeEventName, TokenUsage, MessageEventPayload, MessageAction};
+use crate::events_exact_translation::{TokenUsage, MessageEventPayload, MessageAction};
 use crate::ClineMessage;
 use crate::global_settings_exact_translation::*;
 use crate::task_exact_translation::{Task, TaskOptions, ClineProvider, ApiMessage};

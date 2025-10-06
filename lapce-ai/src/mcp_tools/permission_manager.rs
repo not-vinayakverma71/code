@@ -6,10 +6,10 @@ use crate::mcp_tools::{
     permissions::Permission,
 };
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use anyhow::{Result, bail};
+use anyhow::Result;
 
 /// Permission manager for enforcing tool permissions
 pub struct PermissionManager {

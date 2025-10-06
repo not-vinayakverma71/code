@@ -1,6 +1,5 @@
 /// Resource Limits for Tool Execution
 use std::time::Duration;
-use nix::sys::resource::{setrlimit, Resource};
 use anyhow::Result;
 
 pub struct ResourceLimiter {

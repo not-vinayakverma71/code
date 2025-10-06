@@ -5,7 +5,7 @@ use anyhow::Result;
 use super::{
     cache_metrics::CacheMetrics,
     serializer::{Serializer as CacheSerializer, SerializationFormat},
-    types::{CacheKey, CacheValue, CacheLevel},
+    types::{CacheKey, CacheValue},
 };
 
 use redis::AsyncCommands;
@@ -52,7 +52,7 @@ impl L3Cache {
         let key_str = format!("cache:{}", key.0);
         let data = bincode::serialize(&value)?;
         let ttl = 3600; // 1 hour TTL
-        self.redis.set_ex(&key_str, data, ttl).await?;
+        self.redis.set_ex::<_, _, ()>(&key_str, data, ttl).await?;
         Ok(())
     }
 }

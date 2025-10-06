@@ -3,10 +3,10 @@
 
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use anyhow::{Result, Context};
+use anyhow::Result;
 use thiserror::Error;
 use prometheus::{Counter, Histogram, Gauge, register_counter, register_histogram, register_gauge};
-use tracing::{error, warn, info, debug, instrument};
+use tracing::{error, warn, info, instrument};
 use tokio::sync::{RwLock, Semaphore};
 use dashmap::DashMap;
 

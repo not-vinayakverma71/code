@@ -4,7 +4,6 @@ use std::sync::Arc;
 use std::path::PathBuf;
 use dashmap::DashMap;
 use serde_json::Value;
-use tokio::sync::RwLock;
 
 pub struct ToolCache {
     cache: Arc<DashMap<String, CachedResult>>,

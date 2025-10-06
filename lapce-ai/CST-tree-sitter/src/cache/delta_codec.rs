@@ -112,7 +112,7 @@ impl ChunkStore {
 }
 
 /// Delta-encoded entry for warm/cold storage
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct DeltaEntry {
     /// Base chunk hashes
     pub base_chunks: Vec<u64>,

@@ -1,5 +1,4 @@
 // Common types for MCP tools
-use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 use serde::{Deserialize, Serialize};
 

@@ -1,7 +1,6 @@
 /// Message structures - Direct 1:1 port from TypeScript
 /// Now includes COMPLETE ipc.ts translation
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use crate::events_exact_translation::TaskEvent;
 use crate::global_settings_exact_translation::RooCodeSettings;
 

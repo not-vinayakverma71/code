@@ -60,6 +60,24 @@ impl BytecodeDecoder {
                 Opcode::Skip => self.handle_skip(&mut reader)?,
                 Opcode::Checkpoint => self.handle_checkpoint(&mut reader)?,
                 Opcode::End => break,
+                // New opcodes for tree-sitter integration
+                Opcode::Node => {
+                    // Generic node - skip for now
+                    reader.read_varint(); // kind_id
+                }
+                Opcode::Text => {
+                    // Text content - skip for now
+                    if let Some(len) = reader.read_byte() {
+                        // Skip text bytes
+                        for _ in 0..len {
+                            reader.read_byte();
+                        }
+                    }
+                }
+                Opcode::Children => {
+                    // Children count - skip for now
+                    reader.read_varint(); // count
+                }
             }
         }
         

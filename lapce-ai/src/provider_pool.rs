@@ -1,7 +1,6 @@
 /// Provider pool types - stub implementation
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use anyhow::Result;
 
 /// Provider pool for managing AI providers
 pub struct ProviderPool {

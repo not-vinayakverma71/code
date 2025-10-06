@@ -3,14 +3,12 @@ use std::collections::HashMap;
 use std::time::{Duration, SystemTime};
 use std::path::PathBuf;
 use dashmap::DashMap;
-use async_trait::async_trait;
 use serde_json::Value;
 use anyhow::Result;
-use tokio::sync::RwLock;
 use parking_lot::Mutex;
 
-use crate::mcp_tools::core::{Tool, ToolResult, JsonSchema};
-use crate::mcp_tools::permissions::{Permission, PermissionManager};
+use crate::mcp_tools::core::{Tool, ToolResult};
+use crate::mcp_tools::permissions::PermissionManager;
 use crate::mcp_tools::rate_limiter::RateLimiter;
 
 // Core MCP Architecture from lines 61-96

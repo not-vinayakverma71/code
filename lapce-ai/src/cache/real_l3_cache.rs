@@ -2,13 +2,11 @@
 /// Production-ready distributed cache with connection pooling
 
 use std::sync::Arc;
-use std::time::{Duration, SystemTime, Instant};
-use std::collections::HashMap;
-use redis::{Client, AsyncCommands, RedisError};
+use std::time::Instant;
+use redis::{Client, AsyncCommands};
 // ConnectionManager is not available in current redis version
 type ConnectionManager = redis::aio::MultiplexedConnection;
 use anyhow::{Result, Context};
-use async_trait::async_trait;
 use tokio::sync::RwLock;
 
 use super::types::{CacheKey, CacheValue};
@@ -139,7 +137,7 @@ impl RealL3Cache {
         let ttl = self.ttl_seconds;
         
         // Set with expiration
-        conn.set_ex(&redis_key, data, ttl).await?;
+        conn.set_ex::<_, _, ()>(&redis_key, data, ttl).await?;
         
         // Record metrics
         let latency = start.elapsed();
@@ -164,7 +162,7 @@ impl RealL3Cache {
         }
         
         // Execute pipeline
-        pipe.query_async(&mut conn).await?;
+        pipe.query_async::<_, ()>(&mut conn).await?;
         
         // Record metrics
         let latency = start.elapsed();
@@ -178,7 +176,7 @@ impl RealL3Cache {
         let mut conn = self.get_connection().await?;
         let redis_key = self.build_key(key);
         
-        conn.del(&redis_key).await?;
+        conn.del::<_, ()>(&redis_key).await?;
         
         Ok(())
     }

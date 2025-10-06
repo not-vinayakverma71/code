@@ -1,6 +1,5 @@
 /// CacheCoordinator - EXACT implementation from docs lines 313-371
 use std::sync::Arc;
-use anyhow::Result;
 use tokio::sync::RwLock;
 
 use super::{

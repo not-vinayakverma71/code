@@ -12,7 +12,6 @@ use super::{
     cache_metrics::CacheMetrics,
     l2_cache::L2Cache,
     l3_cache::L3Cache,
-    promotion_policy::PromotionPolicy,
 };
 
 /// Optimized L1 Cache - minimal memory footprint

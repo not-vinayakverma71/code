@@ -1,12 +1,11 @@
 /// Code Parser - Consolidated implementation with AST-aware chunking
 /// Merged from code_parser.rs and code_parser_impl.rs
 
-use tree_sitter::{Parser, Query, QueryCursor, Node, Language};
+use tree_sitter::{Parser, Node, Language};
 use std::path::{Path, PathBuf};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use anyhow::Result;
-use once_cell::sync::Lazy;
 use walkdir::WalkDir;
 
 // Consolidated CodeChunk structure

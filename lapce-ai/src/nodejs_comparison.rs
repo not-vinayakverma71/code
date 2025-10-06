@@ -1,8 +1,4 @@
-/// Node.js Comparison Implementation (Day 27)
-/// Create equivalent Node.js implementation for benchmarking
-
-use std::path::PathBuf;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 use tokio::process::Command;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};

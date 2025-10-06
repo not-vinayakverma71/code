@@ -6,7 +6,6 @@ use std::collections::HashMap;
 use anyhow::{Result, bail};
 use async_trait::async_trait;
 use futures::stream::{self, StreamExt, BoxStream};
-use serde::{Deserialize, Serialize};
 use serde_json::json;
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 use tokio::sync::RwLock;
@@ -14,9 +13,12 @@ use tokio::sync::RwLock;
 use crate::ai_providers::core_trait::{
     AiProvider, CompletionRequest, CompletionResponse, ChatRequest, ChatResponse,
     StreamToken, HealthStatus, Model, ProviderCapabilities, RateLimits, Usage,
-    ChatMessage, ChatChoice
+    ChatMessage, ChatChoice, CompletionChoice
 };
-use crate::ai_providers::sse_decoder::{SseDecoder, parsers::parse_anthropic_sse};
+use crate::ai_providers::sse_decoder::{SseDecoder, SseEvent};
+use crate::ai_providers::streaming_integration::{
+    process_sse_response, ProviderType
+};
 
 /// Anthropic configuration
 #[derive(Debug, Clone)]
@@ -159,30 +161,36 @@ impl AnthropicProvider {
     async fn build_url(&self, endpoint: &str) -> String {
         let config = self.config.read().await;
         let base = config.base_url.as_ref()
-            .map(|s| s.trim_end_matches('/').to_string())
             .unwrap_or_else(|| "https://api.anthropic.com".to_string());
         
         format!("{}/v1/{}", base, endpoint)
     }
     
-    /// Format messages in Anthropic's required format
+    /// Format messages for Anthropic API with Human/Assistant prefixes
+    /// Ensures alternating user/assistant messages as required
     fn format_messages(&self, messages: &[ChatMessage]) -> Vec<serde_json::Value> {
         let mut formatted = Vec::new();
         
         for msg in messages {
-            // Anthropic only accepts "user" and "assistant" roles
             let role = match msg.role.as_str() {
-                "system" => "user", // System messages become user messages
+                "system" => "user",  // Anthropic treats system as user
                 "assistant" => "assistant",
-                _ => "user",
+                _ => "user"
             };
             
-            let content = if msg.role == "system" {
-                // Wrap system messages with special formatting
-                format!("System: {}", msg.content.as_deref().unwrap_or(""))
-            } else {
-                msg.content.as_deref().unwrap_or("").to_string()
-            };
+            let mut content = msg.content.clone().unwrap_or_default();
+            
+            // Add Human/Assistant prefixes as per Anthropic format
+            if msg.role == "system" {
+                // System messages are formatted as user messages with special prefix
+                content = format!("Human: [System]: {}\n\nAssistant: I understand the system instructions.", content);
+            } else if role == "user" {
+                // Add Human: prefix for user messages
+                content = format!("Human: {}", content);
+            } else if role == "assistant" {
+                // Add Assistant: prefix for assistant messages
+                content = format!("Assistant: {}", content);
+            }
             
             formatted.push(json!({
                 "role": role,
@@ -229,6 +237,66 @@ impl AnthropicProvider {
         }
         
         final_messages
+    }
+}
+
+/// Parse Anthropic event-based SSE format - EXACT implementation
+/// Handles: event: message_start, content_block_delta, message_stop
+fn parse_anthropic_sse(event: &SseEvent) -> Option<StreamToken> {
+    // Anthropic uses event-based SSE
+    match event.event.as_deref() {
+        Some("message_start") => {
+            // Beginning of message - could extract metadata if needed
+            None
+        }
+        Some("content_block_start") => {
+            // Start of content block
+            None
+        }
+        Some("content_block_delta") => {
+            // Content delta - this is where the actual text comes through
+            if let Some(data) = &event.data {
+                if let Ok(data_str) = std::str::from_utf8(data) {
+                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(data_str) {
+                        if let Some(delta) = json.get("delta") {
+                            if let Some(text) = delta["text"].as_str() {
+                                return Some(StreamToken::Delta {
+                                    content: text.to_string()
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            None
+        }
+        Some("content_block_stop") => {
+            // End of content block
+            None
+        }
+        Some("message_delta") => {
+            // Message metadata updates (usage, stop reason, etc.)
+            None
+        }
+        Some("message_stop") => {
+            // End of message
+            Some(StreamToken::Done)
+        }
+        Some("error") => {
+            // Error event
+            if let Some(data) = &event.data {
+                if let Ok(data_str) = std::str::from_utf8(data) {
+                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(data_str) {
+                        if let Some(error) = json.get("error") {
+                            let message = error["message"].as_str().unwrap_or("Unknown error");
+                            return Some(StreamToken::Error(message.to_string()));
+                        }
+                    }
+                }
+            }
+            Some(StreamToken::Error("Unknown error".to_string()))
+        }
+        _ => None
     }
 }
 
@@ -408,26 +476,12 @@ impl AiProvider for AnthropicProvider {
             bail!("Anthropic streaming error: {}", error_text);
         }
         
-        // Parse event-based SSE stream
-        let mut decoder = SseDecoder::new();
-        let stream = response.bytes_stream()
-            .map(|result| result.map_err(|e| anyhow::anyhow!(e)))
-            .flat_map(move |chunk_result| {
-                match chunk_result {
-                    Ok(chunk) => {
-                        let events = decoder.process_chunk(&chunk);
-                        let tokens: Vec<Result<StreamToken>> = events
-                            .into_iter()
-                            .filter_map(|event| parse_anthropic_sse(&event))
-                            .map(Ok)
-                            .collect();
-                        stream::iter(tokens)
-                    }
-                    Err(e) => stream::iter(vec![Err(e)]),
-                }
-            });
-        
-        Ok(Box::pin(stream))
+        // Use StreamingPipeline integration with event-based SSE
+        process_sse_response(
+            response,
+            ProviderType::Anthropic,
+            parse_anthropic_sse,
+        ).await
     }
     
     async fn list_models(&self) -> Result<Vec<Model>> {

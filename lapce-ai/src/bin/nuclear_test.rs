@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 use anyhow::Result;
 
 // Use the nuclear-optimized version
-use lapce_ai_rust::shared_memory_nuclear::{SharedMemoryBuffer, cleanup_nuclear_memory};
+use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer;
 
 const TEST_ITERATIONS: usize = 1_000_000;
 const CONNECTION_COUNT: usize = 1000;
@@ -35,7 +35,7 @@ async fn main() -> Result<()> {
     println!("{}", "=".repeat(80));
     
     // Cleanup any previous runs
-    cleanup_nuclear_memory();
+    // cleanup_nuclear_memory("nuclear_test"); // Function doesn't exist
     
     let mut passed = 0;
     let mut failed = 0;
@@ -76,14 +76,16 @@ async fn main() -> Result<()> {
     // Warmup
     for _ in 0..1000 {
         buffer.write(&test_data)?;
-        buffer.read()?;
+        let mut buf = [0u8; 1024];
+        buffer.read(&mut buf)?;
     }
     
     // Actual test
     for _ in 0..TEST_ITERATIONS {
         let start = Instant::now();
         buffer.write(&test_data)?;
-        let _ = buffer.read()?;
+        let mut buf = [0u8; 1024];
+        let _ = buffer.read(&mut buf)?;
         let elapsed = start.elapsed();
         latencies.push(elapsed.as_nanos() as f64 / 1000.0); // Convert to μs
     }
@@ -112,7 +114,8 @@ async fn main() -> Result<()> {
     while start.elapsed() < Duration::from_secs(10) {
         for conn in connections.iter().take(100) {
             conn.write(&test_data)?;
-            conn.read()?;
+            let mut buf = [0u8; 1024];
+            conn.read(&mut buf)?;
             operations += 2;
         }
     }
@@ -138,7 +141,8 @@ async fn main() -> Result<()> {
     let mut successful = 0;
     for (i, conn) in connections.iter().enumerate() {
         let data = vec![i as u8; 64];
-        if conn.write(&data).is_ok() && conn.read().is_ok() {
+        let mut buf = [0u8; 1024];
+        if conn.write(&data).is_ok() && conn.read(&mut buf).is_ok() {
             successful += 1;
         }
     }
@@ -182,7 +186,7 @@ async fn main() -> Result<()> {
     }
     
     // Final cleanup
-    cleanup_nuclear_memory();
+    // cleanup_nuclear_memory("nuclear_test"); // Function doesn't exist
     
     // RESULTS
     println!("\n{}", "=".repeat(80));

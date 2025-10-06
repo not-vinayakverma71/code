@@ -7,7 +7,7 @@ use tokio::sync::RwLock;
 use anyhow::Result;
 use tracing::{info, debug};
 
-use crate::connection_pool_manager::{ConnectionPoolManager, PoolConfig};
+use crate::connection_pool_manager::ConnectionPoolManager;
 use crate::connection_pool_manager::ConnectionStats;
 
 /// Adaptive scaler for connection pools

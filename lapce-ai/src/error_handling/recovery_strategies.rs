@@ -1,10 +1,7 @@
 // HOUR 1: Recovery Strategies Stub - Will be fully implemented in HOURS 21-30
 // Based on recovery strategy patterns from TypeScript codex-reference
 
-use async_trait::async_trait;
-use super::errors::{LapceError, Result};
-use super::recovery_system::{RecoveryStrategy, RecoveryAction};
-use std::time::Duration;
+use super::recovery_system::RecoveryStrategy;
 
 /// Default recovery strategies will be implemented here
 /// Full implementation in HOURS 21-30

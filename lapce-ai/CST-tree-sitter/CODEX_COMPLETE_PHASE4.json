@@ -1,0 +1,24 @@
+{
+  "bytecode_mb": 14.984901428222656,
+  "files_processed": 1720,
+  "lines_per_mb": 21696.105346924625,
+  "memory": {
+    "budget_mb": 50,
+    "final_heap": 1031.74609375,
+    "final_rss": 67.49609375,
+    "initial_heap": 1024.32421875,
+    "initial_rss": 4.96875,
+    "used_mb": 1.4977693557739258
+  },
+  "segmented_mb": 14.984901428222656,
+  "source_mb": 9.838357925415039,
+  "storage": {
+    "cold": 0,
+    "frozen": 1024,
+    "hot": 696,
+    "warm": 0
+  },
+  "test_type": "COMPLETE_PHASE_4_PIPELINE",
+  "timestamp": "2025-10-06T11:36:09.561584098+05:30",
+  "total_lines": 325114
+}

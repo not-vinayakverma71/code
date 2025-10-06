@@ -1,11 +1,9 @@
-/// AccessCounter - EXACT implementation from docs lines 142-166
-use std::sync::Arc;
 use std::time::Duration;
 use dashmap::DashMap;
 
 use super::{
     count_min_sketch::CountMinSketch,
-    types::{CacheKey, CacheValue},
+    types::CacheKey,
 };
 
 pub struct AccessCounter {

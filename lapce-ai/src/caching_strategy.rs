@@ -1,9 +1,8 @@
 /// Caching Strategy Refinement - Day 44 AM
 use std::sync::Arc;
 use std::collections::HashMap;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use tokio::sync::RwLock;
-use anyhow::Result;
 
 #[derive(Debug, Clone)]
 pub struct CacheStrategy {

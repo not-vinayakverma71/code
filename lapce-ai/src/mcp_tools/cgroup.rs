@@ -1,6 +1,5 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::fs;
-use std::io::{self, Write};
 use anyhow::{Context, Result};
 
 pub struct CGroupManager {

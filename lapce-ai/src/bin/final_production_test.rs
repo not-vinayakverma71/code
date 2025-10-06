@@ -73,10 +73,10 @@ impl TestResults {
         println!("{}", "-".repeat(80));
         
         // Criteria 1: Memory
-        let memory_pass = self.memory_overhead_mb < CRITERIA_MEMORY_MB;
+        let memory_pass = self.memory_overhead_mb.load(Ordering::Relaxed) as f64 < CRITERIA_MEMORY_MB;
         println!("1. Memory Usage:");
         println!("   Required:  < {:.1} MB", CRITERIA_MEMORY_MB);
-        println!("   Achieved:  {:.2} MB", self.memory_overhead_mb);
+        println!("   Achieved:  {:.2} MB", self.memory_overhead_mb.load(Ordering::Relaxed));
         println!("   Status:    {}", if memory_pass { "✅ PASS" } else { "❌ FAIL" });
         
         // Criteria 2: Latency

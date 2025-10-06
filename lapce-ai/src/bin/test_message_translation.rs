@@ -103,7 +103,7 @@ fn main() {
         ts: 1234567890,
         msg_type: "say".to_string(),
         ask: None,
-        say: Some(ClineSay::Text),
+        say: Some("test".to_string()),
         text: Some("Response text".to_string()),
         images: None,
         partial: None,

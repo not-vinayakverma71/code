@@ -102,7 +102,7 @@ pub fn convert_to_r1_format(messages: Vec<AnthropicMessage>) -> Vec<Message> {
             Some(merged.len() - 1)
         };
         
-        let mut message_content: MessageContent;
+        let message_content: MessageContent;
         let mut has_images = false;
         
         // Convert content to appropriate format - lines 25-61

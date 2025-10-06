@@ -49,7 +49,7 @@ impl OptimizedIPC {
             // Use anonymous mmap (no file, pure memory)
             let ptr = libc::mmap(
                 ptr::null_mut(),
-                SHM_SIZE,
+                4 * 1024 * 1024,
                 libc::PROT_READ | libc::PROT_WRITE,
                 (libc::MAP_SHARED | libc::MAP_ANONYMOUS) as i32,
                 -1,

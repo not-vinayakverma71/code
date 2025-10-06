@@ -1,8 +1,6 @@
 /// OpenAI provider handler
 use anyhow::Result;
-use async_trait::async_trait;
 use serde::{Serialize, Deserialize};
-use std::sync::Arc;
 
 /// OpenAI provider handler
 pub struct OpenAIProviderHandler {

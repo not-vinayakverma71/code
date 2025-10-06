@@ -2,7 +2,6 @@
 use anyhow::Result;
 use lz4_flex;
 use zstd;
-use std::io::Write;
 
 pub enum CompressionStrategy {
     None,

@@ -1,9 +1,8 @@
 // COMPLETE ENGINE WITH ALL FEATURES FROM SPEC
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use std::sync::Arc;
 use std::path::{Path, PathBuf};
 use std::time::{Instant, Duration, SystemTime};
-use std::collections::HashMap;
 use tokio::sync::RwLock;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -23,8 +22,8 @@ use lancedb::DistanceType;
 use futures::TryStreamExt;
 use moka::future::Cache;
 use blake3::Hasher;
-use tantivy::{doc, Index, schema, collector::TopDocs, query::QueryParser};
-use notify::{Watcher, RecursiveMode, EventKind};
+use tantivy::{doc, Index, schema};
+use notify::Watcher;
 
 // Configuration structures
 #[derive(Debug, Clone)]

@@ -5,11 +5,10 @@ use anyhow::Result;
 use dashmap::DashMap;
 use serde_json::{json, Value};
 use tokio::sync::RwLock;
-use async_trait::async_trait;
 
 use crate::mcp_tools::{
     core::{Tool, ToolContext, ToolResult, ToolParameter},
-    permissions::{Permission, PermissionManager},
+    permissions::PermissionManager,
     rate_limiter::GovernorRateLimiter,
     sandbox_real::ProcessSandbox,
     tool_registry::ToolRegistry,

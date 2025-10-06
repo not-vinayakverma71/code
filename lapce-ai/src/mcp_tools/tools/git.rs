@@ -1,6 +1,5 @@
-use std::path::PathBuf;
 use async_trait::async_trait;
-use anyhow::{Result, Context};
+use anyhow::Result;
 use serde_json::{json, Value};
 use git2::{Repository, Status, DiffOptions};
 

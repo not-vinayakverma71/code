@@ -1,7 +1,7 @@
 // Rate Limiting Implementation
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 use std::collections::HashMap;
 use anyhow::{Result, bail};
 

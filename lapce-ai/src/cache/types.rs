@@ -1,12 +1,7 @@
-/// Core types for cache system - EXACT from docs lines 34-49
-
-use std::sync::Arc;
-use std::time::{Duration, Instant, SystemTime};
+use std::time::SystemTime;
 use std::path::PathBuf;
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
-use dashmap::DashMap;
-use parking_lot::RwLock;
 
 #[derive(Clone, Debug, Hash, Eq, PartialEq, Serialize, Deserialize)]
 pub struct CacheKey(pub String);

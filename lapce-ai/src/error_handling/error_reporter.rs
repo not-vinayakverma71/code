@@ -2,10 +2,9 @@
 // Based on error reporting patterns from TypeScript codex-reference
 
 use std::collections::HashMap;
-use std::time::SystemTime;
 use async_trait::async_trait;
-use super::errors::{LapceError, ErrorSeverity};
-use super::context::{ErrorContext, ErrorReport};
+use super::errors::LapceError;
+use super::context::ErrorReport;
 
 /// Error reporter for telemetry and monitoring
 pub struct ErrorReporter {

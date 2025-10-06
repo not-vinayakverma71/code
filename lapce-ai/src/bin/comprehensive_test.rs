@@ -9,7 +9,7 @@ use anyhow::Result;
 
 use lapce_ai_rust::{
     shared_memory_complete::{SharedMemoryBuffer, SharedMemoryListener, SharedMemoryStream},
-    provider_pool::{ProviderPool, ProviderPoolConfig, ProviderConfig},
+    provider_pool::{ProviderPool, ProviderPoolConfig},
     ipc_messages::{AIRequest, Message as IpcMessage, MessageRole},
 };
 
@@ -164,26 +164,11 @@ async fn main() -> Result<()> {
     println!("\n📊 TEST 7: Gemini API Integration");
     
     let provider_config = ProviderPoolConfig {
-        providers: vec![
-            ProviderConfig {
-                name: "gemini".to_string(),
-                enabled: true,
-                api_key: Some(GEMINI_API_KEY.to_string()),
-                base_url: None,
-                default_model: Some("gemini-1.5-flash".to_string()),
-                max_retries: 3,
-                timeout_secs: 30,
-                rate_limit_per_minute: None,
-            }
-        ],
-        fallback_enabled: false,
-        fallback_order: vec![],
-        load_balance: false,
-        circuit_breaker_enabled: false,
-        circuit_breaker_threshold: 5,
+        max_providers: 10,
+        retry_attempts: 3,
     };
     
-    let provider_pool = Arc::new(ProviderPool::new(provider_config).await?);
+    let provider_pool = Arc::new(ProviderPool::new());
     
     // Test API call
     let request = AIRequest {

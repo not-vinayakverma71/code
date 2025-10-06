@@ -3,7 +3,6 @@
 
 use crate::semantic_engine::{SemanticSearchEngine, SearchResult, SearchFilters};
 use std::sync::Arc;
-use std::path::PathBuf;
 use std::collections::HashMap;
 use anyhow::Result;
 
@@ -11,7 +10,6 @@ use tantivy::{
     schema::{Schema as TantivySchema, TEXT, STORED, Field as TantivyField},
     Index as TantivyIndex,
     IndexWriter,
-    Document,
     collector::TopDocs,
     query::QueryParser,
     IndexReader,
@@ -66,7 +64,7 @@ impl HybridSearcher {
         doc.add_text(self.path_field, path);
         doc.add_text(self.content_field, content);
         
-        let mut writer = self.index_writer.lock().await;
+        let writer = self.index_writer.lock().await;
         writer.add_document(doc)?;
         
         Ok(())

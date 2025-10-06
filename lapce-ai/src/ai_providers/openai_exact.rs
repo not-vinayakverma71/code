@@ -6,7 +6,6 @@ use std::collections::HashMap;
 use anyhow::{Result, bail};
 use async_trait::async_trait;
 use futures::stream::{self, StreamExt, BoxStream};
-use serde::{Deserialize, Serialize};
 use serde_json::json;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
 use bytes::Bytes;
@@ -15,9 +14,12 @@ use tokio::sync::RwLock;
 use crate::ai_providers::core_trait::{
     AiProvider, CompletionRequest, CompletionResponse, ChatRequest, ChatResponse,
     StreamToken, HealthStatus, Model, ProviderCapabilities, RateLimits, Usage,
-    ChatMessage, ChatChoice
+    ChatMessage, ChatChoice, CompletionChoice
 };
-use crate::ai_providers::sse_decoder::{SseDecoder, parsers::parse_openai_sse};
+use crate::ai_providers::sse_decoder::{SseDecoder, SseEvent};
+use crate::ai_providers::streaming_integration::{
+    process_sse_response, ProviderType
+};
 
 /// Default headers from constants.ts
 const DEFAULT_HEADERS: &[(&str, &str)] = &[
@@ -299,6 +301,66 @@ impl OpenAiHandler {
     }
 }
 
+/// Parse OpenAI SSE format - EXACT implementation
+/// Handles: data: {"choices":[{"delta":{"content":"..."}}]} and data: [DONE]
+fn parse_openai_sse(event: &SseEvent) -> Option<StreamToken> {
+    let data = event.data.as_ref()?;
+    let data_str = std::str::from_utf8(data).ok()?;
+    
+    // Handle [DONE] signal
+    if data_str.trim() == "[DONE]" {
+        return Some(StreamToken::Done);
+    }
+    
+    // Parse JSON
+    let json: serde_json::Value = serde_json::from_str(data_str).ok()?;
+    
+    // Extract delta content from choices
+    if let Some(choices) = json["choices"].as_array() {
+        if let Some(choice) = choices.first() {
+            // Handle chat completion deltas
+            if let Some(delta) = choice.get("delta") {
+                if let Some(content) = delta["content"].as_str() {
+                    return Some(StreamToken::Delta { 
+                        content: content.to_string() 
+                    });
+                }
+                
+                // Handle function calls
+                if let Some(function_call) = delta.get("function_call") {
+                    if let Some(name) = function_call["name"].as_str() {
+                        let arguments = function_call["arguments"].as_str().unwrap_or("");
+                        return Some(StreamToken::FunctionCall {
+                            name: name.to_string(),
+                            arguments: arguments.to_string(),
+                        });
+                    }
+                }
+                
+                // Handle tool calls
+                if let Some(tool_calls) = delta.get("tool_calls") {
+                    if let Some(tool_call) = tool_calls.as_array()?.first() {
+                        if let Some(function) = tool_call.get("function") {
+                            return Some(StreamToken::ToolCall {
+                                id: tool_call["id"].as_str().unwrap_or("").to_string(),
+                                name: function["name"].as_str().unwrap_or("").to_string(),
+                                arguments: function["arguments"].as_str().unwrap_or("").to_string(),
+                            });
+                        }
+                    }
+                }
+            }
+            
+            // Handle completion format (non-chat)
+            if let Some(text) = choice["text"].as_str() {
+                return Some(StreamToken::Text(text.to_string()));
+            }
+        }
+    }
+    
+    None
+}
+
 #[async_trait]
 impl AiProvider for OpenAiHandler {
     fn name(&self) -> &'static str {
@@ -398,7 +460,7 @@ impl AiProvider for OpenAiHandler {
         -> Result<BoxStream<'static, Result<StreamToken>>> {
         let url = self.build_url("completions").await;
         
-        let mut body = json!({
+        let body = json!({
             "model": request.model,
             "prompt": request.prompt,
             "max_tokens": request.max_tokens,
@@ -415,26 +477,12 @@ impl AiProvider for OpenAiHandler {
             bail!("OpenAI streaming error: {}", error_text);
         }
         
-        // Parse SSE stream with real implementation
-        let mut decoder = SseDecoder::new();
-        let stream = response.bytes_stream()
-            .map(|result| result.map_err(|e| anyhow::anyhow!(e)))
-            .flat_map(move |chunk_result| {
-                match chunk_result {
-                    Ok(chunk) => {
-                        let events = decoder.process_chunk(&chunk);
-                        let tokens: Vec<Result<StreamToken>> = events
-                            .into_iter()
-                            .filter_map(|event| parse_openai_sse(&event))
-                            .map(Ok)
-                            .collect();
-                        stream::iter(tokens)
-                    }
-                    Err(e) => stream::iter(vec![Err(e)]),
-                }
-            });
-        
-        Ok(Box::pin(stream))
+        // Use StreamingPipeline integration
+        process_sse_response(
+            response,
+            ProviderType::OpenAI,
+            parse_openai_sse,
+        ).await
     }
     
     async fn chat(&self, request: ChatRequest) -> Result<ChatResponse> {
@@ -524,7 +572,7 @@ impl AiProvider for OpenAiHandler {
         let url = self.build_url("chat/completions").await;
         let messages = self.convert_to_openai_messages(&request.messages);
         
-        let mut body = json!({
+        let body = json!({
             "model": request.model,
             "messages": messages,
             "stream": true,
@@ -539,26 +587,12 @@ impl AiProvider for OpenAiHandler {
             bail!("OpenAI streaming error: {}", error_text);
         }
         
-        // Parse SSE stream with real implementation
-        let mut decoder = SseDecoder::new();
-        let stream = response.bytes_stream()
-            .map(|result| result.map_err(|e| anyhow::anyhow!(e)))
-            .flat_map(move |chunk_result| {
-                match chunk_result {
-                    Ok(chunk) => {
-                        let events = decoder.process_chunk(&chunk);
-                        let tokens: Vec<Result<StreamToken>> = events
-                            .into_iter()
-                            .filter_map(|event| parse_openai_sse(&event))
-                            .map(Ok)
-                            .collect();
-                        stream::iter(tokens)
-                    }
-                    Err(e) => stream::iter(vec![Err(e)]),
-                }
-            });
-        
-        Ok(Box::pin(stream))
+        // Use StreamingPipeline integration
+        process_sse_response(
+            response,
+            ProviderType::OpenAI,
+            parse_openai_sse,
+        ).await
     }
     
     async fn list_models(&self) -> Result<Vec<Model>> {

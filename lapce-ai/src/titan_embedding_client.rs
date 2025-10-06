@@ -4,7 +4,6 @@
 use anyhow::{Result, anyhow};
 use aws_sdk_bedrockruntime::primitives::Blob;
 use aws_sdk_bedrockruntime::Client;
-use aws_config::{Region, BehaviorVersion};
 use serde::{Serialize, Deserialize};
 use std::sync::Arc;
 use tokio::sync::{RwLock, Semaphore};
@@ -72,7 +71,7 @@ impl TitanEmbeddingClient {
         // let client = Client::new(&config);
         
         use aws_credential_types::Credentials;
-        use aws_credential_types::provider::SharedCredentialsProvider;
+        
         
         let creds = Credentials::new(
             access_key,

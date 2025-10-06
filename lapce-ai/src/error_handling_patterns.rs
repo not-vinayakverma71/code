@@ -1,24 +1,14 @@
-/// Exact 1:1 Translation of TypeScript Task error handling from codex-reference/core/task/Task.ts
-/// Lines 2600-2760 of 2859 total lines
-/// DAY 2 H7-8: Port error handling patterns from TypeScript
-
-use std::sync::Arc;
-use std::time::Duration;
 use std::collections::HashMap;
-use tokio::sync::RwLock;
-use tokio::time::sleep;
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::json;
 // Placeholder types for missing dependencies
 pub struct ProviderConfig;
 pub struct StreamHandler;
 pub struct RooCodeEventName;
-use crate::ipc_messages::{ClineMessage, ClineAsk, ClineSay};
+use crate::ipc_messages::{ClineMessage, ClineAsk};
 use crate::types_tool::ToolUsageEntry;
-use crate::streaming_pipeline::stream_transform::{ApiStreamChunk, ApiError, ApiStream};
-use crate::task_connection_handling::AskResponse;
-use crate::task_exact_translation::{Task, ApiMessage, TaskApiHandler};
+use crate::streaming_pipeline::stream_transform::{ApiStreamChunk, ApiError};
+use crate::task_exact_translation::{Task, ApiMessage};
 
 /// Maximum exponential backoff in seconds
 const MAX_EXPONENTIAL_BACKOFF_SECONDS: u64 = 600;
@@ -132,7 +122,7 @@ impl Task {
                     // Find last complete assistant text message
                     for msg in messages.iter_mut().rev() {
                         if msg.is_complete_text_say() {
-                            let mut metadata = msg.get_metadata_mut();
+                            let metadata = msg.get_metadata_mut();
                             let gpt5_data = metadata.entry("gpt5".to_string()).or_insert(json!({}));
                             
                             if let Some(obj) = gpt5_data.as_object_mut() {
@@ -396,7 +386,7 @@ pub enum TaskStatus {
 
 // ... (rest of the code remains the same)
 mod tests {
-    use super::*;
+    
     
     #[tokio::test]
     async fn test_error_handling() {

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::path::{Path, PathBuf};
 use async_trait::async_trait;
-use anyhow::{Result, Context};
+use anyhow::Result;
 use serde_json::json;
 use serde_json::Value;
 use tokio::fs;
@@ -9,7 +9,7 @@ use memmap2::MmapOptions;
 use std::fs::File;
 
 use crate::mcp_tools::{
-    core::{Tool, ToolContext, ToolResult, ToolParameter, ResourceLimits},
+    core::{ToolContext, ToolResult, ToolParameter, ResourceLimits},
     permissions::Permission,
     filesystem_guard::FileSystemGuard,
     cache::FileCache,

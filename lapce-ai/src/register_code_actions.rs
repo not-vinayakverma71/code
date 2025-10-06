@@ -56,7 +56,7 @@ fn register_code_action(
     command: CodeActionId,
     prompt_type: CodeActionName,
 ) {
-    let mut user_input: Option<String> = None;
+    let user_input: Option<String> = None;
     let command_for_handler = command.clone();
     
     let handler = Arc::new(move |args: Vec<String>| {
@@ -87,7 +87,7 @@ fn register_code_action(
         }
         
         // Build params - lines 42-48
-        let mut params = CodeActionParams {
+        let params = CodeActionParams {
             file_path,
             selected_text,
             start_line: start_line.map(|n| n.to_string()),

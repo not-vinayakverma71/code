@@ -5,7 +5,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use serde::{Deserialize, Serialize};
 
 // Import event types from events_exact_translation.rs
 pub use crate::events_exact_translation::*;

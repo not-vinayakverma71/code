@@ -89,26 +89,73 @@ name = "test_phase2_integration"
 path = "src/bin/test_phase2_integration.rs"
 
 [[bin]]
-name = "test_complete_system"
-path = "src/bin/test_complete_system.rs"
+name = "test_frozen_tier"
+path = "src/bin/test_frozen_tier.rs"
 
 [[bin]]
-name = "test_massive_codebase_real"
-path = "src/bin/test_massive_codebase_real.rs"
+name = "test_phase4_complete"
+path = "src/bin/test_phase4_complete.rs"
 
 [[bin]]
-name = "comprehensive_intern_benchmark"
-path = "benches/comprehensive_intern_benchmark.rs"
+name = "benchmark_lapce_codebase"
+path = "src/bin/benchmark_lapce_codebase.rs"
 
 [[bin]]
-name = "k_25_languages"
-path = "src/bin/k_25_languages.rs"
-authors = ["Lapce Contributors"]
-license = "Apache-2.0"
-description = "Native tree-sitter integration for Lapce - replacing WASM with native FFI bindings"
-repository = "https://github.com/lapce/lapce"
-keywords = ["tree-sitter", "parsing", "syntax-highlighting", "code-intelligence"]
-categories = ["parsing", "text-editors"]
+name = "benchmark_lapce_dynamic"
+path = "src/bin/benchmark_lapce_dynamic.rs"
+
+[[bin]]
+name = "benchmark_lapce_full"
+path = "src/bin/benchmark_lapce_full.rs"
+
+[[bin]]
+name = "benchmark_memory_stress"
+path = "src/bin/benchmark_memory_stress.rs"
+
+[[bin]]
+name = "benchmark_tiered_storage"
+path = "src/bin/benchmark_tiered_storage.rs"
+
+[[bin]]
+name = "test_tiered_minimal"
+path = "src/bin/test_tiered_minimal.rs"
+
+[[bin]]
+name = "benchmark_tiered_final"
+path = "src/bin/benchmark_tiered_final.rs"
+
+[[bin]]
+name = "benchmark_adaptive_large"
+path = "src/bin/benchmark_adaptive_large.rs"
+
+[[bin]]
+name = "benchmark_codex_extreme"
+path = "src/bin/benchmark_codex_extreme.rs"
+
+[[bin]]
+name = "benchmark_codex_production"
+path = "src/bin/benchmark_codex_production.rs"
+
+[[bin]]
+name = "benchmark_codex_phase4"
+path = "src/bin/benchmark_codex_phase4.rs"
+
+[[bin]]
+name = "benchmark_codex_complete"
+path = "src/bin/benchmark_codex_complete.rs"
+
+[[bin]]
+name = "benchmark_all_phases"
+path = "src/bin/benchmark_all_phases.rs"
+
+[[bin]]
+name = "test_all_phases"
+path = "src/bin/test_all_phases.rs"
+
+[[bin]]
+name = "benchmark_codex_extensive"
+path = "src/bin/benchmark_codex_extensive.rs"
+
 
 [workspace]
 
@@ -147,7 +194,15 @@ zstd = "0.13"  # For tree compression
 lz4 = "1.24"  # For tree compression
 rand = "0.8"  # For benchmark simulation
 lasso = { version = "0.7", optional = true, features = ["multi-threaded"] }  # For global string interning
+bincode = "1.3"  # For frozen tier serialization
+tempfile = "3.8"  # For testing frozen tier
 crc32fast = "1.4"  # For delta codec validation
+memmap2 = "0.9"  # For memory-mapped files
+num_cpus = "1.16"  # For CPU detection
+libc = "0.2"  # For system calls
+mimalloc = { version = "0.1", default-features = false }  # High-performance allocator
+lru = "0.12"  # LRU cache for tier management
+indicatif = "0.17"  # Progress bars for benchmarks
 # Core tree-sitter - using consistent version
 # ACTUALLY WORKING languages (tested and compile)
 tree-sitter-rust = "0.23"
@@ -354,13 +409,6 @@ tokio-test = "0.4"
 proptest = "1.4"
 pretty_assertions = "1.4"
 
-[[bench]]
-name = "comprehensive_benchmark"
-harness = false
-
-[[bench]]
-name = "performance_benchmark"
-harness = false
 
 [profile.release]
 opt-level = 3

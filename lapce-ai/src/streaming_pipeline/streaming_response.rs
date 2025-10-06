@@ -1,6 +1,5 @@
 use futures::stream::{Stream, StreamExt};
 use std::pin::Pin;
-use serde::{Deserialize, Serialize};
 use crate::streaming_pipeline::stream_transform::{ApiStreamChunk, ApiStreamError, ApiStreamUsageChunk};
 use crate::streaming_pipeline::xml_matcher::XmlMatcher;
 use crate::streaming_pipeline::types::*;
@@ -140,7 +139,7 @@ impl OpenAiHandler {
         model_info: ModelInfo,
     ) -> impl Stream<Item = ApiStreamChunk> {
         let mut xml_matcher = XmlMatcher::new();
-        let mut last_usage = None;
+        let last_usage = None;
         
         let chunks: Vec<ApiStreamChunk> = stream.collect::<Vec<_>>().await
             .into_iter()

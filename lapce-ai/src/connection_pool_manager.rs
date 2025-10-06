@@ -7,7 +7,6 @@ use bb8::{Pool, PooledConnection, ManageConnection};
 use anyhow::Result;
 use arc_swap::ArcSwap;
 use tracing::{info, debug, warn};
-use http::Request;
 use http_body_util::Full;
 use bytes::Bytes;
 use std::sync::atomic::{AtomicU64, AtomicU32, Ordering};
@@ -225,7 +224,7 @@ impl ConnectionPoolManager {
         for host in hosts {
             // Get a connection to trigger TLS handshake and prime session cache
             match self.get_https_connection().await {
-                Ok(mut conn) => {
+                Ok(conn) => {
                     // Make a lightweight HEAD request to establish the connection
                     let req = http::Request::builder()
                         .method("HEAD")
@@ -270,7 +269,7 @@ impl ConnectionPoolManager {
         let sample_size = 3.min(https_state.idle_connections as usize);
         
         for _ in 0..sample_size {
-            if let Ok(mut conn) = self.https_pool.get().await {
+            if let Ok(conn) = self.https_pool.get().await {
                 match conn.is_valid().await {
                     Ok(_) => {
                         healthy += 1;

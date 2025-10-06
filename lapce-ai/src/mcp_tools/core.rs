@@ -18,7 +18,6 @@ use crate::mcp_tools::sandbox::ProcessSandbox;
 use crate::mcp_tools::metrics::MetricsCollector;
 use crate::mcp_tools::cache::ToolCache;
 use crate::mcp_tools::retry::RetryHandler;
-use crate::mcp_tools::errors::McpError;
 
 pub type JsonSchema = Value;
 

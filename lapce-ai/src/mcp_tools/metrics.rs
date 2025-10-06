@@ -1,6 +1,5 @@
 // Metrics module - clean implementation
 use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 use std::collections::HashMap;
 use tokio::sync::RwLock;

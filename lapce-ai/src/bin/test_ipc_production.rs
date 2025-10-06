@@ -160,7 +160,7 @@ async fn test_connection_pool() {
     println!("│ TEST 4: Connection Pool Stress Test                         │");
     println!("└─────────────────────────────────────────────────────────────┘");
     
-    use lapce_ai_rust::connection_pool_complete::ConnectionPool;
+    // use lapce_ai_rust::connection_pool_complete::ConnectionPool; // Module doesn't exist
     
     let pool = Arc::new(ConnectionPool::new(1000, Duration::from_secs(60)));
     let semaphore = Arc::new(Semaphore::new(100));
@@ -234,11 +234,12 @@ async fn test_e2e_latency() {
         buffer.write(&bytes).unwrap();
         
         // Read from shared memory
-        let read_data = buffer.read().unwrap();
+        let mut buf = vec![0u8; 1024];
+        let read_data = buffer.read(&mut buf).unwrap();
         
         // Deserialize
         let _decoded: TestMessage = unsafe {
-            rkyv::from_bytes_unchecked(&read_data).unwrap()
+            rkyv::from_bytes_unchecked(&buf[..read_data]).unwrap()
         };
         
         let latency = start.elapsed();
@@ -279,7 +280,8 @@ fn print_summary() {
     let start = Instant::now();
     for _ in 0..iterations {
         buffer.write(&data).unwrap();
-        let _ = buffer.read().unwrap();
+        let mut buf = [0u8; 1024];
+        let _ = buffer.read(&mut buf).unwrap();
     }
     let duration = start.elapsed();
     

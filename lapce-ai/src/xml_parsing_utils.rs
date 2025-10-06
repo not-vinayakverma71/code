@@ -1,7 +1,3 @@
-/// Exact 1:1 Translation of TypeScript XML parsing from codex-reference/utils/xml-matcher.ts
-/// DAY 6 H1-2: Port XML parsing utilities from TypeScript
-
-use std::collections::VecDeque;
 
 /// XmlMatcherResult interface - exact translation lines 1-4
 #[derive(Debug, Clone)]

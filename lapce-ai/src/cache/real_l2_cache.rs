@@ -2,12 +2,9 @@
 /// Production-ready persistent disk cache with compression
 
 use std::sync::Arc;
-use std::path::PathBuf;
-use std::time::{Duration, Instant, SystemTime};
-use std::collections::HashMap;
-use sled::{Db, IVec};
+use std::time::Instant;
+use sled::Db;
 use anyhow::Result;
-use async_trait::async_trait;
 use tokio::task;
 
 use super::types::{CacheKey, CacheValue, L2Config};

@@ -518,7 +518,7 @@ pub struct BugFix {
 
 impl ReleaseNotesGenerator {
     pub fn generate(&self) -> String {
-        let mut notes = format!(r#"# Release Notes - v{}
+        let notes = format!(r#"# Release Notes - v{}
 
 Released: {}
 

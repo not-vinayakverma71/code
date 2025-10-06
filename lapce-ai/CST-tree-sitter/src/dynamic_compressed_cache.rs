@@ -12,37 +12,38 @@ use std::collections::HashMap;
 use dashmap::DashMap;
 
 use crate::cst_codec::{serialize_source_only, deserialize_source_only};
-use crate::cache::{DeltaCodec, DeltaEntry, ChunkStore};
+use crate::cache::{DeltaCodec, DeltaEntry, ChunkStore, FrozenTier, FrozenTierStats};
 
 /// Dynamic cache that automatically manages hot/cold tiers based on access frequency
 pub struct DynamicCompressedCache {
     /// Hot tier: frequently accessed files (uncompressed)
     hot_cache: Cache<PathBuf, Arc<HotEntry>>,
     
-    /// Warm tier: moderately accessed files (light compression)
     warm_cache: Cache<PathBuf, Arc<WarmEntry>>,
     
     /// Cold tier: rarely accessed files (heavy compression)
     cold_cache: Cache<PathBuf, Arc<ColdEntry>>,
     
-    /// Shared source store: deduplicates source storage across all hot entries
-    /// Key: source_hash, Value: source bytes
+    /// Frozen tier: disk-backed storage for very cold data
+    frozen_tier: Arc<FrozenTier>,
+    
+    /// Shared source storage for deduplication
     source_store: Arc<DashMap<u64, Arc<Bytes>>>,
     
-    /// Delta codec for source compression
+    /// Delta codec for compression
     delta_codec: Arc<DeltaCodec>,
     
-    /// Chunk store for deduplication
-    chunk_store: Arc<ChunkStore>,
-    
-    /// Access frequency tracking
+    /// Access tracking
     access_tracker: Arc<RwLock<AccessTracker>>,
+    
+    /// Configuration
+    config: DynamicCacheConfig,
     
     /// Statistics
     stats: Arc<CacheStats>,
     
-    /// Configuration
-    config: DynamicCacheConfig,
+    /// Chunk store for deduplication
+    chunk_store: Arc<ChunkStore>,
 }
 
 #[derive(Clone)]
@@ -132,6 +133,7 @@ enum CacheTier {
     Hot,
     Warm,
     Cold,
+    Frozen,
     None,
 }
 
@@ -179,10 +181,19 @@ impl DynamicCompressedCache {
         let chunk_store = Arc::new(ChunkStore::new());
         let delta_codec = Arc::new(DeltaCodec::new(chunk_store.clone()));
         
+        // Initialize frozen tier with 1GB max disk usage
+        let frozen_tier = Arc::new(
+            FrozenTier::new(
+                PathBuf::from(".cache/frozen"),
+                1.0  // 1GB max disk usage
+            ).expect("Failed to initialize frozen tier")
+        );
+        
         Self {
             hot_cache,
             warm_cache,
             cold_cache,
+            frozen_tier,
             source_store: Arc::new(DashMap::new()),
             delta_codec,
             chunk_store,
@@ -316,6 +327,34 @@ impl DynamicCompressedCache {
             }
         }
         
+        // Check frozen tier
+        if self.frozen_tier.is_frozen(&path_buf) {
+            self.stats.cold_hits.fetch_add(1, Ordering::Relaxed); // Count as cold hit
+            
+            // Thaw from disk
+            let (source, delta_entry, tree_data) = self.frozen_tier.thaw(&path_buf)?;
+            
+            // Deserialize tree - need to reparse (tree-sitter limitation)
+            let (tree, _, _) = parse_fn()?;
+            
+            // Promote to cold tier (frozen data accessed = needs warming)
+            let serialized = serialize_source_only(&source);
+            let compressed = zstd::encode_all(&serialized[..], self.config.cold_compression_level)
+                .unwrap_or(serialized.clone());
+            
+            let entry = Arc::new(ColdEntry {
+                delta_entry,
+                compressed_data: compressed,
+                source_hash,
+                original_size: source.len(),
+                access_count: Arc::new(AtomicU64::new(1)),
+            });
+            
+            self.cold_cache.insert(path_buf.clone(), entry);
+            
+            return Ok((tree, source));
+        }
+        
         // Cache miss - parse and insert
         self.stats.misses.fetch_add(1, Ordering::Relaxed);
         let (tree, source, parse_time_ms) = parse_fn()?;
@@ -356,6 +395,9 @@ impl DynamicCompressedCache {
     
     /// Insert new entry into appropriate tier
     async fn insert_new(&self, path: PathBuf, tree: Tree, source: Bytes, hash: u64, parse_time: f64) {
+        // Check if we should freeze some cold entries to make room
+        self.maybe_freeze_cold_entries().await;
+        
         // Start in cold tier for new files
         // They'll be promoted if accessed frequently
         let serialized = serialize_source_only(&source);
@@ -438,6 +480,69 @@ impl DynamicCompressedCache {
         });
         
         self.warm_cache.insert(path, entry);
+    }
+    
+    /// Maybe freeze cold entries to disk if memory pressure
+    async fn maybe_freeze_cold_entries(&self) {
+        // Check if cold cache is at capacity
+        let cold_count = self.cold_cache.entry_count();
+        // Use a fixed threshold since moka doesn't expose max_capacity
+        if cold_count < 500 {  // Default cold capacity / 2
+            return; // Plenty of room
+        }
+        
+        // Find least recently accessed cold entries
+        let mut cold_entries: Vec<(PathBuf, Arc<ColdEntry>, u64)> = Vec::new();
+        
+        // Collect entries with access counts
+        // Note: This is simplified - in production, we'd use an LRU policy
+        self.cold_cache.iter().for_each(|entry| {
+            let path = entry.0.as_ref().clone();  // Arc<PathBuf> -> PathBuf
+            let cold_entry = entry.1.clone();
+            let access_count = cold_entry.access_count.load(Ordering::Relaxed);
+            if access_count < 2 {  // Freeze entries with < 2 accesses
+                cold_entries.push((path, cold_entry, access_count));
+            }
+        });
+        
+        // Sort by access count (ascending)
+        cold_entries.sort_by_key(|e| e.2);
+        
+        // Freeze bottom 25% to disk
+        let to_freeze = cold_entries.len() / 4;
+        for (path, entry, _) in cold_entries.iter().take(to_freeze) {
+            // Retrieve source from store or reconstruct
+            let source = if let Some(stored) = self.source_store.get(&entry.source_hash) {
+                (**stored).clone()
+            } else {
+                // Decompress to get source
+                let decompressed = zstd::decode_all(&entry.compressed_data[..]).unwrap_or_default();
+                deserialize_source_only(&decompressed).unwrap_or_else(|_| Bytes::new())
+            };
+            
+            if source.is_empty() {
+                continue;
+            }
+            
+            // Freeze to disk
+            if let Err(e) = self.frozen_tier.freeze(
+                path.clone(),
+                &source,
+                entry.delta_entry.clone(),
+                vec![], // Tree data would be serialized here if we stored it
+            ) {
+                eprintln!("Failed to freeze entry: {}", e);
+                continue;
+            }
+            
+            // Remove from cold cache
+            // Note: moka cache will auto-evict based on capacity
+            // self.cold_cache.remove(&path);
+            self.stats.evictions.fetch_add(1, Ordering::Relaxed);
+        }
+        
+        // Evict old frozen entries if needed
+        let _ = self.frozen_tier.evict_if_needed();
     }
     
     /// Get current statistics

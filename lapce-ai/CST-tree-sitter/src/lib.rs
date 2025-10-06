@@ -1,97 +1,45 @@
-//! LAPCE TREE-SITTER - 125+ LANGUAGES PRODUCTION READY
-//! ZERO ERRORS - MASSIVE PERFORMANCE - COMPLETE IMPLEMENTATION
+//! CST-tree-sitter: Complete 6-Phase Optimization Pipeline
+//! 
+//! Implements all optimization phases from the journey document:
+//! - Phase 1: Varint + Packing + Interning (40% reduction)
+//! - Phase 2: Delta Compression (60% cumulative)
+//! - Phase 3: Bytecode Trees (75% cumulative)
+//! - Phase 4a: Frozen Tier (93% cumulative)
+//! - Phase 4b: Memory-Mapped Sources (95% cumulative)
+//! - Phase 4c: Segmented Bytecode (97% cumulative)
 
 // Core modules
-pub mod compressed_cache;
-pub mod cst_codec;
-pub mod default_queries;
-pub mod dynamic_compressed_cache;
 pub mod compact;
-pub mod lru_cache;
 pub mod cache;
-pub mod dual_representation;
+pub mod phase4_cache;
+pub mod complete_pipeline;
 pub mod parser_pool;
-pub mod query_cache;
-pub mod incremental_parser;
-pub mod incremental_parser_v2;
-pub mod native_parser_manager;
-pub mod native_parser_manager_v2;
-pub mod cache_impl;
-pub mod syntax_highlighter;
-pub mod code_intelligence;
-pub mod async_api;
-pub mod directory_traversal;
-pub mod main_api;
-pub mod benchmark_test;
-pub mod codex_exact_format;
-pub mod codex_integration;
-pub mod codex_missing_languages;
-pub mod markdown_parser;
-pub mod lapce_production;
-pub mod all_languages_support;
-pub mod enhanced_codex_format;
-pub mod performance_metrics;
-pub mod fixed_language_support;
+pub mod cst_codec;
+pub mod dynamic_compressed_cache;
 
-// New integrated modules
-pub mod code_intelligence_v2;
-pub mod syntax_highlighter_v2;
-pub mod integrated_system;
-
-// Production modules
-pub mod error;
-pub mod timeout;
-pub mod logging;
-pub mod resource_limits;
-pub mod robust_error_handler;
-pub mod language_loader;
-
-// FFI language bindings
-#[cfg(feature = "ffi-languages")]
-pub mod ffi_languages;
-
-// Re-export PRODUCTION API for Lapce IDE (PRIMARY)
-pub use lapce_production::{
-    LapceTreeSitterService,
-    SymbolExtractionResult,
-    DirectoryExtractionResult,
-    PerformanceMetrics,
-    HealthStatus,
+// Re-export main pipeline components
+pub use complete_pipeline::{
+    CompletePipeline,
+    CompletePipelineConfig,
+    PipelineStats,
+    ProcessedResult,
+    StorageLocation,
 };
 
-// Re-export async API
-pub use async_api::{
-    AsyncTreeSitterAPI,
-    ProductionAsyncService,
+pub use phase4_cache::{
+    Phase4Cache,
+    Phase4Config,
+    Phase4Stats,
 };
 
-// Re-export MAIN API for Lapce IDE
-pub use main_api::{
-    LapceTreeSitterAPI,
-    LanguageStatus,
-    extract,
-    extract_from_directory,
+// Re-export bytecode components
+pub use compact::bytecode::{
+    TreeSitterBytecodeEncoder,
+    TreeSitterBytecodeDecoder,
+    BytecodeStream,
+    SegmentedBytecodeStream,
+    Opcode,
 };
-
-// Re-export Codex integration API
-pub use codex_integration::{
-    CodexSymbolExtractor,
-    extract_symbols,
-    extract_symbols_from_directory,
-};
-
-// Re-export Codex exact format functions
-pub use codex_exact_format::{
-    parse_source_code_definitions_for_file,
-    parse_source_code_for_definitions_top_level,
-    process_captures,
-};
-
-// Re-export directory traversal with gitignore support
-pub use directory_traversal::parse_directory_for_definitions;
-
-// Re-export the main types
-pub use native_parser_manager::{NativeParserManager, FileType, ParseResult};
 
 use tree_sitter::{Parser, Tree, Language};
 use std::sync::Arc;

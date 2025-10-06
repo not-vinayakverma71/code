@@ -2,7 +2,6 @@
 /// Connects MCP tools to Lapce's AI assistant for seamless tool execution
 
 use crate::mcp_tools::{
-    dispatcher::McpToolSystem,
     config::McpServerConfig,
     ipc_integration::{McpIpcHandler, McpRequest, McpResponse},
 };
@@ -12,7 +11,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::{RwLock, mpsc};
-use anyhow::{Result, bail};
+use anyhow::Result;
 
 /// AI Assistant Tool Executor
 /// Handles tool execution requests from the AI assistant

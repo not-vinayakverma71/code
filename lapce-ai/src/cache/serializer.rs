@@ -1,6 +1,5 @@
 /// Serializer - EXACT implementation from docs line 65
 use anyhow::Result;
-use serde::{Serialize, Deserialize};
 use super::types::{CacheKey, CacheValue};
 
 /// Serializer for L3 cache

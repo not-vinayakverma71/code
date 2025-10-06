@@ -8,11 +8,14 @@ pub mod provider_registry;  // Core infrastructure for managing providers
 pub mod sse_decoder;
 pub mod message_converters;
 pub mod traits;
+pub mod streaming_integration;  // NEW: Connect StreamingPipeline to providers
 
 // 7 Provider implementations (EXACT ports from TypeScript)
 pub mod openai_exact;       // 1. OpenAI - FIXED: Real SSE streaming
 pub mod anthropic_exact;    // 2. Anthropic (Claude) - Complete
 pub mod gemini_exact;        // 3. Google Gemini - Complete
+pub mod gemini_optimized;    // 3. Google Gemini - Optimized
+pub mod gemini_ultra_optimized; // 3. Google Gemini - Ultra Optimized < 8MB
 pub mod bedrock_exact;       // 4. AWS Bedrock - FIXED: Event-stream parsing
 pub mod azure_exact;         // 5. Azure OpenAI - Complete
 pub mod xai_exact;           // 6. xAI (Grok) - FIXED: Added completion methods

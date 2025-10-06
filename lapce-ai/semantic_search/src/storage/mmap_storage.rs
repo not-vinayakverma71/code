@@ -216,20 +216,9 @@ impl MmapStorage {
         
         let compressed_data = &mmap[start..end];
         
-        // Create CompressedEmbedding from mmap data
-        let compressed = CompressedEmbedding {
-            id: id.to_string(),
-            compressed_data: compressed_data.to_vec(),  // Copy only for decompression
-            original_size: metadata.dimension * 4,
-            compressed_size: metadata.size as usize,
-            dimension: metadata.dimension,
-            checksum: 0,  // Skip checksum for retrieval
-            compression_ratio: 1.0,
-        };
-        
-        // Decompress
+        // Phase 4 optimization: Decompress directly from mmap slice without copying
         let compressor = self.compressor.read().unwrap();
-        compressor.decompress_embedding(&compressed)
+        compressor.decompress_from_slice(compressed_data, metadata.dimension)
     }
     
     /// Get embedding without decompression (returns compressed data)

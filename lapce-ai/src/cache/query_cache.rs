@@ -6,7 +6,7 @@ use anyhow::Result;
 use super::{
     l1_cache::L1Cache,
     query_hasher::QueryHasher,
-    types::{CacheKey, CacheValue, QueryResult},
+    types::{CacheValue, QueryResult},
 };
 
 pub struct QueryCache {

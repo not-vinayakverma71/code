@@ -2,14 +2,13 @@
 use std::sync::Arc;
 use moka::future::Cache as MokaCache;
 use parking_lot::RwLock;
-use anyhow::Result;
 use tracing;
 
 use super::{
     bloom_filter::BloomFilter,
     cache_metrics::CacheMetrics,
     access_counter::AccessCounter,
-    types::{CacheKey, CacheValue, CacheLevel, L1Config},
+    types::{CacheKey, CacheValue, L1Config},
 };
 
 pub struct L1Cache {

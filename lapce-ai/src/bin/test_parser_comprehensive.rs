@@ -395,9 +395,9 @@ async fn test_parser_performance() -> Result<()> {
     
     // Generate large test files
     let languages = vec![
-        ("Rust", unsafe { tree_sitter_rust() }, generate_large_rust_code()),
-        ("Python", unsafe { tree_sitter_python() }, generate_large_python_code()),
-        ("JavaScript", unsafe { tree_sitter_javascript() }, generate_large_js_code()),
+        ("Rust", tree_sitter_rust::language(), generate_large_rust_code()),
+        ("Python", tree_sitter_python::language(), generate_large_python_code()),
+        ("JavaScript", tree_sitter_javascript::language(), generate_large_js_code()),
     ];
     
     for (name, language, code) in languages {

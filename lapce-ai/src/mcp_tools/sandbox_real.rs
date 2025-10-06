@@ -2,11 +2,8 @@
 use std::path::{Path, PathBuf};
 use std::os::unix::process::CommandExt;
 use std::process::Command;
-use std::collections::HashMap;
-use std::time::Duration;
-use anyhow::{Result, Context, bail};
-use nix::unistd::{setuid, setgid, Uid, Gid};
-use nix::sys::resource::{setrlimit, Resource};
+use anyhow::{Result, Context};
+use nix::unistd::{Uid, Gid};
 
 pub struct ProcessSandbox {
     chroot_path: PathBuf,

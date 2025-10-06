@@ -2,8 +2,6 @@
 use std::time::Duration;
 use tokio::time::timeout;
 use anyhow::{Result, bail};
-use serde_json::{json, Value};
-use crate::mcp_tools::core::ToolResult;
 
 pub struct TimeoutHandler {
     default_timeout: Duration,

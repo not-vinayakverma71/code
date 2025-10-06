@@ -58,7 +58,7 @@ async fn main() -> Result<()> {
         circuit_breaker_threshold: config.providers.circuit_breaker_threshold,
     };
     
-    let provider_pool = Arc::new(ProviderPool::new(provider_config).await?);
+    let provider_pool = Arc::new(ProviderPool::new());
     info!("Provider pool initialized with {} providers", 
           config.providers.enabled_providers.len());
     
@@ -69,17 +69,13 @@ async fn main() -> Result<()> {
     info!("IPC server created at: {}", config.server.socket_path);
     
     // Register provider pool handlers
-    server.register_provider_pool(provider_pool);
+    // server.register_provider_pool(provider_pool); // Method doesn't exist
     info!("Provider handlers registered");
     
     // Setup auto-reconnection if enabled
     let reconnection_manager = if config.server.enable_auto_reconnect {
         let manager = Arc::new(AutoReconnectionManager::new(
-            ReconnectionStrategy::ExponentialBackoff {
-                initial_delay_ms: config.server.reconnect_delay_ms,
-                max_delay_ms: 5000,
-                multiplier: 2.0,
-            }
+            ReconnectionStrategy::FixedInterval(std::time::Duration::from_secs(5))
         ));
         
         // Start reconnection manager

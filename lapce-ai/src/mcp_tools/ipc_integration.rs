@@ -12,7 +12,6 @@ use serde_json::{json, Value};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use anyhow::Result;
 
 // Define missing types locally until lapce_rpc is available
 pub type RpcId = u64;

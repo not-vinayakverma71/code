@@ -1,5 +1,5 @@
 // Day 20: Distributed Search with Redis
-use redis::{Client, Connection, Commands, RedisResult};
+use redis::{Client, Commands, RedisResult};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -45,18 +45,18 @@ impl DistributedSearch {
         
         // Store document
         let doc_key = format!("doc:{}:{}", shard_id, doc_id);
-        conn.set(&doc_key, content)?;
+        conn.set::<_, _, ()>(&doc_key, content)?;
         
         // Store embedding
         let emb_key = format!("emb:{}:{}", shard_id, doc_id);
         let emb_bytes = bincode::serialize(&embedding).unwrap();
-        conn.set(&emb_key, &emb_bytes[..])?;
+        conn.set::<_, _, ()>(&emb_key, &emb_bytes[..])?;
         
         // Update index
-        conn.sadd(format!("idx:{}", shard_id), doc_id)?;
+        conn.sadd::<_, _, ()>(format!("idx:{}", shard_id), doc_id)?;
         
         // Update stats
-        conn.incr(format!("stats:{}:docs", self.node_id), 1)?;
+        conn.incr::<_, _, ()>(format!("stats:{}:docs", self.node_id), 1)?;
         
         Ok(())
     }
@@ -121,7 +121,7 @@ impl DistributedSearch {
             let end = ((i + 1) * shards_per_node).min(total_shards);
             
             for shard in start..end {
-                conn.hset("cluster:shards", shard, node)?;
+                conn.hset::<_, _, _, ()>("cluster:shards", shard, node)?;
             }
         }
         

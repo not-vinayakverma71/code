@@ -5,17 +5,11 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use anyhow::{Result, bail};
-use async_trait::async_trait;
 use dashmap::DashMap;
 use tokio::sync::RwLock;
-use futures::stream::BoxStream;
-use governor::{Quota, RateLimiter};
-use governor::state::{NotKeyed, InMemoryState};
-use governor::clock::DefaultClock;
 
 use super::core_trait::{
-    AiProvider, CompletionRequest, CompletionResponse, ChatRequest, ChatResponse,
-    StreamToken, HealthStatus, Model, ProviderCapabilities
+    AiProvider, CompletionRequest, CompletionResponse, ChatRequest, ChatResponse, HealthStatus
 };
 
 /// Provider configuration
@@ -340,7 +334,7 @@ impl ProviderManager {
     }
     
     /// Route completion request to provider
-    pub async fn complete(&self, mut request: CompletionRequest) -> Result<CompletionResponse> {
+    pub async fn complete(&self, request: CompletionRequest) -> Result<CompletionResponse> {
         let provider_name = self.get_provider_for_request(&request).await?;
         // Check rate limit
         if let Some(limiter) = self.rate_limiters.get(&provider_name) {
@@ -375,7 +369,7 @@ impl ProviderManager {
     }
     
     /// Route chat request to provider
-    pub async fn chat(&self, mut request: ChatRequest) -> Result<ChatResponse> {
+    pub async fn chat(&self, request: ChatRequest) -> Result<ChatResponse> {
         let provider_name = self.get_provider_for_chat(&request).await?;
         
         // Check rate limit

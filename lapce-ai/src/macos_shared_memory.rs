@@ -1,10 +1,4 @@
-/// macOS Shared Memory Implementation
-/// Uses POSIX shm_open/mmap for high performance IPC
-
-use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, AtomicBool, Ordering};
-use std::ptr;
-use std::ffi::CString;
+use std::sync::atomic::AtomicUsize;
 
 #[cfg(target_os = "macos")]
 use anyhow::{Result, anyhow};

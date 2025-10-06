@@ -6,17 +6,18 @@ use std::collections::HashMap;
 use anyhow::{Result, bail};
 use async_trait::async_trait;
 use futures::stream::{self, StreamExt, BoxStream};
-use serde::{Deserialize, Serialize};
 use serde_json::json;
-use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 use tokio::sync::RwLock;
 
 use crate::ai_providers::core_trait::{
     AiProvider, CompletionRequest, CompletionResponse, ChatRequest, ChatResponse,
     StreamToken, HealthStatus, Model, ProviderCapabilities, RateLimits, Usage,
-    ChatMessage, ChatChoice
+    ChatMessage, ChatChoice, CompletionChoice
 };
-use crate::ai_providers::sse_decoder::parsers::parse_gemini_stream;
+use crate::ai_providers::sse_decoder::{SseDecoder, JsonStreamParser};
+use crate::ai_providers::streaming_integration::{
+    process_response_with_pipeline, ProviderType
+};
 
 /// Gemini configuration
 #[derive(Debug, Clone)]
@@ -35,7 +36,7 @@ impl Default for GeminiConfig {
         Self {
             api_key: String::new(),
             base_url: Some("https://generativelanguage.googleapis.com".to_string()),
-            default_model: Some("gemini-1.5-pro".to_string()),
+            default_model: Some("gemini-2.5-flash".to_string()),
             api_version: Some("v1beta".to_string()),
             timeout_ms: Some(60000),
             project_id: None,
@@ -436,22 +437,11 @@ impl AiProvider for GeminiProvider {
             bail!("Gemini streaming error: {}", error_text);
         }
         
-        // Parse streaming response
-        let stream = response.bytes_stream()
-            .map(|result| result.map_err(|e| anyhow::anyhow!(e)))
-            .flat_map(move |chunk_result| {
-                match chunk_result {
-                    Ok(chunk) => {
-                        let chunk_str = String::from_utf8_lossy(&chunk);
-                        let tokens = parse_gemini_stream(&chunk_str);
-                        let results: Vec<Result<StreamToken>> = tokens.into_iter().map(Ok).collect();
-                        stream::iter(results)
-                    }
-                    Err(e) => stream::iter(vec![Err(e)]),
-                }
-            });
-        
-        Ok(Box::pin(stream))
+        // Use StreamingPipeline integration
+        process_response_with_pipeline(
+            response,
+            ProviderType::Gemini,
+        ).await
     }
     
     async fn list_models(&self) -> Result<Vec<Model>> {
@@ -532,4 +522,37 @@ impl AiProvider for GeminiProvider {
             },
         }
     }
+}
+
+/// Parse Gemini streaming response
+fn parse_gemini_stream(chunk: &str) -> Vec<StreamToken> {
+    let mut parser = JsonStreamParser::new();
+    let jsons = parser.parse_chunk(chunk);
+    
+    let mut tokens = Vec::new();
+    
+    for json in jsons {
+        if let Some(candidates) = json["candidates"].as_array() {
+            if let Some(candidate) = candidates.first() {
+                if let Some(content) = candidate.get("content") {
+                    if let Some(parts) = content["parts"].as_array() {
+                        for part in parts {
+                            if let Some(text) = part["text"].as_str() {
+                                tokens.push(StreamToken::Text(text.to_string()));
+                            }
+                        }
+                    }
+                }
+                
+                // Check finish reason
+                if let Some(finish_reason) = candidate["finishReason"].as_str() {
+                    if finish_reason == "STOP" {
+                        tokens.push(StreamToken::Done);
+                    }
+                }
+            }
+        }
+    }
+    
+    tokens
 }

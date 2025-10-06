@@ -6,7 +6,6 @@ use bytes::{Bytes, BytesMut};
 use futures::stream::{Stream, StreamExt};
 use reqwest::Response;
 use std::pin::Pin;
-use std::task::{Context, Poll};
 use anyhow::Result;
 use async_stream::stream;
 

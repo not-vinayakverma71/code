@@ -14,7 +14,7 @@ use lapce_ai_rust::global_settings_exact_translation::*;
 use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer as OptimizedSharedMemory;
 use lapce_ai_rust::optimized_cache::OptimizedCache;
 use lapce_ai_rust::optimized_vector_search::OptimizedVectorSearch;
-use lapce_ai_rust::connection_pool_complete::ConnectionPool as WorkingConnectionPool;
+// use lapce_ai_rust::connection_pool_complete::ConnectionPool as WorkingConnectionPool; // Module doesn't exist
 
 #[tokio::main]
 async fn main() {
@@ -109,7 +109,7 @@ async fn test_shared_memory_performance() {
     let data = vec![0u8; message_size];
     
     // Create shared memory
-    let mut shm = OptimizedSharedMemory::create(4 * 1024 * 1024).unwrap();
+    let mut shm = OptimizedSharedMemory::create("test_perf", 4 * 1024 * 1024).unwrap();
     
     // Write test
     let start = Instant::now();
@@ -179,7 +179,7 @@ async fn test_cache_performance() {
 }
 
 async fn test_vector_search_performance() {
-    let mut search = OptimizedVectorSearch::new();
+    let mut search = OptimizedVectorSearch::new(384).unwrap();
     
     // Add vectors
     let num_vectors = 10_000;

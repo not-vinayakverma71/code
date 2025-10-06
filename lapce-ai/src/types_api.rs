@@ -1,7 +1,6 @@
 /// API Types - EXACT 1:1 Translation from TypeScript
 /// Source: Codex/packages/types/src/api.ts
 use async_trait::async_trait;
-use std::collections::HashMap;
 
 // RooCodeEvents type removed - not needed for MCP tools
 use crate::types_global_settings::RooCodeSettings;

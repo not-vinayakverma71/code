@@ -39,10 +39,11 @@ fn main() {
         payload: (MessageEventPayload {
             task_id: "task-789".to_string(),
             action: MessageAction::Created,
-            message: ClineMessage {
+            message: ClineMessage::Say {
                 ts: 1234567890,
-                msg_type: "ask".to_string(),
-                text: Some("Hello".to_string()),
+                text: "Hello".to_string(),
+                images: None,
+                partial: false,
             },
         },),
         task_id: Some(200),

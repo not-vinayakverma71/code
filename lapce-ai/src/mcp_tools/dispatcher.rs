@@ -1,24 +1,16 @@
 /// MCP Tool System Dispatcher
 /// Central dispatcher for routing tool requests to appropriate implementations
 
-use crate::mcp_tools::tools::{
-    read_file, write_file, execute_command, list_files, search_files,
-    edit_file, apply_diff, insert_content, 
-    list_code_definitions, search_and_replace, new_task, update_todo_list,
-    attempt_completion, ask_followup_question, CodebaseSearchTool
-};
+use crate::mcp_tools::tools::CodebaseSearchTool;
 use crate::mcp_tools::{
     core::{Tool, ToolContext, ToolResult},
     config::McpServerConfig,
-    permissions::Permission,
     rate_limiter::RateLimiter,
 };
-use async_trait::async_trait;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::error::Error as StdError;
-use std::fmt;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio_util::sync::CancellationToken;

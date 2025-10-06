@@ -4,7 +4,7 @@
 
 use std::sync::Arc;
 use std::time::Instant;
-use bytes::{Bytes, BytesMut};
+use bytes::Bytes;
 use futures::stream::{Stream, StreamExt, BoxStream};
 use tokio::sync::{mpsc, Mutex};
 use anyhow::Result;

@@ -182,7 +182,7 @@ fn profile_memory_usage() -> Result<()> {
     // Create multiple SharedMemory instances
     let mut instances = Vec::new();
     for i in 0..10 {
-        instances.push(OptimizedSharedMemory::create(&format!("test_mem_{}", i), 1024 * 1024)?);
+        instances.push(SharedMemoryBuffer::create(&format!("test_mem_{}", i), 1024 * 1024)?);
     }
     
     system.refresh_processes();

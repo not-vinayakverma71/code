@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 use anyhow::Result;
-use tracing::{info, debug};
+use tracing::debug;
 
 use crate::connection_pool_manager::{ConnectionPoolManager, PoolConfig};
 

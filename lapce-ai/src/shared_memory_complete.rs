@@ -1,16 +1,13 @@
 /// PRODUCTION SharedMemory Implementation for IPC
 /// Simple, robust, fast - meets all 8 success criteria
 
-use std::sync::{Arc, Mutex};
-use std::sync::atomic::{AtomicU32, AtomicBool, AtomicUsize, Ordering};
+use std::sync::Arc;
+use std::sync::atomic::AtomicUsize;
 use std::time::{Duration, Instant};
-use anyhow::{Result, anyhow, bail};
-use memmap2::{MmapOptions, MmapMut};
+use anyhow::{Result, bail};
 use parking_lot::RwLock;
 use std::os::raw::c_int;
-use std::ffi::c_void;
 use tokio::sync::mpsc;
-use std::fs;
 use std::thread;
 use std::ptr;
 

@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 use anyhow::Result;
 use tokio::sync::{Mutex, RwLock};
 use tokio_tungstenite::{connect_async, WebSocketStream, MaybeTlsStream};
-use tokio_tungstenite::tungstenite::{Message, Error as WsError};
+use tokio_tungstenite::tungstenite::Message;
 use futures_util::{SinkExt, StreamExt};
 use tokio::net::TcpStream;
 use url::Url;

@@ -4,7 +4,7 @@
 use bytes::{Bytes, BytesMut, BufMut};
 use rkyv::{Archive, Deserialize, Serialize};
 use anyhow::{Result, bail};
-use crate::ipc_messages::{MessageType, AIRequest, ClineMessage, IpcMessage};
+use crate::ipc_messages::MessageType;
 
 const MAGIC: u32 = 0x4C41504C; // "LAPL" - Lapce Protocol
 const VERSION: u8 = 1;

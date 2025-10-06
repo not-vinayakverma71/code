@@ -1,7 +1,7 @@
 /// REAL PRODUCTION TEST - Using actual lapce-ai-rust library
 /// This tests the REAL architecture, not standalone test code
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicU64, AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 use std::thread;
@@ -34,9 +34,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let baseline_kb = get_rss_kb();
     println!("📏 Baseline memory: {:.2} MB", baseline_kb as f64 / 1024.0);
     
-    // Create REAL SharedMemoryBuffer from production code (NO LOCK)
-    let buffer = Arc::new(SharedMemoryBuffer::create("production_test", BUFFER_SIZE)?);
-    println!("✅ Created SharedMemoryBuffer (real production code - lock-free)");
+    // Create REAL SharedMemoryBuffer from production code (with Mutex for shared access)
+    let buffer = Arc::new(Mutex::new(SharedMemoryBuffer::create("production_test", BUFFER_SIZE)?));
+    println!("✅ Created SharedMemoryBuffer (real production code)");
     
     // Metrics
     let metrics = Arc::new(Metrics {
@@ -60,8 +60,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             while !stop.load(Ordering::Relaxed) {
                 let op_start = Instant::now();
                 
-                // Use REAL SharedMemoryBuffer write method (lock-free)
-                if buffer.write(&msg).is_ok() {
+                // Use REAL SharedMemoryBuffer write method
+                if buffer.lock().unwrap().write(&msg).is_ok() {
                     let lat = op_start.elapsed().as_nanos() as u64;
                     metrics.messages_sent.fetch_add(1, Ordering::Relaxed);
                     metrics.total_latency_ns.fetch_add(lat, Ordering::Relaxed);
@@ -102,9 +102,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         
         handles.push(thread::spawn(move || {
             while !stop.load(Ordering::Relaxed) {
-                // Use REAL SharedMemoryBuffer read method (lock-free)
+                // Use REAL SharedMemoryBuffer read method
                 let mut temp = vec![0u8; 256];
-                if buffer.read(&mut temp).unwrap_or(0) > 0 {
+                if buffer.lock().unwrap().read(&mut temp).unwrap_or(0) > 0 {
                     metrics.messages_received.fetch_add(1, Ordering::Relaxed);
                 }
             }

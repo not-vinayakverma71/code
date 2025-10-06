@@ -65,7 +65,8 @@ enum Commands {
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv::dotenv().ok();
-    env_logger::init();
+    // Initialize logging if needed
+    // env::set_var("RUST_LOG", "info");
     
     let cli = Cli::parse();
     
@@ -98,7 +99,27 @@ async fn test_provider(
 ) -> Result<()> {
     println!("{}", format!("🧪 Testing {} provider", provider_name).cyan().bold());
     
-    let manager = ProviderManager::new();
+    use std::collections::HashMap;
+    use lapce_ai_rust::ai_providers::ProvidersConfig;
+    use lapce_ai_rust::ai_providers::provider_manager::ProviderConfig;
+    
+    let mut providers = HashMap::new();
+    providers.insert(provider_name.to_string(), ProviderConfig {
+        name: provider_name.to_string(),
+        max_retries: 3,
+        timeout: std::time::Duration::from_secs(30),
+        rate_limit_override: None,
+    });
+    
+    let config = ProvidersConfig {
+        providers,
+        default_provider: provider_name.to_string(),
+        health_check_interval: std::time::Duration::from_secs(30),
+        circuit_breaker_threshold: 5,
+        circuit_breaker_timeout: std::time::Duration::from_secs(60),
+    };
+    
+    let manager = ProviderManager::new(config).await?;
     let provider = manager.get_provider(provider_name).await?;
     
     let model_name = model.unwrap_or_else(|| get_default_model(provider_name));
@@ -237,7 +258,27 @@ async fn test_all_providers(quick: bool) -> Result<()> {
 }
 
 async fn quick_test(provider: &str) -> Result<()> {
-    let manager = ProviderManager::new();
+    use std::collections::HashMap;
+    use lapce_ai_rust::ai_providers::ProvidersConfig;
+    use lapce_ai_rust::ai_providers::provider_manager::ProviderConfig;
+    
+    let mut providers_map = HashMap::new();
+    providers_map.insert(provider.to_string(), ProviderConfig {
+        name: provider.to_string(),
+        max_retries: 3,
+        timeout: std::time::Duration::from_secs(30),
+        rate_limit_override: None,
+    });
+    
+    let config = ProvidersConfig {
+        providers: providers_map,
+        default_provider: provider.to_string(),
+        health_check_interval: std::time::Duration::from_secs(30),
+        circuit_breaker_threshold: 5,
+        circuit_breaker_timeout: std::time::Duration::from_secs(60),
+    };
+    
+    let manager = ProviderManager::new(config).await?;
     let provider_impl = manager.get_provider(provider).await?;
     
     let messages = vec![
@@ -265,7 +306,27 @@ async fn quick_test(provider: &str) -> Result<()> {
 }
 
 async fn comprehensive_test(provider: &str) -> Result<()> {
-    let manager = ProviderManager::new();
+    use std::collections::HashMap;
+    use lapce_ai_rust::ai_providers::ProvidersConfig;
+    use lapce_ai_rust::ai_providers::provider_manager::ProviderConfig;
+    
+    let mut providers_map = HashMap::new();
+    providers_map.insert(provider.to_string(), ProviderConfig {
+        name: provider.to_string(),
+        max_retries: 3,
+        timeout: std::time::Duration::from_secs(30),
+        rate_limit_override: None,
+    });
+    
+    let config = ProvidersConfig {
+        providers: providers_map,
+        default_provider: provider.to_string(),
+        health_check_interval: std::time::Duration::from_secs(30),
+        circuit_breaker_threshold: 5,
+        circuit_breaker_timeout: std::time::Duration::from_secs(60),
+    };
+    
+    let manager = ProviderManager::new(config).await?;
     let provider_impl = manager.get_provider(provider).await?;
     
     // Test 1: Basic completion
@@ -350,11 +411,35 @@ async fn comprehensive_test(provider: &str) -> Result<()> {
 async fn check_health() -> Result<()> {
     println!("{}", "🏥 Checking provider health".cyan().bold());
     
-    let manager = ProviderManager::new();
-    let providers = vec![
+    use std::collections::HashMap;
+    use lapce_ai_rust::ai_providers::ProvidersConfig;
+    use lapce_ai_rust::ai_providers::provider_manager::ProviderConfig;
+    
+    let providers = vec[
         "openai", "anthropic", "gemini", "azure",
         "vertex", "openrouter", "bedrock"
     ];
+    
+    // Create a manager with all providers
+    let mut providers_map = HashMap::new();
+    for provider_name in &providers {
+        providers_map.insert(provider_name.to_string(), ProviderConfig {
+            name: provider_name.to_string(),
+            max_retries: 3,
+            timeout: std::time::Duration::from_secs(30),
+            rate_limit_override: None,
+        });
+    }
+    
+    let config = ProvidersConfig {
+        providers: providers_map,
+        default_provider: "openai".to_string(),
+        health_check_interval: std::time::Duration::from_secs(30),
+        circuit_breaker_threshold: 5,
+        circuit_breaker_timeout: std::time::Duration::from_secs(60),
+    };
+    
+    let manager = ProviderManager::new(config).await?;
     
     for provider_name in providers {
         print!("  {} ", provider_name);
@@ -392,7 +477,30 @@ async fn run_benchmark(provider: Option<String>, iterations: usize) -> Result<()
     
     println!("{}", format!("📊 Running {} iterations per provider", iterations).cyan().bold());
     
-    let manager = ProviderManager::new();
+    use std::collections::HashMap;
+    use lapce_ai_rust::ai_providers::ProvidersConfig;
+    use lapce_ai_rust::ai_providers::provider_manager::ProviderConfig;
+    
+    // Create a manager with all providers
+    let mut providers_map = HashMap::new();
+    for provider_name in &providers {
+        providers_map.insert(provider_name.to_string(), ProviderConfig {
+            name: provider_name.to_string(),
+            max_retries: 3,
+            timeout: std::time::Duration::from_secs(30),
+            rate_limit_override: None,
+        });
+    }
+    
+    let config = ProvidersConfig {
+        providers: providers_map,
+        default_provider: "openai".to_string(),
+        health_check_interval: std::time::Duration::from_secs(30),
+        circuit_breaker_threshold: 5,
+        circuit_breaker_timeout: std::time::Duration::from_secs(60),
+    };
+    
+    let manager = ProviderManager::new(config).await?;
     
     for provider_name in providers {
         println!("\n{}", format!("Benchmarking {}...", provider_name).blue());
@@ -482,7 +590,35 @@ async fn interactive_mode() -> Result<()> {
     println!("{}", "🎮 Interactive Provider Testing Mode".cyan().bold());
     println!("Type 'help' for commands, 'quit' to exit\n");
     
-    let manager = ProviderManager::new();
+    use std::collections::HashMap;
+    use lapce_ai_rust::ai_providers::ProvidersConfig;
+    use lapce_ai_rust::ai_providers::provider_manager::ProviderConfig;
+    
+    // Create a manager with all providers for interactive mode
+    let providers = vec![
+        "openai", "anthropic", "gemini", "azure",
+        "vertex", "openrouter", "bedrock"
+    ];
+    
+    let mut providers_map = HashMap::new();
+    for provider_name in &providers {
+        providers_map.insert(provider_name.to_string(), ProviderConfig {
+            name: provider_name.to_string(),
+            max_retries: 3,
+            timeout: std::time::Duration::from_secs(30),
+            rate_limit_override: None,
+        });
+    }
+    
+    let config = ProvidersConfig {
+        providers: providers_map,
+        default_provider: "openai".to_string(),
+        health_check_interval: std::time::Duration::from_secs(30),
+        circuit_breaker_threshold: 5,
+        circuit_breaker_timeout: std::time::Duration::from_secs(60),
+    };
+    
+    let manager = ProviderManager::new(config).await?;
     let mut current_provider = "openai".to_string();
     let mut current_model = get_default_model(&current_provider);
     

@@ -1,0 +1,2 @@
+std::sync::MutexGuard<'_, Vec<f64>>
+std::sync::MutexGuard<'_, Vec<f64>>: Clone

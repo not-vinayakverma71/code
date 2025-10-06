@@ -1,10 +1,6 @@
 /// Simplified CodeIndexManager that compiles with LanceDB
 use anyhow::Result;
-use std::sync::Arc;
 use lancedb::{Connection, Table};
-use arrow_array::{RecordBatch, StringArray, Float32Array};
-use arrow_schema::{Schema, Field, DataType};
-use std::collections::HashMap;
 
 pub struct CodeIndexManager {
     connection: Connection,

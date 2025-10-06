@@ -98,7 +98,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n📊 Step 4: Creating Provider Pool...");
     let provider_mem = measure_with_component("ProviderPool", || async {
         let config = ProviderPoolConfig::default();
-        let _pool = ProviderPool::new(config);
+        let _pool = ProviderPool::new();
     }).await;
     let provider_overhead = provider_mem - baseline;
     println!("  With providers:  {:.2} MB", provider_mem);
@@ -128,7 +128,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let _server = Arc::new("ipc_server_full");
         
         let provider_config = ProviderPoolConfig::default();
-        let _pool = ProviderPool::new(provider_config);
+        let _pool = ProviderPool::new();
         
         // Full system connection pool
         let mut _connections = Vec::new();

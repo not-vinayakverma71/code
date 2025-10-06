@@ -5,7 +5,6 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use anyhow::Result;
 use serde::{Serialize, Deserialize};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CacheEntry {

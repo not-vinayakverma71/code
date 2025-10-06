@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Weak};
-use tokio::sync::{RwLock, Mutex, broadcast};
+use tokio::sync::{RwLock, Mutex};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
@@ -33,14 +33,12 @@ pub type AssistantMessageInfo = HashMap<String, Value>;
 pub type Metadata = HashMap<String, Value>;
 
 // Import translated types
-use crate::events_exact_translation::TokenUsage;
-use crate::{ClineMessage, ClineAsk};
+use crate::ClineMessage;
 use crate::global_settings_exact_translation::ProviderSettings;
 // use crate::ipc_types_exact_translation::*;
 // use crate::base_provider::ApiHandler as ApiHandlerTrait;
 
 // Use ToolProgressStatus from ipc_messages
-use crate::ipc_messages::ToolProgressStatus;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AskResponse {

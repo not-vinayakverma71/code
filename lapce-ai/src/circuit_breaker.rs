@@ -1,6 +1,6 @@
 /// Circuit Breaker Pattern - Day 36 PM
 use std::sync::Arc;
-use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU32, Ordering};
 use tokio::sync::RwLock;
 use std::time::{Duration, Instant};
 

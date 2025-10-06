@@ -2,7 +2,7 @@
 /// Phase 2, Task 10: StreamMetrics
 /// Based on docs/08-STREAMING-PIPELINE.md lines 700-725
 
-use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
 /// Metrics collector for streaming pipeline

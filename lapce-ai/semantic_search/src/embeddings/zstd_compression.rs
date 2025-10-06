@@ -216,6 +216,36 @@ impl ZstdCompressor {
         self.bytes_to_embedding(&decompressed, compressed.dimension)
     }
     
+    /// Decompress embedding directly from borrowed bytes (Phase 4 optimization)
+    /// Avoids creating CompressedEmbedding struct and copying data
+    pub fn decompress_from_slice(&self, compressed_data: &[u8], dimension: usize) -> Result<Vec<f32>> {
+        // Decompress directly from borrowed slice
+        let decompressed = if let Some(ref dict) = self.dictionary {
+            // Use dictionary decompression
+            let mut decoder = zstd::stream::Decoder::with_dictionary(
+                compressed_data,
+                dict,
+            ).map_err(|e| Error::Runtime {
+                message: format!("Failed to create decoder: {}", e),
+            })?;
+            
+            let mut output = Vec::new();
+            decoder.read_to_end(&mut output).map_err(|e| Error::Runtime {
+                message: format!("Failed to decompress: {}", e),
+            })?;
+            output
+        } else {
+            // Standard decompression
+            decode_all(compressed_data)
+                .map_err(|e| Error::Runtime {
+                    message: format!("Failed to decompress embedding: {}", e),
+                })?
+        };
+        
+        // Convert bytes back to f32 vector
+        self.bytes_to_embedding(&decompressed, dimension)
+    }
+    
     /// Batch compress embeddings
     pub fn batch_compress(
         &mut self,

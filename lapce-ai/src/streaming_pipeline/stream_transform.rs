@@ -3,8 +3,6 @@
 use serde::{Deserialize, Serialize};
 use futures::stream::{Stream, StreamExt};
 use std::pin::Pin;
-use std::task::{Context, Poll};
-use anyhow::Result;
 use std::collections::HashMap;
 
 /// ApiError structure for stream error handling

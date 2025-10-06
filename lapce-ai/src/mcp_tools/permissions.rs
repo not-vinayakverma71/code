@@ -1,12 +1,10 @@
 // Permission Management
-use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
+use std::collections::HashSet;
 use std::path::Path;
 use std::fmt;
 use serde::{Serialize, Deserialize};
 use anyhow::{Result, bail};
 
-use crate::mcp_tools::system::UserId;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Hash, Eq, PartialEq)]
 pub enum Permission {

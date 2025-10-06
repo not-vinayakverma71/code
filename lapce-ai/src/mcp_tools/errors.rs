@@ -1,5 +1,4 @@
 // MCP Tools Error Types
-use std::fmt;
 use thiserror::Error;
 
 #[derive(Error, Debug)]

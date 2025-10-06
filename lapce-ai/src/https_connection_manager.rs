@@ -4,17 +4,10 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use anyhow::Result;
-use hyper_rustls::HttpsConnectorBuilder;
-use hyper_util::client::legacy::connect::HttpConnector;
-use hyper_util::client::legacy::Client;
-use hyper_util::rt::TokioExecutor;
 use http::{Request, Response};
 use rustls::ClientConfig;
 use tokio::sync::RwLock;
 use std::sync::atomic::{AtomicU64, Ordering};
-use tracing::{debug, warn};
-use http_body_util::{BodyExt, Empty, Full};
-use bytes::Bytes;
 
 /// HTTPS connection manager with connection pooling support
 pub struct HttpsConnectionManager {

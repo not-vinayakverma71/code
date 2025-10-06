@@ -1,9 +1,6 @@
 /// Cache Warmer - EXACT implementation from docs lines 496-528
 use std::sync::Arc;
 use std::collections::HashMap;
-use std::time::{Duration, Instant};
-use anyhow::Result;
-use tokio::time::sleep;
 
 use super::{
     cache_coordinator::CacheCoordinator,

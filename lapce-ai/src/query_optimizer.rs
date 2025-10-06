@@ -213,7 +213,7 @@ impl RedisCache {
             .arg(key)
             .arg(self.ttl.as_secs())
             .arg(data)
-            .query_async(&mut conn)
+            .query_async::<_, ()>(&mut conn)
             .await?;
         
         Ok(())
@@ -341,7 +341,7 @@ impl QueryPlanner {
     }
     
     fn optimize(&self, query: &str) -> String {
-        let mut tokens: Vec<String> = query
+        let tokens: Vec<String> = query
             .to_lowercase()
             .split_whitespace()
             .filter(|token| !self.stopwords.contains(*token))

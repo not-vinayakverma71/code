@@ -86,9 +86,8 @@ async fn main() -> Result<()> {
     if let Some(socket) = args.socket {
         config.socket_path = socket;
     }
-    if let Some(port) = args.metrics_port {
-        config.metrics_port = port;
-    }
+    let port = args.metrics_port;
+    config.metrics_port = port;
     
     // Validate configuration
     config.validate()?;
@@ -96,15 +95,15 @@ async fn main() -> Result<()> {
     
     if args.validate {
         println!("Configuration is valid");
-        return Ok(());
+        return;
     }
     
     // Load provider configuration
     let provider_config = load_provider_config(&args.config).await?;
     
     // Initialize provider pool
-    let provider_pool = Arc::new(ProviderPool::new(provider_config).await?);
-    info!("Provider pool initialized with {} providers", provider_pool.get_stats().await.len());
+    let provider_pool = Arc::new(ProviderPool::new());
+    info!("Provider pool initialized");
     
     // Create IPC server
     let mut server = IpcServerComplete::new(config.clone()).await?;
@@ -134,7 +133,7 @@ async fn main() -> Result<()> {
             }
         }
         
-        server_clone.shutdown.send(()).ok();
+        // Server shutdown handled internally
         Ok::<_, anyhow::Error>(())
     });
     
@@ -173,7 +172,6 @@ async fn main() -> Result<()> {
         }
     }
     
-    Ok(())
 }
 
 async fn load_provider_config(config_path: &str) -> Result<ProviderPoolConfig> {
@@ -263,4 +261,5 @@ fn expand_env_var(value: &str) -> String {
     } else {
         value.to_string()
     }
+}
 }

@@ -73,7 +73,7 @@ impl CommandRegistry {
     }
     
     /// registerCommands - exact translation lines 67-74
-    pub async fn register_commands(&self, mut options: RegisterCommandOptions) {
+    pub async fn register_commands(&self, options: RegisterCommandOptions) {
         let commands_map = self.get_commands_map(options.clone()).await;
         
         for (id, callback) in commands_map {

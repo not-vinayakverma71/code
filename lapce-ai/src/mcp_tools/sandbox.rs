@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use std::collections::HashMap;
 use std::time::Duration;
 use anyhow::Result;
-use tokio::process::Command;
 use nix::unistd::{Uid, Gid};
 use parking_lot::Mutex;
 use crate::mcp_tools::system::CGroupManager;

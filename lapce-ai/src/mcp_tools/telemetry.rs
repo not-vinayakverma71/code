@@ -1,11 +1,8 @@
 /// Telemetry and Logging System for MCP Tools
 use std::sync::Arc;
 use std::collections::HashMap;
-use std::time::{Duration, Instant, SystemTime};
-use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
-use dashmap::DashMap;
+use std::time::{Duration, SystemTime};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
 use tokio::sync::RwLock;
 use tracing::{info, warn, error, debug};
 

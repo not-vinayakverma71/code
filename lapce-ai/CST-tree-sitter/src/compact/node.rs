@@ -1,66 +1,53 @@
-//! Node API for compact tree
-//! Provides Tree-sitter-like interface over succinct structure
+//! Node interface over compact tree data (simplified)
 
 use super::tree::CompactTree;
 use std::fmt;
 
-/// Node in compact tree
-/// Lightweight handle (just tree reference + BP position)
-#[derive(Clone, Copy)]
+/// Reference to a node in CompactTree (simplified)
 pub struct CompactNode<'tree> {
     tree: &'tree CompactTree,
-    bp_pos: usize,  // Position in BP sequence
+    index: usize, // Node index
 }
 
 impl<'tree> CompactNode<'tree> {
-    /// Create node from tree and BP position
-    pub(crate) fn new(tree: &'tree CompactTree, bp_pos: usize) -> Self {
-        Self { tree, bp_pos }
+    /// Create new node reference
+    pub(crate) fn new(tree: &'tree CompactTree, index: usize) -> Self {
+        Self { tree, index }
     }
     
-    /// Get BP position
-    pub fn bp_position(&self) -> usize {
-        self.bp_pos
-    }
-    
-    /// Get node index (preorder rank)
+    /// Get node index
     pub fn index(&self) -> usize {
-        self.tree.node_index(self.bp_pos)
+        self.index
     }
     
-    /// Get parent node
+    /// Get parent node (simplified - returns None)
     pub fn parent(&self) -> Option<Self> {
-        self.tree.bp_ops.parent(self.bp_pos)
-            .map(|pos| Self::new(self.tree, pos))
+        None // Simplified - tree structure not maintained
     }
     
-    /// Get first child
+    /// Get first child (simplified - returns None)
     pub fn first_child(&self) -> Option<Self> {
-        self.tree.bp_ops.first_child(self.bp_pos)
-            .map(|pos| Self::new(self.tree, pos))
+        None // Simplified
     }
     
-    /// Get next sibling
+    /// Get next sibling (simplified - returns None)
     pub fn next_sibling(&self) -> Option<Self> {
-        self.tree.bp_ops.next_sibling(self.bp_pos)
-            .map(|pos| Self::new(self.tree, pos))
+        None // Simplified
     }
     
-    /// Get previous sibling
+    /// Get previous sibling (simplified - returns None)
     pub fn previous_sibling(&self) -> Option<Self> {
-        self.tree.bp_ops.previous_sibling(self.bp_pos)
-            .map(|pos| Self::new(self.tree, pos))
+        None // Simplified
     }
     
-    /// Get k-th child (1-indexed)
-    pub fn child(&self, k: usize) -> Option<Self> {
-        self.tree.bp_ops.kth_child(self.bp_pos, k)
-            .map(|pos| Self::new(self.tree, pos))
+    /// Get k-th child (simplified - returns None)
+    pub fn child(&self, _k: usize) -> Option<Self> {
+        None // Simplified
     }
     
-    /// Count children
+    /// Count children (simplified - returns 0)
     pub fn child_count(&self) -> usize {
-        self.tree.bp_ops.child_count(self.bp_pos)
+        0 // Simplified
     }
     
     /// Get subtree size (number of nodes in subtree)

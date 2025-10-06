@@ -1,5 +1,4 @@
 // Day 19: Multi-Language Parser Support
-use std::collections::HashMap;
 
 pub trait LanguageParser {
     fn parse(&self, content: &str) -> ParseResult;

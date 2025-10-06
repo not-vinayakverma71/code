@@ -77,7 +77,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let test_msg = vec![0x42u8; 1024];
     for _ in 0..10000 {
         buffer.write(&test_msg)?;
-        let _ = buffer.read();
+        let mut buf = [0u8; 1024];
+        let _ = buffer.read(&mut buf);
     }
     
     let hot_alloc = get_net_allocations() - hot_start;
