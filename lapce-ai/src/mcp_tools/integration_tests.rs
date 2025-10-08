@@ -10,11 +10,12 @@ mod tests {
     use serde_json::json;
     use tempfile::tempdir;
     use std::path::PathBuf;
+    use std::sync::Arc;
 
-    async fn setup() -> (McpToolSystem, PathBuf) {
+    async fn setup() -> (Arc<McpToolSystem>, PathBuf) {
         let config = McpServerConfig::default();
         let workspace = tempdir().unwrap().path().to_path_buf();
-        let system = McpToolSystem::new(config, workspace.clone());
+        let system = Arc::new(McpToolSystem::new(config, workspace.clone()));
         (system, workspace)
     }
 
@@ -235,7 +236,7 @@ mod tests {
         config.rate_limits.requests_per_minute = 2;
         
         let workspace = tempdir().unwrap().path().to_path_buf();
-        let system = McpToolSystem::new(config, workspace);
+        let system = Arc::new(McpToolSystem::new(config, workspace));
         
         // First two should succeed
         system.execute_tool("readFile", json!({"path": "test.txt"})).await.ok();

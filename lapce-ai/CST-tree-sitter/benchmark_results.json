@@ -1,0 +1,40 @@
+{
+  "timestamp": "SystemTime { tv_sec: 1759849231, tv_nsec: 878974701 }",
+  "write_metrics": {
+    "throughput": 431.13601733488247,
+    "avg_latency_ms": 1.7407070000000016,
+    "p50_latency_ms": 0.931,
+    "p95_latency_ms": 5.014,
+    "p99_latency_ms": 9.662,
+    "memory_mb": 56.65625,
+    "cpu_percent": 0.0
+  },
+  "read_metrics": {
+    "throughput": 3888.8603532958077,
+    "avg_latency_ms": 0.25641199999999886,
+    "p50_latency_ms": 0.252,
+    "p95_latency_ms": 0.281,
+    "p99_latency_ms": 0.357,
+    "memory_mb": 0.0,
+    "cpu_percent": 0.0
+  },
+  "random_metrics": {
+    "throughput": 3908.1071141814073,
+    "avg_latency_ms": 0.255098,
+    "p50_latency_ms": 0.252,
+    "p95_latency_ms": 0.285,
+    "p99_latency_ms": 0.318,
+    "memory_mb": 0.0,
+    "cpu_percent": 0.0
+  },
+  "concurrent_metrics": {
+    "throughput": 25974.985361797,
+    "avg_latency_ms": 0.273639,
+    "p50_latency_ms": 0.273639,
+    "p95_latency_ms": 0.41045850000000006,
+    "p99_latency_ms": 0.547278,
+    "memory_mb": 0.0,
+    "cpu_percent": 0.0
+  },
+  "performance_grade": "B"
+}

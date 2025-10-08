@@ -3,9 +3,8 @@
 // Translation of processors/scanner.ts (Lines 1-460) - 100% EXACT
 
 use crate::error::{Error, Result};
-use crate::embeddings::service_factory::{IEmbedder, IVectorStore, ICodeParser};
+use crate::embeddings::service_factory::{IEmbedder, IVectorStore, ICodeParser, PointStruct};
 use crate::database::cache_interface::ICacheManager;
-use crate::embeddings::service_factory::PointStruct;
 use std::collections::{HashSet, HashMap};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -25,15 +24,8 @@ const PARSING_CONCURRENCY: usize = 10;
 const BATCH_PROCESSING_CONCURRENCY: usize = 5;
 const MAX_PENDING_BATCHES: usize = 3;
 
-/// Lines 10: CodeBlock interface
-#[derive(Debug, Clone)]
-pub struct CodeBlock {
-    pub file_path: String,
-    pub content: String,
-    pub start_line: usize,
-    pub end_line: usize,
-    pub segment_hash: String,
-}
+// Use shared CodeBlock type
+pub use crate::types::CodeBlock;
 
 /// Lines 33-459: DirectoryScanner implementation
 pub struct DirectoryScanner {
@@ -113,6 +105,9 @@ impl DirectoryScanner {
         let skipped_count = Arc::new(Mutex::new(0usize));
         let total_block_count = Arc::new(Mutex::new(0usize));
         
+        log::info!("[DirectoryScanner] Starting scan of {:?} with {} supported files", 
+                  directory, supported_paths.len());
+        
         // Parallel processing tools
         let parse_limiter = Arc::new(Semaphore::new(PARSING_CONCURRENCY));
         let batch_limiter = Arc::new(Semaphore::new(BATCH_PROCESSING_CONCURRENCY));
@@ -154,7 +149,11 @@ impl DirectoryScanner {
         }
         
         // Wait for all parsing to complete
+        let start_time = std::time::Instant::now();
         futures::future::join_all(tasks).await;
+        let parse_duration = start_time.elapsed();
+        
+        log::info!("[DirectoryScanner] Parsing completed in {:.2}s", parse_duration.as_secs_f64());
         
         // Lines 242-270: Process any remaining items in batch
         let remaining_blocks = current_batch_blocks.lock().unwrap().clone();
@@ -213,6 +212,9 @@ impl DirectoryScanner {
         let final_processed = *processed_count.lock().unwrap();
         let final_skipped = *skipped_count.lock().unwrap();
         let final_total_blocks = *total_block_count.lock().unwrap();
+        
+        log::info!("[DirectoryScanner] Scan complete - Processed: {}, Skipped: {}, Total blocks: {}",
+                  final_processed, final_skipped, final_total_blocks);
         
         Ok(ScanResult {
             stats: ScanStats {
@@ -333,14 +335,14 @@ impl DirectoryScanner {
                 if !trimmed_content.is_empty() {
                     let _lock = batch_mutex.lock().await;
                     
-                    // Convert service_factory::CodeBlock to scanner::CodeBlock
-                    let scanner_block = CodeBlock {
-                        file_path: file_path_str.clone(),
-                        content: block.content.clone(),
-                        start_line: block.start_line,
-                        end_line: block.end_line,
-                        segment_hash: format!("{:x}", Sha256::digest(block.content.as_bytes())),
-                    };
+                    // Create unified CodeBlock
+                    let scanner_block = CodeBlock::new(
+                        file_path_str.clone(),
+                        block.content.clone(),
+                        block.start_line,
+                        block.end_line,
+                        format!("{:x}", Sha256::digest(block.content.as_bytes())),
+                    );
                     
                     current_batch_blocks.lock().unwrap().push(scanner_block);
                     current_batch_texts.lock().unwrap().push(trimmed_content.to_string());
@@ -495,10 +497,14 @@ impl DirectoryScanner {
         }
         
         // Lines 388-389: Create embeddings
+        let embed_start = std::time::Instant::now();
         let embedding_response = self.embedder.create_embeddings(
             batch_texts.to_vec(),
             None
         ).await?;
+        let embed_duration = embed_start.elapsed();
+        log::debug!("[DirectoryScanner] Created {} embeddings in {:.2}ms", 
+                   batch_texts.len(), embed_duration.as_millis());
         
         // Lines 391-409: Prepare points for vector store
         let points: Vec<PointStruct> = batch_blocks
@@ -527,7 +533,12 @@ impl DirectoryScanner {
             .collect();
         
         // Lines 411-413: Upsert points
+        let upsert_start = std::time::Instant::now();
         self.qdrant_client.upsert_points(points).await?;
+        let upsert_duration = upsert_start.elapsed();
+        log::debug!("[DirectoryScanner] Upserted {} points in {:.2}ms",
+                   batch_blocks.len(), upsert_duration.as_millis());
+        
         if let Some(ref on_blocks_indexed) = on_blocks_indexed {
             on_blocks_indexed(batch_blocks.len());
         }
@@ -566,30 +577,75 @@ pub trait Ignore: Send + Sync {
 }
 
 // Helper structs
-struct RooIgnoreController {
+pub struct RooIgnoreController {
     directory: PathBuf,
 }
 
 impl RooIgnoreController {
-    fn new(directory: &Path) -> Self {
+    pub fn new(directory: &Path) -> Self {
         Self {
             directory: directory.to_path_buf(),
         }
     }
     
-    async fn initialize(&self) -> Result<()> {
+    pub async fn initialize(&self) -> Result<()> {
+        // Could load .gitignore, .rooignore etc here
         Ok(())
     }
     
-    fn filter_paths(&self, paths: Vec<PathBuf>) -> Vec<PathBuf> {
-        paths
+    pub fn filter_paths(&self, paths: Vec<PathBuf>) -> Vec<PathBuf> {
+        paths.into_iter()
+            .filter(|path| {
+                // Filter out common ignored directories
+                for component in path.components() {
+                    if let Some(name) = component.as_os_str().to_str() {
+                        if matches!(name, "node_modules" | ".git" | "target" | "dist" | "build" | ".idea" | ".vscode") {
+                            return false;
+                        }
+                    }
+                }
+                true
+            })
+            .collect()
     }
 }
 
 // Helper functions
-async fn list_files(directory: &Path, recursive: bool, limit: usize) -> Result<Vec<PathBuf>> {
-    // Implementation would scan directory
-    Ok(Vec::new())
+pub async fn list_files(directory: &Path, recursive: bool, limit: usize) -> Result<Vec<PathBuf>> {
+    use walkdir::WalkDir;
+    let mut files = Vec::new();
+    let mut count = 0;
+    
+    let walker = if recursive {
+        WalkDir::new(directory).follow_links(false)
+    } else {
+        WalkDir::new(directory).max_depth(1).follow_links(false)
+    };
+    
+    for entry in walker {
+        if count >= limit {
+            break;
+        }
+        
+        match entry {
+            Ok(e) => {
+                let path = e.path();
+                // Skip hidden directories
+                if path.file_name()
+                    .and_then(|n| n.to_str())
+                    .map_or(false, |n| n.starts_with('.') && n != ".") {
+                    continue;
+                }
+                files.push(path.to_path_buf());
+                count += 1;
+            }
+            Err(e) => {
+                log::warn!("Error walking directory: {}", e);
+            }
+        }
+    }
+    
+    Ok(files)
 }
 
 fn get_workspace_path_for_context(directory: &Path) -> PathBuf {
@@ -607,11 +663,11 @@ fn generate_normalized_absolute_path(file_path: &str, workspace: &Path) -> PathB
     workspace.join(file_path)
 }
 
-fn is_path_in_ignored_directory(path: &Path) -> bool {
-    // Check if path is in node_modules, .git, etc
+pub fn is_path_in_ignored_directory(path: &Path) -> bool {
+    // Check if path is in common ignored directories
     for component in path.components() {
         if let Some(name) = component.as_os_str().to_str() {
-            if name == "node_modules" || name == ".git" {
+            if matches!(name, "node_modules" | ".git" | "target" | "dist" | "build" | ".idea" | ".vscode" | "__pycache__" | ".pytest_cache") {
                 return true;
             }
         }

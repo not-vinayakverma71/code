@@ -359,7 +359,8 @@ mod tests {
     
     #[tokio::test]
     async fn test_auto_reconnection() {
-        let manager = AutoReconnectionManager::new("test".to_string());
+        let strategy = ReconnectionStrategy::Fixed { delay_ms: 1000 };
+        let manager = AutoReconnectionManager::new(strategy);
         
         // Initial connection should fail
         // manager.connect().await; // Method doesn't exist yet.is_err());
@@ -377,8 +378,12 @@ mod tests {
     
     #[test]
     fn test_exponential_backoff() {
-        let manager = AutoReconnectionManager::new("test2".to_string());
-        let strategy = ReconnectionStrategy::FixedBackoff { initial_delay_ms: 100, max_delay_ms: 1000, multiplier: 2.0 };
+        let strategy = ReconnectionStrategy::FixedBackoff { 
+            initial_delay_ms: 100, 
+            max_delay_ms: 1000, 
+            multiplier: 2.0 
+        };
+        let _manager = AutoReconnectionManager::new(strategy.clone());
         
         match strategy {
             ReconnectionStrategy::FixedBackoff { initial_delay_ms, max_delay_ms, multiplier } => {

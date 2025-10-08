@@ -7,7 +7,7 @@ use tokio;
 use lapce_ai_rust::optimized_vector_search::OptimizedVectorSearch;
 use lapce_ai_rust::cache::final_cache::CacheV3;
 use lapce_ai_rust::cache::types::{CacheConfig, CacheKey, CacheValue};
-use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer as OptimizedSharedMemory;
+use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -174,7 +174,7 @@ fn test_shared_memory_stress(num_docs: usize) -> Result<()> {
     let mut written = 0;
     for i in 0..total_messages {
         let data = vec![((i % 256) as u8); data_size];
-        if shm.write(&data).is_ok() {
+        if shm.write(&data) {
             written += 1;
         }
         
@@ -196,8 +196,7 @@ fn test_shared_memory_stress(num_docs: usize) -> Result<()> {
     let start = Instant::now();
     let mut read_count = 0;
     for _ in 0..1000 {
-        let mut buf = [0u8; 1024];
-        if shm.read(&mut buf).is_ok() {
+        if shm.read().is_some() {
             read_count += 1;
         }
     }
@@ -294,7 +293,7 @@ fn report_memory_usage(label: &str) {
     use sysinfo::{System, Pid};
     
     let mut system = System::new_all();
-    system.refresh_processes();
+    system.refresh_processes(sysinfo::ProcessesToUpdate::All);
     
     if let Some(process) = system.process(Pid::from(std::process::id() as usize)) {
         let memory_mb = process.memory() / 1024 / 1024;

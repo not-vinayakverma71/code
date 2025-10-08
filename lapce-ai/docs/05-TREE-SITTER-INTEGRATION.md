@@ -10,9 +10,9 @@
 - Just change TypeScript → Rust syntax, nothing else
 
 ## ✅ Success Criteria
-- [ ] **Memory Usage**: < 5MB for all language parsers
+- [ ] **Memory Usage**: < 5MB for all language parsers (process not full CST criteria it is)
 - [ ] **Parse Speed**: > 10K lines/second
-- [ ] **Language Support**: 100+ programming languages
+- [ ] **Language Support**: 60+ programming languages
 - [ ] **Incremental Parsing**: < 10ms for small edits
 - [ ] **Symbol Extraction**: < 50ms for 1K line file
 - [ ] **Cache Hit Rate**: > 90% for unchanged files

@@ -275,6 +275,8 @@ pub struct L3Stats {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::SystemTime;
+    use std::collections::HashMap;
 
     // These tests require Redis to be running
     // Run with: docker run -p 6379:6379 redis:alpine

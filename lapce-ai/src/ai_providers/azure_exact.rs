@@ -227,6 +227,41 @@ impl AzureOpenAiProvider {
     }
 }
 
+/// Parse OpenAI-format SSE for Azure (same as OpenAI)
+fn parse_openai_sse(event: &SseEvent) -> Option<StreamToken> {
+    let data = event.data.as_ref()?;
+    let data_str = std::str::from_utf8(data).ok()?;
+    
+    // Handle [DONE] signal
+    if data_str.trim() == "[DONE]" {
+        return Some(StreamToken::Done);
+    }
+    
+    // Parse JSON
+    let json: serde_json::Value = serde_json::from_str(data_str).ok()?;
+    
+    // Extract delta content from choices
+    if let Some(choices) = json["choices"].as_array() {
+        if let Some(choice) = choices.first() {
+            // Handle chat completion deltas
+            if let Some(delta) = choice.get("delta") {
+                if let Some(content) = delta["content"].as_str() {
+                    return Some(StreamToken::Delta { 
+                        content: content.to_string() 
+                    });
+                }
+            }
+            
+            // Handle completion format
+            if let Some(text) = choice["text"].as_str() {
+                return Some(StreamToken::Text(text.to_string()));
+            }
+        }
+    }
+    
+    None
+}
+
 #[async_trait]
 impl AiProvider for AzureOpenAiProvider {
     fn name(&self) -> &'static str {

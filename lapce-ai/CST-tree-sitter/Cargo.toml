@@ -5,140 +5,20 @@ edition = "2021"
 build = "build.rs"
 
 [[bin]]
-name = "test_integration"
-path = "src/bin/test_integration.rs"
+name = "test_multi_tier"
+path = "src/bin/test_multi_tier.rs"
 
 [[bin]]
-name = "test_success_criteria"
-path = "src/bin/test_success_criteria.rs"
+name = "test_retrieval_fix"
+path = "src/bin/test_retrieval_fix.rs"
 
 [[bin]]
-name = "test_real_cst_memory"
-path = "src/bin/test_real_cst_memory.rs"
+name = "test_tier_transitions"
+path = "src/bin/test_tier_transitions.rs"
 
 [[bin]]
-name = "test_parser_only_memory"
-path = "src/bin/test_parser_only_memory.rs"
-
-[[bin]]
-name = "deep_memory_investigation"
-path = "src/bin/deep_memory_investigation.rs"
-
-[[bin]]
-name = "test_tree_compression"
-path = "src/bin/test_tree_compression.rs"
-
-[[bin]]
-name = "benchmark_compressed_cache"
-path = "src/bin/benchmark_compressed_cache.rs"
-
-[[bin]]
-name = "test_compressed_benchmark"
-path = "src/bin/test_compressed_benchmark.rs"
-
-[[bin]]
-name = "benchmark_dynamic_cache"
-path = "src/bin/benchmark_dynamic_cache.rs"
-
-[[bin]]
-name = "validate_compact_equivalence"
-path = "src/bin/validate_compact_equivalence.rs"
-
-[[bin]]
-name = "test_compact_basic"
-path = "src/bin/test_compact_basic.rs"
-
-[[bin]]
-name = "debug_compact_bp"
-path = "src/bin/debug_compact_bp.rs"
-
-[[bin]]
-name = "debug_compact_bp2"
-path = "src/bin/debug_compact_bp2.rs"
-
-[[bin]]
-name = "debug_compact_bp3"
-path = "src/bin/debug_compact_bp3.rs"
-
-[[bin]]
-name = "debug_child_count"
-path = "src/bin/debug_child_count.rs"
-
-[[bin]]
-name = "test_single_validation"
-path = "src/bin/test_single_validation.rs"
-
-[[bin]]
-name = "test_position_issue"
-path = "src/bin/test_position_issue.rs"
-
-[[bin]]
-name = "debug_positions"
-path = "src/bin/debug_positions.rs"
-
-[[bin]]
-name = "test_validation_simple"
-path = "src/bin/test_validation_simple.rs"
-
-[[bin]]
-name = "validate_single_file"
-path = "src/bin/validate_single_file.rs"
-
-[[bin]]
-name = "test_phase2_integration"
-path = "src/bin/test_phase2_integration.rs"
-
-[[bin]]
-name = "test_frozen_tier"
-path = "src/bin/test_frozen_tier.rs"
-
-[[bin]]
-name = "test_phase4_complete"
-path = "src/bin/test_phase4_complete.rs"
-
-[[bin]]
-name = "benchmark_lapce_codebase"
-path = "src/bin/benchmark_lapce_codebase.rs"
-
-[[bin]]
-name = "benchmark_lapce_dynamic"
-path = "src/bin/benchmark_lapce_dynamic.rs"
-
-[[bin]]
-name = "benchmark_lapce_full"
-path = "src/bin/benchmark_lapce_full.rs"
-
-[[bin]]
-name = "benchmark_memory_stress"
-path = "src/bin/benchmark_memory_stress.rs"
-
-[[bin]]
-name = "benchmark_tiered_storage"
-path = "src/bin/benchmark_tiered_storage.rs"
-
-[[bin]]
-name = "test_tiered_minimal"
-path = "src/bin/test_tiered_minimal.rs"
-
-[[bin]]
-name = "benchmark_tiered_final"
-path = "src/bin/benchmark_tiered_final.rs"
-
-[[bin]]
-name = "benchmark_adaptive_large"
-path = "src/bin/benchmark_adaptive_large.rs"
-
-[[bin]]
-name = "benchmark_codex_extreme"
-path = "src/bin/benchmark_codex_extreme.rs"
-
-[[bin]]
-name = "benchmark_codex_production"
-path = "src/bin/benchmark_codex_production.rs"
-
-[[bin]]
-name = "benchmark_codex_phase4"
-path = "src/bin/benchmark_codex_phase4.rs"
+name = "test_tier_transitions_debug"
+path = "src/bin/test_tier_transitions_debug.rs"
 
 [[bin]]
 name = "benchmark_codex_complete"
@@ -156,14 +36,88 @@ path = "src/bin/test_all_phases.rs"
 name = "benchmark_codex_extensive"
 path = "src/bin/benchmark_codex_extensive.rs"
 
+[[bin]]
+name = "benchmark_performance"
+path = "src/bin/benchmark_performance.rs"
+
+[[bin]]
+name = "debug_bytecode"
+path = "src/bin/debug_bytecode.rs"
+
+[[bin]]
+name = "test_crash_recovery"
+path = "src/bin/test_crash_recovery.rs"
+
+[[bin]]
+name = "test_large_codebase"
+path = "src/bin/test_large_codebase.rs"
+
+[[bin]]
+name = "test_promotions"
+path = "src/bin/test_promotions.rs"
 
 [workspace]
 
 [features]
-default = []
-ffi-languages = []
+default = ["core-langs"]
+core-langs = []  # 30 languages from crates.io
+
+# Meta-feature for all languages
+all-langs = [
+    "lang-javascript", "lang-typescript", "lang-toml", "lang-dockerfile",
+    "lang-elm", "lang-kotlin", "lang-yaml", "lang-r", "lang-matlab",
+    "lang-perl", "lang-dart", "lang-julia", "lang-haskell", "lang-graphql",
+    "lang-sql", "lang-zig", "lang-vim", "lang-abap", "lang-nim",
+    "lang-clojure", "lang-crystal", "lang-fortran", "lang-vhdl", "lang-racket",
+    "lang-ada", "lang-prolog", "lang-gradle", "lang-xml", "lang-markdown",
+    "lang-svelte", "lang-scheme", "lang-fennel", "lang-gleam", "lang-hcl",
+    "lang-solidity", "lang-fsharp", "lang-cobol", "lang-systemverilog"
+]
+
+# Individual external grammar features (37 languages)
+lang-javascript = ["tree-sitter-javascript"]
+lang-typescript = ["tree-sitter-typescript"]
+lang-toml = ["tree-sitter-toml"]
+lang-dockerfile = ["tree-sitter-dockerfile"]
+lang-elm = ["tree-sitter-elm"]
+lang-kotlin = ["tree-sitter-kotlin"]
+lang-yaml = ["tree-sitter-yaml"]
+lang-r = ["tree-sitter-r"]
+lang-matlab = ["tree-sitter-matlab"]
+lang-perl = ["tree-sitter-perl"]
+lang-dart = ["tree-sitter-dart"]
+lang-julia = ["tree-sitter-julia"]
+lang-haskell = ["tree-sitter-haskell"]
+lang-graphql = ["tree-sitter-graphql"]
+lang-sql = ["tree-sitter-sql"]
+lang-zig = ["tree-sitter-zig"]
+lang-vim = ["tree-sitter-vim"]
+lang-abap = ["tree-sitter-abap"]
+lang-nim = ["tree-sitter-nim"]
+lang-clojure = ["tree-sitter-clojure"]
+lang-crystal = ["tree-sitter-crystal"]
+lang-fortran = ["tree-sitter-fortran"]
+lang-vhdl = ["tree-sitter-vhdl"]
+lang-racket = ["tree-sitter-racket"]
+lang-ada = ["tree-sitter-ada"]
+lang-prolog = ["tree-sitter-prolog"]
+lang-gradle = ["tree-sitter-gradle"]
+lang-xml = ["tree-sitter-xml"]
+lang-markdown = ["tree-sitter-md"]
+lang-svelte = ["tree-sitter-svelte"]
+lang-scheme = ["tree-sitter-scheme"]
+lang-fennel = ["tree-sitter-fennel"]
+lang-gleam = ["tree-sitter-gleam"]
+lang-hcl = ["tree-sitter-hcl"]
+lang-solidity = ["tree-sitter-solidity"]
+lang-fsharp = ["tree-sitter-fsharp"]
+lang-cobol = ["tree-sitter-cobol"]
+lang-systemverilog = ["tree-sitter-systemverilog"]
+
+# Other features
 compact-cst = []
-global-interning = ["lasso"]
+global-string-interning = ["lasso"]
+unsafe-send-sync = []
 
 [dependencies]
 tree-sitter = "0.23.0"
@@ -202,201 +156,92 @@ num_cpus = "1.16"  # For CPU detection
 libc = "0.2"  # For system calls
 mimalloc = { version = "0.1", default-features = false }  # High-performance allocator
 lru = "0.12"  # LRU cache for tier management
+
+# Logging and metrics
+slog = "2.7"
+slog-term = "2.9"
+slog-async = "2.8"
+slog-json = "2.6"
+prometheus = "0.13"
+axum = "0.7"
 indicatif = "0.17"  # Progress bars for benchmarks
-# Core tree-sitter - using consistent version
-# ACTUALLY WORKING languages (tested and compile)
-tree-sitter-rust = "0.23"
-tree-sitter-javascript = { path = "external-grammars/tree-sitter-javascript" }
-tree-sitter-typescript = { path = "external-grammars/tree-sitter-typescript" }
-tree-sitter-python = "0.23"
-tree-sitter-go = "0.23"
-tree-sitter-java = "0.23"
-tree-sitter-c = "0.23"
-tree-sitter-cpp = "0.23"
-tree-sitter-c-sharp = "0.23"
-tree-sitter-ruby = "0.23"
-tree-sitter-php = "0.23"
-tree-sitter-lua = "0.2"
-tree-sitter-bash = "0.23"
-tree-sitter-css = "0.23"
-tree-sitter-json = "0.23"
-tree-sitter-toml = "0.20.0"
-# tree-sitter-dockerfile = "0.2.0" # Version conflict with tree-sitter 0.24
-# Already working languages
-tree-sitter-swift = "0.6"  # Compatible with tree-sitter 0.23
+# === CORE LANGUAGES (30) - From crates.io ===
+tree-sitter-rust = "0.23.0"
+tree-sitter-python = "0.23.0"
+tree-sitter-go = "0.23.0"
+tree-sitter-java = "0.23.0"
+tree-sitter-c = "0.23.0"
+tree-sitter-cpp = "0.23.0"
+tree-sitter-c-sharp = "0.23.0"
+tree-sitter-ruby = "0.23.0"
+tree-sitter-php = "0.23.0"
+tree-sitter-lua = "0.2.0"
+tree-sitter-bash = "0.23.0"
+tree-sitter-css = "0.23.0"
+tree-sitter-json = "0.23.0"
+tree-sitter-swift = "0.6.0"
 tree-sitter-scala = "0.23.1"
-tree-sitter-elixir = "0.3.1"  
-tree-sitter-html = "0.23"
-# tree-sitter-svelte = "0.10.2" # Version conflict with tree-sitter 0.24
-# tree-sitter-markdown = "0.7.1" # Version conflict with tree-sitter 0.24
-tree-sitter-elm = { path = "external-grammars/tree-sitter-elm" }
-
-# Phase 3: Adding 23 critical missing languages via path dependencies
-# High Priority 10 (Phase 1)
-tree-sitter-kotlin = { path = "external-grammars/tree-sitter-kotlin" }
-tree-sitter-yaml = { path = "external-grammars/tree-sitter-yaml" }
-tree-sitter-r = { path = "external-grammars/tree-sitter-r" }
-tree-sitter-matlab = { path = "external-grammars/tree-sitter-matlab" }
-tree-sitter-perl = { path = "external-grammars/tree-sitter-perl" }
-tree-sitter-dart = { path = "external-grammars/tree-sitter-dart" }
-tree-sitter-julia = { path = "external-grammars/tree-sitter-julia" }
-tree-sitter-haskell = { path = "external-grammars/tree-sitter-haskell" }
-tree-sitter-graphql = { path = "external-grammars/tree-sitter-graphql" }
-tree-sitter-sql = { path = "external-grammars/tree-sitter-sql" }
-
-# Remaining 13 (Phase 2)
-tree-sitter-zig = { path = "external-grammars/tree-sitter-zig" }
-tree-sitter-vim = { path = "external-grammars/tree-sitter-vim" }
-tree-sitter-abap = { path = "external-grammars/tree-sitter-abap" }
-tree-sitter-nim = { path = "external-grammars/tree-sitter-nim" }
-tree-sitter-clojure = { path = "external-grammars/tree-sitter-clojure" }
-tree-sitter-crystal = { path = "external-grammars/tree-sitter-crystal" }
-tree-sitter-fortran = { path = "external-grammars/tree-sitter-fortran" }
-tree-sitter-vhdl = { path = "external-grammars/tree-sitter-vhdl" }
-tree-sitter-racket = { path = "external-grammars/tree-sitter-racket" }
-tree-sitter-ada = { path = "external-grammars/tree-sitter-ada" }
-tree-sitter-prolog = { path = "external-grammars/tree-sitter-prolog" }
-tree-sitter-gradle = { path = "external-grammars/tree-sitter-gradle" }
-tree-sitter-xml = { path = "external-grammars/tree-sitter-xml" }
-tree-sitter-md = { path = "external-grammars/tree-sitter-markdown", package = "tree-sitter-md" }
-tree-sitter-svelte = { path = "external-grammars/tree-sitter-svelte" }
-tree-sitter-scheme = { path = "external-grammars/tree-sitter-scheme" }
-tree-sitter-fennel = { path = "external-grammars/tree-sitter-fennel" }
-tree-sitter-gleam = { path = "external-grammars/tree-sitter-gleam" }
-tree-sitter-astro = { path = "external-grammars/tree-sitter-astro" }
-tree-sitter-wgsl = { path = "external-grammars/tree-sitter-wgsl" }
-tree-sitter-glsl = { path = "external-grammars/tree-sitter-glsl" }
-tree-sitter-tcl = { path = "external-grammars/tree-sitter-tcl" }
-tree-sitter-cairo = { path = "external-grammars/tree-sitter-cairo" }
-tree-sitter-asm = { path = "external-grammars/tree-sitter-asm" }
-tree-sitter-hcl = { path = "external-grammars/tree-sitter-hcl" }
-tree-sitter-solidity = { path = "external-grammars/tree-sitter-solidity" }
-tree-sitter-fsharp = { path = "external-grammars/tree-sitter-fsharp" }
-# tree-sitter-powershell = { path = "external-grammars/tree-sitter-powershell" }  # Missing parser.c
-# tree-sitter-powershell = "0.25.9"  # Version conflict with tree-sitter 0.24.7
-
-# PHASE 1: Adding languages compatible with tree-sitter 0.20
-# Need to find older versions that work with 0.20
-# Phase 2: Additional languages compatible with tree-sitter 0.24
-tree-sitter-ocaml = "0.23.0"
+tree-sitter-elixir = "0.3.1"
+tree-sitter-html = "0.23.0"
+tree-sitter-ocaml = "0.23.2"
 tree-sitter-nix = "0.3.0"
-# tree-sitter-latex = "0.1.0"  # Missing scanner.c, skip for now
 tree-sitter-make = "1.1.1"
 tree-sitter-cmake = "0.7.1"
 tree-sitter-verilog = "1.0.3"
 tree-sitter-erlang = "0.14.0"
 tree-sitter-d = "0.8.2"
-tree-sitter-dockerfile = "0.2.0"
-
-# Phase 3: More languages compatible with tree-sitter 0.24
-# tree-sitter-nim = "0.1.1"  # Does not exist
 tree-sitter-pascal = "0.10.0"
-# tree-sitter-scheme = "0.7.0"  # Does not exist
-# tree-sitter-racket = "0.1.0"  # Does not exist
 tree-sitter-commonlisp = "0.4.1"
-# tree-sitter-fennel = "0.1.0"  # Does not exist
-# tree-sitter-gleam = "1.1.0"  # Version conflict
-# tree-sitter-astro = "1.0.0" # Does not exist on crates.io
-# tree-sitter-prisma = "0.1.1"  # Version conflict - needs 0.23+ update
-# tree-sitter-vimdoc = "3.0.0"  # Does not exist
-# tree-sitter-wgsl = "0.1.0"  # Version conflict
-# tree-sitter-glsl = "0.3.0"  # Version conflict
-# tree-sitter-hlsl = "0.1.2"  # Version conflict - needs 0.23+ update
 tree-sitter-objc = "3.0.1"
-# tree-sitter-matlab = "1.0.2"  # Does not exist
-# tree-sitter-fortran = "0.0.2"  # Version conflict
-# tree-sitter-ada = "0.2.0"  # Does not exist on crates.io
-tree-sitter-cobol = { path = "external-grammars/tree-sitter-cobol" }
-# tree-sitter-perl = "1.1.0"  # Does not exist
-# tree-sitter-tcl = "0.0.1"  # Does not exist
 tree-sitter-groovy = "0.1.1"
-# tree-sitter-hcl = "1.1.0"  # Using external grammar
-# tree-sitter-solidity = "1.2.13"  # Using external grammar
-# tree-sitter-fsharp = "0.1.0"  # Using external grammar
-# tree-sitter-powershell = "0.25.9"  # Using external grammar
-tree-sitter-systemverilog = { path = "external-grammars/tree-sitter-systemverilog" }
-# tree-sitter-vue = "0.1.0"  # Version conflict
-# tree-sitter-svelte = "1.0.0"  # Version conflict
 tree-sitter-embedded-template = "0.23.2"
-# tree-sitter-elisp = "1.5.0"  # Requires tree-sitter 0.22
-# tree-sitter-cairo = "0.0.1"         # StarkNet contracts
-# tree-sitter-asm = "0.24.0"          # Assembly language
 
-# PHASE 1: Adding languages compatible with tree-sitter 0.20
-# Need to find older versions that work with 0.20
-# tree-sitter-yaml = "0.0.1"  # Version conflict
-# tree-sitter-sql = "0.0.2"  # Version conflict
-# tree-sitter-graphql = "0.1.0"  # Version conflict
-# tree-sitter-dart = "0.0.4"  # Version conflict
-# tree-sitter-clojure = "0.1.0"  # Version conflict
-# These require newer tree-sitter versions, so commenting out:
-# tree-sitter-latex = "0.1.0"  # Requires 0.22+
-# tree-sitter-bibtex = "0.1.0"  # Requires 0.22+ 
-# tree-sitter-commonlisp = "0.4.1"  # Requires 0.23+
-# Commenting out parsers that need checking
-# tree-sitter-fortran = "0.5.1"  # May require newer tree-sitter
-# tree-sitter-cmake = "0.7.1"  # May require newer tree-sitter
-# tree-sitter-make = "1.1.1"  # May require newer tree-sitter
-# tree-sitter-ini = "1.3.0"  # May require newer tree-sitter
-# tree-sitter-kotlin = "0.3.8"  # Requires tree-sitter 0.21+
-# tree-sitter-r = "1.2.0"  # May require newer tree-sitter
-# tree-sitter-julia = "0.23.1"  # Requires newer tree-sitter
+# === EXTERNAL GRAMMAR LANGUAGES (37) - From external-grammars ===
+tree-sitter-javascript = { path = "external-grammars/tree-sitter-javascript", optional = true }
+tree-sitter-typescript = { path = "external-grammars/tree-sitter-typescript", optional = true }
+tree-sitter-toml = { path = "external-grammars/tree-sitter-toml", optional = true }
+tree-sitter-dockerfile = { path = "external-grammars/tree-sitter-dockerfile", optional = true }
+tree-sitter-elm = { path = "external-grammars/tree-sitter-elm", optional = true }
+tree-sitter-kotlin = { path = "external-grammars/tree-sitter-kotlin", optional = true }
+tree-sitter-yaml = { path = "external-grammars/tree-sitter-yaml", optional = true }
+tree-sitter-r = { path = "external-grammars/tree-sitter-r", optional = true }
+tree-sitter-matlab = { path = "external-grammars/tree-sitter-matlab", optional = true }
+tree-sitter-perl = { path = "external-grammars/tree-sitter-perl", optional = true }
+tree-sitter-dart = { path = "external-grammars/tree-sitter-dart", optional = true }
+tree-sitter-julia = { path = "external-grammars/tree-sitter-julia", optional = true }
+tree-sitter-haskell = { path = "external-grammars/tree-sitter-haskell", optional = true }
+tree-sitter-graphql = { path = "external-grammars/tree-sitter-graphql", optional = true }
+tree-sitter-sql = { path = "external-grammars/tree-sitter-sql", optional = true }
+tree-sitter-zig = { path = "external-grammars/tree-sitter-zig", optional = true }
+tree-sitter-vim = { path = "external-grammars/tree-sitter-vim", optional = true }
+tree-sitter-abap = { path = "external-grammars/tree-sitter-abap", optional = true }
+tree-sitter-nim = { path = "external-grammars/tree-sitter-nim", optional = true }
+tree-sitter-clojure = { path = "external-grammars/tree-sitter-clojure", optional = true }
+tree-sitter-crystal = { path = "external-grammars/tree-sitter-crystal", optional = true }
+tree-sitter-fortran = { path = "external-grammars/tree-sitter-fortran", optional = true }
+tree-sitter-vhdl = { path = "external-grammars/tree-sitter-vhdl", optional = true }
+tree-sitter-racket = { path = "external-grammars/tree-sitter-racket", optional = true }
+tree-sitter-ada = { path = "external-grammars/tree-sitter-ada", optional = true }
+tree-sitter-prolog = { path = "external-grammars/tree-sitter-prolog", optional = true }
+tree-sitter-gradle = { path = "external-grammars/tree-sitter-gradle", optional = true }
+tree-sitter-xml = { path = "external-grammars/tree-sitter-xml", optional = true }
+tree-sitter-md = { path = "external-grammars/tree-sitter-markdown", package = "tree-sitter-md", optional = true }
+tree-sitter-svelte = { path = "external-grammars/tree-sitter-svelte", optional = true }
+tree-sitter-scheme = { path = "external-grammars/tree-sitter-scheme", optional = true }
+tree-sitter-fennel = { path = "external-grammars/tree-sitter-fennel", optional = true }
+tree-sitter-gleam = { path = "external-grammars/tree-sitter-gleam", optional = true }
+tree-sitter-hcl = { path = "external-grammars/tree-sitter-hcl", optional = true }
+tree-sitter-solidity = { path = "external-grammars/tree-sitter-solidity", optional = true }
+tree-sitter-fsharp = { path = "external-grammars/tree-sitter-fsharp", optional = true }
+tree-sitter-cobol = { path = "external-grammars/tree-sitter-cobol", optional = true }
+tree-sitter-systemverilog = { path = "external-grammars/tree-sitter-systemverilog", optional = true }
 
-# NOTE: Some parsers may require version adjustments
-# Will test and fix compatibility issues
-#
-# NEW HARDWARE & PERFORMANCE (2 languages):
-# SystemVerilog, OpenCL
-#
-# NEW INFRASTRUCTURE & CONFIG (2 languages):
-# Apache, Shell
-#
-# NEW MODERN SHELLS (3 languages):
-# Fish, Zsh, Tcl
-#
-# NEW MATHEMATICAL & SCIENTIFIC (3 languages):
-# Mathematica, Apex (Salesforce), AWK
-#
-# NEW MODERN HIGH-GROWTH (4 languages):
-# D, Elm, Racket, Pony
-#
-# NEW ACADEMIC/RESEARCH (4 languages):
-# Agda, Idris, Idris2, Lean
-#
-# NEW DOCUMENTATION & DSLs (2 languages):
-# AsciiDoc, Groovy
-#
-# NEW CRITICAL MARKET-DRIVEN (20 languages):
-# 🚀 BLOCKCHAIN/WEB3 ($67B Market): Move, Cairo, Vyper, Cadence
-# 🤖 AI/ML ($1.8T Market): Mojo, Triton, JAX
-# ⚡ IOT/EMBEDDED ($1.1T Market): MicroPython, Arduino
-# 🏢 ENTERPRISE: RPG (IBM AS/400), Wolfram Language
-# 🎮 GAMING ($321B Market): GDScript, UnrealScript
-# 🔧 DEVOPS: Ansible, HCL, Starlark
-# 📊 DATA: SPSS, Puppet
-#
-# Total: 122+ languages (24 native + 98 FFI)
-
-# Additional dependencies
+# Additional utilities
 crossbeam = "0.8"
-
-# Async runtime
 async-trait = "0.1"
-tower-lsp = "0.20"
-
-# Error handling already included above
-
-# File system
 glob = "0.3"
 walkdir = "2.4"
-
-# Metrics and logging (already defined above)
-metrics = "0.21"
-
-# Time handling
 chrono = "0.4"
-
-# Path handling
 pathdiff = "0.2"
 
 [build-dependencies]

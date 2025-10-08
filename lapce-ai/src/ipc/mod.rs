@@ -13,6 +13,18 @@ pub mod buffer_management;
 pub mod handler_registration;
 pub mod handler_registration_types;
 pub mod message_routing_dispatch;
+pub mod error_recovery;
+pub mod health_server;
+pub mod security;
+pub mod binary_codec;
+pub mod circuit_breaker;
+pub mod unified_metrics;
+pub mod ipc_scheduler;
+pub mod ipc_connection_reuse;
+pub mod codex_messages;
+pub mod protocol_fuzz;
+pub mod handshake_control;
+pub mod zero_copy_codec;
 
 // Re-export commonly used types
 pub use ipc_server::{IpcServer, IpcError};

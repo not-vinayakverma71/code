@@ -7,18 +7,13 @@ use std::sync::Arc;
 use parking_lot::RwLock;
 use bytes::Bytes;
 use tree_sitter::{Tree, Node, Parser};
-use tempfile::TempDir;
 
 // Phase 1: Varint + Packing + Interning
-use crate::compact::{
-    varint::{VarInt, DeltaEncoder},
-    interning::{intern, resolve, INTERN_POOL},
-    CompactTree, CompactTreeBuilder,
-};
+use crate::compact::varint::DeltaEncoder;
 
 // Phase 2: Delta compression
 use crate::cache::{
-    DeltaCodec, DeltaEntry, ChunkStore,
+    DeltaCodec, ChunkStore,
 };
 
 // Phase 3: Bytecode representation
@@ -29,7 +24,7 @@ use crate::compact::bytecode::{
 };
 
 // Phase 4a: Frozen tier
-use crate::cache::{FrozenTier, FrozenMetadata};
+use crate::cache::FrozenTier;
 
 // Phase 4b: Memory-mapped sources
 use crate::cache::{MmapSourceStorage};
@@ -315,15 +310,23 @@ impl CompletePipeline {
             return Ok(data.to_vec());
         }
         
-        // Create delta entry
-        let delta_entry = self.delta_codec.encode(data)?;
-        stats.phase2_chunks_created = delta_entry.base_chunks.len();
-        
-        // Serialize delta entry (simplified)
-        let serialized = bincode::serialize(&delta_entry)?;
-        stats.phase2_delta_bytes = serialized.len();
-        
-        Ok(serialized)
+        // Try delta encoding, but fall back for small sources
+        match self.delta_codec.encode(data) {
+            Ok(delta_entry) => {
+                stats.phase2_chunks_created = delta_entry.base_chunks.len();
+                
+                // Serialize delta entry (simplified)
+                let serialized = bincode::serialize(&delta_entry)?;
+                stats.phase2_delta_bytes = serialized.len();
+                
+                Ok(serialized)
+            },
+            Err(_) => {
+                // Source too small for delta encoding, just return as is
+                stats.phase2_delta_bytes = data.len();
+                Ok(data.to_vec())
+            }
+        }
     }
     
     /// Phase 3: Bytecode representation

@@ -1,5 +1,6 @@
 // Production-ready AWS Titan Embedder with enterprise features
 use crate::error::{Error, Result};
+use crate::embeddings::config::TitanConfig;
 use crate::embeddings::embedder_interface::{IEmbedder, EmbeddingResponse, EmbedderInfo, AvailableEmbedders};
 use aws_sdk_bedrockruntime::Client as BedrockClient;
 use aws_config;
@@ -12,39 +13,47 @@ use async_trait::async_trait;
 use tracing::{info, warn, error, debug};
 
 /// AWS Tier configuration for rate limiting
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum AwsTier {
-    Free,      // 2 requests/sec, 8K tokens/min
-    Standard,  // 10 requests/sec, 40K tokens/min  
-    Premium,   // 50 requests/sec, 200K tokens/min
-    Enterprise // 500 requests/sec, 2M tokens/min
+    Free,
+    OnDemand,
+    Standard,
+    Premium,
+    Enterprise,
+    Provisioned,
 }
 
 impl AwsTier {
     fn max_requests_per_second(&self) -> usize {
         match self {
             AwsTier::Free => 2,
+            AwsTier::OnDemand => 5,
             AwsTier::Standard => 10,
             AwsTier::Premium => 50,
             AwsTier::Enterprise => 500,
+            AwsTier::Provisioned => 100,
         }
     }
     
     fn max_tokens_per_minute(&self) -> usize {
         match self {
             AwsTier::Free => 8_000,
+            AwsTier::OnDemand => 20_000,
             AwsTier::Standard => 40_000,
             AwsTier::Premium => 200_000,
             AwsTier::Enterprise => 2_000_000,
+            AwsTier::Provisioned => 500_000,
         }
     }
     
     fn batch_size(&self) -> usize {
         match self {
             AwsTier::Free => 5,
+            AwsTier::OnDemand => 8,
             AwsTier::Standard => 10,
             AwsTier::Premium => 25,
             AwsTier::Enterprise => 100,
+            AwsTier::Provisioned => 50,
         }
     }
 }
@@ -135,6 +144,42 @@ impl AwsTitanProduction {
         
         // Create rate limiter based on tier
         let rate_limiter = Arc::new(Semaphore::new(tier.max_requests_per_second()));
+        
+        Ok(Self {
+            client,
+            tier,
+            cache: Arc::new(RwLock::new(HashMap::new())),
+            rate_limiter,
+            metrics: Arc::new(RwLock::new(UsageMetrics::default())),
+            latencies: Arc::new(RwLock::new(Vec::new())),
+            cache_ttl: Duration::from_secs(3600), // 1 hour cache
+            max_cache_size: 10_000,
+            retry_config: RetryConfig::default(),
+        })
+    }
+    
+    pub async fn new_from_config() -> Result<Self> {
+        // Load config from environment
+        let titan_config = TitanConfig::from_env()?;
+        titan_config.validate_dimensions()?;
+        
+        // Build AWS config with optional credentials
+        let mut aws_config_builder = aws_config::from_env()
+            .region(aws_config::Region::new(titan_config.aws_region.clone()));
+        
+        // Load AWS config
+        let config = aws_config_builder.load().await;
+        let client = BedrockClient::new(&config);
+        
+        // Determine tier from config
+        let tier = if titan_config.requests_per_second <= 5 {
+            AwsTier::OnDemand
+        } else {
+            AwsTier::Provisioned
+        };
+        
+        // Create rate limiter based on config
+        let rate_limiter = Arc::new(Semaphore::new(titan_config.max_concurrent_requests));
         
         Ok(Self {
             client,

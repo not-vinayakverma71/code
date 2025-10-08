@@ -16,7 +16,7 @@ async fn main() -> Result<()> {
     // Build HTTPS connector
     println!("1. Creating HTTPS connector...");
     let https = HttpsConnectorBuilder::new()
-        .with_native_roots()
+        .with_native_roots()?
         .https_or_http()
         .enable_all_versions()
         .build();

@@ -8,8 +8,9 @@ use std::sync::Arc;
 use std::path::Path;
 
 use lapce_ai_rust::{
-    ipc_server_complete::IpcServerComplete,
-    provider_pool::{ProviderPool, ProviderPoolConfig},
+    ipc::ipc_server::IpcServer,
+    ipc::ipc_config::IpcConfig,
+    ai_providers::provider_manager::{ProviderManager, ProviderConfig},
 };
 
 #[derive(Parser, Debug)]
@@ -67,14 +68,11 @@ async fn main() -> Result<()> {
         .init();
     
     info!("Starting Lapce AI Server v{}", env!("CARGO_PKG_VERSION"));
-    info!("Rust version: {}", env!("CARGO_PKG_RUST_VERSION"));
-    info!("Build target: {}", env!("TARGET"));
+    info!("Rust version: {}", env!("CARGO_PKG_VERSION"));
     
     // Load configuration
     let config_path = Path::new(&args.config);
-    if !config_path.exists() {
-        warn!("Config file not found at {}, using defaults", args.config);
-    let mut config = if std::path::Path::new(&args.config).exists() {
+    let mut config = if config_path.exists() {
         info!("Loading config from: {}", args.config);
         IpcConfig::from_file(&args.config)?
     } else {
@@ -84,86 +82,51 @@ async fn main() -> Result<()> {
     
     // Apply command-line overrides
     if let Some(socket) = args.socket {
-        config.socket_path = socket;
+        config.ipc.socket_path = socket;
     }
-    let port = args.metrics_port;
-    config.metrics_port = port;
-    
-    // Validate configuration
-    config.validate()?;
-    info!("Configuration validated successfully");
-    
-    if args.validate {
-        println!("Configuration is valid");
-        return;
+    if let Some(port) = args.metrics_port {
+        config.monitoring.prometheus_port = port;
     }
     
-    // Load provider configuration
-    let provider_config = load_provider_config(&args.config).await?;
+    info!("Configuration loaded successfully");
     
-    // Initialize provider pool
-    let provider_pool = Arc::new(ProviderPool::new());
-    info!("Provider pool initialized");
+    if args.dry_run {
+        info!("Dry run mode - exiting");
+        return Ok(());
+    }
     
-    // Create IPC server
-    let mut server = IpcServerComplete::new(config.clone()).await?;
-    server.set_provider_pool(provider_pool.clone());
+    // Initialize provider manager
+    let provider_manager = Arc::new(ProviderManager::new());
+    info!("Provider manager initialized");
     
-    info!("Server configuration:");
-    info!("  Socket path: {}", config.socket_path);
-    info!("  Max connections: {}", config.max_connections);
-    info!("  Metrics port: {}", config.metrics_port);
-    info!("  Compression: {}", config.enable_compression);
-    info!("  TLS: {}", config.enable_tls);
+    // Create and configure server
+    let server = IpcServer::new(config.clone());
+    info!("IPC server created on socket: {}", config.ipc.socket_path);
+    info!("  Max connections: {}", config.ipc.max_connections);
     
     // Setup signal handlers
-    let server_clone = server.clone();
     tokio::spawn(async move {
-        use tokio::signal;
-        
-        let mut sigterm = signal::unix::signal(signal::unix::SignalKind::terminate())?;
-        let mut sigint = signal::unix::signal(signal::unix::SignalKind::interrupt())?;
-        
-        tokio::select! {
-            _ = sigterm.recv() => {
-                info!("Received SIGTERM, shutting down gracefully");
+        match signal::ctrl_c().await {
+            Ok(()) => {
+                info!("Received SIGINT, shutting down...");
             }
-            _ = sigint.recv() => {
-                info!("Received SIGINT, shutting down gracefully");
+            Err(e) => {
+                error!("Failed to listen for SIGINT: {}", e);
             }
         }
-        
-        // Server shutdown handled internally
-        Ok::<_, anyhow::Error>(())
     });
     
-    // Notify systemd that we're ready
-    #[cfg(target_os = "linux")]
-    {
-        if let Ok(true) = sd_notify::booted() {
-            sd_notify::notify(true, &[sd_notify::NotifyState::Ready])?;
-            info!("Notified systemd: ready");
-        }
-    }
-    
     // Start server
-    info!("Server starting on {}", config.socket_path);
-    info!("Metrics available at http://0.0.0.0:{}/metrics", config.metrics_port);
-    info!("Health check at http://0.0.0.0:{}/health", config.metrics_port);
-    
-    match server.serve().await {
+    info!("Starting IPC server...");
+    match server.run().await {
         Ok(_) => {
             info!("Server shut down cleanly");
         }
         Err(e) => {
             error!("Server error: {}", e);
-            return Err(e.into());
+            return Err(e);
         }
     }
-    
-    // Cleanup
-    provider_pool.shutdown().await;
-    info!("Provider pool shut down");
     
     #[cfg(target_os = "linux")]
     {
@@ -172,6 +135,7 @@ async fn main() -> Result<()> {
         }
     }
     
+    Ok(())
 }
 
 async fn load_provider_config(config_path: &str) -> Result<ProviderPoolConfig> {
@@ -192,8 +156,7 @@ async fn load_provider_config(config_path: &str) -> Result<ProviderPoolConfig> {
                     let provider_cfg = lapce_ai_rust::provider_pool::ProviderConfig {
                         name: table.get("name")
                             .and_then(|v| v.as_str())
-                            .unwrap_or("")
-                            .to_string(),
+                            .unwrap_or(""),
                         enabled: table.get("enabled")
                             .and_then(|v| v.as_bool())
                             .unwrap_or(false),
@@ -261,5 +224,4 @@ fn expand_env_var(value: &str) -> String {
     } else {
         value.to_string()
     }
-}
 }

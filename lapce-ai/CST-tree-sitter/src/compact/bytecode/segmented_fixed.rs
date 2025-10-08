@@ -2,18 +2,41 @@
 //! Splits bytecode into segments for on-demand loading
 
 use std::sync::Arc;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::fs;
-use std::io;
+use std::io::{self, Read};
 use moka::sync::Cache;
-use std::sync::atomic::{AtomicUsize, AtomicU64, Ordering};
-use super::{BytecodeStream, Opcode};
+use std::sync::atomic::{AtomicU64, Ordering};
+use super::BytecodeStream;
+use serde::{Serialize, Deserialize};
+use tempfile::tempdir;
 
 /// Size of each bytecode segment (256KB)
 const SEGMENT_SIZE: usize = 256 * 1024;
 
 /// Maximum segments in memory
 const MAX_CACHED_SEGMENTS: u64 = 100;
+
+/// Current format version
+const FORMAT_VERSION: u32 = 1;
+
+/// Magic bytes for file identification
+const MAGIC_BYTES: &[u8; 4] = b"CSTB";  // CST Bytecode
+
+/// Version header for on-disk format
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FormatHeader {
+    /// Magic bytes for validation
+    magic: [u8; 4],
+    /// Format version for migration support
+    version: u32,
+    /// Creation timestamp
+    created_at: u64,
+    /// Checksum of the data
+    checksum: u32,
+    /// Optional metadata
+    metadata: Option<String>,
+}
 
 /// Segmented bytecode stream
 pub struct SegmentedBytecodeStream {
@@ -41,7 +64,7 @@ pub struct SegmentedBytecodeStream {
     stats: Arc<SegmentStats>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 struct SegmentMetadata {
     /// Segment ID
     id: u16,
@@ -66,20 +89,42 @@ pub struct SegmentStats {
 }
 
 impl SegmentedBytecodeStream {
-    /// Create from regular bytecode stream
+    /// Create from BytecodeStream with segmentation
     pub fn from_bytecode_stream(
         stream: BytecodeStream,
         storage_dir: PathBuf,
     ) -> io::Result<Self> {
+        // Create storage directory
         fs::create_dir_all(&storage_dir)?;
         
+        // Write format header
+        let header = FormatHeader {
+            magic: *MAGIC_BYTES,
+            version: FORMAT_VERSION,
+            created_at: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
+            checksum: 0, // Will be calculated later
+            metadata: Some(format!("node_count:{}", stream.node_count)),
+        };
+        
+        let header_path = storage_dir.join("header.json");
+        let header_json = serde_json::to_string_pretty(&header)
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        fs::write(&header_path, header_json)?;
+        
+        let mut index = Vec::new();
         let mut segments = Vec::new();
-        let mut index = Vec::with_capacity(stream.node_count.max(1));
         let mut current_segment = Vec::new();
         let mut segment_id = 0u16;
         let mut node_start = 0;
         let mut node_index = 0;
         
+        let temp_dir = tempdir()?;
+        let temp_path = temp_dir.path().join("temp.zst");
+        
+        // Iterate over bytecode and split into segments
         // Simple segmentation: split by size
         let bytes = &stream.bytes;
         let mut pos = 0;
@@ -188,6 +233,118 @@ impl SegmentedBytecodeStream {
         Ok(segment)
     }
     
+    /// Load from existing storage with version checking
+    pub fn load_from_disk(storage_dir: PathBuf) -> io::Result<Self> {
+        // Read and validate header
+        let header_path = storage_dir.join("header.json");
+        let header_json = fs::read_to_string(&header_path)?;
+        let header: FormatHeader = serde_json::from_str(&header_json)
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        
+        // Validate magic bytes
+        if header.magic != *MAGIC_BYTES {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "Invalid file format: magic bytes mismatch"
+            ));
+        }
+        
+        // Check version and migrate if needed
+        if header.version != FORMAT_VERSION {
+            return Self::migrate_from_version(header.version, storage_dir);
+        }
+        
+        // Load index
+        let index_path = storage_dir.join("index.bin");
+        let index_data = fs::read(&index_path)?;
+        let index: Vec<(u16, u32)> = bincode::deserialize(&index_data)
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        
+        // Load segment metadata
+        let meta_path = storage_dir.join("segments.json");
+        let meta_json = fs::read_to_string(&meta_path)?;
+        let segments: Vec<SegmentMetadata> = serde_json::from_str(&meta_json)
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        
+        // Create segment cache
+        let segment_cache = Cache::builder()
+            .max_capacity(MAX_CACHED_SEGMENTS)
+            .build();
+        
+        // Extract metadata from header
+        let (node_count, source_len) = if let Some(metadata) = header.metadata {
+            let parts: Vec<&str> = metadata.split(',').collect();
+            let mut nc = 0;
+            let mut sl = 0;
+            for part in parts {
+                if let Some(val) = part.strip_prefix("node_count:") {
+                    nc = val.parse().unwrap_or(0);
+                } else if let Some(val) = part.strip_prefix("source_len:") {
+                    sl = val.parse().unwrap_or(0);
+                }
+            }
+            (nc, sl)
+        } else {
+            (0, 0)
+        };
+        
+        Ok(Self {
+            index,
+            segments,
+            storage_dir,
+            segment_cache,
+            kind_names: Vec::new(),  // Would need to be stored separately
+            field_names: Vec::new(),
+            node_count,
+            source_len,
+            stats: Arc::new(SegmentStats::default()),
+        })
+    }
+    
+    /// Migrate from older version
+    fn migrate_from_version(version: u32, storage_dir: PathBuf) -> io::Result<Self> {
+        match version {
+            0 => {
+                // Version 0 -> Version 1 migration
+                // Example: decompress all segments and recompress with new format
+                eprintln!("Migrating from version 0 to version {}", FORMAT_VERSION);
+                
+                // Read old format (hypothetical)
+                // Transform to new format
+                // Save with new header
+                
+                // For now, return error as we don't have actual v0 format
+                Err(io::Error::new(
+                    io::ErrorKind::Unsupported,
+                    format!("Migration from version {} not implemented", version)
+                ))
+            }
+            _ => {
+                Err(io::Error::new(
+                    io::ErrorKind::Unsupported,
+                    format!("Unknown format version: {}", version)
+                ))
+            }
+        }
+    }
+    
+    /// Save index and metadata to disk for persistence
+    pub fn persist_metadata(&self) -> io::Result<()> {
+        // Save index
+        let index_path = self.storage_dir.join("index.bin");
+        let index_data = bincode::serialize(&self.index)
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        fs::write(&index_path, index_data)?;
+        
+        // Save segment metadata
+        let meta_path = self.storage_dir.join("segments.json");
+        let meta_json = serde_json::to_string_pretty(&self.segments)
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        fs::write(&meta_path, meta_json)?;
+        
+        Ok(())
+    }
+    
     /// Get navigator for a specific node
     pub fn navigator(&self, node_index: usize) -> io::Result<SegmentedNavigator> {
         if node_index >= self.index.len() {
@@ -284,7 +441,7 @@ mod tests {
         let mut stream = BytecodeStream::new();
         
         // Add some data
-        for i in 0..1000 {
+        for i in 0..1000u64 {
             stream.bytes.extend_from_slice(&i.to_le_bytes());
         }
         stream.node_count = 100;

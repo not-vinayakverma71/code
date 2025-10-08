@@ -4,8 +4,7 @@
 use super::opcodes::BytecodeStream;
 use super::encoder::BytecodeEncoder;
 use super::decoder::{BytecodeDecoder, DecodedNode};
-use crate::compact::{CompactTree, CompactNode};
-use std::collections::HashSet;
+use crate::compact::CompactTree;
 
 /// Validator for bytecode trees
 pub struct BytecodeValidator {
@@ -226,7 +225,7 @@ impl BytecodeValidator {
         };
         
         // Re-encode
-        let mut encoder2 = BytecodeEncoder::new();
+        let encoder2 = BytecodeEncoder::new();
         // Note: We'd need to convert DecodedNode back to CompactTree for full round-trip
         // For now, just validate the decode worked
         

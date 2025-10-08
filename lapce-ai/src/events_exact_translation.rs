@@ -296,11 +296,12 @@ pub trait RooCodeEvents {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     
     #[test]
     fn test_event_serialization() {
         let event = TaskEvent::TaskStarted {
-            payload: "task-123".to_string(),
+            payload: ("task-123".to_string(),),
             task_id: Some(1),
         };
         
@@ -314,8 +315,12 @@ mod tests {
         let usage = TokenUsage {
             total_tokens_in: 100,
             total_tokens_out: 200,
-            total_cache_writes: Some(50),
-            total_cache_reads: None,
+            cache_write_tokens: Some(50),
+            cache_read_tokens: None,
+            input_tokens: 100,
+            output_tokens: 200,
+            cache_creation_input_tokens: None,
+            cache_read_input_tokens: None,
             total_cost: 0.05,
             context_tokens: 300,
         };

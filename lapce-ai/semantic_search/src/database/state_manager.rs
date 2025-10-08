@@ -14,6 +14,9 @@ pub enum IndexingState {
     Error,
 }
 
+// Re-export as IndexState for compatibility
+pub type IndexState = IndexingState;
+
 /// Lines 5-115: CodeIndexStateManager class
 pub struct CodeIndexStateManager {
     // Lines 6-10: Private state fields

@@ -3,8 +3,6 @@
 //! Each opcode is a single byte for maximum efficiency.
 //! Data follows opcodes using variable-length encoding.
 
-use crate::compact::varint::{DeltaEncoder, DeltaDecoder};
-use std::collections::HashMap;
 
 /// Bytecode opcodes for tree operations
 #[repr(u8)]
@@ -98,7 +96,7 @@ impl NodeFlags {
 }
 
 /// Bytecode stream with navigation aids
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct BytecodeStream {
     /// Raw bytecode
     pub bytes: Vec<u8>,

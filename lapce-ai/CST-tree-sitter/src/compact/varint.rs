@@ -1,7 +1,7 @@
 //! Variable-length integer encoding for efficient storage of values with varying magnitudes
 //! Optimized for delta-encoded sequences common in CST position data
 
-use std::io::{self, Write, Read};
+use std::io::{self};
 
 /// Variable-length integer encoder/decoder using LEB128
 pub struct VarInt;
@@ -198,8 +198,10 @@ impl PrefixSumIndex {
             if i % block_size == 0 {
                 block_sums.push(value);
                 encoder.last_value = value; // Reset delta base
+            } else {
+                // Only encode non-block-boundary values
+                encoder.encode(value);
             }
-            encoder.encode(value);
         }
         
         Self {
@@ -225,8 +227,8 @@ impl PrefixSumIndex {
         // Skip to correct position in data
         let mut data_position = 0;
         for i in 0..block_idx {
-            // Skip entire blocks
-            for _ in 0..self.block_size {
+            // Skip entire blocks (block_size - 1 values since we don't encode block boundaries)
+            for _ in 0..(self.block_size - 1) {
                 let (_, consumed) = VarInt::decode_u64(&self.data[data_position..])?;
                 data_position += consumed;
             }
@@ -234,6 +236,12 @@ impl PrefixSumIndex {
         decoder.position = data_position;
         
         // Decode up to target index
+        // If block_offset is 0, we want the block boundary value itself
+        if block_offset == 0 {
+            return Ok(decoder.last_value);
+        }
+        
+        // Decode block_offset times to get to the target
         let mut value = decoder.last_value;
         for _ in 0..block_offset {
             value = decoder.decode()?;

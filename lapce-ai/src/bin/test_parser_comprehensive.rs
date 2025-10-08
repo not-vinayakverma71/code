@@ -2,7 +2,15 @@
 use anyhow::Result;
 use std::time::Instant;
 use std::fs;
-use tree_sitter::Parser;
+use tree_sitter::{Parser, Language};
+
+extern "C" {
+    fn tree_sitter_rust() -> Language;
+    fn tree_sitter_python() -> Language;
+    fn tree_sitter_javascript() -> Language;
+    fn tree_sitter_typescript() -> Language;
+    fn tree_sitter_go() -> Language;
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -36,7 +44,8 @@ async fn test_parse_rust() -> Result<()> {
     println!("\n🦀 Testing Rust parser...");
     
     let mut parser = Parser::new();
-    parser.set_language(&tree_sitter_rust::LANGUAGE.into())?;
+    let language = unsafe { tree_sitter_rust() };
+    parser.set_language(language)?;
     
     let rust_code = r#"
 fn main() {
@@ -101,7 +110,8 @@ async fn test_parse_python() -> Result<()> {
     println!("\n🐍 Testing Python parser...");
     
     let mut parser = Parser::new();
-    parser.set_language(&tree_sitter_python::LANGUAGE.into())?;
+    let language = unsafe { tree_sitter_python() };
+    parser.set_language(language)?;
     
     let python_code = r#"
 import sys
@@ -167,7 +177,8 @@ async fn test_parse_javascript() -> Result<()> {
     println!("\n📜 Testing JavaScript parser...");
     
     let mut parser = Parser::new();
-    parser.set_language(&tree_sitter_javascript::LANGUAGE.into())?;
+    let language = unsafe { tree_sitter_javascript() };
+    parser.set_language(language)?;
     
     let js_code = r#"
 const greeting = "Hello, World!";
@@ -233,7 +244,8 @@ async fn test_parse_typescript() -> Result<()> {
     println!("\n📘 Testing TypeScript parser...");
     
     let mut parser = Parser::new();
-    parser.set_language(&tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())?;
+    let language = unsafe { tree_sitter_typescript() };
+    parser.set_language(language)?;
     
     let ts_code = r#"
 interface User {
@@ -308,7 +320,8 @@ async fn test_parse_go() -> Result<()> {
     println!("\n🐹 Testing Go parser...");
     
     let mut parser = Parser::new();
-    parser.set_language(&tree_sitter_go::LANGUAGE.into())?;
+    let language = unsafe { tree_sitter_go() };
+    parser.set_language(language)?;
     
     let go_code = r#"
 package main
@@ -395,9 +408,9 @@ async fn test_parser_performance() -> Result<()> {
     
     // Generate large test files
     let languages = vec![
-        ("Rust", tree_sitter_rust::language(), generate_large_rust_code()),
-        ("Python", tree_sitter_python::language(), generate_large_python_code()),
-        ("JavaScript", tree_sitter_javascript::language(), generate_large_js_code()),
+        ("Rust", unsafe { tree_sitter_rust() }, generate_large_rust_code()),
+        ("Python", unsafe { tree_sitter_python() }, generate_large_python_code()),
+        ("JavaScript", unsafe { tree_sitter_javascript() }, generate_large_js_code()),
     ];
     
     for (name, language, code) in languages {

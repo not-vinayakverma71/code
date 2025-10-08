@@ -1,0 +1,27 @@
+# Gitleaks configuration for secret scanning
+title = "gitleaks config"
+
+[[rules]]
+id = "aws-access-key"
+description = "AWS Access Key"
+regex = '''(A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}'''
+tags = ["key", "AWS"]
+
+[[rules]]
+id = "aws-secret-key"
+description = "AWS Secret Key"
+regex = '''(?i)aws(.{0,20})?(?-i)['\"]([0-9a-zA-Z\/+]{40})['\"]'''
+tags = ["key", "AWS"]
+
+[[rules]]
+id = "generic-api-key"
+description = "Generic API Key"
+regex = '''(?i)(api_key|apikey|api-key)(.{0,20})?['\"]([0-9a-zA-Z]{32,45})['\"]'''
+tags = ["key", "generic"]
+
+[allowlist]
+paths = [
+  ".env.example",
+  "**/*.md",
+  "**/tests/**",
+]

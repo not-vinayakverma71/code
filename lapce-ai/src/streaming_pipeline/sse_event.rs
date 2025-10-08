@@ -58,17 +58,19 @@ mod tests {
     
     #[test]
     fn test_sse_event_creation() {
-        let event = SseEvent::new(b"test data");
+        let event = SseEvent::new(&b"test data"[..]);
         assert_eq!(event.data, Bytes::from(&b"test data"[..]));
         assert!(event.event_type.is_none());
     }
     
     #[test]
     fn test_done_detection() {
-        let event = SseEvent::new(b"[DONE]");
+        let done_bytes = b"[DONE]";
+        let event = SseEvent::new(&done_bytes[..]);
         assert!(event.is_done());
         
-        let event2 = SseEvent::new(b"not done");
+        let not_done_bytes = b"not done";
+        let event2 = SseEvent::new(&not_done_bytes[..]);
         assert!(!event2.is_done());
     }
 }

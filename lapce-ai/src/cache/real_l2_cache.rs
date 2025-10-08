@@ -223,6 +223,8 @@ pub struct L2Stats {
 mod tests {
     use super::*;
     use tempfile::TempDir;
+    use std::time::SystemTime;
+    use std::collections::HashMap;
 
     #[tokio::test]
     async fn test_l2_cache_basic() {
@@ -311,7 +313,7 @@ mod tests {
         {
             let config = L2Config {
                 max_size: 1_000_000,
-                compression: false,
+                compression: crate::cache::types::CompressionType::None,
                 cache_dir: cache_dir.clone(),
             };
             let cache = RealL2Cache::new(config, metrics.clone()).await.unwrap();
@@ -322,7 +324,7 @@ mod tests {
         {
             let config = L2Config {
                 max_size: 1_000_000,
-                compression: false,
+                compression: crate::cache::types::CompressionType::None,
                 cache_dir: cache_dir.clone(),
             };
             let cache = RealL2Cache::new(config, metrics).await.unwrap();

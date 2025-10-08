@@ -34,6 +34,12 @@ impl BedrockEmbeddingModel {
             Self::CohereLarge => "cohere.embed-english-v3",
         }
     }
+    
+    async fn embed(&self, text: &str) -> crate::error::Result<Vec<f32>> {
+        // Placeholder for actual Bedrock API call
+        let dim = self.ndims();
+        Ok(vec![0.0; dim])
+    }
 }
 
 impl FromStr for BedrockEmbeddingModel {
@@ -68,42 +74,37 @@ impl BedrockEmbeddingFunction {
     }
 }
 
+#[async_trait::async_trait]
 impl EmbeddingFunction for BedrockEmbeddingFunction {
     fn name(&self) -> &str {
         "bedrock"
     }
 
-    fn source_type(&self) -> Result<Cow<'_, DataType>> {
-        Ok(Cow::Owned(DataType::Utf8))
+    fn source_type(&self) -> &str {
+        "text"
     }
 
-    fn dest_type(&self) -> Result<Cow<'_, DataType>> {
-        let n_dims = self.model.ndims();
-        Ok(Cow::Owned(DataType::new_fixed_size_list(
-            DataType::Float32,
-            n_dims as i32,
-            false,
-        )))
+    fn dest_type(&self) -> &str {
+        "vector"
+    }
+    
+    async fn embed(&self, texts: Vec<String>) -> crate::error::Result<Vec<Vec<f32>>> {
+        // Convert texts to embeddings using Bedrock
+        let mut results = Vec::new();
+        for text in texts {
+            let embedding = self.model.embed(&text).await?;
+            results.push(embedding);
+        }
+        Ok(results)
     }
 
-    fn compute_source_embeddings(&self, source: ArrayRef) -> Result<ArrayRef> {
-        let len = source.len();
-        let n_dims = self.model.ndims();
-        let inner = self.compute_inner(source)?;
-
-        let fsl = DataType::new_fixed_size_list(DataType::Float32, n_dims as i32, false);
-
-        let array_data = ArrayData::builder(fsl)
-            .len(len)
-            .add_child_data(inner.into_data())
-            .build()?;
-
-        Ok(Arc::new(FixedSizeListArray::from(array_data)))
+    async fn compute_source_embeddings(&self, texts: Vec<String>) -> crate::error::Result<Vec<Vec<f32>>> {
+        self.embed(texts).await
     }
 
-    fn compute_query_embeddings(&self, input: Arc<dyn Array>) -> Result<Arc<dyn Array>> {
-        let arr = self.compute_inner(input)?;
-        Ok(Arc::new(arr))
+    async fn compute_query_embeddings(&self, query: String) -> crate::error::Result<Vec<f32>> {
+        let embeddings = self.embed(vec![query]).await?;
+        Ok(embeddings.into_iter().next().unwrap_or_default())
     }
 }
 

@@ -47,9 +47,11 @@ impl LockFreeCache {
         
         // Check if we need to evict
         while *size + entry.size_bytes > self.max_size_bytes && cache.len() > 0 {
-            // LRU eviction happens automatically when inserting beyond capacity
-            if let Some((_, evicted)) = cache.pop_lru() {
+            // LRU eviction - remove least recently used
+            if let Some((_, evicted)) = cache.remove_lru() {
                 *size = size.saturating_sub(evicted.size_bytes);
+            } else {
+                break; // No more entries to evict
             }
         }
         
@@ -117,7 +119,7 @@ impl LockFreeCache {
     /// Check if key exists
     pub fn contains(&self, key: &u128) -> bool {
         let cache = self.cache.read();
-        cache.contains(key)
+        cache.peek(key).is_some()
     }
 }
 

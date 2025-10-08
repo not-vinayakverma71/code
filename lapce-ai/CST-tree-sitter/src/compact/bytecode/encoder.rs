@@ -1,8 +1,8 @@
 //! Bytecode encoder - converts CompactTree to bytecode representation
 //! Guarantees 0% quality loss through validation at every step
 
-use super::opcodes::{Opcode, NodeFlags, BytecodeStream, BytecodeReader};
-use crate::compact::{CompactTree, CompactNode};
+use super::opcodes::{Opcode, NodeFlags, BytecodeStream};
+use crate::compact::CompactTree;
 use std::collections::HashMap;
 
 pub struct BytecodeEncoder {

@@ -124,14 +124,13 @@ pub enum IpcMessage {
 // ============================================================================
 // COMPLETE message.ts TRANSLATION START
 // ============================================================================
-
 /// ClineAskResponse - Response types for ClineAsk
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ClineAskResponse {
     Approved,
-    Rejected,
-    Bail,
+    RenameSymbol,
+    Cancel,
     SafeModeEnabled,
     DebugModeEnabled,
 }
@@ -402,6 +401,176 @@ pub struct Tool {
     pub parameters: serde_json::Value,
 }
 
+// ============================================================================
+// P0-2: Tool Execution Lifecycle Messages
+// ============================================================================
+
+use std::path::PathBuf;
+
+/// Tool execution lifecycle status
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ToolExecutionStatus {
+    /// Tool execution has started
+    Started {
+        execution_id: String,
+        tool_name: String,
+        timestamp: u64,
+    },
+    
+    /// Tool execution progress update
+    Progress {
+        execution_id: String,
+        message: String,
+        percentage: Option<u8>,
+    },
+    
+    /// Tool execution completed successfully
+    Completed {
+        execution_id: String,
+        result: serde_json::Value,
+        duration_ms: u64,
+    },
+    
+    /// Tool execution failed
+    Failed {
+        execution_id: String,
+        error: String,
+        duration_ms: u64,
+    },
+}
+
+/// Command execution status for terminal operations
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum CommandExecutionStatusMessage {
+    /// Command started
+    Started {
+        execution_id: String,
+        command: String,
+        args: Vec<String>,
+        cwd: Option<PathBuf>,
+    },
+    
+    /// Command output line
+    Output {
+        execution_id: String,
+        stream_type: StreamType,
+        line: String,
+        timestamp: u64,
+    },
+    
+    /// Command completed
+    Completed {
+        execution_id: String,
+        exit_code: i32,
+        duration_ms: u64,
+    },
+    
+    /// Command timeout
+    Timeout {
+        execution_id: String,
+        duration_ms: u64,
+    },
+}
+
+/// Stream type for command output
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum StreamType {
+    Stdout,
+    Stderr,
+}
+
+/// Diff operation messages
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum DiffOperationMessage {
+    /// Open diff view with two files
+    OpenDiffFiles {
+        left_path: PathBuf,
+        right_path: PathBuf,
+        title: Option<String>,
+    },
+    
+    /// Save diff changes
+    DiffSave {
+        file_path: PathBuf,
+        content: String,
+    },
+    
+    /// Revert diff changes
+    DiffRevert {
+        file_path: PathBuf,
+    },
+    
+    /// Close diff view
+    CloseDiff {
+        left_path: PathBuf,
+        right_path: PathBuf,
+    },
+}
+
+/// Tool approval request/response
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolApprovalRequest {
+    pub execution_id: String,
+    pub tool_name: String,
+    pub operation: String,
+    pub target: String,
+    pub details: String,
+    pub require_confirmation: bool,
+}
+
+/// Tool approval response
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolApprovalResponse {
+    pub execution_id: String,
+    pub approved: bool,
+    pub reason: Option<String>,
+}
+
+/// Extended IPC message for tools
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum ToolIpcMessage {
+    #[serde(rename = "ToolExecutionStatus")]
+    ToolExecutionStatus {
+        origin: IpcOrigin,
+        data: ToolExecutionStatus,
+    },
+    
+    #[serde(rename = "CommandExecutionStatus")]
+    CommandExecutionStatus {
+        origin: IpcOrigin,
+        data: CommandExecutionStatusMessage,
+    },
+    
+    #[serde(rename = "DiffOperation")]
+    DiffOperation {
+        origin: IpcOrigin,
+        data: DiffOperationMessage,
+    },
+    
+    #[serde(rename = "ToolApprovalRequest")]
+    ToolApprovalRequest {
+        origin: IpcOrigin,
+        data: ToolApprovalRequest,
+    },
+    
+    #[serde(rename = "ToolApprovalResponse")]
+    ToolApprovalResponse {
+        origin: IpcOrigin,
+        data: ToolApprovalResponse,
+    },
+}
+
+// ============================================================================
+// END P0-2: Tool Execution Lifecycle Messages
+// ============================================================================
+
 /// Extension Message type enum - from ExtensionMessage.ts
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -523,5 +692,181 @@ impl MessageType {
     
     pub fn to_bytes(&self) -> [u8; 4] {
         (*self as u32).to_le_bytes()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    // P0-2 Tests: Serialization roundtrip tests for new IPC messages
+    
+    #[test]
+    fn test_tool_execution_status_serialization() {
+        let status = ToolExecutionStatus::Started {
+            execution_id: "test-123".to_string(),
+            tool_name: "readFile".to_string(),
+            timestamp: 1234567890,
+        };
+        
+        let json = serde_json::to_string(&status).unwrap();
+        let deserialized: ToolExecutionStatus = serde_json::from_str(&json).unwrap();
+        
+        match deserialized {
+            ToolExecutionStatus::Started { execution_id, tool_name, timestamp } => {
+                assert_eq!(execution_id, "test-123");
+                assert_eq!(tool_name, "readFile");
+                assert_eq!(timestamp, 1234567890);
+            }
+            _ => panic!("Wrong variant"),
+        }
+    }
+    
+    #[test]
+    fn test_command_execution_status_serialization() {
+        let status = CommandExecutionStatusMessage::Output {
+            execution_id: "cmd-456".to_string(),
+            stream_type: StreamType::Stdout,
+            line: "Hello, world!".to_string(),
+            timestamp: 9876543210,
+        };
+        
+        let json = serde_json::to_string(&status).unwrap();
+        let deserialized: CommandExecutionStatusMessage = serde_json::from_str(&json).unwrap();
+        
+        match deserialized {
+            CommandExecutionStatusMessage::Output { execution_id, stream_type, line, timestamp } => {
+                assert_eq!(execution_id, "cmd-456");
+                assert!(matches!(stream_type, StreamType::Stdout));
+                assert_eq!(line, "Hello, world!");
+                assert_eq!(timestamp, 9876543210);
+            }
+            _ => panic!("Wrong variant"),
+        }
+    }
+    
+    #[test]
+    fn test_diff_operation_message_serialization() {
+        let msg = DiffOperationMessage::OpenDiffFiles {
+            left_path: PathBuf::from("/path/to/original.txt"),
+            right_path: PathBuf::from("/path/to/modified.txt"),
+            title: Some("Test Diff".to_string()),
+        };
+        
+        let json = serde_json::to_string(&msg).unwrap();
+        let deserialized: DiffOperationMessage = serde_json::from_str(&json).unwrap();
+        
+        match deserialized {
+            DiffOperationMessage::OpenDiffFiles { left_path, right_path, title } => {
+                assert_eq!(left_path, PathBuf::from("/path/to/original.txt"));
+                assert_eq!(right_path, PathBuf::from("/path/to/modified.txt"));
+                assert_eq!(title, Some("Test Diff".to_string()));
+            }
+            _ => panic!("Wrong variant"),
+        }
+    }
+    
+    #[test]
+    fn test_tool_approval_request_serialization() {
+        let request = ToolApprovalRequest {
+            execution_id: "exec-789".to_string(),
+            tool_name: "writeFile".to_string(),
+            operation: "write".to_string(),
+            target: "/important/file.txt".to_string(),
+            details: "Writing sensitive data".to_string(),
+            require_confirmation: true,
+        };
+        
+        let json = serde_json::to_string(&request).unwrap();
+        assert!(json.contains("\"executionId\":\"exec-789\""));
+        
+        let deserialized: ToolApprovalRequest = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.execution_id, "exec-789");
+        assert_eq!(deserialized.tool_name, "writeFile");
+        assert!(deserialized.require_confirmation);
+    }
+    
+    #[test]
+    fn test_tool_approval_response_serialization() {
+        let response = ToolApprovalResponse {
+            execution_id: "exec-789".to_string(),
+            approved: false,
+            reason: Some("User rejected the operation".to_string()),
+        };
+        
+        let json = serde_json::to_string(&response).unwrap();
+        let deserialized: ToolApprovalResponse = serde_json::from_str(&json).unwrap();
+        
+        assert_eq!(deserialized.execution_id, "exec-789");
+        assert!(!deserialized.approved);
+        assert_eq!(deserialized.reason, Some("User rejected the operation".to_string()));
+    }
+    
+    #[test]
+    fn test_tool_ipc_message_serialization() {
+        let msg = ToolIpcMessage::ToolExecutionStatus {
+            origin: IpcOrigin::Server,
+            data: ToolExecutionStatus::Completed {
+                execution_id: "test-complete".to_string(),
+                result: serde_json::json!({"success": true}),
+                duration_ms: 150,
+            },
+        };
+        
+        let json = serde_json::to_string(&msg).unwrap();
+        assert!(json.contains("\"type\":\"ToolExecutionStatus\""));
+        assert!(json.contains("\"origin\":\"server\""));
+        
+        let deserialized: ToolIpcMessage = serde_json::from_str(&json).unwrap();
+        match deserialized {
+            ToolIpcMessage::ToolExecutionStatus { origin, data } => {
+                assert_eq!(origin, IpcOrigin::Server);
+                match data {
+                    ToolExecutionStatus::Completed { duration_ms, .. } => {
+                        assert_eq!(duration_ms, 150);
+                    }
+                    _ => panic!("Wrong status variant"),
+                }
+            }
+            _ => panic!("Wrong message variant"),
+        }
+    }
+    
+    #[test]
+    fn test_backward_compatibility() {
+        // Test that existing message types still work
+        let old_msg = IpcMessage::Ack {
+            origin: IpcOrigin::Client,
+            data: Ack {
+                client_id: "client-123".to_string(),
+                pid: 1234,
+                ppid: 5678,
+            },
+        };
+        
+        let json = serde_json::to_string(&old_msg).unwrap();
+        let deserialized: IpcMessage = serde_json::from_str(&json).unwrap();
+        
+        match deserialized {
+            IpcMessage::Ack { origin, data } => {
+                assert_eq!(origin, IpcOrigin::Client);
+                assert_eq!(data.client_id, "client-123");
+                assert_eq!(data.pid, 1234);
+                assert_eq!(data.ppid, 5678);
+            }
+            _ => panic!("Wrong variant"),
+        }
+    }
+    
+    #[test]
+    fn test_stream_type_serialization() {
+        assert_eq!(serde_json::to_string(&StreamType::Stdout).unwrap(), "\"stdout\"");
+        assert_eq!(serde_json::to_string(&StreamType::Stderr).unwrap(), "\"stderr\"");
+        
+        let stdout: StreamType = serde_json::from_str("\"stdout\"").unwrap();
+        let stderr: StreamType = serde_json::from_str("\"stderr\"").unwrap();
+        
+        assert!(matches!(stdout, StreamType::Stdout));
+        assert!(matches!(stderr, StreamType::Stderr));
     }
 }

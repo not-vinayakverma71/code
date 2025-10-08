@@ -257,6 +257,7 @@ pub struct ValidationResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::{Path, PathBuf};
     
     #[tokio::test]
     async fn test_permission_manager() {

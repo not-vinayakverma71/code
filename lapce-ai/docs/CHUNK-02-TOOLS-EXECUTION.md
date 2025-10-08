@@ -69,13 +69,11 @@ tools/
                               │
                      ═════════▼═════════
                      SharedMemory IPC
-                     /tmp/lapce-ai.sock
-                     5.1μs latency ✅
-                     1.38M msg/sec ✅
+                     
                      ═════════│═════════
-                              │
+                               │
 ┌─────────────────────────────▼──────────────────────────────┐
-│  lapce-ai-rust/src/ (Backend)                             │
+│  lapce-ai/src/ (Backend)                             │
 │  ┌──────────────────────────────────────────────────────┐  │
 │  │ ipc_server.rs (MessageRouter)                        │  │
 │  │ - Listens on SharedMemory                            │  │
@@ -165,7 +163,7 @@ impl MessageHandler {
 }
 ```
 
-**Backend Side (lapce-ai-rust/src/handlers/tools/mod.rs)**:
+**Backend Side (lapce-ai/src/handlers/tools/mod.rs)**:
 ```rust
 #[async_trait]
 pub trait Tool: Send + Sync {
@@ -271,7 +269,7 @@ impl TerminalPanelData {
 
 **Backend: OSC 633/133 Shell Integration (from Step 29)**:
 ```rust
-// lapce-ai-rust/src/handlers/tools/terminal.rs
+// lapce-ai/src/handlers/tools/terminal.rs
 pub struct TerminalTool {
     parser: Arc<OscParser>,  // From Step 29
 }
@@ -389,7 +387,7 @@ impl DiffEditorData {
 
 **Backend - Diff Generation:**
 ```rust
-// lapce-ai-rust/src/handlers/tools/diff.rs
+// lapce-ai/src/handlers/tools/diff.rs
 impl DiffTool {
     pub async fn apply_diff(&self, file: PathBuf, changes: String) -> Vec<IpcMessage> {
         let mut messages = Vec::new();

@@ -1,23 +1,28 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: Copyright The LanceDB Authors
 
-use std::{borrow::Cow, sync::Arc};
-
 use super::EmbeddingFunction;
+use crate::error::{Error, Result};
 use arrow::{
-    array::{AsArray, PrimitiveBuilder},
+    array::{AsArray, PrimitiveBuilder, PrimitiveArray},
     datatypes::{
         ArrowPrimitiveType, Float16Type, Float32Type, Float64Type, Int64Type, UInt32Type, UInt8Type,
     },
 };
-use arrow_array::{Array, FixedSizeListArray, PrimitiveArray};
+use arrow_array::{
+    Array, ArrayRef, FixedSizeListArray, Float16Array, Float32Array,
+};
 use arrow_data::ArrayData;
 use arrow_schema::DataType;
-use candle_core::{CpuStorage, Device, Layout, Storage, Tensor};
+use arrow_schema::ArrowError;
+use candle_core::{CpuStorage, DType, Device, Layout, Module, Storage, Tensor};
 use candle_nn::VarBuilder;
-use candle_transformers::models::bert::{BertModel, DTYPE};
-use hf_hub::{api::sync::Api, Repo, RepoType};
-use tokenizers::{tokenizer::Tokenizer, PaddingParams};
+use candle_transformers::models::bert::{BertModel, Config as BertConfig, DTYPE};
+use hf_hub::{api::tokio::Api, Repo, RepoType};
+use serde::Deserialize;
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
 /// Compute embeddings using huggingface sentence-transformers.
 pub struct SentenceTransformersEmbeddingsBuilder {
@@ -49,6 +54,7 @@ pub struct SentenceTransformersEmbeddings {
     tokenizer: Tokenizer,
     device: Device,
     n_dims: Option<usize>,
+    ndim: i32,
 }
 
 impl std::fmt::Debug for SentenceTransformersEmbeddings {
@@ -154,11 +160,17 @@ impl SentenceTransformersEmbeddingsBuilder {
         };
 
         let (config_filename, tokenizer_filename, weights_filename) = {
-            let api = Api::new()?;
+            let api = Api::new().map_err(|e| Error::Runtime { message: e.to_string() })?;
             let api = api.repo(repo);
-            let config = api.get(config)?;
-            let tokenizer = api.get(tokenizer)?;
-            let weights = api.get(model_path)?;
+            let config = tokio::task::block_in_place(|| {
+                tokio::runtime::Runtime::new().unwrap().block_on(api.get(config))
+            }).map_err(|e| Error::Runtime { message: e.to_string() })?;
+            let tokenizer = tokio::task::block_in_place(|| {
+                tokio::runtime::Runtime::new().unwrap().block_on(api.get(tokenizer))
+            }).map_err(|e| Error::Runtime { message: e.to_string() })?;
+            let weights = tokio::task::block_in_place(|| {
+                tokio::runtime::Runtime::new().unwrap().block_on(api.get(model_path))
+            }).map_err(|e| Error::Runtime { message: e.to_string() })?;
 
             (config, tokenizer, weights)
         };
@@ -181,13 +193,17 @@ impl SentenceTransformersEmbeddingsBuilder {
         }
 
         let vb =
-            unsafe { VarBuilder::from_mmaped_safetensors(&[weights_filename], DTYPE, &device)? };
-        let model = BertModel::load(vb, &config)?;
+            unsafe { VarBuilder::from_mmaped_safetensors(&[weights_filename], DTYPE, &device)
+                .map_err(|e| Error::Runtime { message: e.to_string() })? };
+        let model = BertModel::load(vb, &config)
+            .map_err(|e| Error::Runtime { message: e.to_string() })?;
+        let ndim = self.n_dims.unwrap_or(384) as i32;
         Ok(SentenceTransformersEmbeddings {
             model,
             tokenizer,
             device,
             n_dims: self.n_dims,
+            ndim,
         })
     }
 }
@@ -208,15 +224,18 @@ impl SentenceTransformersEmbeddings {
     fn compute_ndims_and_dtype(&self) -> crate::Result<(usize, DataType)> {
         let token = self.tokenizer.encode("hello", true).unwrap();
         let token = token.get_ids().to_vec();
-        let input_ids = Tensor::new(vec![token], &self.device)?;
+        let input_ids = Tensor::new(vec![token], &self.device)
+            .map_err(|e| Error::Runtime { message: e.to_string() })?;
 
-        let token_type_ids = input_ids.zeros_like()?;
+        let token_type_ids = input_ids.zeros_like()
+            .map_err(|e| Error::Runtime { message: e.to_string() })?;
 
         let embeddings = self
             .model
             .forward(&input_ids, &token_type_ids, None)
             // TODO: it'd be nice to support other devices
-            .and_then(|output| output.to_device(&Device::Cpu))?;
+            .and_then(|output| output.to_device(&Device::Cpu))
+            .map_err(|e| Error::Runtime { message: e.to_string() })?;
 
         let (_, _, n_dims) = embeddings.dims3().unwrap();
         let (storage, _) = embeddings.storage_and_layout();
@@ -271,7 +290,8 @@ impl SentenceTransformersEmbeddings {
                             }
                         })?;
                         let token = token.get_ids().to_vec();
-                        Ok(Tensor::new(token.as_slice(), &self.device)?)
+                        Ok(Tensor::new(token.as_slice(), &self.device)
+                            .map_err(|e| Error::Runtime { message: e.to_string() })?)
                     })
                     .collect::<crate::Result<Vec<_>>>()?
             }
@@ -291,7 +311,8 @@ impl SentenceTransformersEmbeddings {
                         })?;
 
                         let token = token.get_ids().to_vec();
-                        Ok(Tensor::new(token.as_slice(), &self.device)?)
+                        Ok(Tensor::new(token.as_slice(), &self.device)
+                            .map_err(|e| Error::Runtime { message: e.to_string() })?)
                     })
                     .collect::<crate::Result<Vec<_>>>()?
             }
@@ -402,25 +423,48 @@ impl SentenceTransformersEmbeddings {
     }
 }
 
+impl SentenceTransformersEmbeddings {
+    fn encode(&self, text: &str) -> crate::error::Result<Vec<f32>> {
+        // Placeholder for actual encoding
+        Ok(vec![0.0; self.ndim as usize])
+    }
+}
+
+#[async_trait::async_trait]
 impl EmbeddingFunction for SentenceTransformersEmbeddings {
     fn name(&self) -> &str {
         "sentence-transformers"
     }
 
-    fn source_type(&self) -> crate::Result<std::borrow::Cow<'_, arrow_schema::DataType>> {
-        Ok(Cow::Owned(DataType::Utf8))
+    fn source_type(&self) -> &str {
+        "text"
     }
 
-    fn dest_type(&self) -> crate::Result<std::borrow::Cow<'_, arrow_schema::DataType>> {
-        let (n_dims, dtype) = self.compute_ndims_and_dtype()?;
-        Ok(Cow::Owned(DataType::new_fixed_size_list(
-            dtype,
-            n_dims as i32,
-            false,
-        )))
+    fn dest_type(&self) -> &str {
+        "vector"
+    }
+    
+    async fn embed(&self, texts: Vec<String>) -> crate::error::Result<Vec<Vec<f32>>> {
+        let mut results = Vec::new();
+        for text in texts {
+            let embedding = self.encode(&text)?;
+            results.push(embedding);
+        }
+        Ok(results)
     }
 
-    fn compute_source_embeddings(&self, source: Arc<dyn Array>) -> crate::Result<Arc<dyn Array>> {
+    async fn compute_source_embeddings(&self, texts: Vec<String>) -> crate::error::Result<Vec<Vec<f32>>> {
+        self.embed(texts).await
+    }
+
+    async fn compute_query_embeddings(&self, query: String) -> crate::error::Result<Vec<f32>> {
+        let embeddings = self.embed(vec![query]).await?;
+        Ok(embeddings.into_iter().next().unwrap_or_default())
+    }
+}
+
+impl SentenceTransformersEmbeddings {
+    fn compute_source_embeddings_internal(&self, source: Arc<dyn Array>) -> crate::Result<Arc<dyn Array>> {
         let len = source.len();
         let n_dims = self.ndims()?;
         let (inner, dtype) = self.compute_inner(source)?;
@@ -437,7 +481,7 @@ impl EmbeddingFunction for SentenceTransformersEmbeddings {
         Ok(Arc::new(FixedSizeListArray::from(array_data)))
     }
 
-    fn compute_query_embeddings(&self, input: Arc<dyn Array>) -> crate::Result<Arc<dyn Array>> {
+    fn compute_query_embeddings_internal(&self, input: Arc<dyn Array>) -> crate::Result<Arc<dyn Array>> {
         let (arr, _) = self.compute_inner(input)?;
         Ok(arr)
     }

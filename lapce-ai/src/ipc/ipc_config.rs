@@ -35,6 +35,9 @@ pub struct SharedMemorySettings {
     pub slot_size: usize,
     pub num_slots: usize,
     pub permissions: u32,
+    pub ring_buffer_size: usize,  // Size per connection buffer
+    pub control_buffer_size: usize,  // Size of control channel
+    pub max_memory_per_connection: usize,  // Memory limit per connection
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -184,6 +187,9 @@ impl Default for IpcConfig {
                 slot_size: 1024,
                 num_slots: 1024,
                 permissions: 0o600,
+                ring_buffer_size: 32 * 1024,  // 32KB per connection (100 conns = 3.2MB)
+                control_buffer_size: 4096,  // 4KB control channel
+                max_memory_per_connection: 30 * 1024,  // 30KB max to stay under 3MB for 100 conns
             },
             metrics: MetricsSettings {
                 enable: true,

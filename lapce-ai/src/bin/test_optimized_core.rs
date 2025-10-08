@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 use std::thread;
 
 // Test the REAL optimized module
-use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer;
+use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer;
 
 const TEST_DURATION_SECS: u64 = 30;
 const NUM_THREADS: usize = 16;
@@ -31,7 +31,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("📏 Baseline memory: {:.2} MB", baseline_kb as f64 / 1024.0);
     
     // Use fixed-size slots: 256 bytes * 4096 slots = 1MB
-    let buffer = Arc::new(SharedMemoryBuffer::create("test", 4096)?);
+    let mut buffer = SharedMemoryBuffer::create("/test_optimized", 1024 * 1024)?;
     println!("✅ Created optimized SharedMemoryBuffer");
     
     let metrics = Arc::new(Metrics {
@@ -45,17 +45,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Producer threads
     let mut handles = vec![];
     for _ in 0..NUM_THREADS/2 {
-        let buffer = buffer.clone();
         let metrics = metrics.clone();
         let stop = stop_flag.clone();
         
         handles.push(thread::spawn(move || {
+            let mut local_buffer = SharedMemoryBuffer::open("/test_optimized", 1024 * 1024).unwrap();
             let msg = vec![0x42u8; MESSAGE_SIZE];
             
             while !stop.load(Ordering::Relaxed) {
                 let op_start = Instant::now();
                 
-                if buffer.write(&msg).is_ok() {
+                if local_buffer.write(&msg).is_ok() {
                     let lat = op_start.elapsed().as_nanos() as u64;
                     metrics.messages_sent.fetch_add(1, Ordering::Relaxed);
                     metrics.total_latency_ns.fetch_add(lat, Ordering::Relaxed);
@@ -86,14 +86,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // Consumer threads
     for _ in 0..NUM_THREADS/2 {
-        let buffer = buffer.clone();
         let metrics = metrics.clone();
         let stop = stop_flag.clone();
         
         handles.push(thread::spawn(move || {
+            let mut local_buffer = SharedMemoryBuffer::open("/test_optimized", 1024 * 1024).unwrap();
+            let mut temp = vec![0u8; MESSAGE_SIZE];
+            
             while !stop.load(Ordering::Relaxed) {
-                let mut temp = vec![0u8; MESSAGE_SIZE];
-                if buffer.read(&mut temp).unwrap_or(0) > 0 {
+                let op_start = Instant::now();
+                
+                if local_buffer.read().is_some() {
                     metrics.messages_received.fetch_add(1, Ordering::Relaxed);
                 }
             }
@@ -178,6 +181,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "⚠️ SOME TESTS FAILED" 
     });
     println!("{}", "=".repeat(80));
+    
+    // Cleanup
+    lapce_ai_rust::ipc::shared_memory_complete::cleanup_shared_memory("/test_optimized");
     
     Ok(())
 }

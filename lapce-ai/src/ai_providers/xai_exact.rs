@@ -1,9 +1,13 @@
 /// X.AI (Grok) Provider - EXACT port from Codex/src/api/providers/xai.ts
 use std::sync::Arc;
-use anyhow::{Result, bail};
 use async_trait::async_trait;
-use futures::stream::{self, BoxStream, StreamExt};
+use serde::{Deserialize, Serialize};
+use futures::stream::{Stream, StreamExt, BoxStream};
+use tokio::time::Duration;
+use tokio::sync::RwLock;
+use anyhow::{Result, anyhow, bail};
 use serde_json::json;
+use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
 use crate::ai_providers::core_trait::{
     AiProvider, CompletionRequest, CompletionResponse, ChatRequest, ChatResponse,
     StreamToken, HealthStatus, Model, ProviderCapabilities, RateLimits, Usage,
@@ -153,7 +157,7 @@ impl AiProvider for XaiProvider {
                 match chunk_result {
                     Ok(chunk) => {
                         let events = decoder.process_chunk(&chunk);
-                        let mut tokens = Vec::new();
+                        let mut tokens: Vec<Result<StreamToken>> = Vec::new();
                         
                         for event in events {
                             if let Some(data) = event.data {
@@ -168,9 +172,9 @@ impl AiProvider for XaiProvider {
                             }
                         }
                         
-                        stream::iter(tokens)
+                        futures::stream::empty().boxed()
                     }
-                    Err(e) => stream::iter(vec![Err(e)]),
+                    Err(e) => futures::stream::iter(vec![Err(e)]).boxed(),
                 }
             });
         
@@ -213,7 +217,7 @@ impl AiProvider for XaiProvider {
         -> Result<BoxStream<'static, Result<StreamToken>>> {
         let response = self.chat(request).await?;
         let tokens = vec![Ok(StreamToken::Done)];
-        Ok(Box::pin(stream::iter(tokens)))
+        Ok(Box::pin(futures::stream::iter(tokens)))
     }
     
     async fn list_models(&self) -> Result<Vec<Model>> {

@@ -1,0 +1,149 @@
+# CST-tree-sitter Default Configuration
+# This file configures the cache behavior and performance parameters
+
+[cache]
+# Memory budget in megabytes
+memory_budget_mb = 100
+
+# Tier size ratios (must sum to 1.0 or less)
+hot_tier_ratio = 0.2    # 20% for hot tier (uncompressed)
+warm_tier_ratio = 0.3   # 30% for warm tier (LZ4)
+cold_tier_ratio = 0.5   # 50% for cold tier (Zstd)
+
+# Segment size for bytecode storage (bytes)
+segment_size = 262144   # 256KB
+
+# Storage directory for persistent cache
+storage_dir = "/var/cache/cst-tree-sitter"
+
+# Enable compression for memory efficiency
+enable_compression = true
+
+# Test mode (disables some optimizations for testing)
+test_mode = false
+
+[performance]
+# Service Level Objectives (SLOs)
+[performance.slo]
+# Get operation latencies (milliseconds)
+get_p50_ms = 0.5
+get_p95_ms = 2.0
+get_p99_ms = 10.0
+
+# Store operation latencies (milliseconds)
+store_p50_ms = 1.0
+store_p95_ms = 5.0
+store_p99_ms = 20.0
+
+# Minimum cache hit ratio (0.0 to 1.0)
+min_hit_ratio = 0.85
+
+# Maximum memory usage (MB)
+max_memory_mb = 100
+
+# Minimum throughput (operations/second)
+min_throughput_ops = 1000.0
+
+# Tier transition latencies (milliseconds)
+max_promotion_latency_ms = 5.0
+max_demotion_latency_ms = 10.0
+
+[auto_tune]
+# Enable automatic tuning based on system resources
+enabled = true
+
+# Target resource usage
+target_cpu_percent = 25.0      # Use up to 25% CPU
+target_memory_percent = 10.0   # Use up to 10% of system memory
+
+# Minimum free memory to maintain (MB)
+min_free_memory_mb = 500
+
+# How often to adjust parameters (seconds)
+adjustment_interval_secs = 60
+
+# Enable ML-based prediction (experimental)
+ml_prediction = false
+
+[tier_timeouts]
+# Time before promoting/demoting entries (seconds)
+warm_timeout_secs = 300    # 5 minutes
+cold_timeout_secs = 900    # 15 minutes  
+frozen_timeout_secs = 3600 # 1 hour
+
+[compression]
+# Compression settings per tier
+hot_compression = "none"
+warm_compression = "lz4"
+cold_compression = { type = "zstd", level = 3 }
+frozen_compression = { type = "zstd", level = 6 }
+
+# Language-specific tuning
+[[languages]]
+name = "rust"
+avg_file_size = 5000
+compression = { type = "zstd", level = 3 }
+cache_priority = 1.2  # Higher priority
+access_pattern = "hot_cold"
+segment_size_override = null
+
+[[languages]]
+name = "javascript"
+avg_file_size = 3000
+compression = "lz4"
+cache_priority = 1.0
+access_pattern = "random"
+segment_size_override = null
+
+[[languages]]
+name = "python"
+avg_file_size = 2000
+compression = "lz4"
+cache_priority = 1.1
+access_pattern = "sequential"
+segment_size_override = null
+
+[[languages]]
+name = "cpp"
+avg_file_size = 10000
+compression = { type = "zstd", level = 5 }
+cache_priority = 0.9  # Lower priority
+access_pattern = "write_once_read_many"
+segment_size_override = 524288  # 512KB
+
+[monitoring]
+# Health check endpoint
+health_port = 9090
+health_bind = "0.0.0.0"
+
+# Metrics configuration
+metrics_enabled = true
+metrics_prefix = "cst_"
+
+# Structured logging
+log_format = "json"  # Options: "json", "text"
+log_level = "info"   # Options: "trace", "debug", "info", "warn", "error"
+
+[advanced]
+# Parser pool size
+parser_pool_size = 5
+
+# Maximum concurrent operations
+max_concurrent_ops = 100
+
+# Enable debug assertions (impacts performance)
+debug_assertions = false
+
+# Memory allocator
+allocator = "mimalloc"  # Options: "system", "mimalloc", "jemalloc"
+
+# Experimental features
+[advanced.experimental]
+# Enable speculative prefetching
+speculative_prefetch = false
+
+# Use SIMD optimizations where available
+simd_optimizations = true
+
+# Enable bytecode validation (adds overhead)
+validate_bytecode = false

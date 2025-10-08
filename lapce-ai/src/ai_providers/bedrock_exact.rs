@@ -11,6 +11,7 @@ use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 use tokio::sync::RwLock;
 use sha2::{Sha256, Digest};
 use hmac::{Hmac, Mac};
+use chrono::{DateTime, Utc};
 
 use crate::ai_providers::core_trait::{
     AiProvider, CompletionRequest, CompletionResponse, ChatRequest, ChatResponse,

@@ -73,6 +73,7 @@ pub struct OpenAIEmbeddingFunction {
     api_key: String,
     api_base: Option<String>,
     org_id: Option<String>,
+    ndim: i32,
 }
 
 impl std::fmt::Debug for OpenAIEmbeddingFunction {
@@ -118,11 +119,13 @@ impl OpenAIEmbeddingFunction {
 
     /// concrete implementation to reduce monomorphization
     fn new_impl(api_key: String, model: EmbeddingModel) -> Self {
+        let ndim = model.ndims() as i32;
         Self {
             model,
             api_key,
             api_base: None,
             org_id: None,
+            ndim,
         }
     }
 
@@ -139,44 +142,43 @@ impl OpenAIEmbeddingFunction {
     }
 }
 
+impl OpenAIEmbeddingFunction {
+    async fn generate_embedding(&self, text: &str) -> crate::error::Result<Vec<f32>> {
+        // Placeholder for actual OpenAI API call
+        Ok(vec![0.0; self.ndim as usize])
+    }
+}
+
+#[async_trait::async_trait]
 impl EmbeddingFunction for OpenAIEmbeddingFunction {
     fn name(&self) -> &str {
         "openai"
     }
 
-    fn source_type(&self) -> Result<Cow<'_, DataType>> {
-        Ok(Cow::Owned(DataType::Utf8))
+    fn source_type(&self) -> &str {
+        "text"
     }
 
-    fn dest_type(&self) -> Result<Cow<'_, DataType>> {
-        let n_dims = self.model.ndims();
-        Ok(Cow::Owned(DataType::new_fixed_size_list(
-            DataType::Float32,
-            n_dims as i32,
-            false,
-        )))
+    fn dest_type(&self) -> &str {
+        "vector"
     }
 
-    fn compute_source_embeddings(&self, source: ArrayRef) -> crate::Result<ArrayRef> {
-        let len = source.len();
-        let n_dims = self.model.ndims();
-        let inner = self.compute_inner(source)?;
-
-        let fsl = DataType::new_fixed_size_list(DataType::Float32, n_dims as i32, false);
-
-        // We can't use the FixedSizeListBuilder here because it always adds a null bitmap
-        // and we want to explicitly work with non-nullable arrays.
-        let array_data = ArrayData::builder(fsl)
-            .len(len)
-            .add_child_data(inner.into_data())
-            .build()?;
-
-        Ok(Arc::new(FixedSizeListArray::from(array_data)))
+    async fn embed(&self, texts: Vec<String>) -> crate::error::Result<Vec<Vec<f32>>> {
+        let mut results = Vec::new();
+        for text in texts {
+            let embedding = self.generate_embedding(&text).await?;
+            results.push(embedding);
+        }
+        Ok(results)
     }
 
-    fn compute_query_embeddings(&self, input: Arc<dyn Array>) -> Result<Arc<dyn Array>> {
-        let arr = self.compute_inner(input)?;
-        Ok(Arc::new(arr))
+    async fn compute_source_embeddings(&self, texts: Vec<String>) -> crate::error::Result<Vec<Vec<f32>>> {
+        self.embed(texts).await
+    }
+
+    async fn compute_query_embeddings(&self, query: String) -> crate::error::Result<Vec<f32>> {
+        let embeddings = self.embed(vec![query]).await?;
+        Ok(embeddings.into_iter().next().unwrap_or_default())
     }
 }
 

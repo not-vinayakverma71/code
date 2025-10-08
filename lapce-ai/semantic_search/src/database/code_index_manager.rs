@@ -2,12 +2,14 @@
 // SPDX-FileCopyrightText: Copyright The LanceDB Authors
 // Translation of manager.ts (Lines 1-424) - 100% EXACT
 
-use crate::error::{Error, Result};
-use crate::Connection;
-use crate::query::codebase_search::VectorStoreSearchResult;
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
+use crate::error::{Error, Result};
+use crate::embeddings::service_factory::{IEmbedder, IVectorStore};
+use crate::processors::scanner::DirectoryScanner;
+use crate::database::cache_manager::CacheManager;
+use crate::query::codebase_search::VectorStoreSearchResult;
+use std::collections::HashMap;
 use tokio::sync::RwLock;
 
 /// From manager.ts Line 5 - IndexingState enum
@@ -570,23 +572,7 @@ impl CodeIndexSearchService {
     }
 }
 
-pub struct CacheManager {
-    // Implementation placeholder
-}
-
-impl CacheManager {
-    pub fn new(_context: Arc<dyn std::any::Any + Send + Sync>, _workspace: PathBuf) -> Self {
-        Self {}
-    }
-    
-    pub async fn initialize(&self) -> Result<()> {
-        Ok(())
-    }
-    
-    pub async fn clear_cache_file(&self) -> Result<()> {
-        Ok(())
-    }
-}
+// Remove duplicate CacheManager - use the one from cache_manager.rs
 
 // Placeholder traits
 pub trait Embedder: Send + Sync {}

@@ -17,14 +17,14 @@ pub trait IpcTransport: Send + Sync {
 /// Linux/Unix: SharedMemory implementation (optimal)
 #[cfg(unix)]
 pub struct SharedMemoryTransport {
-    buffer: crate::shared_memory_complete::SharedMemoryBuffer,
+    buffer: super::shared_memory_complete::SharedMemoryBuffer,
 }
 
 #[cfg(unix)]
 impl SharedMemoryTransport {
     pub fn new(name: &str, size: usize) -> Result<Self> {
         Ok(Self {
-            buffer: crate::shared_memory_complete::SharedMemoryBuffer::create(name, size)?
+            buffer: super::shared_memory_complete::SharedMemoryBuffer::create(name, size)?
         })
     }
 }
@@ -38,7 +38,6 @@ impl IpcTransport for SharedMemoryTransport {
     
     fn read(&mut self) -> Result<Vec<u8>> {
         self.buffer.read()
-            .map_err(|e| anyhow!("Read error: {}", e))?
             .ok_or_else(|| anyhow!("No data available"))
     }
     
@@ -51,51 +50,39 @@ impl IpcTransport for SharedMemoryTransport {
     }
 }
 
-/// Windows: Named Pipes implementation
+/// Windows: Shared Memory implementation using Windows API
 #[cfg(windows)]
-pub struct NamedPipeTransport {
-    pipe_name: String,
-    buffer: Vec<u8>,
+pub struct WindowsSharedMemoryTransport {
+    mem: super::windows_shared_memory::WindowsSharedMemory,
 }
 
 #[cfg(windows)]
-impl NamedPipeTransport {
+impl WindowsSharedMemoryTransport {
     pub fn new(name: &str, size: usize) -> Result<Self> {
-        // Windows named pipe format: \\.\pipe\name
-        let pipe_name = format!("\\\\.\\pipe\\{}", name);
         Ok(Self {
-            pipe_name,
-            buffer: Vec::with_capacity(size),
+            mem: super::windows_shared_memory::WindowsSharedMemory::create(name, size)?
         })
     }
 }
 
 #[cfg(windows)]
-impl IpcTransport for NamedPipeTransport {
+impl IpcTransport for WindowsSharedMemoryTransport {
     fn write(&mut self, data: &[u8]) -> Result<()> {
-        // Windows implementation would use:
-        // - CreateNamedPipe
-        // - ConnectNamedPipe
-        // - WriteFile
-        // For now, we simulate with in-memory buffer
-        self.buffer.clear();
-        self.buffer.extend_from_slice(data);
+        self.mem.write(data)?;
         Ok(())
     }
     
     fn read(&mut self) -> Result<Vec<u8>> {
-        if self.buffer.is_empty() {
-            return Err(anyhow!("No data available"));
-        }
-        Ok(self.buffer.clone())
+        self.mem.read()
+            .ok_or_else(|| anyhow!("No data available"))
     }
     
     fn platform_name(&self) -> &str {
-        "NamedPipe (Windows)"
+        "SharedMemory (Windows)"
     }
     
     fn expected_performance(&self) -> &str {
-        "2-5M msg/sec (native)"
+        "3-5M msg/sec (CreateFileMapping)"
     }
 }
 

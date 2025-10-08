@@ -4,6 +4,9 @@
 
 use crate::error::{Error, Result};
 use crate::database::config_manager::{CodeIndexConfigManager, EmbedderProvider};
+use crate::database::cache_manager::CacheManager;
+use crate::embeddings::aws_titan_production::AwsTitanProduction;
+use crate::embeddings::config::TitanConfig;
 pub use crate::embeddings::embedder_interface::{IEmbedder, EmbeddingResponse};
 // Optimized wrapper removed - using direct embedders now
 use std::sync::Arc;
@@ -34,7 +37,7 @@ impl CodeIndexServiceFactory {
     
     /// Lines 32-79: Create embedder based on configuration
     /// OPTIMIZED: Now wraps ALL embedders with memory optimization
-    pub fn create_embedder(&self) -> Result<Arc<dyn IEmbedder>> {
+    pub async fn create_embedder(&self) -> Result<Arc<dyn IEmbedder>> {
         let config = self.config_manager.get_config();
         
         // Line 35: Get provider type
@@ -58,15 +61,10 @@ impl CodeIndexServiceFactory {
                 Arc::new(embedder)
             },
             EmbedderProvider::AwsTitan => {
-                // Use Production AWS Titan embedder with enterprise features
-                use tokio::runtime::Handle;
-                let embedder = tokio::task::block_in_place(move || {
-                    Handle::current().block_on(async move {
-                        crate::embeddings::aws_titan_production::AwsTitanProduction::new("us-east-1", crate::embeddings::aws_titan_production::AwsTier::Standard).await
-                    })
-                })?;
-
-                Arc::new(embedder)
+                let embedder = AwsTitanProduction::new_from_config()
+                    .await
+                    .expect("Failed to create AWS Titan embedder");
+                Arc::new(embedder) as Arc<dyn IEmbedder>
             },
             EmbedderProvider::Gemini => {
                 // Use Gemini embedder
@@ -185,18 +183,14 @@ impl CodeIndexServiceFactory {
             }
         })?;
         
-        // Lines 136-141: Create vector store
-        let qdrant_url = config.qdrant_url
-            .ok_or_else(|| Error::Runtime {
-                message: "Qdrant URL missing from configuration".to_string()
-            })?;
+        // Lines 136-141: Create vector store (LanceDB)
+        let config = TitanConfig::from_env()
+            .expect("Failed to load Titan config");
         
-        Ok(Arc::new(LanceDbVectorStore::new(
+        Ok(Arc::new(LanceVectorStore::new(
             self.workspace_path.clone(),
-            qdrant_url,
-            vector_size,
-            config.qdrant_api_key,
-        )))
+            config.dimensions,
+        )) as Arc<dyn IVectorStore>)
     }
     
     /// Lines 147-154: Create directory scanner
@@ -206,14 +200,14 @@ impl CodeIndexServiceFactory {
         vector_store: Arc<dyn IVectorStore>,
         parser: Arc<dyn ICodeParser>,
         ignore_instance: Arc<dyn Ignore>,
-    ) -> DirectoryScanner {
-        DirectoryScanner::new(
+    ) -> Arc<DirectoryScanner> {
+        Arc::new(DirectoryScanner::new(
             embedder,
             vector_store,
             parser,
             self.cache_manager.clone(),
             ignore_instance,
-        )
+        ))
     }
     
     /// Lines 159-176: Create file watcher
@@ -238,7 +232,7 @@ impl CodeIndexServiceFactory {
     }
     
     /// Lines 182-218: Create all services
-    pub fn create_services(
+    pub async fn create_services(
         &self,
         context: Arc<dyn std::any::Any + Send + Sync>,
         cache_manager: Arc<CacheManager>,
@@ -253,15 +247,15 @@ impl CodeIndexServiceFactory {
         }
         
         // Lines 198-209: Create all service instances
-        let embedder = self.create_embedder()?;
+        let embedder = self.create_embedder().await?;
         let vector_store = self.create_vector_store()?;
-        let parser = Arc::new(CodeParser::new());
-        let scanner = Arc::new(self.create_directory_scanner(
+        let parser = Arc::new(CodeParser::new()) as Arc<dyn ICodeParser>;
+        let scanner = self.create_directory_scanner(
             embedder.clone(),
             vector_store.clone(),
             parser.clone(),
             ignore_instance.clone(),
-        ));
+        );
         let file_watcher = self.create_file_watcher(
             context,
             embedder.clone(),
@@ -314,6 +308,12 @@ pub trait IVectorStore: Send + Sync {
         min_score: Option<f32>,
         max_results: Option<usize>,
     ) -> Result<Vec<crate::query::codebase_search::VectorStoreSearchResult>>;
+    async fn clear_collection(&self) -> Result<()> {
+        Ok(())
+    }
+    async fn delete_collection(&self) -> Result<()> {
+        Ok(())
+    }
 }
 
 /// Code parser interface
@@ -325,12 +325,17 @@ pub trait ICodeParser: Send + Sync {
 pub trait IFileWatcher: Send + Sync {
     fn start(&self);
     fn stop(&self);
+    fn initialize(&self) -> Result<()> {
+        Ok(())
+    }
+    fn dispose(&self) {}
+    fn on_did_start_batch_processing(&self, _handler: Box<dyn Fn(Vec<String>) + Send + 'static>) {}
+    fn on_batch_progress_update(&self, _handler: Box<dyn Fn(crate::index::orchestrator::BatchProgressUpdate) + Send + 'static>) {}
+    fn on_did_finish_batch_processing(&self, _handler: Box<dyn Fn(crate::index::orchestrator::BatchProcessingSummary) + Send + 'static>) {}
 }
 
-/// Ignore interface
-pub trait Ignore: Send + Sync {
-    fn ignores(&self, path: &str) -> bool;
-}
+// Re-use the Ignore trait from processors::scanner to keep types consistent
+pub use crate::processors::scanner::Ignore;
 
 // REAL AWS Bedrock Titan Implementation - NO MOCKS
 
@@ -445,85 +450,11 @@ impl IEmbedder for AwsTitanEmbedder {
     }
 }
 
-/// LanceDB Vector Store (replacing Qdrant)
-pub struct LanceDbVectorStore {
-    workspace_path: PathBuf,
-    url: String,
-    vector_size: usize,
-    api_key: Option<String>,
-}
+// Use real LanceDB Vector Store from storage module
+pub use crate::storage::lance_store::LanceVectorStore;
 
-impl LanceDbVectorStore {
-    pub fn new(
-        workspace_path: PathBuf,
-        url: String,
-        vector_size: usize,
-        api_key: Option<String>,
-    ) -> Self {
-        Self {
-            workspace_path,
-            url,
-            vector_size,
-            api_key,
-        }
-    }
-}
-
-#[async_trait::async_trait]
-impl IVectorStore for LanceDbVectorStore {
-    async fn initialize(&self) -> Result<bool> {
-        Ok(true)
-    }
-    
-    async fn upsert_points(&self, _points: Vec<PointStruct>) -> Result<()> {
-        Ok(())
-    }
-    
-    async fn delete_points_by_file_path(&self, _path: &str) -> Result<()> {
-        Ok(())
-    }
-    
-    async fn delete_points_by_multiple_file_paths(&self, _paths: &[String]) -> Result<()> {
-        Ok(())
-    }
-    
-    async fn search(
-        &self,
-        _vector: Vec<f32>,
-        _directory_prefix: Option<&str>,
-        _min_score: Option<f32>,
-        _max_results: Option<usize>,
-    ) -> Result<Vec<crate::query::codebase_search::VectorStoreSearchResult>> {
-        Ok(Vec::new())
-    }
-}
-
-/// Directory scanner
-pub struct DirectoryScanner {
-    embedder: Arc<dyn IEmbedder>,
-    vector_store: Arc<dyn IVectorStore>,
-    parser: Arc<dyn ICodeParser>,
-    cache_manager: Arc<CacheManager>,
-    ignore_instance: Arc<dyn Ignore>,
-}
-
-impl DirectoryScanner {
-    pub fn new(
-        embedder: Arc<dyn IEmbedder>,
-        vector_store: Arc<dyn IVectorStore>,
-        parser: Arc<dyn ICodeParser>,
-        cache_manager: Arc<CacheManager>,
-        ignore_instance: Arc<dyn Ignore>,
-    ) -> Self {
-        Self {
-            embedder,
-            vector_store,
-            parser,
-            cache_manager,
-            ignore_instance,
-        }
-    }
-}
+// Use real DirectoryScanner from processors
+pub use crate::processors::scanner::DirectoryScanner;
 
 /// File watcher
 pub struct FileWatcher {
@@ -563,20 +494,8 @@ impl IFileWatcher for FileWatcher {
     fn stop(&self) {}
 }
 
-/// Code parser
-pub struct CodeParser;
-
-impl CodeParser {
-    pub fn new() -> Self {
-        Self
-    }
-}
-
-impl ICodeParser for CodeParser {
-    fn parse(&self, _content: &str) -> Vec<CodeBlock> {
-        Vec::new()
-    }
-}
+// Use real CodeParser from processors
+pub use crate::processors::parser::CodeParser;
 
 // Supporting types are imported from embedder_interface
 
@@ -587,14 +506,9 @@ pub struct PointStruct {
     pub payload: std::collections::HashMap<String, serde_json::Value>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CodeBlock {
-    pub content: String,
-    pub start_line: usize,
-    pub end_line: usize,
-}
+// Re-export unified CodeBlock type used across the crate
+pub use crate::types::CodeBlock;
 
-pub struct CacheManager;
 pub struct RooIgnoreController;
 
 // Helper functions

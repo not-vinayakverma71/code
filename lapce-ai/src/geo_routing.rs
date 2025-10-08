@@ -66,7 +66,7 @@ impl GeoRoutingPool {
             let start = Instant::now();
             
             // Ping regional endpoint
-            if let Ok(conn) = pool.get_https_connection().await {
+            if let Ok(_conn) = pool.get_https_connection().await {
                 // Simulate latency check
                 let latency = start.elapsed();
                 self.latency_map.write().await.insert(region.clone(), latency);

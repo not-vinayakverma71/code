@@ -181,7 +181,7 @@ impl CompactTree {
     
     /// Memory usage in bytes
     pub fn memory_bytes(&self) -> usize {
-        let bp_bytes = (self.bp.len() + 7) / 8;
+        let bp_bytes = 0; // No BP anymore
         let kind_bytes = self.kind_ids.memory_bytes();
         let flag_bytes = (self.is_named.len() + self.is_missing.len() 
                          + self.is_extra.len() + self.is_error.len() 

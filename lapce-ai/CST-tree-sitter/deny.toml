@@ -1,0 +1,79 @@
+# cargo-deny configuration for CST-tree-sitter
+# This file configures cargo-deny to check for security advisories,
+# license compatibility, and banned dependencies.
+
+[advisories]
+# The lint level for security vulnerabilities
+vulnerability = "deny"
+# The lint level for unmaintained crates
+unmaintained = "warn"
+# The lint level for crates with security notices
+notice = "warn"
+# The lint level for crates that have been yanked
+yanked = "deny"
+# Ignore specific advisories
+ignore = [
+    # Add specific advisory IDs to ignore if needed
+    # Example: "RUSTSEC-2020-0001",
+]
+
+[licenses]
+# The lint level for crates which do not have a license
+unlicensed = "deny"
+# Lint level for licenses not explicitly allowed
+default = "deny"
+# List of allowed licenses
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-DFS-2016",
+    "CC0-1.0",
+    "MPL-2.0",  # For some dependencies
+]
+# List of denied licenses
+deny = [
+    "GPL-2.0",
+    "GPL-3.0",
+    "AGPL-3.0",
+    "LGPL-2.0",
+    "LGPL-2.1",
+    "LGPL-3.0",
+]
+# Confidence threshold for license detection (0.0 to 1.0)
+confidence-threshold = 0.8
+# Allow licenses from crates.io
+allow-osi-fsf-free = "neither"
+# Copyleft licenses require special attention
+copyleft = "warn"
+
+[bans]
+# Lint level for when multiple versions of the same crate are detected
+multiple-versions = "warn"
+# Lint level for when a crate marked as 'deny' is detected
+deny = [
+    # Example: { name = "openssl" },  # Prefer rustls
+]
+# Skip certain crates when checking for duplicates
+skip = [
+    # Example: { name = "winapi" },  # Multiple versions often needed
+]
+# Similarly named crates that are allowed to coexist
+allow = [
+    # Example: { name = "num-traits", version = "*" },
+]
+
+[sources]
+# Lint level for what to happen when a crate from a crate registry that is not in the allow list is detected
+unknown-registry = "warn"
+# Lint level for what to happen when a crate from a git repository not in the allow list is detected
+unknown-git = "warn"
+# List of allowed crate registries
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+# List of allowed Git repositories
+allow-git = [
+    # Add any private git dependencies here if needed
+]

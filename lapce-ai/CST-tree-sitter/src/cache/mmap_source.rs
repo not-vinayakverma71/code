@@ -1,7 +1,7 @@
 //! Memory-mapped source storage - Phase 4b
 //! Reduces RAM usage by keeping source files memory-mapped
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::fs;
 use std::io;
@@ -69,7 +69,7 @@ impl MmapSourceStorage {
         }
         
         // Evict if at capacity
-        if self.mmaps.len() >= self.max_mapped_files {
+        while self.mmaps.len() >= self.max_mapped_files {
             self.evict_lru();
         }
         
@@ -140,26 +140,21 @@ impl MmapSourceStorage {
     
     /// Evict least recently used
     fn evict_lru(&self) {
-        let lru = self.lru_tracker.read();
-        if lru.is_empty() {
-            return;
-        }
-        
         // Find least accessed entry
         let mut min_access = u64::MAX;
-        let mut evict_hash = 0;
+        let mut evict_hash = None;
         
         for item in self.mmaps.iter() {
             let hash = *item.key();
             let access = item.value().access_count.load(Ordering::Relaxed);
             if access < min_access {
                 min_access = access;
-                evict_hash = hash;
+                evict_hash = Some(hash);
             }
         }
         
-        if evict_hash != 0 {
-            if let Some((_, entry)) = self.mmaps.remove(&evict_hash) {
+        if let Some(hash) = evict_hash {
+            if let Some((_, entry)) = self.mmaps.remove(&hash) {
                 self.stats.evictions.fetch_add(1, Ordering::Relaxed);
                 self.stats.total_mapped.fetch_sub(1, Ordering::Relaxed);
                 self.stats.total_bytes_mapped.fetch_sub(entry.size, Ordering::Relaxed);

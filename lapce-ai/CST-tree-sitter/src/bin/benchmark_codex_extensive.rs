@@ -25,7 +25,9 @@ use parking_lot::RwLock;
 
 // Import language parsers
 use tree_sitter_rust;
+#[cfg(feature = "lang-javascript")]
 use tree_sitter_javascript;
+#[cfg(feature = "lang-typescript")]
 use tree_sitter_typescript;
 use tree_sitter_python;
 use tree_sitter_go;
@@ -148,8 +150,14 @@ fn get_language(path: &Path) -> Option<(Language, &'static str)> {
     
     match ext {
         "rs" => Some((tree_sitter_rust::LANGUAGE.into(), "rust")),
+        #[cfg(feature = "lang-javascript")]
         "js" | "mjs" => Some((tree_sitter_javascript::language(), "javascript")),
+        #[cfg(feature = "lang-typescript")]
         "ts" | "tsx" => Some((tree_sitter_typescript::language_typescript(), "typescript")),
+        #[cfg(not(feature = "lang-javascript"))]
+        "js" | "mjs" => None,
+        #[cfg(not(feature = "lang-typescript"))]
+        "ts" | "tsx" => None,
         "py" => Some((tree_sitter_python::LANGUAGE.into(), "python")),
         "go" => Some((tree_sitter_go::LANGUAGE.into(), "go")),
         "java" => Some((tree_sitter_java::LANGUAGE.into(), "java")),
@@ -287,6 +295,7 @@ fn main() {
         segment_size: 256 * 1024,
         storage_dir: tempdir().unwrap().path().to_path_buf(),
         enable_compression: true,
+        test_mode: false,
     };
     
     let cache = Arc::new(Phase4Cache::new(phase4_config).unwrap());

@@ -164,7 +164,7 @@ mod tests {
     
     #[test]
     fn test_stream_buffer() {
-        let mut buffer = StreamBuffer::new();
+        let mut buffer = crate::buffer_management::StreamBuffer::new();
         
         buffer.push(crate::streaming_pipeline::stream_transform::ApiStreamChunk::text("Hello ".to_string()));
         buffer.push(crate::streaming_pipeline::stream_transform::ApiStreamChunk::text("World".to_string()));

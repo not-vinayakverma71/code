@@ -20,43 +20,7 @@ pub use crate::streaming_pipeline::stream_transform::{
 };
 
 // Remove duplicate definitions - using from stream_transform
-
-// ApiStreamChunk methods are implemented in stream_transform.rs
-
-impl ApiStreamChunk {
-    pub fn is_text(&self) -> bool {
-        matches!(self, ApiStreamChunk::Text(_))
-    }
-    
-    pub fn is_usage(&self) -> bool {
-        matches!(self, ApiStreamChunk::Usage(_))
-    }
-    
-    pub fn is_reasoning(&self) -> bool {
-        matches!(self, ApiStreamChunk::Reasoning(_))
-    }
-    
-    pub fn is_error(&self) -> bool {
-        matches!(self, ApiStreamChunk::Error(_))
-    }
-    
-    pub fn as_text(&self) -> Option<&str> {
-        match self {
-            ApiStreamChunk::Text(chunk) => Some(&chunk.text),
-            ApiStreamChunk::Reasoning(chunk) => Some(&chunk.text),
-            _ => None,
-        }
-    }
-    
-    pub fn as_usage(&self) -> Option<&ApiStreamUsageChunk> {
-        match self {
-            ApiStreamChunk::Usage(chunk) => Some(chunk),
-            _ => None,
-        }
-    }
-    
-    // Remove duplicate constructor methods - they're in stream_transform.rs
-}
+// ApiStreamChunk methods are implemented in src/buffer_management.rs
 
 /// Stream buffer for accumulating chunks
 pub struct StreamBuffer {
@@ -168,14 +132,14 @@ mod tests {
     #[test]
     fn test_stream_chunk_creation() {
         // Use stream_transform constructors
-        let text_chunk = crate::stream_transform::ApiStreamChunk::text("Hello".to_string());
+        let text_chunk = crate::streaming_pipeline::stream_transform::ApiStreamChunk::text("Hello".to_string());
         assert!(text_chunk.is_text());
         assert_eq!(text_chunk.as_text(), Some("Hello"));
         
-        let usage_chunk = crate::stream_transform::ApiStreamChunk::usage(100, 50, None, None, None, None);
+        let usage_chunk = crate::streaming_pipeline::stream_transform::ApiStreamChunk::usage(100, 50, None, None, None, None);
         assert!(usage_chunk.is_usage());
         
-        let error_chunk = crate::stream_transform::ApiStreamChunk::error("ERROR".to_string(), "Test error".to_string());
+        let error_chunk = crate::streaming_pipeline::stream_transform::ApiStreamChunk::error("ERROR".to_string(), "Test error".to_string());
         assert!(error_chunk.is_error());
     }
     
@@ -183,9 +147,9 @@ mod tests {
     fn test_stream_buffer() {
         let mut buffer = StreamBuffer::new();
         
-        buffer.push(crate::stream_transform::ApiStreamChunk::text("Hello ".to_string()));
-        buffer.push(crate::stream_transform::ApiStreamChunk::text("World".to_string()));
-        buffer.push(crate::stream_transform::ApiStreamChunk::usage(10, 5, None, None, None, None));
+        buffer.push(crate::streaming_pipeline::stream_transform::ApiStreamChunk::text("Hello ".to_string()));
+        buffer.push(crate::streaming_pipeline::stream_transform::ApiStreamChunk::text("World".to_string()));
+        buffer.push(crate::streaming_pipeline::stream_transform::ApiStreamChunk::usage(10, 5, None, None, None, None));
         
         assert_eq!(buffer.get_text(), "Hello World");
         assert_eq!(buffer.get_usage(), (10, 5));

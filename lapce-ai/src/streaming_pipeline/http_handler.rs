@@ -194,7 +194,8 @@ mod tests {
     
     #[test]
     fn test_parse_done_event() {
-        let event = SseEvent::new(b"[DONE]");
+        let done_bytes = b"[DONE]";
+        let event = SseEvent::new(&done_bytes[..]);
         let token = HttpStreamHandler::parse_token_from_event(event);
         
         assert!(matches!(token, Some(StreamToken::Done)));

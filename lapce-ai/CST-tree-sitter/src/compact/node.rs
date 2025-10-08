@@ -4,6 +4,7 @@ use super::tree::CompactTree;
 use std::fmt;
 
 /// Reference to a node in CompactTree (simplified)
+#[derive(Clone, Copy)]
 pub struct CompactNode<'tree> {
     tree: &'tree CompactTree,
     index: usize, // Node index
@@ -71,25 +72,25 @@ impl<'tree> CompactNode<'tree> {
     /// Check if named
     pub fn is_named(&self) -> bool {
         let idx = self.index();
-        self.tree.is_named.get(idx)
+        self.tree.is_named.get(idx).copied().unwrap_or(false)
     }
     
     /// Check if missing
     pub fn is_missing(&self) -> bool {
         let idx = self.index();
-        self.tree.is_missing.get(idx)
+        self.tree.is_missing.get(idx).copied().unwrap_or(false)
     }
     
     /// Check if extra
     pub fn is_extra(&self) -> bool {
         let idx = self.index();
-        self.tree.is_extra.get(idx)
+        self.tree.is_extra.get(idx).copied().unwrap_or(false)
     }
     
     /// Check if error
     pub fn is_error(&self) -> bool {
         let idx = self.index();
-        self.tree.is_error.get(idx)
+        self.tree.is_error.get(idx).copied().unwrap_or(false)
     }
     
     /// Get field name
@@ -170,7 +171,7 @@ impl<'tree> CompactNode<'tree> {
     
     /// Walk tree in preorder
     pub fn walk(&self) -> TreeWalker<'tree> {
-        TreeWalker::new(*self)
+        TreeWalker::new(self.clone())
     }
 }
 
@@ -191,7 +192,7 @@ impl<'tree> Iterator for ChildIterator<'tree> {
     type Item = CompactNode<'tree>;
     
     fn next(&mut self) -> Option<Self::Item> {
-        let node = self.current?;
+        let node = self.current.clone()?;
         self.current = node.next_sibling();
         Some(node)
     }

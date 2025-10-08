@@ -315,7 +315,7 @@ mod tests {
         let workspace = tempdir().unwrap().path().to_path_buf();
         let handler = McpIpcHandler::new(config, workspace);
         
-        let request_id = RequestId::new();
+        let request_id: RequestId = 1;
         let response = handler.handle_request(
             request_id,
             McpRequest::ListTools
@@ -339,7 +339,7 @@ mod tests {
         // Create test file
         std::fs::write(workspace.join("test.txt"), "Hello IPC").unwrap();
         
-        let request_id = RequestId::new();
+        let request_id: RequestId = 1;
         let response = handler.handle_request(
             request_id,
             McpRequest::ExecuteTool {

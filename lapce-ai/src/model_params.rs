@@ -13,7 +13,7 @@ pub enum Format {
 }
 
 /// VerbosityLevel
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum VerbosityLevel {
     Minimal,
     Normal,
@@ -21,7 +21,7 @@ pub enum VerbosityLevel {
 }
 
 /// ReasoningEffortWithMinimal
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ReasoningEffortWithMinimal {
     Minimal,
     Low,

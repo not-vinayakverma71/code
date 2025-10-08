@@ -8,6 +8,7 @@ use async_trait::async_trait;
 use futures::stream::{self, StreamExt, BoxStream};
 use serde_json::json;
 use tokio::sync::RwLock;
+use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE, AUTHORIZATION};
 
 use crate::ai_providers::core_trait::{
     AiProvider, CompletionRequest, CompletionResponse, ChatRequest, ChatResponse,
@@ -19,7 +20,7 @@ use crate::ai_providers::streaming_integration::{
     process_response_with_pipeline, ProviderType
 };
 
-struct VertexAiConfig {
+pub struct VertexAiConfig {
     pub project_id: String,
     pub location: String,
     pub access_token: String, // OAuth2 access token

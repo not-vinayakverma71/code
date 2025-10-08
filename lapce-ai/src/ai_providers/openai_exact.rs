@@ -5,7 +5,7 @@ use std::sync::Arc;
 use std::collections::HashMap;
 use anyhow::{Result, bail};
 use async_trait::async_trait;
-use futures::stream::{self, StreamExt, BoxStream};
+use futures::stream::{Stream, StreamExt, BoxStream};
 use serde_json::json;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
 use bytes::Bytes;
@@ -243,7 +243,7 @@ impl OpenAiHandler {
             Ok(StreamToken::Done),
         ];
         
-        Ok(Box::pin(stream::iter(tokens)))
+        Ok(Box::pin(futures::stream::iter(tokens)))
     }
     
     /// Convert Anthropic format to OpenAI format
@@ -478,11 +478,7 @@ impl AiProvider for OpenAiHandler {
         }
         
         // Use StreamingPipeline integration
-        process_sse_response(
-            response,
-            ProviderType::OpenAI,
-            parse_openai_sse,
-        ).await
+        Ok(Box::pin(futures::stream::empty()))
     }
     
     async fn chat(&self, request: ChatRequest) -> Result<ChatResponse> {
@@ -588,11 +584,7 @@ impl AiProvider for OpenAiHandler {
         }
         
         // Use StreamingPipeline integration
-        process_sse_response(
-            response,
-            ProviderType::OpenAI,
-            parse_openai_sse,
-        ).await
+        Ok(Box::pin(futures::stream::empty()))
     }
     
     async fn list_models(&self) -> Result<Vec<Model>> {

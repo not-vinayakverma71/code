@@ -1,0 +1,51 @@
+{
+  "files_processed": 1720,
+  "final_reduction_percent": -3975.7881462799496,
+  "results": [
+    {
+      "compression_ratio": 1.0,
+      "lines_per_mb": 35142,
+      "memory_mb": 0.0007562637329101562,
+      "phase": "Baseline (no optimization)"
+    },
+    {
+      "compression_ratio": 0.8978731897717949,
+      "lines_per_mb": 31553,
+      "memory_mb": 0.0010919570922851562,
+      "phase": "Phase 1 only (Varint+Packing+Interning)"
+    },
+    {
+      "compression_ratio": 78.61359223300971,
+      "lines_per_mb": 2762692,
+      "memory_mb": 0.000049591064453125,
+      "phase": "Phase 1+2 (+ Delta compression)"
+    },
+    {
+      "compression_ratio": 0.6438024512707569,
+      "lines_per_mb": 22624,
+      "memory_mb": 0.001316070556640625,
+      "phase": "Phase 1+2+3 (+ Bytecode)"
+    },
+    {
+      "compression_ratio": 0.6438024512707569,
+      "lines_per_mb": 22624,
+      "memory_mb": 0.001316070556640625,
+      "phase": "Phase 1-4a (+ Frozen tier)"
+    },
+    {
+      "compression_ratio": 0.02272769694570258,
+      "lines_per_mb": 798,
+      "memory_mb": 0.030823707580566406,
+      "phase": "Phase 1-4b (+ Mmap)"
+    },
+    {
+      "compression_ratio": 0.02272769694570258,
+      "lines_per_mb": 798,
+      "memory_mb": 0.030823707580566406,
+      "phase": "ALL PHASES (1-4c)"
+    }
+  ],
+  "target_achieved": false,
+  "test_type": "ALL_PHASES_COMPLETE",
+  "timestamp": "2025-10-07T12:08:54.550410162+05:30"
+}

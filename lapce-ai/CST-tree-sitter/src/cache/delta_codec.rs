@@ -5,13 +5,26 @@ use std::sync::Arc;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use dashmap::DashMap;
-use bytes::Bytes;
+use serde::{Serialize, Deserialize};
 
 /// Chunk size for deduplication (4KB default)
 const CHUNK_SIZE: usize = 4096;
 
 /// Minimum size for delta encoding to be worthwhile
 const MIN_DELTA_BENEFIT: usize = 256;
+
+/// Delta codec format version
+const DELTA_FORMAT_VERSION: u16 = 1;
+
+/// Header for versioned delta-compressed data
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeltaHeader {
+    version: u16,
+    original_size: usize,
+    compressed_size: usize,
+    checksum: u32,
+    chunk_count: usize,
+}
 
 /// CRC32 checksum for validation
 fn crc32(data: &[u8]) -> u32 {
@@ -261,24 +274,57 @@ mod tests {
         let store = Arc::new(ChunkStore::new());
         let codec = DeltaCodec::new(store.clone());
         
-        // Test with repeated patterns
-        let source1 = b"fn main() { println!(\"Hello\"); }\nfn test() { println!(\"World\"); }";
-        let source2 = b"fn main() { println!(\"Hello\"); }\nfn other() { println!(\"Rust\"); }";
+        // Create large sources with guaranteed duplicate chunks
+        // Use a repeating block that's larger than MIN_CHUNK_SIZE (1024)
+        let block = vec![0xAA; 2048]; // 2KB block of 0xAA
         
-        let entry1 = codec.encode(source1).unwrap();
-        let entry2 = codec.encode(source2).unwrap();
+        // Source 1: Block repeated 10 times = 20KB
+        let mut source1 = Vec::new();
+        for _ in 0..10 {
+            source1.extend_from_slice(&block);
+        }
         
-        // Should share some chunks due to common prefix
+        // Source 2: Exact same blocks - guaranteed maximum deduplication
+        let mut source2 = Vec::new();
+        for _ in 0..10 {
+            source2.extend_from_slice(&block);
+        }
+        
+        // Source 3: Slightly different to add variety
+        let mut source3 = Vec::new();
+        for i in 0..10 {
+            let mut block_copy = block.clone();
+            if i == 5 {
+                // Modify one block slightly
+                block_copy[0] = 0xBB;
+            }
+            source3.extend_from_slice(&block_copy);
+        }
+        
+        let entry1 = codec.encode(&source1).unwrap();
+        let entry2 = codec.encode(&source2).unwrap();
+        let entry3 = codec.encode(&source3).unwrap();
+        
+        // With identical blocks across multiple sources, we MUST have significant deduplication
         let (total, unique, saved) = store.stats();
-        assert!(unique < total, "Should have chunk deduplication");
-        assert!(saved > 0, "Should save bytes through deduplication");
         
-        // Decode and verify
+        // Strong assertions - we know we have duplicate blocks
+        assert!(total > 0, "Should have created chunks");
+        assert!(unique < total, "Should have deduplication: unique {} < total {}", unique, total);
+        assert!(saved > 0, "Should have saved bytes through deduplication: saved {}", saved);
+        
+        // Verify the ratio makes sense - with 3 nearly identical sources, dedup should be high
+        let dedup_ratio = (total - unique) as f64 / total as f64;
+        assert!(dedup_ratio > 0.5, "Should have at least 50% deduplication with 3 similar sources, got {:.1}%", dedup_ratio * 100.0);
+        
+        // Decode and verify all three
         let decoded1 = codec.decode(&entry1).unwrap();
         let decoded2 = codec.decode(&entry2).unwrap();
+        let decoded3 = codec.decode(&entry3).unwrap();
         
         assert_eq!(decoded1, source1);
         assert_eq!(decoded2, source2);
+        assert_eq!(decoded3, source3);
     }
     
     #[test]
@@ -286,11 +332,15 @@ mod tests {
         let store = Arc::new(ChunkStore::new());
         let codec = DeltaCodec::new(store);
         
-        let source = b"The quick brown fox jumps over the lazy dog. The quick brown fox is fast.";
+        // Make source large enough for delta encoding (> 256 bytes)
+        let mut source = Vec::new();
+        for _ in 0..10 {
+            source.extend_from_slice(b"The quick brown fox jumps over the lazy dog. ");
+        }
         
-        let entry = codec.encode(source).unwrap();
+        let entry = codec.encode(&source).unwrap();
         assert_eq!(entry.original_size, source.len());
-        assert_eq!(entry.original_crc, crc32(source));
+        assert_eq!(entry.original_crc, crc32(&source));
         
         let decoded = codec.decode(&entry).unwrap();
         assert_eq!(decoded, source, "Decoded must match original exactly");
@@ -301,8 +351,12 @@ mod tests {
         let store = Arc::new(ChunkStore::new());
         let codec = DeltaCodec::new(store);
         
-        let source = b"Important data that must not be corrupted";
-        let mut entry = codec.encode(source).unwrap();
+        // Make source large enough for delta encoding (> 256 bytes)
+        let mut source = Vec::new();
+        for _ in 0..10 {
+            source.extend_from_slice(b"Important data that must not be corrupted. ");
+        }
+        let mut entry = codec.encode(&source).unwrap();
         
         // Corrupt the CRC
         entry.original_crc ^= 0xFF;

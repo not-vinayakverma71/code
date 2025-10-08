@@ -24,7 +24,7 @@ use crate::database::{
     TableNamesRequest,
 };
 use crate::embeddings::{
-    EmbeddingDefinition, EmbeddingFunction, EmbeddingRegistry, MemoryRegistry, WithEmbeddings,
+    EmbeddingDefinition, EmbeddingFunction, EmbeddingRegistry, DefaultMemoryRegistry, WithEmbeddings,
 };
 use crate::error::{Error, Result};
 #[cfg(feature = "remote")]
@@ -70,7 +70,7 @@ impl TableNamesBuilder {
 
     /// Set the namespace to list tables from
     pub fn namespace(mut self, namespace: Vec<String>) -> Self {
-        self.request.namespace = namespace;
+        self.request.namespace = Some(namespace.join("."));
         self
     }
 
@@ -118,10 +118,14 @@ impl CreateTableBuilder<true> {
         let dummy_schema = Arc::new(arrow_schema::Schema::new(Vec::<Field>::default()));
         Self {
             parent,
-            request: CreateTableRequest::new(
+            request: CreateTableRequest {
                 name,
-                CreateTableData::Empty(TableDefinition::new_from_schema(dummy_schema)),
-            ),
+                namespace: Vec::new(),
+                schema: Some(dummy_schema.clone()),
+                mode: CreateTableMode::Create,
+                data: Some(CreateTableData::Empty),
+                write_options: None,
+            },
             embeddings: Vec::new(),
             embedding_registry,
             data: CreateTableBuilderInitialData::Iterator(data.into_arrow()),
@@ -137,10 +141,14 @@ impl CreateTableBuilder<true> {
         let dummy_schema = Arc::new(arrow_schema::Schema::new(Vec::<Field>::default()));
         Self {
             parent,
-            request: CreateTableRequest::new(
+            request: CreateTableRequest {
                 name,
-                CreateTableData::Empty(TableDefinition::new_from_schema(dummy_schema)),
-            ),
+                namespace: Vec::new(),
+                schema: Some(dummy_schema.clone()),
+                mode: CreateTableMode::Create,
+                data: Some(CreateTableData::Empty),
+                write_options: None,
+            },
             embeddings: Vec::new(),
             embedding_registry,
             data: CreateTableBuilderInitialData::Stream(data.into_arrow()),
@@ -164,7 +172,7 @@ impl CreateTableBuilder<true> {
                 CreateTableBuilderInitialData::Iterator(maybe_iter) => {
                     let data = maybe_iter?;
                     Ok(CreateTableRequest {
-                        data: CreateTableData::Data(data),
+                        data: Some(CreateTableData::Data(data)),
                         ..self.request
                     })
                 }
@@ -173,8 +181,13 @@ impl CreateTableBuilder<true> {
                 }
                 CreateTableBuilderInitialData::Stream(maybe_stream) => {
                     let data = maybe_stream?;
+                    // Map the stream to convert Error to ArrowError
+                    use futures::StreamExt;
+                    let mapped_stream = data.map(|result| {
+                        result.map_err(|e| arrow_schema::ArrowError::ExternalError(Box::new(e)))
+                    });
                     Ok(CreateTableRequest {
-                        data: CreateTableData::StreamingData(data),
+                        data: Some(CreateTableData::StreamingData(Box::new(mapped_stream))),
                         ..self.request
                     })
                 }
@@ -186,7 +199,7 @@ impl CreateTableBuilder<true> {
             let data = maybe_iter?;
             let data = Box::new(WithEmbeddings::new(data, self.embeddings));
             Ok(CreateTableRequest {
-                data: CreateTableData::Data(data),
+                data: Some(CreateTableData::Data(data)),
                 ..self.request
             })
         }
@@ -201,10 +214,17 @@ impl CreateTableBuilder<false> {
         schema: SchemaRef,
         embedding_registry: Arc<dyn EmbeddingRegistry>,
     ) -> Self {
-        let table_definition = TableDefinition::new_from_schema(schema);
+        let table_definition = TableDefinition::new_from_schema(schema.clone());
         Self {
             parent,
-            request: CreateTableRequest::new(name, CreateTableData::Empty(table_definition)),
+            request: CreateTableRequest {
+                name,
+                namespace: Vec::new(),
+                schema: Some(schema),
+                mode: CreateTableMode::Create,
+                data: Some(CreateTableData::Empty),
+                write_options: None,
+            },
             data: CreateTableBuilderInitialData::None,
             embeddings: Vec::default(),
             embedding_registry,
@@ -213,9 +233,7 @@ impl CreateTableBuilder<false> {
 
     /// Execute the create table operation
     pub async fn execute(self) -> Result<Table> {
-        Ok(Table::new(
-            self.parent.clone().create_table(self.request).await?,
-        ))
+        self.parent.clone().create_table(self.request).await
     }
 }
 
@@ -230,7 +248,7 @@ impl<const HAS_DATA: bool> CreateTableBuilder<HAS_DATA> {
 
     /// Apply the given write options when writing the initial data
     pub fn write_options(mut self, write_options: WriteOptions) -> Self {
-        self.request.write_options = write_options;
+        self.request.write_options = Some(write_options);
         self
     }
 
@@ -244,6 +262,7 @@ impl<const HAS_DATA: bool> CreateTableBuilder<HAS_DATA> {
         let store_options = self
             .request
             .write_options
+            .get_or_insert(Default::default())
             .lance_write_params
             .get_or_insert(Default::default())
             .store_params
@@ -267,6 +286,7 @@ impl<const HAS_DATA: bool> CreateTableBuilder<HAS_DATA> {
         let store_options = self
             .request
             .write_options
+            .get_or_insert(Default::default())
             .lance_write_params
             .get_or_insert(Default::default())
             .store_params
@@ -316,6 +336,7 @@ impl<const HAS_DATA: bool> CreateTableBuilder<HAS_DATA> {
         let storage_options = self
             .request
             .write_options
+            .get_or_insert_with(Default::default)
             .lance_write_params
             .get_or_insert_with(Default::default)
             .store_params
@@ -342,6 +363,7 @@ impl<const HAS_DATA: bool> CreateTableBuilder<HAS_DATA> {
         let storage_options = self
             .request
             .write_options
+            .get_or_insert_with(Default::default)
             .lance_write_params
             .get_or_insert_with(Default::default)
             .store_params
@@ -400,7 +422,7 @@ impl OpenTableBuilder {
     /// Setting this value higher will increase performance on larger datasets
     /// at the expense of more RAM
     pub fn index_cache_size(mut self, index_cache_size: u32) -> Self {
-        self.request.index_cache_size = Some(index_cache_size);
+        self.request.index_cache_size = Some(index_cache_size as u64);
         self
     }
 
@@ -591,8 +613,6 @@ impl Connection {
             .rename_table(
                 old_name.as_ref(),
                 new_name.as_ref(),
-                cur_namespace,
-                new_namespace,
             )
             .await
     }
@@ -603,7 +623,7 @@ impl Connection {
     /// * `name` - The name of the table to drop
     /// * `namespace` - The namespace to drop the table from
     pub async fn drop_table(&self, name: impl AsRef<str>, namespace: &[String]) -> Result<()> {
-        self.internal.drop_table(name.as_ref(), namespace).await
+        self.internal.drop_table(name.as_ref()).await
     }
 
     /// Drop the database
@@ -611,7 +631,7 @@ impl Connection {
     /// This is the same as dropping all of the tables
     #[deprecated(since = "0.15.1", note = "Use `drop_all_tables` instead")]
     pub async fn drop_db(&self) -> Result<()> {
-        self.internal.drop_all_tables(&[]).await
+        self.internal.drop_all_tables().await
     }
 
     /// Drops all tables in the database
@@ -619,7 +639,7 @@ impl Connection {
     /// # Arguments
     /// * `namespace` - The namespace to drop all tables from. Empty slice represents root namespace.
     pub async fn drop_all_tables(&self, namespace: &[String]) -> Result<()> {
-        self.internal.drop_all_tables(namespace).await
+        self.internal.drop_all_tables().await
     }
 
     /// List immediate child namespace names in the given namespace
@@ -898,7 +918,7 @@ impl ConnectBuilder {
             uri: self.request.uri,
             embedding_registry: self
                 .embedding_registry
-                .unwrap_or_else(|| Arc::new(MemoryRegistry::new())),
+                .unwrap_or_else(|| Arc::new(DefaultMemoryRegistry::new())),
         })
     }
 
@@ -921,7 +941,7 @@ impl ConnectBuilder {
                 uri: self.request.uri,
                 embedding_registry: self
                     .embedding_registry
-                    .unwrap_or_else(|| Arc::new(MemoryRegistry::new())),
+                    .unwrap_or_else(|| Arc::new(DefaultMemoryRegistry::new())),
             })
         }
     }
@@ -995,7 +1015,7 @@ mod test_utils {
             Self {
                 internal,
                 uri: "db://test".to_string(),
-                embedding_registry: Arc::new(MemoryRegistry::new()),
+                embedding_registry: Arc::new(DefaultMemoryRegistry::new()),
             }
         }
 
@@ -1012,7 +1032,7 @@ mod test_utils {
             Self {
                 internal,
                 uri: "db://test".to_string(),
-                embedding_registry: Arc::new(MemoryRegistry::new()),
+                embedding_registry: Arc::new(DefaultMemoryRegistry::new()),
             }
         }
     }

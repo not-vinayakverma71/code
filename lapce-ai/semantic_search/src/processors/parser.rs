@@ -3,11 +3,13 @@
 // Translation of processors/parser.ts (Lines 1-555) - 100% EXACT
 
 use crate::error::Result;
-use crate::processors::scanner::CodeBlock;
 use sha2::{Sha256, Digest};
 use std::collections::HashSet;
 use std::path::Path;
 use tokio::fs;
+
+// Use shared CodeBlock type
+use crate::types::CodeBlock;
 
 // Lines 9: Constants
 const MAX_BLOCK_CHARS: usize = 4000;
@@ -133,13 +135,13 @@ impl CodeParser {
             
             if !seen_segment_hashes.contains(&segment_hash) {
                 seen_segment_hashes.insert(segment_hash.clone());
-                chunks.push(CodeBlock {
-                    file_path: file_path.to_string_lossy().to_string(),
-                    content: segment.to_string(),
-                    start_line: original_line_number,
-                    end_line: original_line_number,
+                chunks.push(CodeBlock::new(
+                    file_path.to_string_lossy().to_string(),
+                    segment.to_string(),
+                    original_line_number,
+                    original_line_number,
                     segment_hash,
-                });
+                ));
             }
         };
         
@@ -168,13 +170,13 @@ impl CodeParser {
                         
                         if !seen_segment_hashes.contains(&segment_hash) {
                             seen_segment_hashes.insert(segment_hash.clone());
-                            chunks.push(CodeBlock {
-                                file_path: file_path.to_string_lossy().to_string(),
-                                content: chunk_content,
+                            chunks.push(CodeBlock::new(
+                                file_path.to_string_lossy().to_string(),
+                                chunk_content,
                                 start_line,
                                 end_line,
                                 segment_hash,
-                            });
+                            ));
                         }
                     }
                     current_chunk_lines.clear();
@@ -244,13 +246,13 @@ impl CodeParser {
                     
                     if !seen_segment_hashes.contains(&segment_hash) {
                         seen_segment_hashes.insert(segment_hash.clone());
-                        chunks.push(CodeBlock {
-                            file_path: file_path.to_string_lossy().to_string(),
-                            content: chunk_content,
+                        chunks.push(CodeBlock::new(
+                            file_path.to_string_lossy().to_string(),
+                            chunk_content,
                             start_line,
                             end_line,
                             segment_hash,
-                        });
+                        ));
                     }
                 }
                 current_chunk_lines.clear();
@@ -283,13 +285,13 @@ impl CodeParser {
             
             if !seen_segment_hashes.contains(&segment_hash) {
                 seen_segment_hashes.insert(segment_hash.clone());
-                chunks.push(CodeBlock {
-                    file_path: file_path.to_string_lossy().to_string(),
-                    content: chunk_content,
+                chunks.push(CodeBlock::new(
+                    file_path.to_string_lossy().to_string(),
+                    chunk_content,
                     start_line,
                     end_line,
                     segment_hash,
-                });
+                ));
             }
         }
         
@@ -342,22 +344,13 @@ const SCANNER_EXTENSIONS: &[&str] = &[
 use crate::embeddings::service_factory::ICodeParser;
 
 impl ICodeParser for CodeParser {
-    fn parse(&self, content: &str) -> Vec<crate::embeddings::service_factory::CodeBlock> {
+    fn parse(&self, content: &str) -> Vec<CodeBlock> {
         let mut seen_hashes = HashSet::new();
-        let blocks = self.perform_fallback_chunking(
+        self.perform_fallback_chunking(
             Path::new("unknown.txt"),
             content,
             &self.create_file_hash(content),
             &mut seen_hashes
-        );
-        
-        // Convert from parser::CodeBlock to service_factory::CodeBlock
-        blocks.into_iter().map(|block| {
-            crate::embeddings::service_factory::CodeBlock {
-                content: block.content,
-                start_line: block.start_line,
-                end_line: block.end_line,
-            }
-        }).collect()
+        )
     }
 }

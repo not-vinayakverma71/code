@@ -2,7 +2,6 @@
 //! Validates every operation to ensure 0% quality loss
 
 use super::opcodes::{Opcode, NodeFlags, BytecodeStream, BytecodeReader};
-use std::collections::HashMap;
 
 /// Decoded node representation
 #[derive(Debug, Clone)]

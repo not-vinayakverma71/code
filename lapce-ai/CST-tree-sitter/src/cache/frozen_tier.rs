@@ -3,14 +3,13 @@
 
 use std::path::{Path, PathBuf};
 use std::fs;
-use std::io::{Read, Write};
 use std::sync::Arc;
 use dashmap::DashMap;
 use bytes::Bytes;
 use serde::{Serialize, Deserialize};
 use std::time::{SystemTime, Instant};
 
-use super::delta_codec::{DeltaEntry, ChunkStore};
+use super::delta_codec::DeltaEntry;
 
 /// Frozen entry metadata (kept in RAM)
 #[derive(Clone, Debug, Serialize, Deserialize)]

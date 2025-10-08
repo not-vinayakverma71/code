@@ -416,10 +416,10 @@ fn get_rss_kb() -> u64 {
 }
 
 mod libc {
-    pub const PROT_READ: usize = 0x1;
-    pub const PROT_WRITE: usize = 0x2;
-    pub const MAP_SHARED: usize = 0x01;
-    pub const MAP_ANONYMOUS: usize = 0x20;
+    pub const PROT_READ: i32 = 0x1;
+    pub const PROT_WRITE: i32 = 0x2;
+    pub const MAP_SHARED: i32 = 0x01;
+    pub const MAP_ANONYMOUS: i32 = 0x20;
     pub const MAP_FAILED: *mut core::ffi::c_void = !0 as *mut core::ffi::c_void;
     
     extern "C" {

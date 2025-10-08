@@ -67,6 +67,20 @@ pub struct ToolContext {
     pub metadata: Option<Value>,
 }
 
+impl Default for ToolContext {
+    fn default() -> Self {
+        Self {
+            workspace: PathBuf::from("."),
+            user_id: String::from("test_user"),
+            session_id: String::from("test_session"),
+            user: String::from("test"),
+            request_id: String::from("test_request"),
+            cancellation_token: CancellationToken::new(),
+            metadata: None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolResult {
     pub success: bool,

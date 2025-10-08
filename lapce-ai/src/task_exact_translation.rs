@@ -362,13 +362,8 @@ impl TaskApiHandler {
         _system_prompt: String,
         _messages: Vec<ApiMessage>,
         _metadata: Option<serde_json::Value>,
-    ) -> Result<crate::streaming_pipeline::stream_transform::ApiStream, crate::streaming_pipeline::stream_transform::ApiError> {
-        Err(crate::streaming_pipeline::stream_transform::ApiError {
-            message: "Not implemented".to_string(),
-            status: None,
-            metadata: None,
-            error_details: None,
-        })
+    ) -> Result<(), String> {
+        Err("Not implemented".to_string())
     }
 }
 

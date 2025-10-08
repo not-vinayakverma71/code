@@ -200,17 +200,31 @@ pub mod io;
 pub mod ipc;
 pub mod query;
 pub mod rerankers;
-pub mod table;
-pub mod utils;
+pub mod embeddings;
 pub mod processors;
 pub mod shared;
 pub mod memory;
 pub mod optimization;
-pub mod storage;
-pub mod embeddings;
-pub mod database;
+pub mod table;
+pub mod utils;
+pub mod types;
 pub mod incremental;
 pub mod search;
+pub mod database;
+
+// Storage modules with submodules
+pub mod storage {
+    pub mod lance_store;
+    pub mod lockfree_cache;
+    pub mod hierarchical_cache;
+    pub mod mmap_storage;
+}
+
+// Re-export database submodules for convenience
+pub use database::cache_interface;
+pub use database::cache_manager;
+pub use database::config_manager;
+pub use database::code_index_manager;
 
 // Production semantic search system
 pub mod production_system;

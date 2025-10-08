@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use dashmap::DashMap;
 
 use crate::cst_codec::{serialize_source_only, deserialize_source_only};
-use crate::cache::{DeltaCodec, DeltaEntry, ChunkStore, FrozenTier, FrozenTierStats};
+use crate::cache::{DeltaCodec, DeltaEntry, ChunkStore, FrozenTier};
 
 /// Dynamic cache that automatically manages hot/cold tiers based on access frequency
 pub struct DynamicCompressedCache {

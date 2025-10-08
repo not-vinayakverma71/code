@@ -101,7 +101,10 @@ Week 3-4:
 ```
 
 
-### Phase C: Full Backend translation in RUST  ( As Describe above, UI as full Native & Backend through IPC -- We don`t have to make it  Lapce Plugin, make it like Cursor AI but, A New Architecture -  Fully Native - only backend component communicate through IPC  - Everything else is Pure Native)
+### Phase C: Full Backend translation in RUST  ( As Describe above, UI as full Native & Backend through IPC -- We don`t have to make it  Lapce Plugin, make it like Cursor AI but, A New Architecture -  Fully Native - only backend component communicate through IPC  - Everything else is Pure Native)  --
+
+CURRENTLY WORKING ON ---------------
+
 
 Week 5: 
 [→] Translate 100%  ALl component - Make sure it fits with Our Architectural Plan  - nor VS Code extension  neither Lapce Plugin - Pure made for Lapce IDE with exact AI   // Make Sure you don`t translate that already Implemented in Phase B

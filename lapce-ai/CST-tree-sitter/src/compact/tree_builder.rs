@@ -1,7 +1,7 @@
 //! Builder for converting Tree-sitter trees to compact format
 //! Walks tree in preorder, extracting structure and attributes
 
-use tree_sitter::{Tree, Node, TreeCursor};
+use tree_sitter::{Tree, TreeCursor};
 use super::packed_array::PackedArray;
 use super::varint::{DeltaEncoder, PrefixSumIndex};
 use super::tree::CompactTree;

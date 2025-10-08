@@ -289,11 +289,14 @@ mod tests {
     
     #[tokio::test]
     async fn test_connection_reuse_guard() {
-        let config = PoolConfig::default();
-        let pool = ConnectionPoolManager::new(config).await.unwrap();
-        let stats = pool.get_stats();
+        // Create a pool with the correct type
+        use bb8::{Pool, Builder};
         
-        let mut guard = ConnectionReuseGuard::new(&pool.https_pool, stats);
+        let manager = HttpsConnectionManager::new().await.unwrap();
+        let pool = Builder::new().build(manager).await.unwrap();
+        let stats = Arc::new(ConnectionStats::new());
+        
+        let mut guard = ConnectionReuseGuard::new(&pool, stats);
         
         // First use - acquisition
         let _ = guard.get_connection().await.unwrap();

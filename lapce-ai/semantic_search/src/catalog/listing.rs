@@ -13,8 +13,8 @@ use super::{
     OpenDatabaseRequest,
 };
 use crate::connection::ConnectRequest;
-use crate::database::listing::{ListingDatabase, ListingDatabaseOptions};
 use crate::database::{Database, DatabaseOptions};
+use crate::database::listing::{ListingDatabase, ListingDatabaseOptions};
 use crate::error::{Error, Result};
 use async_trait::async_trait;
 use lance::io::{ObjectStore, ObjectStoreParams, ObjectStoreRegistry};

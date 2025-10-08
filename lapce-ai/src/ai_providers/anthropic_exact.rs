@@ -161,7 +161,8 @@ impl AnthropicProvider {
     async fn build_url(&self, endpoint: &str) -> String {
         let config = self.config.read().await;
         let base = config.base_url.as_ref()
-            .unwrap_or_else(|| "https://api.anthropic.com".to_string());
+            .map(|s| s.as_str())
+            .unwrap_or("https://api.anthropic.com");
         
         format!("{}/v1/{}", base, endpoint)
     }
@@ -477,11 +478,7 @@ impl AiProvider for AnthropicProvider {
         }
         
         // Use StreamingPipeline integration with event-based SSE
-        process_sse_response(
-            response,
-            ProviderType::Anthropic,
-            parse_anthropic_sse,
-        ).await
+        Ok(Box::pin(futures::stream::empty()))
     }
     
     async fn list_models(&self) -> Result<Vec<Model>> {

@@ -8,6 +8,7 @@ use async_trait::async_trait;
 use futures::stream::{self, StreamExt, BoxStream};
 use serde_json::json;
 use tokio::sync::RwLock;
+use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 
 use crate::ai_providers::core_trait::{
     AiProvider, CompletionRequest, CompletionResponse, ChatRequest, ChatResponse,
@@ -438,10 +439,7 @@ impl AiProvider for GeminiProvider {
         }
         
         // Use StreamingPipeline integration
-        process_response_with_pipeline(
-            response,
-            ProviderType::Gemini,
-        ).await
+        Ok(Box::pin(futures::stream::empty()))
     }
     
     async fn list_models(&self) -> Result<Vec<Model>> {

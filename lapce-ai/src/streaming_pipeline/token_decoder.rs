@@ -160,7 +160,8 @@ mod tests {
         assert!(!tokens.is_empty());
         
         // Verify round-trip
-        let decoded = decoder.tokenizer.decode(tokens.clone()).unwrap();
+        let tokens_u32: Vec<u32> = tokens.iter().map(|&t| t as u32).collect();
+        let decoded = decoder.tokenizer.decode(tokens_u32).unwrap();
         assert_eq!(decoded, text);
     }
     

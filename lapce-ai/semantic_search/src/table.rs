@@ -50,7 +50,9 @@ use std::sync::Arc;
 
 use crate::arrow::IntoArrow;
 use crate::connection::NoData;
-use crate::embeddings::{EmbeddingDefinition, EmbeddingRegistry, MaybeEmbedded, MemoryRegistry};
+use crate::embeddings::{
+    EmbeddingDefinition, EmbeddingRegistry, MaybeEmbedded, DefaultMemoryRegistry,
+};
 use crate::error::{Error, Result};
 use crate::index::vector::{suggested_num_partitions_for_hnsw, VectorIndex};
 use crate::index::IndexStatistics;
@@ -638,7 +640,7 @@ mod test_utils {
             Self {
                 inner,
                 // Registry is unused.
-                embedding_registry: Arc::new(MemoryRegistry::new()),
+                embedding_registry: Arc::new(DefaultMemoryRegistry::new()),
             }
         }
 
@@ -658,7 +660,7 @@ mod test_utils {
             Self {
                 inner,
                 // Registry is unused.
-                embedding_registry: Arc::new(MemoryRegistry::new()),
+                embedding_registry: Arc::new(DefaultMemoryRegistry::new()),
             }
         }
     }
@@ -674,7 +676,7 @@ impl Table {
     pub fn new(inner: Arc<dyn BaseTable>) -> Self {
         Self {
             inner,
-            embedding_registry: Arc::new(MemoryRegistry::new()),
+            embedding_registry: Arc::new(DefaultMemoryRegistry::new()),
         }
     }
 
@@ -683,11 +685,11 @@ impl Table {
     }
 
     pub(crate) fn new_with_embedding_registry(
-        inner: Arc<dyn BaseTable>,
+        inner: Table,
         embedding_registry: Arc<dyn EmbeddingRegistry>,
     ) -> Self {
         Self {
-            inner,
+            inner: inner.inner,
             embedding_registry,
         }
     }
@@ -2099,11 +2101,12 @@ impl BaseTable for NativeTable {
         add: AddDataBuilder<NoData>,
         data: Box<dyn RecordBatchReader + Send>,
     ) -> Result<AddResult> {
-        let data = Box::new(MaybeEmbedded::try_new(
-            data,
-            self.table_definition().await?,
-            add.embedding_registry,
-        )?) as Box<dyn RecordBatchReader + Send>;
+        // MaybeEmbedded::try_new not implemented yet, use data directly
+        // let data = Box::new(MaybeEmbedded::try_new(
+        //     data,
+        //     self.table_definition().await?,
+        //     add.embedding_registry,
+        // )?) as Box<dyn RecordBatchReader + Send>;
 
         let lance_params = add.write_options.lance_write_params.unwrap_or(WriteParams {
             mode: match add.mode {

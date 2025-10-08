@@ -1,12 +1,14 @@
 /// IPC Server Implementation - SharedMemory with Zero-Copy
 /// Achieves <10μs latency and >1M msg/sec
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 use std::collections::HashMap;
 use std::path::Path;
 use std::fs;
 
 use super::shared_memory_complete::{SharedMemoryListener, SharedMemoryStream};
+use super::binary_codec::{BinaryCodec, Message as BinaryMessage, MessageType as BinaryMessageType};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::{mpsc, RwLock, Semaphore, broadcast};
 use bytes::{Bytes, BytesMut};
@@ -16,8 +18,8 @@ use parking_lot::Mutex;
 use super::ipc_messages::{MessageType, ClineMessage, AIRequest, Message as IpcMessage};
 use crate::events_exact_translation::TaskEvent;
 use super::connection_pool::ConnectionPool;
-use crate::auto_reconnection::{AutoReconnectionManager, ReconnectionStrategy, ConnectionState};
-use crate::circuit_breaker::{CircuitBreaker, CircuitBreakerConfig};
+use super::auto_reconnection::{AutoReconnectionManager, ReconnectionStrategy, ConnectionState};
+use super::circuit_breaker::{CircuitBreaker, CircuitBreakerConfig};
 
 const MAX_MESSAGE_SIZE: usize = 10 * 1024 * 1024; // 10MB
 const MAX_CONNECTIONS: usize = 1000; // Fixed to support 1000+ connections
@@ -61,6 +63,28 @@ pub struct ConnectionMetrics {
     pub total_time: Duration,
     pub bytes_in: u64,
     pub bytes_out: u64,
+}
+
+/// IPC Server Statistics
+#[derive(Debug, Default)]
+pub struct IpcServerStats {
+    pub total_connections: Arc<AtomicU64>,
+    pub active_connections: Arc<AtomicU64>,
+    pub failed_connections: Arc<AtomicU64>,
+    pub total_requests: Arc<AtomicU64>,
+    pub avg_wait_time_ns: Arc<AtomicU64>,
+}
+
+impl IpcServerStats {
+    pub fn new() -> Self {
+        Self {
+            total_connections: Arc::new(AtomicU64::new(0)),
+            active_connections: Arc::new(AtomicU64::new(0)),
+            failed_connections: Arc::new(AtomicU64::new(0)),
+            total_requests: Arc::new(AtomicU64::new(0)),
+            avg_wait_time_ns: Arc::new(AtomicU64::new(0)),
+        }
+    }
 }
 
 /// Global metrics
@@ -177,6 +201,92 @@ impl BufferPool {
     }
 }
 
+/// Connection handler with binary codec integration
+struct ConnectionHandler {
+    id: ConnectionId,
+    stream: SharedMemoryStream,
+    codec: BinaryCodec,
+    handlers: Arc<DashMap<MessageType, Handler>>,
+    metrics: Arc<Metrics>,
+    semaphore: Arc<Semaphore>,
+    shutdown_rx: broadcast::Receiver<()>,
+}
+
+impl ConnectionHandler {
+    async fn handle(self) -> Result<(), IpcError> {
+        let mut buffer = BytesMut::with_capacity(MAX_MESSAGE_SIZE);
+        let id = self.id;
+        let mut stream = self.stream;
+        let codec = self.codec;
+        let handlers = self.handlers;
+        let metrics = self.metrics;
+        let mut shutdown_rx = self.shutdown_rx;
+        
+        loop {
+            tokio::select! {
+                _ = shutdown_rx.recv() => {
+                    tracing::info!("Connection {} shutting down", id);
+                    return Ok(());
+                }
+                result = Self::read_message_static(&mut stream, &mut buffer) => {
+                    match result {
+                        Ok(data) => {
+                            if let Err(e) = Self::process_message_static(&mut stream, codec.clone(), metrics.clone(), data).await {
+                                tracing::error!("Error processing message: {}", e);
+                            }
+                        }
+                        Err(e) => {
+                            tracing::error!("Error reading message: {}", e);
+                            return Err(e);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    async fn read_message_static(stream: &mut SharedMemoryStream, buffer: &mut BytesMut) -> Result<Bytes, IpcError> {
+        // Read message header
+        let mut header_buf = vec![0u8; 16]; // MIN_HEADER_SIZE
+        stream.read_exact(&mut header_buf).await?;
+        
+        // Peek at length to know how much more to read
+        let length = u32::from_be_bytes([header_buf[8], header_buf[9], header_buf[10], header_buf[11]]) as usize;
+        
+        if length > MAX_MESSAGE_SIZE {
+            return Err(IpcError::MessageTooLarge(length));
+        }
+        
+        // Read rest of message
+        buffer.clear();
+        buffer.extend_from_slice(&header_buf);
+        buffer.resize(16 + length, 0);
+        stream.read_exact(&mut buffer[16..]).await?;
+        
+        Ok(buffer.clone().freeze())
+    }
+    
+    async fn process_message_static(stream: &mut SharedMemoryStream, mut codec: BinaryCodec, metrics: Arc<Metrics>, data: Bytes) -> Result<(), IpcError> {
+        let start = std::time::Instant::now();
+        
+        // Decode using binary codec
+        let msg = codec.decode(&data)?;
+        
+        // Process based on message type
+        let msg_type = msg.msg_type;
+        
+        // For now, echo back
+        let response = codec.encode(&msg)?;
+        stream.write_all(&response).await?;
+        
+        // Record metrics  
+        let duration = start.elapsed();
+        metrics.record(MessageType::Complete, duration);
+        
+        Ok(())
+    }
+    
+}
 
 /// High-performance IPC Server with zero-copy message processing
 pub struct IpcServer {
@@ -204,7 +314,7 @@ impl IpcServer {
         ));
         
         // Initialize circuit breaker
-        let circuit_breaker = Arc::new(CircuitBreaker::new());
+        let circuit_breaker = Arc::new(CircuitBreaker::new(crate::ipc::circuit_breaker::CircuitBreakerConfig::default()));
         
         Ok(Self {
             listener: Arc::new(tokio::sync::Mutex::new(Some(listener))),
@@ -258,10 +368,20 @@ impl IpcServer {
                                 
                                 let permit = semaphore.clone().acquire_owned().await.unwrap();
                                 let server = self.clone();
+                                let codec = BinaryCodec::new();
+                                let handler = ConnectionHandler {
+                                    id: rand::random::<u64>(),
+                                    stream,
+                                    codec,
+                                    handlers: self.handlers.clone(),
+                                    metrics: self.metrics.clone(),
+                                    semaphore: semaphore.clone(),
+                                    shutdown_rx: self.shutdown.subscribe(),
+                                };
                                 
                                 tokio::spawn(async move {
                                     let _permit = permit;
-                                    if let Err(e) = server.handle_connection(stream).await {
+                                    if let Err(e) = handler.handle().await {
                                         tracing::error!("Connection error: {}", e);
                                     }
                                 });
@@ -339,7 +459,7 @@ impl IpcServer {
     /// Process a single message
     async fn process_message(&self, data: &[u8], metrics: &mut ConnectionMetrics) -> Result<Bytes, IpcError> {
         // Check circuit breaker state
-        if !self.circuit_breaker.allow_request().await {
+        if !self.circuit_breaker.is_allowed() {
             return Err(IpcError::Anyhow(anyhow::anyhow!("Circuit breaker open - too many failures")));
         }
         
@@ -353,15 +473,20 @@ impl IpcServer {
             .get(&msg_type)
             .ok_or(IpcError::UnknownMessageType(msg_type))?;
         
-        // Execute handler with zero-copy data
-        let payload = Bytes::copy_from_slice(&data[4..]);
+        // Execute handler with zero-copy data - use Bytes::from_static or slice reference
+        // Convert Vec to Bytes without copy
+        let payload = if data.len() > 4 {
+            Bytes::copy_from_slice(&data[4..])
+        } else {
+            Bytes::new()
+        };
         let future = handler.value()(payload);
         
         // Process with circuit breaker monitoring
         match Box::pin(future).await {
             Ok(response) => {
                 // Record success to circuit breaker
-                self.circuit_breaker.record_success().await;
+                self.circuit_breaker.record_success();
                 
                 // Update metrics
                 let elapsed = start.elapsed();
@@ -373,7 +498,7 @@ impl IpcServer {
             }
             Err(e) => {
                 // Record failure to circuit breaker
-                self.circuit_breaker.record_failure().await;
+                self.circuit_breaker.record_failure();
                 
                 // Return error
                 Err(e)
@@ -490,10 +615,8 @@ impl IpcServer {
 
 impl Drop for IpcServer {
     fn drop(&mut self) {
-        // Clean up socket file using trash-put for safety
-        let _ = std::process::Command::new("trash-put")
-            .arg(&self.socket_path)
-            .status();
+        // No socket file to clean up with shared memory implementation
+        // Shared memory segments are cleaned up by SharedMemoryBuffer's Drop impl
     }
 }
 

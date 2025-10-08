@@ -2,7 +2,6 @@
 
 use tree_sitter::Parser;
 use dashmap::DashMap;
-use std::sync::Arc;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FileType {
@@ -57,8 +56,14 @@ impl ParserPool {
         let mut parser = Parser::new();
         let result = match file_type {
             FileType::Rust => parser.set_language(&tree_sitter_rust::LANGUAGE.into()),
+            #[cfg(feature = "lang-javascript")]
             FileType::JavaScript => parser.set_language(&tree_sitter_javascript::language()),
+            #[cfg(feature = "lang-typescript")]
             FileType::TypeScript => parser.set_language(&tree_sitter_typescript::language_typescript()),
+            #[cfg(not(feature = "lang-javascript"))]
+            FileType::JavaScript => return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Unsupported, "JavaScript support not compiled in"))),
+            #[cfg(not(feature = "lang-typescript"))]
+            FileType::TypeScript => return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Unsupported, "TypeScript support not compiled in"))),
             FileType::Python => parser.set_language(&tree_sitter_python::LANGUAGE.into()),
             FileType::Go => parser.set_language(&tree_sitter_go::LANGUAGE.into()),
             FileType::Java => parser.set_language(&tree_sitter_java::LANGUAGE.into()),

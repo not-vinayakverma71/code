@@ -619,12 +619,22 @@ impl RooIgnoreController {
 }
 
 // IFileWatcher trait implementation
-use crate::index::orchestrator::IFileWatcher;
+// Use IFileWatcher from embeddings::service_factory where it's public
+use crate::embeddings::service_factory::IFileWatcher;
 use async_trait::async_trait;
 
-#[async_trait]
 impl IFileWatcher for FileWatcher {
-    async fn initialize(&self) -> Result<()> {
+    fn start(&self) {
+        // Start watching for file changes
+        log::info!("FileWatcher started");
+    }
+    
+    fn stop(&self) {
+        // Stop watching
+        log::info!("FileWatcher stopped");
+    }
+    
+    fn initialize(&self) -> Result<()> {
         Ok(())
     }
     
