@@ -114,6 +114,7 @@ macro_rules! lang_const {
 }
 
 // Macro to handle languages with language() function
+#[allow(unused_macros)]
 macro_rules! lang_fn {
     ($name:expr, $module:ident, $exts:expr) => {
         Arc::new(LanguageInfo {
@@ -150,11 +151,11 @@ static REGISTRY: Lazy<LanguageRegistry> = Lazy::new(|| {
     register(lang_const!("cpp", tree_sitter_cpp, &["cpp", "cc", "cxx", "hpp", "hh", "hxx"]));
     register(lang_const!("csharp", tree_sitter_c_sharp, &["cs"]));
     register(lang_const!("ruby", tree_sitter_ruby, &["rb"]));
-    // PHP uses LANGUAGE_PHP constant
+    // PHP exports language_php() in 0.23.x
     register(Arc::new(LanguageInfo {
         name: "php",
         extensions: &["php"],
-        language: tree_sitter_php::LANGUAGE_PHP.into(),
+        language: tree_sitter_php::language_php(),
     }));
     register(lang_const!("lua", tree_sitter_lua, &["lua"]));
     register(lang_const!("bash", tree_sitter_bash, &["sh", "bash"]));
@@ -185,7 +186,9 @@ static REGISTRY: Lazy<LanguageRegistry> = Lazy::new(|| {
         extensions: &["lisp", "cl"],
         language: tree_sitter_commonlisp::LANGUAGE_COMMONLISP.into(),
     }));
-    register(lang_const!("objc", tree_sitter_objc, &["m"])); // Note: conflicts with MATLAB
+    // ObjC exports language() function
+    #[cfg(feature = "lang-objc")]
+    register(lang_fn!("objc", tree_sitter_objc, &["m"])); // Note: conflicts with MATLAB
     register(lang_const!("groovy", tree_sitter_groovy, &["groovy", "gradle"]));
     register(lang_const!("embedded_template", tree_sitter_embedded_template, &["erb", "ejs"]));
     
@@ -404,11 +407,12 @@ mod tests {
         let registry = LanguageRegistry::instance();
         let languages = registry.list_languages();
         
-        // Should have at least the core languages (29 from crates.io)
-        assert!(languages.len() >= 29); // At least the crate dependencies
+        // Should have at least the core languages from crates.io
+        // Some optional grammars (e.g., Objective-C) may be disabled by default.
+        assert!(languages.len() >= 28);
         
         // Check sorted
-        for i in 1..languages.len() {
+        for _i in 1..languages.len() {
             assert!(languages[i-1].name <= languages[i].name);
         }
     }

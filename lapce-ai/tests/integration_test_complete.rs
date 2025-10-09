@@ -1,7 +1,7 @@
 /// Complete Integration Tests - Achieving >90% coverage
 /// Tests all IPC functionality, providers, and error recovery
 
-use lapce_ai_rust::shared_memory_complete::{SharedMemoryListener, SharedMemoryStream};
+use lapce_ai_rust::ipc::shared_memory_complete::{SharedMemoryListener, SharedMemoryStream};
 use lapce_ai_rust::ipc_server_complete::{IpcServerComplete, IpcConfig};
 use lapce_ai_rust::provider_pool::{ProviderPool, ProviderPoolConfig};
 use lapce_ai_rust::ipc_messages::{AIRequest, Message, MessageRole, MessageType};
@@ -480,7 +480,7 @@ rate_limit_per_second = 5000
 /// Performance regression test
 #[tokio::test]
 async fn test_performance_regression() {
-    use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer;
+    use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer;
     
     let mut buffer = SharedMemoryBuffer::create("perf_regression", 4 * 1024 * 1024).unwrap();
     

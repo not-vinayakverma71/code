@@ -5,12 +5,16 @@ pub mod list_files;
 pub mod search_files;
 pub mod write_file;
 pub mod edit_file;
+pub mod insert_content;
+pub mod search_and_replace;
 
 pub use read_file::ReadFileTool;
 pub use list_files::ListFilesTool;
 pub use search_files::SearchFilesTool;
 pub use write_file::WriteFileTool;
 pub use edit_file::EditFileTool;
+pub use insert_content::InsertContentTool;
+pub use search_and_replace::SearchAndReplaceTool;
 
 use std::path::{Path, PathBuf};
 use serde_json::Value;

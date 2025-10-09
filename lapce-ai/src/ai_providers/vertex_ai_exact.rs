@@ -13,11 +13,7 @@ use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE, AUTHORIZATION};
 use crate::ai_providers::core_trait::{
     AiProvider, CompletionRequest, CompletionResponse, ChatRequest, ChatResponse,
     StreamToken, HealthStatus, Model, ProviderCapabilities, RateLimits, Usage,
-    ChatMessage, ChatChoice, CompletionChoice
-};
-use crate::ai_providers::sse_decoder::parsers::parse_gemini_stream;
-use crate::ai_providers::streaming_integration::{
-    process_response_with_pipeline, ProviderType
+    ChatMessage, ChatChoice
 };
 
 pub struct VertexAiConfig {

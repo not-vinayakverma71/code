@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 use anyhow::Result;
 
 // Use the nuclear-optimized version
-use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer;
+use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer;
 
 const TEST_ITERATIONS: usize = 1_000_000;
 const CONNECTION_COUNT: usize = 1000;
@@ -77,7 +77,7 @@ async fn main() -> Result<()> {
     for _ in 0..1000 {
         buffer.write(&test_data)?;
         let mut buf = [0u8; 1024];
-        buffer.read(&mut buf)?;
+        buffer.read()?;
     }
     
     // Actual test
@@ -85,7 +85,7 @@ async fn main() -> Result<()> {
         let start = Instant::now();
         buffer.write(&test_data)?;
         let mut buf = [0u8; 1024];
-        let _ = buffer.read(&mut buf)?;
+        let _ = buffer.read()?;
         let elapsed = start.elapsed();
         latencies.push(elapsed.as_nanos() as f64 / 1000.0); // Convert to μs
     }
@@ -115,7 +115,7 @@ async fn main() -> Result<()> {
         for conn in connections.iter().take(100) {
             conn.write(&test_data)?;
             let mut buf = [0u8; 1024];
-            conn.read(&mut buf)?;
+            conn.read()?;
             operations += 2;
         }
     }
@@ -142,7 +142,7 @@ async fn main() -> Result<()> {
     for (i, conn) in connections.iter().enumerate() {
         let data = vec![i as u8; 64];
         let mut buf = [0u8; 1024];
-        if conn.write(&data).is_ok() && conn.read(&mut buf).is_ok() {
+        if conn.write(&data).is_ok() && conn.read().is_ok() {
             successful += 1;
         }
     }

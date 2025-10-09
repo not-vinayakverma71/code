@@ -9,7 +9,7 @@ use sysinfo::{System, Pid};
 use tokio::sync::RwLock;
 
 use lapce_ai_rust::{
-    shared_memory_complete::SharedMemoryBuffer,
+    ipc::shared_memory_complete::SharedMemoryBuffer,
     ipc_server_complete::IpcServerComplete,
     provider_pool::{ProviderPool, ProviderPoolConfig},
 };

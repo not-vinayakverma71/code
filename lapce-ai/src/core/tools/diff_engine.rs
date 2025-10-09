@@ -1,7 +1,6 @@
 // Diff engine implementation - P0-7
 
-use std::path::{Path, PathBuf};
-use std::fs;
+use std::path::PathBuf;
 use std::time::Instant;
 use anyhow::{Result, bail};
 use serde::{Serialize, Deserialize};

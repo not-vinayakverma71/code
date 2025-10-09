@@ -2,8 +2,83 @@
 // SPDX-FileCopyrightText: Copyright The LanceDB Authors
 // Search Metrics for Performance Tracking
 
+use prometheus::{
+    register_counter, register_counter_vec, register_gauge, register_histogram_vec,
+    Counter, CounterVec, Gauge, HistogramVec, TextEncoder, Encoder,
+};
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
-use std::time::Duration;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+use lazy_static::lazy_static;
+
+lazy_static! {
+    // Cache metrics
+    pub static ref CACHE_HITS_TOTAL: Counter = register_counter!(
+        "semantic_search_cache_hits_total",
+        "Total number of cache hits"
+    ).unwrap();
+    
+    pub static ref CACHE_MISSES_TOTAL: Counter = register_counter!(
+        "semantic_search_cache_misses_total",
+        "Total number of cache misses"
+    ).unwrap();
+    
+    pub static ref CACHE_SIZE: Gauge = register_gauge!(
+        "semantic_search_cache_size",
+        "Current cache size in entries"
+    ).unwrap();
+    
+    pub static ref CACHE_HIT_LATENCY: HistogramVec = register_histogram_vec!(
+        "semantic_search_cache_hit_latency_seconds",
+        "Cache hit latency in seconds",
+        &["operation"]
+    ).unwrap();
+    
+    // Search metrics
+    pub static ref SEARCH_LATENCY: HistogramVec = register_histogram_vec!(
+        "semantic_search_latency_seconds",
+        "Search latency in seconds",
+        &["operation"]
+    ).unwrap();
+    
+    pub static ref SEARCH_ERRORS_TOTAL: CounterVec = register_counter_vec!(
+        "semantic_search_errors_total",
+        "Total number of search errors",
+        &["error_type"]
+    ).unwrap();
+    
+    // AWS Titan metrics
+    pub static ref AWS_TITAN_REQUEST_LATENCY: HistogramVec = register_histogram_vec!(
+        "aws_titan_request_latency_seconds",
+        "AWS Titan request latency in seconds",
+        &["operation"]
+    ).unwrap();
+    
+    pub static ref AWS_TITAN_ERRORS_TOTAL: CounterVec = register_counter_vec!(
+        "aws_titan_errors_total",
+        "Total number of AWS Titan errors",
+        &["error_type"]
+    ).unwrap();
+    
+    // Memory metrics
+    pub static ref MEMORY_RSS_BYTES: Gauge = register_gauge!(
+        "semantic_search_memory_rss_bytes",
+        "Resident set size in bytes"
+    ).unwrap();
+    
+    // Indexing metrics
+    pub static ref INDEX_OPERATIONS_TOTAL: CounterVec = register_counter_vec!(
+        "semantic_search_index_operations_total",
+        "Total number of index operations",
+        &["operation"]
+    ).unwrap();
+    
+    pub static ref INDEX_LATENCY: HistogramVec = register_histogram_vec!(
+        "semantic_search_index_latency_seconds",
+        "Index operation latency in seconds",
+        &["operation"]
+    ).unwrap();
+}
 
 /// Metrics for tracking search performance
 pub struct SearchMetrics {
@@ -54,12 +129,46 @@ impl SearchMetrics {
             results_count as u64,
             Ordering::Relaxed
         );
+        
+        // Update Prometheus metrics
+        CACHE_MISSES_TOTAL.inc();
+        SEARCH_LATENCY.with_label_values(&["search"]).observe(duration.as_secs_f64());
     }
     
     /// Record a cache hit
-    pub fn record_cache_hit(&self) {
+    pub fn record_cache_hit(&self, duration: Duration) {
         self.total_queries.fetch_add(1, Ordering::Relaxed);
         self.cache_hits.fetch_add(1, Ordering::Relaxed);
+        
+        // Update Prometheus metrics
+        CACHE_HITS_TOTAL.inc();
+        CACHE_HIT_LATENCY.with_label_values(&["get"]).observe(duration.as_secs_f64());
+    }
+    
+    /// Record cache miss
+    pub fn record_cache_miss(&self) {
+        self.cache_misses.fetch_add(1, Ordering::Relaxed);
+        CACHE_MISSES_TOTAL.inc();
+    }
+    
+    /// Update cache size
+    pub fn update_cache_size(&self, size: usize) {
+        CACHE_SIZE.set(size as f64);
+    }
+    
+    /// Record AWS Titan request
+    pub fn record_aws_titan_request(&self, duration: Duration, operation: &str) {
+        AWS_TITAN_REQUEST_LATENCY.with_label_values(&[operation]).observe(duration.as_secs_f64());
+    }
+    
+    /// Record AWS Titan error
+    pub fn record_aws_titan_error(&self, error_type: &str) {
+        AWS_TITAN_ERRORS_TOTAL.with_label_values(&[error_type]).inc();
+    }
+    
+    /// Update memory RSS
+    pub fn update_memory_rss(&self, bytes: usize) {
+        MEMORY_RSS_BYTES.set(bytes as f64);
     }
     
     /// Record indexing operation
@@ -160,5 +269,40 @@ impl std::fmt::Display for MetricsSummary {
             self.query_errors,
             self.index_errors,
         )
+    }
+}
+
+/// Export metrics in Prometheus format
+pub fn export_metrics() -> String {
+    let encoder = TextEncoder::new();
+    let metric_families = prometheus::gather();
+    let mut buffer = Vec::new();
+    encoder.encode(&metric_families, &mut buffer).unwrap();
+    String::from_utf8(buffer).unwrap()
+}
+
+/// Timer guard for recording operation duration
+pub struct TimerGuard<'a> {
+    start: Instant,
+    histogram: &'a HistogramVec,
+    labels: Vec<&'a str>,
+}
+
+impl<'a> TimerGuard<'a> {
+    pub fn new(histogram: &'a HistogramVec, labels: Vec<&'a str>) -> Self {
+        Self {
+            start: Instant::now(),
+            histogram,
+            labels,
+        }
+    }
+}
+
+impl<'a> Drop for TimerGuard<'a> {
+    fn drop(&mut self) {
+        let duration = self.start.elapsed();
+        self.histogram
+            .with_label_values(&self.labels)
+            .observe(duration.as_secs_f64());
     }
 }

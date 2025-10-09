@@ -1,0 +1,130 @@
+groups:
+  - name: ipc_performance
+    interval: 30s
+    rules:
+      - alert: HighIPCLatency
+        expr: ipc_request_duration_seconds{quantile="0.99"} > 0.00001
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High IPC latency detected"
+          description: "P99 latency {{ $value }}s exceeds 10µs target"
+      
+      - alert: LowIPCThroughput
+        expr: rate(ipc_messages_total[1m]) < 1000000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "IPC throughput below target"
+          description: "Current throughput {{ $value }} msg/s is below 1M msg/s target"
+      
+      - alert: HighErrorRate
+        expr: rate(ipc_errors_total[5m]) / rate(ipc_messages_total[5m]) > 0.01
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High IPC error rate"
+          description: "Error rate {{ $value | humanizePercentage }} exceeds 1% threshold"
+
+  - name: connection_pool_health
+    interval: 30s
+    rules:
+      - alert: LowConnectionReuse
+        expr: connection_pool_reuse_rate < 95
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low connection reuse rate"
+          description: "Connection reuse rate {{ $value }}% is below 95% target"
+      
+      - alert: ConnectionPoolExhausted
+        expr: connection_pool_total >= connection_pool_max_connections * 0.9
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Connection pool near exhaustion"
+          description: "Pool using {{ $value }} of max connections"
+      
+      - alert: UnhealthyConnections
+        expr: connection_pool_unhealthy > connection_pool_total * 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Too many unhealthy connections"
+          description: "{{ $value }} unhealthy connections detected"
+
+  - name: memory_footprint
+    interval: 60s
+    rules:
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes / 1024 / 1024 > 3
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "IPC server memory exceeds target"
+          description: "RSS {{ $value }}MB exceeds 3MB baseline target"
+      
+      - alert: MemoryLeak
+        expr: rate(process_resident_memory_bytes[1h]) > 1048576
+        for: 30m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Potential memory leak detected"
+          description: "Memory growing at {{ $value | humanize }}B/s"
+
+  - name: shared_memory
+    interval: 30s
+    rules:
+      - alert: SHMHandshakeFailures
+        expr: rate(shm_handshake_failures_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Shared memory handshake failures"
+          description: "{{ $value }} handshake failures per second"
+      
+      - alert: RingBufferOverflow
+        expr: rate(ring_buffer_overflow_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Ring buffer overflow detected"
+          description: "{{ $value }} overflows per second"
+
+  - name: error_budget
+    interval: 60s
+    rules:
+      - record: error_budget_consumed
+        expr: |
+          1 - (
+            (1 - rate(ipc_errors_total[30d]) / rate(ipc_messages_total[30d]))
+            / 0.001
+          )
+      
+      - alert: ErrorBudgetLow
+        expr: error_budget_consumed > 0.8
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Error budget running low"
+          description: "{{ $value | humanizePercentage }} of monthly error budget consumed"
+      
+      - alert: ErrorBudgetExhausted
+        expr: error_budget_consumed >= 1
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Error budget exhausted"
+          description: "Monthly error budget fully consumed"

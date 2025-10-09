@@ -2,15 +2,15 @@
 
 use lapce_tree_sitter::{MultiTierCache, MultiTierConfig};
 use std::path::PathBuf;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use std::thread;
 use tree_sitter::Parser;
-use bytes::Bytes;
+
 use lapce_tree_sitter::compact::bytecode::{
     TreeSitterBytecodeEncoder,
     SegmentedBytecodeStream,
 };
-use std::sync::Arc;
+
 
 fn main() {
     println!("=== TESTING PROMOTIONS ===\n");
@@ -34,16 +34,16 @@ fn main() {
     
     // Store a file
     let path = PathBuf::from("test.rs");
-    let source = "fn test() { println!(\"test\"); }";
+    let _source = "fn test() { println!(\"test\"); }";
     
     let mut parser = Parser::new();
     parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-    let tree = parser.parse(source, None).unwrap();
+    let _tree = parser.parse(source, None).unwrap();
     
     // Create bytecode
     let mut encoder = TreeSitterBytecodeEncoder::new();
     let bytecode = encoder.encode_tree(&tree, source.as_bytes());
-    let segmented = SegmentedBytecodeStream::from_bytecode_stream(
+    let _segmented = SegmentedBytecodeStream::from_bytecode_stream(
         bytecode,
         std::env::temp_dir().join("promotion_test_segments")
     ).unwrap();
@@ -73,7 +73,7 @@ fn main() {
     
     // Access the file 3 times to trigger promotion back to hot
     println!("\nAccessing file 3 times to trigger promotion...");
-    for i in 1..=3 {
+    for _i in 1..=3 {
         cache.get(&path).unwrap();
         println!("  Access #{}", i);
     }
@@ -110,7 +110,7 @@ fn main() {
     
     // Access twice for cold→warm promotion
     println!("\nAccessing file 2 times for cold→warm promotion...");
-    for i in 1..=2 {
+    for _i in 1..=2 {
         cache.get(&path).unwrap();
         println!("  Access #{}", i);
     }

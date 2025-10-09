@@ -88,11 +88,11 @@ mod smoke_tests {
     smoke_test!(test_ruby, tree_sitter_ruby, 
         "class Person\n  attr_accessor :name, :age\n  \n  def initialize(name, age)\n    @name = name\n    @age = age\n  end\n  \n  def greet\n    puts \"Hello, my name is #{@name}\"\n  end\n  \n  def self.create_anonymous\n    new(\"Anonymous\", 0)\n  end\nend\n\nperson = Person.new(\"Alice\", 30)\nperson.greet");
     
-    // 9. PHP - uses LANGUAGE_PHP constant
+    // 9. PHP - uses language_php() in 0.23.x
     #[test]
     fn test_php() {
         let mut parser = Parser::new();
-        parser.set_language(&tree_sitter_php::LANGUAGE_PHP.into())
+        parser.set_language(&tree_sitter_php::language_php())
             .expect("Failed to load PHP");
         
         let code = "<?php\n\nnamespace App\\Models;\n\nclass User {\n    private string $name;\n    private int $age;\n    \n    public function __construct(string $name, int $age) {\n        $this->name = $name;\n        $this->age = $age;\n    }\n    \n    public function getName(): string {\n        return $this->name;\n    }\n}\n\n$user = new User(\"Alice\", 30);\necho $user->getName();\n?>";
@@ -115,7 +115,8 @@ mod smoke_tests {
     smoke_test!(test_json, tree_sitter_json, 
         "{\n  \"name\": \"my-project\",\n  \"version\": \"1.0.0\",\n  \"description\": \"A sample project\",\n  \"main\": \"index.js\",\n  \"scripts\": {\n    \"start\": \"node index.js\",\n    \"test\": \"jest\",\n    \"build\": \"webpack\"\n  },\n  \"dependencies\": {\n    \"express\": \"^4.18.0\",\n    \"lodash\": \"^4.17.21\"\n  },\n  \"devDependencies\": {\n    \"jest\": \"^29.0.0\",\n    \"webpack\": \"^5.74.0\"\n  },\n  \"author\": \"John Doe\",\n  \"license\": \"MIT\"\n}");
     
-    // 14. TOML - uses language() function
+    // 14. TOML - uses language() function (feature-gated external grammar)
+    #[cfg(feature = "lang-toml")]
     #[test]
     fn test_toml() {
         let mut parser = Parser::new();
@@ -175,7 +176,8 @@ mod smoke_tests {
     smoke_test!(test_d, tree_sitter_d, 
         "import std.stdio;\nimport std.algorithm;\nimport std.range;\n\nclass Person {\n    private string name;\n    private int age;\n    \n    this(string name, int age) {\n        this.name = name;\n        this.age = age;\n    }\n    \n    @property string getName() const {\n        return name;\n    }\n}\n\nvoid main() {\n    auto numbers = [1, 2, 3, 4, 5];\n    auto doubled = numbers.map!(x => x * 2).array;\n    \n    foreach (num; doubled) {\n        writeln(num);\n    }\n}");
     
-    // 26. Dockerfile - uses language() function
+    // 26. Dockerfile - uses language() function (feature-gated external grammar)
+    #[cfg(feature = "lang-dockerfile")]
     #[test]
     fn test_dockerfile() {
         let mut parser = Parser::new();
@@ -208,6 +210,7 @@ mod smoke_tests {
         assert!(!tree.root_node().has_error(), "Common Lisp parse has errors");
     }
     
+    #[cfg(feature = "lang-objc")]
     smoke_test!(test_objc, tree_sitter_objc, 
         "#import <Foundation/Foundation.h>\n\n@interface Person : NSObject\n\n@property (nonatomic, strong) NSString *name;\n@property (nonatomic, assign) NSInteger age;\n\n- (instancetype)initWithName:(NSString *)name age:(NSInteger)age;\n- (void)greet;\n\n@end\n\n@implementation Person\n\n- (instancetype)initWithName:(NSString *)name age:(NSInteger)age {\n    self = [super init];\n    if (self) {\n        _name = name;\n        _age = age;\n    }\n    return self;\n}\n\n- (void)greet {\n    NSLog(@\"Hello, my name is %@\", self.name);\n}\n\n@end\n\nint main(int argc, const char * argv[]) {\n    @autoreleasepool {\n        Person *person = [[Person alloc] initWithName:@\"Alice\" age:30];\n        [person greet];\n    }\n    return 0;\n}");
     
@@ -249,8 +252,8 @@ mod smoke_tests {
         assert!(!tree.root_node().has_error(), "TypeScript parse has errors");
     }
     
-    // 33b. TSX
-    #[cfg(feature = "lang-tsx")]
+    // 33b. TSX (gated under lang-typescript feature)
+    #[cfg(feature = "lang-typescript")]
     #[test]
     fn test_tsx() {
         let mut parser = Parser::new();

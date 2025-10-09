@@ -1,4 +1,4 @@
-use lapce_ai_rust::ultra_fast_shared_memory::{UltraFastSharedMemory, BatchProcessor};
+use lapce_ai_rust::ipc::shared_memory_complete::{UltraFastSharedMemory, BatchProcessor};
 use std::time::Instant;
 use std::sync::Arc;
 use tokio::task;

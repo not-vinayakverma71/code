@@ -1,7 +1,8 @@
 // Query the actually indexed data using OUR SYSTEM
 use lancedb::connect;
 use lancedb::search::semantic_search_engine::{SemanticSearchEngine, SearchConfig, SearchFilters};
-use lancedb::embeddings::aws_titan_production::{AwsTitanProduction, AwsTier};
+use lancedb::embeddings::aws_titan_production::AwsTitanProduction;
+use lancedb::embeddings::embedder_interface::IEmbedder;
 use std::sync::Arc;
 use std::time::Instant;
 use std::fs;
@@ -71,10 +72,8 @@ async fn main() {
     let conn = Arc::new(connect(db_path.to_str().unwrap()).execute().await.unwrap());
     
     // Initialize OUR embedder (AWS Titan)
-    let embedder = Arc::new(AwsTitanProduction::new(
-        "us-east-1",
-        AwsTier::Standard,
-    ).await.expect("Failed to create AWS Titan"));
+    let embedder: Arc<dyn IEmbedder> = Arc::new(AwsTitanProduction::new_from_config()
+        .await.expect("Failed to create AWS Titan"));
     
     // Initialize OUR search engine with OUR config
     let search_config = SearchConfig {

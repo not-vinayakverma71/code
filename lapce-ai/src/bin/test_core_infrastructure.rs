@@ -7,7 +7,7 @@ use colored::Colorize;
 use tokio::time::sleep;
 
 use lapce_ai_rust::{
-    rate_limiting::TokenBucketRateLimiter,
+    // rate_limiting::TokenBucketRateLimiter, // Module not available
     circuit_breaker::CircuitBreaker,
     ai_providers::{
         provider_registry::ProviderRegistry,

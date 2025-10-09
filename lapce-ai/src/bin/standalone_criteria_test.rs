@@ -8,7 +8,7 @@ use std::sync::Arc;
 // Directly include the shared memory module
 #[path = "../shared_memory_complete.rs"]
 mod shared_memory_complete;
-use shared_memory_complete::SharedMemoryBuffer;
+use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer;
 
 fn main() {
     println!("\n🏁 STANDALONE PRODUCTION TEST - SUCCESS CRITERIA VALIDATION");

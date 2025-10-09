@@ -8,7 +8,7 @@ use tokio::sync::{Semaphore, RwLock};
 use sysinfo::{System, Pid};
 use std::collections::VecDeque;
 
-use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer;
+use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer;
 
 const TEST_DURATION: Duration = Duration::from_secs(30);
 const CONCURRENT_CONNECTIONS: usize = 1000;
@@ -71,26 +71,28 @@ async fn run_client(
             let mut buf = buffer.write().await;
             if buf.write(&test_msg).is_ok() {
                 let mut temp = vec![0u8; 256];
-                if buf.read(&mut temp).unwrap_or(0) > 0 {
-                    let latency_ns = start.elapsed().as_nanos() as u64;
-                    
-                    metrics.total_messages.fetch_add(1, Ordering::Relaxed);
-                    metrics.total_latency_ns.fetch_add(latency_ns, Ordering::Relaxed);
-                    
-                    // Update min
-                    let mut min = metrics.min_latency_ns.load(Ordering::Relaxed);
-                    while latency_ns < min && metrics.min_latency_ns.compare_exchange_weak(
-                        min, latency_ns, Ordering::Relaxed, Ordering::Relaxed
-                    ).is_err() {
-                        min = metrics.min_latency_ns.load(Ordering::Relaxed);
-                    }
-                    
-                    // Update max
-                    let mut max = metrics.max_latency_ns.load(Ordering::Relaxed);
-                    while latency_ns > max && metrics.max_latency_ns.compare_exchange_weak(
-                        max, latency_ns, Ordering::Relaxed, Ordering::Relaxed
-                    ).is_err() {
-                        max = metrics.max_latency_ns.load(Ordering::Relaxed);
+                if let Some(data) = buf.read() {
+                    if !data.is_empty() {
+                        let latency_ns = start.elapsed().as_nanos() as u64;
+                        
+                        metrics.total_messages.fetch_add(1, Ordering::Relaxed);
+                        metrics.total_latency_ns.fetch_add(latency_ns, Ordering::Relaxed);
+                        
+                        // Update min
+                        let mut min = metrics.min_latency_ns.load(Ordering::Relaxed);
+                        while latency_ns < min && metrics.min_latency_ns.compare_exchange_weak(
+                            min, latency_ns, Ordering::Relaxed, Ordering::Relaxed
+                        ).is_err() {
+                            min = metrics.min_latency_ns.load(Ordering::Relaxed);
+                        }
+                        
+                        // Update max
+                        let mut max = metrics.max_latency_ns.load(Ordering::Relaxed);
+                        while latency_ns > max && metrics.max_latency_ns.compare_exchange_weak(
+                            max, latency_ns, Ordering::Relaxed, Ordering::Relaxed
+                        ).is_err() {
+                            max = metrics.max_latency_ns.load(Ordering::Relaxed);
+                        }
                     }
                 }
             } else {

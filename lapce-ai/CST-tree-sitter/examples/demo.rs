@@ -1,3 +1,4 @@
+#![cfg(feature = "demo-example")]
 //! Proof of concept demonstration of native tree-sitter integration
 //! This shows the architecture and API design even though language parsers
 //! are not yet loaded due to version conflicts

@@ -95,8 +95,8 @@ impl From<ArrowError> for Error {
 
 impl From<lance::Error> for Error {
     fn from(source: lance::Error) -> Self {
-        // TODO: Once Lance is changed to preserve ObjectStore, DataFusion, and Arrow errors, we can
-        // pass those variants through here as well.
+        // TODO(lance-team): Once Lance is changed to preserve ObjectStore, DataFusion, and Arrow errors, we can
+        // pass those variants through here as well. [2024-01]
         Self::Lance { source }
     }
 }

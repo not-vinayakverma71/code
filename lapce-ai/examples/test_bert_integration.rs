@@ -1,5 +1,6 @@
 // Test real BERT integration with performance metrics
-use lapce_ai_rust::lancedb_search::bert_integration::BertEmbedder;
+// use lapce_ai_rust::lancedb // Module not available
+// Original: use lapce_ai_rust::lancedb::bert_integration::BertEmbedder;
 use std::path::Path;
 use std::time::Instant;
 

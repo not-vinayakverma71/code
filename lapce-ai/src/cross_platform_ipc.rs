@@ -15,14 +15,14 @@ pub trait IpcTransport: Send + Sync {
 /// Linux/Unix: SharedMemory implementation (optimal)
 #[cfg(unix)]
 pub struct SharedMemoryTransport {
-    buffer: crate::shared_memory_complete::SharedMemoryBuffer,
+    buffer: crate::ipc::shared_memory_complete::SharedMemoryBuffer,
 }
 
 #[cfg(unix)]
 impl SharedMemoryTransport {
     pub fn new(name: &str, size: usize) -> Result<Self> {
         Ok(Self {
-            buffer: crate::shared_memory_complete::SharedMemoryBuffer::create(name, size)?
+            buffer: crate::ipc::shared_memory_complete::SharedMemoryBuffer::create(name, size)?
         })
     }
 }
@@ -35,10 +35,8 @@ impl IpcTransport for SharedMemoryTransport {
     }
     
     fn read(&mut self) -> Result<Vec<u8>> {
-        let mut buf = vec![0u8; 1024];
-        let n = self.buffer.read(&mut buf)?;
-        buf.truncate(n);
-        Ok(buf)
+        self.buffer.read()
+            .ok_or_else(|| anyhow::anyhow!("No data available"))
     }
     
     fn platform_name(&self) -> &str {

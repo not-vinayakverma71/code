@@ -8,7 +8,7 @@ use std::collections::VecDeque;
 use tokio::sync::Mutex;
 use anyhow::Result;
 
-use lapce_ai_rust::shared_memory_complete::{SharedMemoryBuffer, SharedMemoryStream};
+use lapce_ai_rust::ipc::shared_memory_complete::{SharedMemoryBuffer, SharedMemoryStream};
 
 // cleanup_shared_memory is not exported, handle cleanup locally
 fn cleanup_shared_memory(name: &str) {

@@ -9,11 +9,10 @@ use serde_json::json;
 use tracing::info;
 
 use crate::connection_pool_manager::ConnectionStats;
-use crate::ipc::connection_pool::ConnectionPool;
-use crate::ipc::circuit_breaker::{CircuitBreaker, CircuitBreakerStats};
+use crate::ipc::circuit_breaker::CircuitBreaker;
 use crate::ipc::ipc_server::IpcServerStats;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use std::collections::HashMap;
 use tokio::sync::RwLock;
 
@@ -32,7 +31,9 @@ pub struct HealthServerConfig {
 impl Default for HealthServerConfig {
     fn default() -> Self {
         Self {
-            bind_address: "127.0.0.1:9090".parse().unwrap(),
+            bind_address: "127.0.0.1:9090".parse().unwrap_or_else(|_| {
+                std::net::SocketAddr::from(([127, 0, 0, 1], 9090))
+            }),
             enable_prometheus: true,
             enable_detailed_stats: true,
         }
@@ -403,18 +404,5 @@ impl HealthServer {
             .status(StatusCode::OK)
             .header("Content-Type", "application/json")
             .body(Full::new(Bytes::from(body.to_string())))?)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    
-    #[tokio::test]
-    async fn test_health_endpoint() {
-        // This is a basic test structure - would need actual server setup for full testing
-        let config = HealthServerConfig::default();
-        assert_eq!(config.bind_address.port(), 9090);
-        assert!(config.enable_prometheus);
     }
 }

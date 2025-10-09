@@ -4,20 +4,15 @@
 
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH, Duration};
-use tokio::sync::RwLock;
 use tokio::time::sleep;
 use serde::{Serialize, Deserialize};
 use crate::events_exact_translation::*;
-use crate::global_settings_exact_translation::*;
 // Import task types from task_exact_translation
 // Task types are in parent module
-use crate::task_exact_translation::{ClineAskResponse, UserContent};
 use crate::ipc_messages::ToolProgressStatus;
 // ConnectionId and Connection are now local types
 type ConnectionId = u64;
 struct Connection;
-use std::path::PathBuf;
-use super::ipc_messages::{Message, MessageRole};
 use crate::ipc_messages::ClineMessage as TypesClineMessage;
 // Use ClineAsk from ipc_messages for consistency  
 use crate::ipc_messages::ClineAsk;

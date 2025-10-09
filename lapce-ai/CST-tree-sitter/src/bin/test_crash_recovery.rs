@@ -2,15 +2,15 @@
 //! Simulates crashes and verifies data integrity
 
 use lapce_tree_sitter::{Phase4Cache, Phase4Config};
-use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::path::PathBuf;
+
 use std::fs;
 use tree_sitter::Parser;
 
 fn main() {
     println!("=== CRASH RECOVERY TEST ===\n");
     
-    let storage_dir = std::env::temp_dir().join("crash_recovery_test");
+    let _storage_dir = std::env::temp_dir().join("crash_recovery_test");
     
     // Clean up any previous test data
     if storage_dir.exists() {
@@ -131,7 +131,7 @@ fn main() {
         let hash = hash_name(name);
         
         match recovered_cache.get(&path, hash) {
-            Ok(Some((tree, source))) => {
+            Ok(Some((_tree, source))) => {
                 // Verify content matches
                 if source.as_ref() == original_content.as_bytes() {
                     println!("    ✅ {}: Recovered successfully", name);
@@ -179,7 +179,7 @@ fn main() {
     let crash_count = 3;
     let mut current_cache = recovered_cache;
     
-    for i in 1..=crash_count {
+    for _i in 1..=crash_count {
         println!("\n  Crash simulation #{}", i);
         
         // Add more data

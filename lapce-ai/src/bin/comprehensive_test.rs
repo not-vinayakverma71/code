@@ -8,7 +8,7 @@ use tokio::time::sleep;
 use anyhow::Result;
 
 use lapce_ai_rust::{
-    shared_memory_complete::{SharedMemoryBuffer, SharedMemoryListener, SharedMemoryStream},
+    ipc::shared_memory_complete::{SharedMemoryBuffer, SharedMemoryListener, SharedMemoryStream},
     provider_pool::{ProviderPool, ProviderPoolConfig},
     ipc_messages::{AIRequest, Message as IpcMessage, MessageRole},
 };

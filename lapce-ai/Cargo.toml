@@ -234,6 +234,7 @@ rustls-pemfile = "1.0"
 rkyv = { version = "0.7", features = ["validation"] }
 shared_memory = "0.12"
 raw_sync = "0.1"
+crc32fast = "1.4"
 
 # Scripting
 mlua = { version = "0.10", features = ["lua54", "vendored", "async", "send"] }

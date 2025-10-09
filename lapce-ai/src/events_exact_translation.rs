@@ -294,6 +294,127 @@ pub trait RooCodeEvents {
     fn on_eval_fail(&mut self, task_id: u32);
 }
 
+// ============================================================================
+// ENGINE-SIDE EVENT BUS (CHUNK-03: T02)
+// ============================================================================
+
+use tokio::sync::broadcast;
+use std::sync::Arc;
+use parking_lot::RwLock;
+use std::collections::HashMap;
+
+/// Event bus for task lifecycle events
+/// Provides broadcast channel with per-task FIFO ordering guarantees
+pub struct TaskEventBus {
+    /// Global broadcast channel for all task events
+    tx: broadcast::Sender<TaskEvent>,
+    
+    /// Per-task sequence numbers to enforce FIFO ordering
+    task_sequences: Arc<RwLock<HashMap<String, u64>>>,
+    
+    /// Capacity for broadcast channel
+    capacity: usize,
+}
+
+impl TaskEventBus {
+    /// Create a new event bus with specified capacity
+    pub fn new(capacity: usize) -> Self {
+        let (tx, _) = broadcast::channel(capacity);
+        Self {
+            tx,
+            task_sequences: Arc::new(RwLock::new(HashMap::new())),
+            capacity,
+        }
+    }
+    
+    /// Publish a task event to all subscribers
+    /// Enforces FIFO ordering per task_id
+    pub fn publish(&self, event: TaskEvent) -> Result<(), String> {
+        // Extract task_id for sequencing
+        let task_id = self.extract_task_id(&event);
+        
+        if let Some(task_id) = task_id {
+            // Increment sequence for this task
+            let mut sequences = self.task_sequences.write();
+            let seq = sequences.entry(task_id.clone()).or_insert(0);
+            *seq += 1;
+        }
+        
+        // Broadcast the event
+        self.tx.send(event)
+            .map_err(|e| format!("Failed to publish event: {}", e))?;
+        
+        Ok(())
+    }
+    
+    /// Subscribe to task events
+    /// Returns a receiver that will get all future events
+    pub fn subscribe(&self) -> broadcast::Receiver<TaskEvent> {
+        self.tx.subscribe()
+    }
+    
+    /// Get the number of active subscribers
+    pub fn subscriber_count(&self) -> usize {
+        self.tx.receiver_count()
+    }
+    
+    /// Extract task_id from an event for sequencing
+    fn extract_task_id(&self, event: &TaskEvent) -> Option<String> {
+        match event {
+            TaskEvent::TaskCreated { payload, .. } => Some(payload.0.clone()),
+            TaskEvent::TaskStarted { payload, .. } => Some(payload.0.clone()),
+            TaskEvent::TaskCompleted { payload, .. } => Some(payload.0.clone()),
+            TaskEvent::TaskAborted { payload, .. } => Some(payload.0.clone()),
+            TaskEvent::TaskFocused { payload, .. } => Some(payload.0.clone()),
+            TaskEvent::TaskUnfocused { payload, .. } => Some(payload.0.clone()),
+            TaskEvent::TaskActive { payload, .. } => Some(payload.0.clone()),
+            TaskEvent::TaskInteractive { payload, .. } => Some(payload.0.clone()),
+            TaskEvent::TaskResumable { payload, .. } => Some(payload.0.clone()),
+            TaskEvent::TaskIdle { payload, .. } => Some(payload.0.clone()),
+            TaskEvent::TaskPaused { payload, .. } => Some(payload.0.clone()),
+            TaskEvent::TaskUnpaused { payload, .. } => Some(payload.0.clone()),
+            TaskEvent::TaskSpawned { payload, .. } => Some(payload.0.clone()),
+            TaskEvent::Message { payload, .. } => Some(payload.0.task_id.clone()),
+            TaskEvent::TaskModeSwitched { payload, .. } => Some(payload.0.clone()),
+            TaskEvent::TaskAskResponded { payload, .. } => Some(payload.0.clone()),
+            TaskEvent::TaskToolFailed { payload, .. } => Some(payload.0.clone()),
+            TaskEvent::TaskTokenUsageUpdated { payload, .. } => Some(payload.0.clone()),
+            _ => None,
+        }
+    }
+    
+    /// Clean up sequence tracking for completed/aborted tasks
+    pub fn cleanup_task(&self, task_id: &str) {
+        let mut sequences = self.task_sequences.write();
+        sequences.remove(task_id);
+    }
+}
+
+impl Default for TaskEventBus {
+    fn default() -> Self {
+        Self::new(1024) // Default capacity of 1024 events
+    }
+}
+
+impl Clone for TaskEventBus {
+    fn clone(&self) -> Self {
+        Self {
+            tx: self.tx.clone(),
+            task_sequences: self.task_sequences.clone(),
+            capacity: self.capacity,
+        }
+    }
+}
+
+/// Global event bus singleton (initialized lazily)
+static EVENT_BUS: once_cell::sync::Lazy<TaskEventBus> = 
+    once_cell::sync::Lazy::new(|| TaskEventBus::new(2048));
+
+/// Get the global event bus instance
+pub fn global_event_bus() -> &'static TaskEventBus {
+    &EVENT_BUS
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -328,5 +449,139 @@ mod tests {
         let json = serde_json::to_string(&usage).unwrap();
         assert!(json.contains("\"totalTokensIn\":100"));
         assert!(json.contains("\"totalTokensOut\":200"));
+    }
+    
+    // ========================================================================
+    // EVENT BUS TESTS (T02)
+    // ========================================================================
+    
+    #[test]
+    fn test_event_bus_creation() {
+        let bus = TaskEventBus::new(100);
+        assert_eq!(bus.subscriber_count(), 0);
+    }
+    
+    #[test]
+    fn test_event_bus_subscribe() {
+        let bus = TaskEventBus::new(100);
+        let _rx1 = bus.subscribe();
+        assert_eq!(bus.subscriber_count(), 1);
+        
+        let _rx2 = bus.subscribe();
+        assert_eq!(bus.subscriber_count(), 2);
+    }
+    
+    #[tokio::test]
+    async fn test_event_bus_publish_subscribe() {
+        let bus = TaskEventBus::new(100);
+        let mut rx = bus.subscribe();
+        
+        let event = TaskEvent::TaskStarted {
+            payload: ("task-123".to_string(),),
+            task_id: Some(1),
+        };
+        
+        bus.publish(event.clone()).unwrap();
+        
+        let received = rx.recv().await.unwrap();
+        match received {
+            TaskEvent::TaskStarted { payload, .. } => {
+                assert_eq!(payload.0, "task-123");
+            }
+            _ => panic!("Wrong event type received"),
+        }
+    }
+    
+    #[tokio::test]
+    async fn test_event_bus_fifo_ordering() {
+        let bus = TaskEventBus::new(100);
+        let mut rx = bus.subscribe();
+        
+        // Publish multiple events for same task
+        for i in 0..5 {
+            let event = TaskEvent::TaskActive {
+                payload: (format!("task-{}", i),),
+                task_id: Some(i as u32),
+            };
+            bus.publish(event).unwrap();
+        }
+        
+        // Verify FIFO ordering
+        for i in 0..5 {
+            let received = rx.recv().await.unwrap();
+            match received {
+                TaskEvent::TaskActive { payload, .. } => {
+                    assert_eq!(payload.0, format!("task-{}", i));
+                }
+                _ => panic!("Wrong event type"),
+            }
+        }
+    }
+    
+    #[tokio::test]
+    async fn test_event_bus_multiple_subscribers() {
+        let bus = TaskEventBus::new(100);
+        let mut rx1 = bus.subscribe();
+        let mut rx2 = bus.subscribe();
+        
+        let event = TaskEvent::TaskCompleted {
+            payload: (
+                "task-456".to_string(),
+                TokenUsage {
+                    total_tokens_in: 100,
+                    total_tokens_out: 200,
+                    cache_write_tokens: None,
+                    cache_read_tokens: None,
+                    input_tokens: 100,
+                    output_tokens: 200,
+                    cache_creation_input_tokens: None,
+                    cache_read_input_tokens: None,
+                    total_cost: 0.05,
+                    context_tokens: 300,
+                },
+                ToolUsage {
+                    tools: std::collections::HashMap::new(),
+                },
+                TaskCompletedMetadata { is_subtask: false },
+            ),
+            task_id: Some(1),
+        };
+        
+        bus.publish(event).unwrap();
+        
+        // Both subscribers should receive the event
+        let r1 = rx1.recv().await.unwrap();
+        let r2 = rx2.recv().await.unwrap();
+        
+        assert!(matches!(r1, TaskEvent::TaskCompleted { .. }));
+        assert!(matches!(r2, TaskEvent::TaskCompleted { .. }));
+    }
+    
+    #[test]
+    fn test_event_bus_cleanup() {
+        let bus = TaskEventBus::new(100);
+        
+        // Publish events to create sequence entries
+        for i in 0..5 {
+            let event = TaskEvent::TaskStarted {
+                payload: (format!("task-{}", i),),
+                task_id: Some(i as u32),
+            };
+            bus.publish(event).unwrap();
+        }
+        
+        // Cleanup a task
+        bus.cleanup_task("task-0");
+        
+        // Sequence should be removed (no way to verify directly, but ensures no panic)
+    }
+    
+    #[test]
+    fn test_global_event_bus() {
+        let bus1 = global_event_bus();
+        let bus2 = global_event_bus();
+        
+        // Should be the same instance
+        assert_eq!(bus1 as *const _, bus2 as *const _);
     }
 }

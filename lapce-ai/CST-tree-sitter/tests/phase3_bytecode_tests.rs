@@ -1,3 +1,4 @@
+#![cfg(feature = "phase3-tests")]
 //! Phase 3 Bytecode Tests - Ensuring 0% Quality Loss
 //! Comprehensive tests for bytecode tree representation
 

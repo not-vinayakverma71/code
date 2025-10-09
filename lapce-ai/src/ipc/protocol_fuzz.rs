@@ -7,7 +7,6 @@ use super::binary_codec::{CompletionRequest, CompletionResponse};
 use anyhow::Result;
 use arbitrary::{Arbitrary, Unstructured};
 use std::time::Instant;
-use std::collections::HashMap;
 
 /// Fuzz arbitrary message generation
 impl<'a> Arbitrary<'a> for codex_messages::CodexMessageType {
@@ -110,7 +109,7 @@ impl ProtocolFuzzer {
             payload,
             timestamp: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
+                .unwrap_or_else(|_| std::time::Duration::from_secs(0))
                 .as_millis() as u64,
         })
     }
@@ -195,7 +194,7 @@ impl ProtocolFuzzer {
                 payload,
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
+                    .unwrap_or_else(|_| std::time::Duration::from_secs(0))
                     .as_millis() as u64,
             });
         }

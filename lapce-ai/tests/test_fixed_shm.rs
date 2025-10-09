@@ -1,5 +1,5 @@
 // Day 1: Test fixed SharedMemory implementation
-use lapce_ai_rust::working_shared_memory_fixed::FixedSharedMemory;
+use lapce_ai_rust::ipc::shared_memory_complete::FixedSharedMemory;
 use std::time::Instant;
 
 #[test]

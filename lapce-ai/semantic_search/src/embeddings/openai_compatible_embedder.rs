@@ -95,13 +95,13 @@ impl OpenAICompatibleEmbedder {
         // Lines 170-180: Known patterns for major providers
         let patterns = vec![
             // Azure OpenAI
-            Regex::new(r"/deployments/[^/]+/embeddings(\?|$)").unwrap(),
+            Regex::new(r"/deployments/[^/]+/embeddings(\?|$)").expect("Valid regex"),
             // Azure Databricks
-            Regex::new(r"/serving-endpoints/[^/]+/invocations(\?|$)").unwrap(),
+            Regex::new(r"/serving-endpoints/[^/]+/invocations(\?|$)").expect("Valid regex"),
             // Direct endpoints
-            Regex::new(r"/embeddings(\?|$)").unwrap(),
+            Regex::new(r"/embeddings(\?|$)").expect("Valid regex"),
             // Some providers use /embed
-            Regex::new(r"/embed(\?|$)").unwrap(),
+            Regex::new(r"/embed(\?|$)").expect("Valid regex"),
         ];
         
         patterns.iter().any(|pattern| pattern.is_match(url))
@@ -277,7 +277,9 @@ impl OpenAICompatibleEmbedder {
     /// Lines 408-434: Wait for global rate limit
     async fn wait_for_global_rate_limit(&self) {
         let state = GLOBAL_RATE_LIMIT_STATE.read().await;
-        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64;
+        let now = SystemTime::now().duration_since(UNIX_EPOCH)
+            .unwrap_or_else(|_| Duration::from_secs(0))
+            .as_millis() as u64;
         
         if state.is_rate_limited && state.rate_limit_reset_time > now {
             let wait_time = state.rate_limit_reset_time - now;
@@ -289,7 +291,9 @@ impl OpenAICompatibleEmbedder {
     /// Lines 439-468: Update global rate limit state
     async fn update_global_rate_limit_state(&self) {
         let mut state = GLOBAL_RATE_LIMIT_STATE.write().await;
-        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64;
+        let now = SystemTime::now().duration_since(UNIX_EPOCH)
+            .unwrap_or_else(|_| Duration::from_secs(0))
+            .as_millis() as u64;
         
         // Lines 445-451: Increment consecutive errors
         if now - state.last_rate_limit_error < 60000 {  // Within 1 minute
@@ -312,7 +316,9 @@ impl OpenAICompatibleEmbedder {
     /// Lines 473-486: Get global rate limit delay
     async fn get_global_rate_limit_delay(&self) -> u64 {
         let state = GLOBAL_RATE_LIMIT_STATE.read().await;
-        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64;
+        let now = SystemTime::now().duration_since(UNIX_EPOCH)
+            .unwrap_or_else(|_| Duration::from_secs(0))
+            .as_millis() as u64;
         
         if state.is_rate_limited && state.rate_limit_reset_time > now {
             state.rate_limit_reset_time - now

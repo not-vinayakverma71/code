@@ -99,7 +99,7 @@ mod tests {
         
         // Create context with permission manager
         let mut context = ToolContext::new(temp_dir.path().to_path_buf(), "test_user".to_string());
-        context.permission_manager = Some(pm);
+        // context.permission_manager = Some(pm);
         context.permissions.file_read = true; // Basic permission allowed
         
         let tool = ReadFileTool;

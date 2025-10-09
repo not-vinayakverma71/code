@@ -2,15 +2,13 @@
 /// This module provides helpers to integrate the streaming pipeline with providers
 
 use std::sync::Arc;
-use std::time::Duration;
 use tokio::sync::Mutex;
 use anyhow::Result;
 use reqwest::Response;
-use futures::stream::{Stream, StreamExt, BoxStream};
+use futures::stream::{StreamExt, BoxStream};
 
 use crate::streaming_pipeline::{
-    StreamingPipeline, StreamPipelineBuilder, StreamToken,
-    ContentFilter, TokenAccumulator, StreamTransformer,
+    StreamingPipeline, StreamPipelineBuilder, StreamToken, TokenAccumulator,
 };
 use crate::ai_providers::sse_decoder::{SseDecoder, SseEvent};
 

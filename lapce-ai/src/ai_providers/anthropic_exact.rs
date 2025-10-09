@@ -5,7 +5,7 @@ use std::sync::Arc;
 use std::collections::HashMap;
 use anyhow::{Result, bail};
 use async_trait::async_trait;
-use futures::stream::{self, StreamExt, BoxStream};
+use futures::stream::{StreamExt, BoxStream};
 use serde_json::json;
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 use tokio::sync::RwLock;
@@ -13,12 +13,9 @@ use tokio::sync::RwLock;
 use crate::ai_providers::core_trait::{
     AiProvider, CompletionRequest, CompletionResponse, ChatRequest, ChatResponse,
     StreamToken, HealthStatus, Model, ProviderCapabilities, RateLimits, Usage,
-    ChatMessage, ChatChoice, CompletionChoice
+    ChatMessage, ChatChoice
 };
-use crate::ai_providers::sse_decoder::{SseDecoder, SseEvent};
-use crate::ai_providers::streaming_integration::{
-    process_sse_response, ProviderType
-};
+use crate::ai_providers::sse_decoder::SseEvent;
 
 /// Anthropic configuration
 #[derive(Debug, Clone)]

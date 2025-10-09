@@ -8,7 +8,7 @@ use sha2::{Sha256, Digest};
 use dashmap::DashMap;
 use anyhow::{Result, bail};
 use serde::{Serialize, Deserialize};
-use tracing::{info, warn, error};
+use tracing::{info, warn};
 
 /// Security configuration for IPC
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -217,7 +217,7 @@ impl SecurityManager {
             return Ok(());
         }
         
-        let mut entry = self.rate_limiters.entry(connection_id).or_insert_with(|| {
+        let entry = self.rate_limiters.entry(connection_id).or_insert_with(|| {
             RateLimiter::new(self.config.rate_limit.max_rps, self.config.rate_limit.burst_size)
         });
         

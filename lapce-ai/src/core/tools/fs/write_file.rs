@@ -1,11 +1,10 @@
 // WriteFile tool implementation - P0-5
 
-use crate::core::tools::traits::{Tool, ToolContext, ToolResult, ToolOutput, ToolError, ApprovalRequired};
+use crate::core::tools::traits::{Tool, ToolContext, ToolResult, ToolOutput, ToolError};
 use crate::core::tools::xml_util::XmlParser;
 use async_trait::async_trait;
 use serde_json::{json, Value};
 use std::fs;
-use std::path::Path;
 
 pub struct WriteFileTool;
 
@@ -67,15 +66,15 @@ impl Tool for WriteFileTool {
         let safe_path = super::ensure_workspace_path(&context.workspace, &file_path)
             .map_err(|e| ToolError::PermissionDenied(e))?;
         
-        // Check if file exists for approval message
         let exists = safe_path.exists();
         let operation = if exists { "overwrite" } else { "create" };
         
         // Request approval if required
         if context.require_approval && !context.dry_run {
+            let approval_id = context.log_approval("writeFile", "write", path);
             return Err(ToolError::ApprovalRequired(format!(
-                "Approval required to {} file: {}",
-                operation, path
+                "Approval required to {} file: {} (approval_id: {})",
+                operation, path, approval_id
             )));
         }
         
@@ -101,14 +100,23 @@ impl Tool for WriteFileTool {
         let processed_content = preprocess_content(content);
         
         // Write the file
-        fs::write(&safe_path, &processed_content)
-            .map_err(|e| ToolError::Io(e))?;
-        
-        Ok(ToolOutput::success(json!({
-            "path": path,
-            "operation": operation,
-            "bytesWritten": processed_content.len(),
-        })))
+        match fs::write(&safe_path, &processed_content) {
+            Ok(_) => {
+                // Log successful file operation
+                context.log_file_op("write", path, true, None);
+                
+                Ok(ToolOutput::success(json!({
+                    "path": path,
+                    "operation": operation,
+                    "bytesWritten": processed_content.len(),
+                })))
+            }
+            Err(e) => {
+                // Log failed file operation
+                context.log_file_op("write", path, false, Some(&e.to_string()));
+                Err(ToolError::Io(e))
+            }
+        }
     }
 }
 
@@ -189,6 +197,7 @@ Here's some code:
         
         let tool = WriteFileTool;
         let mut context = ToolContext::new(temp_dir.path().to_path_buf(), "test_user".to_string());
+        context.permissions.file_write = true; // allow write in dry-run
         context.dry_run = true;
         context.require_approval = false;
         
@@ -213,6 +222,7 @@ Here's some code:
         
         let tool = WriteFileTool;
         let mut context = ToolContext::new(temp_dir.path().to_path_buf(), "test_user".to_string());
+        context.permissions.file_write = true; // allow writing
         context.require_approval = false; // Disable approval for test
         
         let args = json!(format!(r#"
@@ -239,7 +249,8 @@ Here's some code:
         let temp_dir = TempDir::new().unwrap();
         
         let tool = WriteFileTool;
-        let context = ToolContext::new(temp_dir.path().to_path_buf(), "test_user".to_string());
+        let mut context = ToolContext::new(temp_dir.path().to_path_buf(), "test_user".to_string());
+        context.permissions.file_write = true; // ensure permission check passes so approval is required
         
         let args = json!(format!(r#"
             <tool>

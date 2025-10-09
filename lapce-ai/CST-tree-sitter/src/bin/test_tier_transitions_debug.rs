@@ -1,6 +1,6 @@
 //! Test tier transitions with debug output
 
-use lapce_tree_sitter::phase4_cache_fixed::{Phase4Cache, Phase4Config};
+
 use lapce_tree_sitter::{MultiTierCache, MultiTierConfig};
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
@@ -31,13 +31,13 @@ fn main() {
     println!("1. STORING FILES:");
     println!("{}", "-".repeat(40));
     
-    for i in 0..5 {
-        let source = format!("fn test{}() {{ }}", i);
+    for _i in 0..5 {
+        let _source = format!("fn test{}() {{ }}", i);
         let path = PathBuf::from(format!("test{}.rs", i));
         
         let mut parser = Parser::new();
         parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-        let tree = parser.parse(&source, None).unwrap();
+        let _tree = parser.parse(&source, None).unwrap();
         
         cache.store(path.clone(), i as u64, tree, source.as_bytes())
             .expect("Failed to store");

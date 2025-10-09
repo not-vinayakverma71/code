@@ -238,7 +238,7 @@ impl DeltaCodec {
         // In production, use more sophisticated algorithm (VCDIFF, bsdiff)
         let mut delta = Vec::with_capacity(target.len());
         
-        for i in 0..target.len() {
+        for _i in 0..target.len() {
             if i < base.len() {
                 delta.push(target[i] ^ base[i]);
             } else {
@@ -253,7 +253,7 @@ impl DeltaCodec {
     pub fn apply_delta(&self, base: &[u8], delta: &[u8]) -> Vec<u8> {
         let mut result = Vec::with_capacity(delta.len());
         
-        for i in 0..delta.len() {
+        for _i in 0..delta.len() {
             if i < base.len() {
                 result.push(base[i] ^ delta[i]);
             } else {
@@ -292,7 +292,7 @@ mod tests {
         
         // Source 3: Slightly different to add variety
         let mut source3 = Vec::new();
-        for i in 0..10 {
+        for _i in 0..10 {
             let mut block_copy = block.clone();
             if i == 5 {
                 // Modify one block slightly

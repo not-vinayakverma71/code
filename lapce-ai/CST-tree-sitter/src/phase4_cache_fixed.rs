@@ -175,7 +175,7 @@ impl Phase4Cache {
     pub fn get(
         &self,
         path: &Path,
-        hash: u64,
+        _hash: u64,
     ) -> Result<Option<(Tree, Bytes)>, Box<dyn std::error::Error>> {
         use crate::{GET_LATENCY, CACHE_HITS, CACHE_MISSES, LOGGER, CacheLogEvent};
         use slog::info;
@@ -185,7 +185,7 @@ impl Phase4Cache {
         let path_str = path.display().to_string();
         
         // Get from multi-tier cache
-        let result = if let Some((bytecode_stream, source)) = self.multi_tier.get(path)? {
+        let result = if let Some((_bytecode_stream, source)) = self.multi_tier.get(path)? {
             // THE FIX: Re-parse the source to get Tree
             // This is the ONLY way with tree-sitter
             
@@ -311,10 +311,10 @@ mod tests {
         let cache = Phase4Cache::new(config).unwrap();
         
         // Create a test tree
-        let source = "fn main() { println!(\"Hello\"); }";
+        let _source = "fn main() { println!(\"Hello\"); }";
         let mut parser = Parser::new();
         parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-        let tree = parser.parse(source, None).unwrap();
+        let _tree = parser.parse(source, None).unwrap();
         
         // Store
         let path = PathBuf::from("test.rs");

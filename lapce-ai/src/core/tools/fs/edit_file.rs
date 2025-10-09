@@ -154,6 +154,7 @@ mod tests {
         
         let tool = EditFileTool;
         let mut context = ToolContext::new(temp_dir.path().to_path_buf(), "test_user".to_string());
+        context.permissions.file_write = true; // allow writing
         context.require_approval = false; // Disable approval for test
         
         let args = json!(format!(r#"
@@ -186,6 +187,7 @@ mod tests {
         
         let tool = EditFileTool;
         let mut context = ToolContext::new(temp_dir.path().to_path_buf(), "test_user".to_string());
+        context.permissions.file_write = true; // allow writing
         context.require_approval = false; // Disable approval for test
         
         let args = json!(format!(r#"
@@ -218,6 +220,7 @@ mod tests {
         
         let tool = EditFileTool;
         let mut context = ToolContext::new(temp_dir.path().to_path_buf(), "test_user".to_string());
+        context.permissions.file_write = true; // allow writing
         context.dry_run = true;
         context.require_approval = false;
         
@@ -250,6 +253,7 @@ mod tests {
         
         let tool = EditFileTool;
         let mut context = ToolContext::new(temp_dir.path().to_path_buf(), "test_user".to_string());
+        context.permissions.file_write = true; // allow writing
         context.require_approval = false;
         
         let args = json!(format!(r#"

@@ -242,37 +242,52 @@ mod tests {
         assert_eq!(std::mem::align_of::<RingBufferHeader>(), 64);
     }
     
+    /// Helper to allocate properly aligned memory for tests
+    fn alloc_aligned_buffer() -> Box<RingBufferHeader> {
+        // Box automatically provides proper alignment for the type
+        unsafe {
+            let layout = std::alloc::Layout::new::<RingBufferHeader>();
+            let ptr = std::alloc::alloc(layout) as *mut RingBufferHeader;
+            if ptr.is_null() {
+                std::alloc::handle_alloc_error(layout);
+            }
+            Box::from_raw(ptr)
+        }
+    }
+    
     #[test]
     fn test_header_initialization() {
-        let mut buffer = vec![0u8; 64];
+        let mut header = alloc_aligned_buffer();
         unsafe {
-            let header = RingBufferHeader::initialize(buffer.as_mut_ptr(), 1024);
-            assert_eq!((*header).magic, MAGIC_NUMBER);
-            assert_eq!((*header).version, PROTOCOL_VERSION);
-            assert_eq!((*header).capacity, 1024);
-            assert!((*header).validate().is_ok());
+            let header_ptr = &mut *header as *mut RingBufferHeader as *mut u8;
+            let initialized = RingBufferHeader::initialize(header_ptr, 1024);
+            assert_eq!((*initialized).magic, MAGIC_NUMBER);
+            assert_eq!((*initialized).version, PROTOCOL_VERSION);
+            assert_eq!((*initialized).capacity, 1024);
+            assert!((*initialized).validate().is_ok());
         }
     }
     
     #[test]
     fn test_available_space_calculations() {
-        let mut buffer = vec![0u8; 64];
+        let mut header = alloc_aligned_buffer();
         unsafe {
-            let header = RingBufferHeader::initialize(buffer.as_mut_ptr(), 1000);
+            let header_ptr = &mut *header as *mut RingBufferHeader as *mut u8;
+            let initialized = RingBufferHeader::initialize(header_ptr, 1000);
             
             // Initially, should have capacity - 1 available
-            assert_eq!((*header).available_write_space(), 999);
-            assert_eq!((*header).available_read_data(), 0);
+            assert_eq!((*initialized).available_write_space(), 999);
+            assert_eq!((*initialized).available_read_data(), 0);
             
             // Write 100 bytes
-            (*header).advance_write_pos(100);
-            assert_eq!((*header).available_write_space(), 899);
-            assert_eq!((*header).available_read_data(), 100);
+            (*initialized).advance_write_pos(100);
+            assert_eq!((*initialized).available_write_space(), 899);
+            assert_eq!((*initialized).available_read_data(), 100);
             
             // Read 50 bytes
-            (*header).advance_read_pos(50);
-            assert_eq!((*header).available_write_space(), 949);
-            assert_eq!((*header).available_read_data(), 50);
+            (*initialized).advance_read_pos(50);
+            assert_eq!((*initialized).available_write_space(), 949);
+            assert_eq!((*initialized).available_read_data(), 50);
         }
     }
 }

@@ -1,7 +1,8 @@
 /// REAL PRODUCTION VALIDATION - NO MOCKS, ACTUAL TESTS
 /// Run with: cargo run --example lancedb_validate
 
-use lapce_ai_rust::lancedb::test_runner;
+// use lapce_ai_rust::lancedb // Module not available
+// Original: use lapce_ai_rust::lancedb::test_runner;
 
 #[tokio::main]
 async fn main() {

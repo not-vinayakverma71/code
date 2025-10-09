@@ -138,14 +138,14 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn load_provider_config(config_path: &str) -> Result<ProviderPoolConfig> {
+async fn load_provider_config(config_path: &str) -> Result<lapce_ai_rust::provider_pool::ProviderPoolConfig> {
     if std::path::Path::new(config_path).exists() {
         let contents = std::fs::read_to_string(config_path)?;
         
         // Parse TOML and extract provider configuration
         let toml: toml::Value = toml::from_str(&contents)?;
         
-        let mut provider_config = ProviderPoolConfig::default();
+        let mut provider_config = lapce_ai_rust::provider_pool::ProviderPoolConfig::default();
         
         // Parse providers array
         if let Some(providers) = toml.get("providers").and_then(|v| v.as_array()) {
@@ -212,7 +212,7 @@ async fn load_provider_config(config_path: &str) -> Result<ProviderPoolConfig> {
         
         Ok(provider_config)
     } else {
-        Ok(ProviderPoolConfig::default())
+        Ok(lapce_ai_rust::provider_pool::ProviderPoolConfig::default())
     }
 }
 

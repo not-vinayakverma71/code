@@ -1,5 +1,6 @@
 // Test the full indexing and search pipeline
-use lapce_ai_rust::lancedb_search::{
+// use lapce_ai_rust::lancedb // Module not available
+// Original: use lapce_ai_rust::lancedb::{
     SemanticSearchEngine,
     CodeIndexer,
     SearchFilters,

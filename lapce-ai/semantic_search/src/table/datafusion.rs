@@ -153,7 +153,7 @@ impl TableProvider for BaseTableAdapter {
         self
     }
 
-    fn schema(&self) -> Arc<ArrowSchema> {
+    fn schema(&self) -> Arc<datafusion_common::arrow::datatypes::Schema> {
         self.schema.clone()
     }
 

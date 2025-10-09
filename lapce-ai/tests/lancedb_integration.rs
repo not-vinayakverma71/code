@@ -1,7 +1,8 @@
 /// Production Integration Tests for LanceDB
 /// MUST PASS ALL 8 PERFORMANCE REQUIREMENTS
 
-use lapce_ai_rust::lancedb::*;
+// use lapce_ai_rust::lancedb // Module not available
+// Original: use lapce_ai_rust::lancedb::*;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 use tempfile::TempDir;

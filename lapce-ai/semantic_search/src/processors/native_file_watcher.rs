@@ -5,13 +5,17 @@
 use crate::error::{Error, Result};
 use notify::{Watcher, RecursiveMode, Event, EventKind, Config};
 use notify::event::{CreateKind, ModifyKind, RemoveKind};
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use tokio::sync::mpsc::{channel, Sender, Receiver};
 use tokio::sync::broadcast;
-use tokio::time::sleep;
-use std::collections::{HashMap, HashSet};
+use tokio::sync::mpsc::{Sender, Receiver, channel};
+use regex::Regex;
+use serde::{Deserialize, Serialize};
+
+// VectorStoreManager and SemanticSearchEngine imports removed - modules don't exist
+// FileProcessor import removed - module doesn't exist
 
 /// Native file watcher using OS-specific events
 pub struct NativeFileWatcher {
@@ -22,6 +26,23 @@ pub struct NativeFileWatcher {
     ignore_patterns: Arc<Mutex<HashSet<String>>>,
     debounce_duration: Duration,
     batch_sender: broadcast::Sender<BatchEvent>,
+}
+
+impl Default for NativeFileWatcher {
+    fn default() -> Self {
+        let (event_sender, mut event_receiver) = channel(100);
+        let (batch_sender, _) = broadcast::channel(100);
+        
+        Self {
+            workspace_path: PathBuf::from("."),
+            watcher: None,
+            event_sender,
+            event_receiver: Some(event_receiver),
+            ignore_patterns: Arc::new(Mutex::new(HashSet::new())),
+            debounce_duration: Duration::from_millis(100),
+            batch_sender,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -89,7 +110,7 @@ impl NativeFileWatcher {
                     // Process event
                     if let Some(fs_event) = Self::process_notify_event(event, &ignore_patterns) {
                         // Send through channel
-                        let _ = tx.blocking_send(fs_event);
+                        let _ = tx.send(fs_event);
                     }
                 }
                 Err(e) => {
@@ -208,7 +229,8 @@ impl NativeFileWatcher {
             loop {
                 // Wait for events or timeout
                 tokio::select! {
-                    Some(event) = receiver.recv() => {
+                    event = receiver.recv() => {
+                        let Some(event) = event else { break; };
                         // Add to pending events (deduplicates by path)
                         pending_events.insert(event.path.clone(), event);
                         
@@ -218,7 +240,7 @@ impl NativeFileWatcher {
                             last_batch_time = std::time::Instant::now();
                         }
                     }
-                    _ = sleep(debounce_duration) => {
+                    _ = tokio::time::sleep(debounce_duration) => {
                         // Send pending events as batch
                         if !pending_events.is_empty() {
                             Self::send_batch(&mut pending_events, &batch_sender).await;

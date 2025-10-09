@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 use std::thread;
 
 // Test the REAL optimized module
-use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer;
+use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer;
 
 const TEST_DURATION_SECS: u64 = 30;
 const NUM_THREADS: usize = 16;

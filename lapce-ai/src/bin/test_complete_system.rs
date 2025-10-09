@@ -155,10 +155,14 @@ fn test_events_system() {
             lapce_ai_rust::events_exact_translation::TokenUsage {
                 total_tokens_in: 1000,
                 total_tokens_out: 2000,
-                total_cost: Some(0.01),
-                context_tokens: Some(1500),
-                total_cache_creation_input_tokens: None,
-                total_cache_read_input_tokens: None,
+                total_cost: 0.01,
+                context_tokens: 1500,
+                cache_creation_input_tokens: None,
+                cache_read_input_tokens: None,
+                cache_read_tokens: None,
+                cache_write_tokens: None,
+                input_tokens: 1000,
+                output_tokens: 2000,
             },
             lapce_ai_rust::events_exact_translation::ToolUsage {
                 tools: std::collections::HashMap::new(),

@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 use tokio::sync::Semaphore;
 use sysinfo::{System, Pid};
 
-use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer;
+use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer;
 
 /// Success Criteria from docs/01-IPC-SERVER-IMPLEMENTATION.md
 const CRITERIA_MEMORY_MB: f64 = 3.0;          // < 3MB footprint
@@ -71,7 +71,7 @@ async fn test_latency_throughput(duration: Duration) -> (f64, u64, bool, bool) {
         let msg_start = Instant::now();
         
         if buffer.write(&test_msg).is_ok() {
-            if let Ok(Some(_)) = buffer.read() {
+            if let Some(_) = buffer.read() {
                 let latency_ns = msg_start.elapsed().as_nanos() as u64;
                 latencies.push(latency_ns);
                 count += 1;

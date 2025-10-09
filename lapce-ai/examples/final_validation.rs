@@ -1,4 +1,4 @@
-use lapce_ai_rust::working_shared_memory::WorkingSharedMemory;
+use lapce_ai_rust::ipc::shared_memory_complete::WorkingSharedMemory;
 use std::time::{Instant, Duration};
 use std::thread;
 

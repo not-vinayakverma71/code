@@ -191,9 +191,8 @@ pub async fn start_server(port: u16) -> Result<(), Box<dyn std::error::Error>> {
     
     println!("Metrics server listening on http://{}", addr);
     
-    axum::Server::bind(&addr.parse()?)
-        .serve(app.into_make_service())
-        .await?;
+    let listener = tokio::net::TcpListener::bind(&addr).await?;
+    axum::serve(listener, app).await?;
     
     Ok(())
 }

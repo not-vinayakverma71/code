@@ -38,7 +38,7 @@ async fn test_handshake() -> Result<(), Box<dyn std::error::Error>> {
     let server_handle = tokio::spawn(async move {
         let mut listener = SharedMemoryListener::bind(TEST_SOCKET_PATH)?;
         let (stream, _) = listener.accept().await?;
-        Ok::<_, Box<dyn std::error::Error>>(stream)
+        Ok::<_, Box<dyn std::error::Error + Send + Sync>>(stream)
     });
     
     // Give server time to start
@@ -74,7 +74,7 @@ async fn test_round_trip() -> Result<(), Box<dyn std::error::Error>> {
                 stream.write_all(&buf).await?;
             }
         }
-        Ok::<_, Box<dyn std::error::Error>>(())
+        Ok::<_, Box<dyn std::error::Error + Send + Sync>>(())
     });
     
     tokio::time::sleep(Duration::from_millis(100)).await;
@@ -119,7 +119,7 @@ async fn test_backpressure() -> Result<(), Box<dyn std::error::Error>> {
         
         // Don't read, causing backpressure
         tokio::time::sleep(Duration::from_secs(2)).await;
-        Ok::<_, Box<dyn std::error::Error>>(())
+        Ok::<_, Box<dyn std::error::Error + Send + Sync>>(())
     });
     
     tokio::time::sleep(Duration::from_millis(100)).await;
@@ -178,7 +178,7 @@ async fn test_concurrent_connections() -> Result<(), Box<dyn std::error::Error>>
                         stream.write_all(&buf).await?;
                     }
                 }
-                Ok::<_, Box<dyn std::error::Error>>(())
+                Ok::<_, Box<dyn std::error::Error + Send + Sync>>(())
             });
             handles.push(handle);
         }
@@ -187,7 +187,7 @@ async fn test_concurrent_connections() -> Result<(), Box<dyn std::error::Error>>
         for handle in handles {
             handle.await??;
         }
-        Ok::<_, Box<dyn std::error::Error>>(())
+        Ok::<_, Box<dyn std::error::Error + Send + Sync>>(())
     });
     
     tokio::time::sleep(Duration::from_millis(200)).await;
@@ -217,7 +217,7 @@ async fn test_concurrent_connections() -> Result<(), Box<dyn std::error::Error>>
                 assert_eq!(&padded[..], &response[..]);
                 success_count.fetch_add(1, Ordering::Relaxed);
             }
-            Ok::<_, Box<dyn std::error::Error>>(())
+            Ok::<_, Box<dyn std::error::Error + Send + Sync>>(())
         });
         client_handles.push(handle);
     }

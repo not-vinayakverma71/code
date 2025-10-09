@@ -4,7 +4,7 @@ use std::sync::Arc;
 use std::collections::HashMap;
 use tokio::sync::RwLock;
 // Import types from local modules
-use super::handler_registration_types::*; // File doesn't exist yet
+ // File doesn't exist yet
 // Define Task types locally to avoid circular dependencies
 #[derive(Debug, Clone)]
 pub struct Task {
@@ -101,7 +101,7 @@ impl CommandRegistry {
     }
     
     /// registerCommands - exact translation lines 67-74
-    pub async fn register_commands(&self, mut options: RegisterCommandOptions) {
+    pub async fn register_commands(&self, options: RegisterCommandOptions) {
         let commands_map = self.get_commands_map(options.clone()).await;
         
         for (id, callback) in commands_map {

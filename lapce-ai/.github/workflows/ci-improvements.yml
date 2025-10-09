@@ -1,0 +1,110 @@
+name: CI Improvements
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  future-compatibility:
+    name: Future Compatibility Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Cache cargo index
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Check future incompatibilities
+        run: |
+          cargo check --future-incompat-report 2>&1 | tee future-incompat.log
+          if grep -q "warning: " future-incompat.log; then
+            echo "::warning::Future incompatibility warnings detected"
+            cat future-incompat.log
+          fi
+      
+      - name: Upload future compatibility report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: future-incompat-report
+          path: future-incompat.log
+
+  benchmark-compilation:
+    name: Benchmark Compilation Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Compile benchmarks (no run)
+        run: cargo bench --no-run
+        
+      - name: Check benchmark targets
+        run: |
+          echo "Checking that all benchmarks compile..."
+          cargo bench --no-run --all-features
+
+  clippy-strict:
+    name: Clippy Strict Mode
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      
+      - name: Run clippy with warnings as errors
+        run: |
+          # First run normal clippy to see all issues
+          cargo clippy --all-targets --all-features -- -W clippy::all || true
+          
+          # Count warnings
+          WARNINGS=$(cargo clippy --all-targets --all-features 2>&1 | grep -c "warning:" || true)
+          echo "Total warnings: $WARNINGS"
+          
+          # Fail if warnings exceed threshold
+          if [ "$WARNINGS" -gt 50 ]; then
+            echo "::error::Too many warnings ($WARNINGS > 50). Please fix warnings."
+            exit 1
+          fi
+
+  dependency-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+      
+      - name: Run security audit
+        run: cargo audit
+        
+      - name: Check for outdated dependencies
+        run: |
+          cargo install cargo-outdated
+          cargo outdated --root-deps-only

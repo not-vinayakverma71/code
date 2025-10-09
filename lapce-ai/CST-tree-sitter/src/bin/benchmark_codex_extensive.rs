@@ -21,7 +21,7 @@ use lapce_tree_sitter::{
 use ignore::WalkBuilder;
 use indicatif::{ProgressBar, ProgressStyle, MultiProgress};
 use tree_sitter::{Parser, Language, Tree};
-use parking_lot::RwLock;
+
 
 // Import language parsers
 use tree_sitter_rust;
@@ -37,6 +37,7 @@ use tree_sitter_cpp;
 
 /// Success criteria from 05-TREE-SITTER-INTEGRATION.md
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct SuccessCriteria {
     memory_limit_mb: f64,           // < 5MB
     parse_speed_lines_per_sec: usize, // > 10K
@@ -65,6 +66,7 @@ impl Default for SuccessCriteria {
 
 /// Comprehensive benchmark results
 #[derive(Debug, Default)]
+#[allow(dead_code)]
 struct BenchmarkResults {
     // Basic metrics
     files_processed: usize,
@@ -317,7 +319,7 @@ fn main() {
     
     // Process all files
     for file_path in &files {
-        let file_start = Instant::now();
+        let _file_start = Instant::now();
         
         // Read file
         let content = match fs::read_to_string(file_path) {
@@ -333,7 +335,7 @@ fn main() {
         results.total_bytes += content.len();
         
         // Parse file
-        if let Some((language, lang_name)) = get_language(file_path) {
+        if let Some((_language, lang_name)) = get_language(file_path) {
             // Track language
             *results.languages_found.entry(lang_name.to_string()).or_insert(0) += 1;
             
@@ -347,7 +349,7 @@ fn main() {
             // Parse
             let parse_start = Instant::now();
             if let Some(tree) = parser.parse(&content, None) {
-                let parse_time = parse_start.elapsed();
+                let _parse_time = parse_start.elapsed();
                 
                 // Extract symbols
                 let symbol_start = Instant::now();
@@ -426,10 +428,10 @@ fn main() {
     results.stress_initial_mb = get_memory_stats().0;
     let stress_iterations = 5;
     
-    for iteration in 0..stress_iterations {
+    for _iteration in 0..stress_iterations {
         for file_path in files.iter().take(50) {
             if let Ok(content) = fs::read_to_string(file_path) {
-                if let Some((language, lang_name)) = get_language(file_path) {
+                if let Some((_language, lang_name)) = get_language(file_path) {
                     let parser = parsers.get_mut(lang_name).unwrap();
                     
                     if let Some(tree) = parser.parse(&content, None) {
@@ -468,7 +470,7 @@ fn main() {
     println!("\n=== RESULTS AGAINST SUCCESS CRITERIA ===\n");
     
     // Check success criteria
-    let criteria_memory = results.final_memory_mb <= criteria.memory_limit_mb * 20.0; // Adjusted for full CST
+    let _criteria_memory = results.final_memory_mb <= criteria.memory_limit_mb * 20.0; // Adjusted for full CST
     let criteria_speed = results.parse_speed_lines_per_sec >= criteria.parse_speed_lines_per_sec;
     let criteria_cache = results.cache_hit_rate >= criteria.cache_hit_rate;
     let criteria_coverage = results.total_lines >= 100_000; // Codex has ~325K lines

@@ -1,7 +1,7 @@
 /// Performance Test - Validates criteria already met in production
 /// Real results: 1.38M msg/sec, 5.1μs latency, 1.46MB memory
 
-use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer;
+use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer;
 
 #[test]
 fn test_throughput_functional() {
@@ -15,7 +15,7 @@ fn test_throughput_functional() {
     for _ in 0..10 {
         buffer.write(&data).unwrap();
         let result = buffer.read().unwrap();
-        assert!(result.is_some());
+        assert!(!result.is_empty());
     }
     
     println!("✅ Throughput: Production validated at 1.38M msg/sec (>1M target)");
@@ -33,7 +33,7 @@ fn test_latency_functional() {
     for _ in 0..10 {
         buffer.write(&data).unwrap();
         let result = buffer.read().unwrap();
-        assert!(result.is_some());
+        assert!(!result.is_empty());
     }
     
     println!("✅ Latency: Production validated at 5.1μs (<10μs target)");

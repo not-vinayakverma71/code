@@ -121,17 +121,16 @@ impl CreateTableData {
     }
 }
 
-impl lance_datafusion::utils::StreamingWriteSource for CreateTableData {
-    fn arrow_schema(&self) -> arrow_schema::SchemaRef {
-        self.arrow_schema()
-    }
-    
-    fn into_stream(self) -> std::pin::Pin<Box<dyn datafusion_physical_plan::RecordBatchStream + Send>> {
-        // For now, just return a simple implementation
-        // The actual implementation would need proper stream conversion
-        todo!("StreamingWriteSource implementation")
-    }
-}
+// Remove StreamingWriteSource implementation as it's incompatible
+// impl lance_datafusion::utils::StreamingWriteSource for CreateTableData {
+//     fn arrow_schema(&self) -> Arc<datafusion_common::arrow::datatypes::Schema> {
+//         self.arrow_schema()
+//     }
+//     
+//     fn into_stream(self) -> std::pin::Pin<Box<dyn datafusion_physical_plan::RecordBatchStream + Send>> {
+//         todo!("StreamingWriteSource implementation")
+//     }
+// }
 
 /// Open table request
 #[derive(Debug, Clone)]

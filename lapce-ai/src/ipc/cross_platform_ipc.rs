@@ -1,9 +1,7 @@
 /// CROSS-PLATFORM IPC IMPLEMENTATION
 /// Provides platform-specific IPC implementations with automatic fallback
 
-use std::io::{self, Read, Write};
-use std::sync::Arc;
-use tokio::sync::RwLock;
+use std::io::{Read, Write};
 use anyhow::{Result, anyhow};
 
 /// Platform-agnostic IPC trait
@@ -149,7 +147,7 @@ impl TcpTransport {
 
 impl IpcTransport for TcpTransport {
     fn write(&mut self, data: &[u8]) -> Result<()> {
-        use std::net::TcpStream;
+        
         
         // In real implementation, maintain persistent connection
         self.buffer.clear();

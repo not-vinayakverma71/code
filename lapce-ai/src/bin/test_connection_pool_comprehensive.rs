@@ -2,7 +2,7 @@
 use anyhow::Result;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use lapce_ai_rust::working_connection_pool::{WorkingConnectionPool, ConnectionConfig};
+use lapce_ai_rust::ipc::connection_pool::{WorkingConnectionPool, ConnectionConfig};
 
 #[tokio::main]
 async fn main() -> Result<()> {

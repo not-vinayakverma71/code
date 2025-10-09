@@ -6,18 +6,32 @@ use std::{iter::repeat_with, sync::Arc};
 use arrow_array::{
     cast::AsArray,
     types::{Float16Type, Float32Type, Float64Type, Int32Type, Int64Type},
-    Array, ArrowNumericType, FixedSizeListArray, PrimitiveArray, RecordBatch, RecordBatchIterator,
-    RecordBatchReader,
+    Array, Float16Array, Float32Array, Float64Array, PrimitiveArray, RecordBatch, RecordBatchIterator,
+    RecordBatchReader, FixedSizeListArray,
 };
+use arrow_array::types::ArrowPrimitiveType as ArrowNumericType;
 use arrow_cast::{can_cast_types, cast};
-use arrow_schema::{ArrowError, DataType, Field, Schema};
-use half::f16;
-use lance::arrow::{DataTypeExt, FixedSizeListArrayExt};
+use arrow_schema::{ArrowError, DataType, Field, FieldRef, Fields, Schema, SchemaRef};
 use log::warn;
 use num_traits::cast::AsPrimitive;
+use half::f16;
 
 use super::inspect::infer_dimension;
 use crate::error::Result;
+
+// Helper function to get byte width of data types
+fn get_byte_width(dt: &DataType) -> usize {
+    match dt {
+        DataType::Float16 => 2,
+        DataType::Float32 => 4,
+        DataType::Float64 => 8,
+        DataType::Int8 | DataType::UInt8 => 1,
+        DataType::Int16 | DataType::UInt16 => 2,
+        DataType::Int32 | DataType::UInt32 => 4,
+        DataType::Int64 | DataType::UInt64 => 8,
+        _ => 0,
+    }
+}
 
 fn cast_array<I: ArrowNumericType, O: ArrowNumericType>(
     arr: &PrimitiveArray<I>,
@@ -61,7 +75,7 @@ fn coerce_array(
         (adt, dt) if can_cast_types(adt, dt) => cast(&array, dt),
         // Casting between f16/f32/f64 can be lossy.
         (adt, dt) if (adt.is_floating() || dt.is_floating()) => {
-            if adt.byte_width() > dt.byte_width() {
+            if get_byte_width(adt) > get_byte_width(dt) {
                 warn!(
                     "Coercing field {} {:?} to {:?} might lose precision",
                     field.name(),
@@ -81,10 +95,12 @@ fn coerce_array(
             DataType::FixedSizeList(_, dim) if dim == exp_dim => {
                 let actual_sub = array.as_fixed_size_list();
                 let values = coerce_array(actual_sub.values(), exp_field)?;
-                Ok(Arc::new(FixedSizeListArray::try_new_from_values(
-                    values.clone(),
+                Ok(Arc::new(FixedSizeListArray::new(
+                    Arc::new(Field::new("item", values.data_type().clone(), true)),
                     *dim,
-                )?) as Arc<dyn Array>)
+                    values.clone(),
+                    None,
+                )) as Arc<dyn Array>)
             }
             DataType::List(_) | DataType::LargeList(_) => {
                 let Some(dim) = (match adt {
@@ -120,10 +136,12 @@ fn coerce_array(
                 }
 
                 let values = coerce_array(array, exp_field)?;
-                Ok(Arc::new(FixedSizeListArray::try_new_from_values(
-                    values.clone(),
+                Ok(Arc::new(FixedSizeListArray::new(
+                    Arc::new(Field::new("item", values.data_type().clone(), true)),
                     *exp_dim,
-                )?) as Arc<dyn Array>)
+                    values.clone(),
+                    None,
+                )) as Arc<dyn Array>)
             }
             _ => Err(ArrowError::SchemaError(format!(
                 "Incompatible coerce fixed size list: unable to coerce {:?} from {:?}",
@@ -208,11 +226,12 @@ mod tests {
             schema.clone(),
             vec![
                 Arc::new(
-                    FixedSizeListArray::try_new_from_values(
-                        Float32Array::from_iter_values((0..256).map(|v| v as f32)),
+                    FixedSizeListArray::new(
+                        Arc::new(Field::new("item", DataType::Float32, true)),
                         64,
-                    )
-                    .unwrap(),
+                        Arc::new(Float32Array::from_iter_values((0..256).map(|v| v as f32))),
+                        None,
+                    ),
                 ),
                 Arc::new(StringArray::from(vec![
                     Some("hello"),
@@ -250,11 +269,12 @@ mod tests {
             expected_schema,
             vec![
                 Arc::new(
-                    FixedSizeListArray::try_new_from_values(
-                        Float16Array::from_iter_values((0..256).map(|v| f16::from_f32(v as f32))),
+                    FixedSizeListArray::new(
+                        Arc::new(Field::new("item", DataType::Float16, true)),
                         64,
-                    )
-                    .unwrap(),
+                        Arc::new(Float16Array::from_iter_values((0..256).map(|v| f16::from_f32(v as f32)))),
+                        None,
+                    ),
                 ),
                 Arc::new(StringArray::from(vec![
                     Some("hello"),

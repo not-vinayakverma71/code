@@ -1,7 +1,8 @@
 /// REAL PRODUCTION TESTS - NO MOCKS
 /// Must validate ALL 8 performance requirements with actual implementation
 
-use lapce_ai_rust::lancedb::*;
+// use lapce_ai_rust::lancedb // Module not available
+// Original: use lapce_ai_rust::lancedb::*;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 use tempfile::TempDir;

@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use reqwest::Client;
 
 use crate::ai_providers::core_trait::{
-    AiProvider, ProviderCapabilities, HealthStatus, RateLimits, Usage,
+    AiProvider, ProviderCapabilities, HealthStatus, RateLimits,
     ChatRequest, ChatResponse, ChatMessage, CompletionRequest, CompletionResponse,
     StreamToken, Model,
 };

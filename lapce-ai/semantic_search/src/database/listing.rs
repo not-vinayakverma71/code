@@ -9,7 +9,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use lance::dataset::{ReadParams, WriteMode};
 use lance::io::{ObjectStore, ObjectStoreParams, WrappingObjectStore};
-use lance_datafusion::utils::StreamingWriteSource;
+// Removed StreamingWriteSource - incompatible with current arrow version
 use lance_encoding::version::LanceFileVersion;
 use lance_table::io::commit::commit_handler_from_url;
 use object_store::local::LocalFileSystem;

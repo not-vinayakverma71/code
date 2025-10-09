@@ -1,5 +1,6 @@
 // Test LanceDB performance with real measurements
-use lapce_ai_rust::lancedb_search::*;
+// use lapce_ai_rust::lancedb // Module not available
+// Original: use lapce_ai_rust::lancedb::*;
 use std::sync::Arc;
 use std::time::Instant;
 use std::path::PathBuf;

@@ -1,13 +1,12 @@
 /// Focused test for the two critical metrics: Memory and TLS
 use anyhow::{Result, anyhow};
 use lapce_ai_rust::connection_pool_manager::{ConnectionPoolManager, PoolConfig};
-use lapce_ai_rust::https_connection_manager_real::HttpsConnectionManager;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use http::Request;
 use http_body_util::Full;
 use bytes::Bytes;
-use tracing::{info, debug};
+use tracing::info;
 
 fn get_process_memory_mb() -> f64 {
     #[cfg(target_os = "linux")]
@@ -101,7 +100,7 @@ async fn main() -> Result<()> {
         let start = Instant::now();
         
         match pool.get_https_connection().await {
-            Ok(mut conn) => {
+            Ok(conn) => {
                 let acquisition_time = start.elapsed();
                 acquisition_times.push(acquisition_time);
                 

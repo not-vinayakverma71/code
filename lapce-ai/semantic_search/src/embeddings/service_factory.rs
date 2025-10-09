@@ -8,7 +8,7 @@ use crate::database::cache_manager::CacheManager;
 use crate::embeddings::aws_titan_production::AwsTitanProduction;
 use crate::embeddings::config::TitanConfig;
 pub use crate::embeddings::embedder_interface::{IEmbedder, EmbeddingResponse};
-// Optimized wrapper removed - using direct embedders now
+use crate::embeddings::optimized_embedder_wrapper::{OptimizedEmbedderWrapper, OptimizerConfig};
 use std::sync::Arc;
 use std::path::PathBuf;
 use serde::{Serialize, Deserialize};
@@ -61,9 +61,7 @@ impl CodeIndexServiceFactory {
                 Arc::new(embedder)
             },
             EmbedderProvider::AwsTitan => {
-                let embedder = AwsTitanProduction::new_from_config()
-                    .await
-                    .expect("Failed to create AWS Titan embedder");
+                let embedder = AwsTitanProduction::new_from_config().await?;
                 Arc::new(embedder) as Arc<dyn IEmbedder>
             },
             EmbedderProvider::Gemini => {
@@ -111,8 +109,25 @@ impl CodeIndexServiceFactory {
             message: format!("Failed to create cache directory: {}", e)
         })?;
         
-        // Use base embedder directly (optimizations are now built into production system)
-        let optimized_embedder = base_embedder;
+        // Create optimizer configuration
+        let optimizer_config = OptimizerConfig {
+            cache_dir: cache_dir.clone(),
+            enable_l1_cache: true,
+            enable_l2_cache: true,
+            enable_l3_mmap: true,
+            l1_max_size_mb: 2.0,
+            l2_max_size_mb: 5.0,
+            l3_max_size_mb: 100.0,
+            compression_level: 3,
+            enable_stats: true,
+        };
+        
+        // Wrap the base embedder with optimization layer
+        let optimized_embedder = Arc::new(OptimizedEmbedderWrapper::new(
+            base_embedder,
+            optimizer_config,
+            config.model_id.clone().unwrap_or_else(|| "default".to_string()),
+        )?) as Arc<dyn IEmbedder>;
         
         Ok(optimized_embedder)
     }
@@ -456,7 +471,7 @@ pub use crate::storage::lance_store::LanceVectorStore;
 // Use real DirectoryScanner from processors
 pub use crate::processors::scanner::DirectoryScanner;
 
-/// File watcher
+/// File watcher with real notify implementation
 pub struct FileWatcher {
     workspace_path: PathBuf,
     context: Arc<dyn std::any::Any + Send + Sync>,
@@ -465,6 +480,9 @@ pub struct FileWatcher {
     vector_store: Arc<dyn IVectorStore>,
     ignore_instance: Arc<dyn Ignore>,
     roo_ignore_controller: Option<Arc<RooIgnoreController>>,
+    watcher_handle: Arc<tokio::sync::RwLock<Option<notify::RecommendedWatcher>>>,
+    stop_signal: Arc<tokio::sync::RwLock<Option<tokio::sync::oneshot::Sender<()>>>>,
+    debounce_duration: std::time::Duration,
 }
 
 impl FileWatcher {
@@ -485,13 +503,163 @@ impl FileWatcher {
             vector_store,
             ignore_instance,
             roo_ignore_controller,
+            watcher_handle: Arc::new(tokio::sync::RwLock::new(None)),
+            stop_signal: Arc::new(tokio::sync::RwLock::new(None)),
+            debounce_duration: std::time::Duration::from_millis(500),
+        }
+    }
+    
+    async fn handle_file_event(&self, path: PathBuf, event_kind: notify::EventKind) {
+        use notify::EventKind;
+        
+        // Skip if file should be ignored (simplified check)
+        if path.to_string_lossy().contains(".git") || 
+           path.to_string_lossy().contains("target") ||
+           path.to_string_lossy().contains("node_modules") {
+            return;
+        }
+        
+        match event_kind {
+            EventKind::Create(_) | EventKind::Modify(_) => {
+                // Delete old entries and re-index
+                if let Err(e) = self.vector_store.delete_points_by_file_path(
+                    &path.to_string_lossy()
+                ).await {
+                    tracing::warn!("Failed to delete old entries for {:?}: {}", path, e);
+                }
+                
+                // Re-index the file
+                // This would normally call into IncrementalIndexer
+                tracing::info!("File changed, would re-index: {:?}", path);
+            }
+            EventKind::Remove(_) => {
+                // Delete entries for removed file
+                if let Err(e) = self.vector_store.delete_points_by_file_path(
+                    &path.to_string_lossy()
+                ).await {
+                    tracing::warn!("Failed to delete entries for removed file {:?}: {}", path, e);
+                }
+            }
+            _ => {}
         }
     }
 }
 
 impl IFileWatcher for FileWatcher {
-    fn start(&self) {}
-    fn stop(&self) {}
+    fn start(&self) {
+        use notify::{Watcher, RecursiveMode};
+        
+        let workspace_path = self.workspace_path.clone();
+        let self_clone = Arc::new(self.clone());
+        
+        // Create watcher in a blocking task
+        let (tx, rx) = std::sync::mpsc::channel();
+        let (stop_tx, mut stop_rx) = tokio::sync::oneshot::channel::<()>();
+        
+        // Store stop signal
+        {
+            let mut stop_signal = futures::executor::block_on(self.stop_signal.write());
+            *stop_signal = Some(stop_tx);
+        }
+        
+        // Create and start watcher
+        match notify::recommended_watcher(tx) {
+            Ok(mut watcher) => {
+                // Watch the workspace recursively
+                if let Err(e) = watcher.watch(&workspace_path, RecursiveMode::Recursive) {
+                    tracing::error!("Failed to watch {:?}: {}", workspace_path, e);
+                    return;
+                }
+                
+                // Store watcher handle
+                {
+                    let mut handle = futures::executor::block_on(self.watcher_handle.write());
+                    *handle = Some(watcher);
+                }
+                
+                // Spawn event handler
+                tokio::spawn(async move {
+                    let mut pending_events = std::collections::HashMap::new();
+                    let debounce_duration = self_clone.debounce_duration;
+                    
+                    loop {
+                        tokio::select! {
+                            _ = &mut stop_rx => {
+                                tracing::info!("FileWatcher stopping");
+                                break;
+                            }
+                            _ = tokio::time::sleep(std::time::Duration::from_millis(100)) => {
+                                // Check for events
+                                while let Ok(event) = rx.try_recv() {
+                                    match event {
+                                        Ok(event) => {
+                                            for path in event.paths {
+                                                pending_events.insert(path.clone(), (event.kind, std::time::Instant::now()));
+                                            }
+                                        }
+                                        Err(e) => {
+                                            tracing::error!("Watch error: {}", e);
+                                        }
+                                    }
+                                }
+                                
+                                // Process debounced events
+                                let now = std::time::Instant::now();
+                                let mut to_process = Vec::new();
+                                
+                                pending_events.retain(|path, (kind, time)| {
+                                    if now.duration_since(*time) > debounce_duration {
+                                        to_process.push((path.clone(), *kind));
+                                        false
+                                    } else {
+                                        true
+                                    }
+                                });
+                                
+                                for (path, kind) in to_process {
+                                    self_clone.handle_file_event(path, kind).await;
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                tracing::info!("FileWatcher started for {:?}", workspace_path);
+            }
+            Err(e) => {
+                tracing::error!("Failed to create watcher: {}", e);
+            }
+        }
+    }
+    
+    fn stop(&self) {
+        // Send stop signal
+        if let Some(tx) = futures::executor::block_on(self.stop_signal.write()).take() {
+            let _ = tx.send(());
+        }
+        
+        // Clear watcher handle
+        let mut handle = futures::executor::block_on(self.watcher_handle.write());
+        *handle = None;
+    }
+}
+
+// Implement Clone for FileWatcher
+impl Clone for FileWatcher {
+    fn clone(&self) -> Self {
+        Self {
+            workspace_path: self.workspace_path.clone(),
+            context: self.context.clone(),
+            cache_manager: self.cache_manager.clone(),
+            embedder: self.embedder.clone(),
+            vector_store: self.vector_store.clone(),
+            ignore_instance: self.ignore_instance.clone(),
+            roo_ignore_controller: self.roo_ignore_controller.clone(),
+            watcher_handle: self.watcher_handle.clone(),
+            stop_signal: self.stop_signal.clone(),
+            debounce_duration: self.debounce_duration,
+        }
+    }
 }
 
 // Use real CodeParser from processors

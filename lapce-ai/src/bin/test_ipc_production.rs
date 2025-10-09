@@ -36,7 +36,7 @@ fn test_basic_shared_memory() {
     println!("│ TEST 1: Basic Shared Memory Performance                     │");
     println!("└─────────────────────────────────────────────────────────────┘");
     
-    use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer;
+    use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer;
     
     // Create 4MB shared memory buffer
     let mut buffer = SharedMemoryBuffer::create("perf_test", 4 * 1024 * 1024).unwrap();
@@ -52,7 +52,7 @@ fn test_basic_shared_memory() {
         for _ in 0..iterations {
             buffer.write(&data).unwrap();
             let mut temp = vec![0u8; 1024];
-            let _ = buffer.read(&mut temp).unwrap();
+            let _ = buffer.read();
         }
         let duration = start.elapsed();
         
@@ -82,7 +82,7 @@ async fn test_concurrent_messages() {
         let counter = total_messages.clone();
         
         let handle = tokio::spawn(async move {
-            use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer;
+            use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer;
             
             let mut buffer = SharedMemoryBuffer::create(
                 &format!("thread_{}", thread_id), 
@@ -94,7 +94,7 @@ async fn test_concurrent_messages() {
             for _ in 0..messages_per_thread {
                 buffer.write(&data).unwrap();
                 let mut temp = vec![0u8; 1024];
-            let _ = buffer.read(&mut temp).unwrap();
+            let _ = buffer.read();
                 counter.fetch_add(2, Ordering::Relaxed);
             }
         });
@@ -121,7 +121,7 @@ fn test_large_messages() {
     println!("│ TEST 3: Large Message Handling                              │");
     println!("└─────────────────────────────────────────────────────────────┘");
     
-    use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer;
+    use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer;
     
     let mut buffer = SharedMemoryBuffer::create("large_test", 16 * 1024 * 1024).unwrap();
     
@@ -141,7 +141,7 @@ fn test_large_messages() {
         for _ in 0..iterations {
             buffer.write(&data).unwrap();
             let mut temp = vec![0u8; 1024];
-            let _ = buffer.read(&mut temp).unwrap();
+            let _ = buffer.read();
         }
         let duration = start.elapsed();
         
@@ -160,7 +160,7 @@ async fn test_connection_pool() {
     println!("│ TEST 4: Connection Pool Stress Test                         │");
     println!("└─────────────────────────────────────────────────────────────┘");
     
-    // use lapce_ai_rust::connection_pool_complete::ConnectionPool; // Module doesn't exist
+    // use lapce_ai_rust::ipc::connection_pool_complete::ConnectionPool; // Module doesn't exist
     
     let pool = Arc::new(ConnectionPool::new(1000, Duration::from_secs(60)));
     let semaphore = Arc::new(Semaphore::new(100));
@@ -206,7 +206,7 @@ async fn test_e2e_latency() {
     let iterations = 100_000;
     let mut latencies = Vec::with_capacity(iterations);
     
-    use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer;
+    use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer;
     use rkyv::{Archive, Serialize, Deserialize};
     
     #[derive(Archive, Serialize, Deserialize, Debug)]
@@ -235,11 +235,11 @@ async fn test_e2e_latency() {
         
         // Read from shared memory
         let mut buf = vec![0u8; 1024];
-        let read_data = buffer.read(&mut buf).unwrap();
+        let read_data = buffer.read().unwrap_or_else(|| vec![]);
         
         // Deserialize
         let _decoded: TestMessage = unsafe {
-            rkyv::from_bytes_unchecked(&buf[..read_data]).unwrap()
+            rkyv::from_bytes_unchecked(&read_data).unwrap()
         };
         
         let latency = start.elapsed();
@@ -271,7 +271,7 @@ fn print_summary() {
     println!("╚══════════════════════════════════════════════════════════════╝");
     
     // Calculate final metrics
-    use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer;
+    use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer;
     
     let mut buffer = SharedMemoryBuffer::create("final_test", 4 * 1024 * 1024).unwrap();
     let data = vec![0u8; 256];

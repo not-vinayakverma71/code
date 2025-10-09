@@ -4,7 +4,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use std::fs;
 
-use crate::shared_memory_complete::{SharedMemoryListener, SharedMemoryStream};
+use crate::ipc::shared_memory_complete::{SharedMemoryListener, SharedMemoryStream};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::{Semaphore, broadcast};
 use bytes::{Bytes, BytesMut};

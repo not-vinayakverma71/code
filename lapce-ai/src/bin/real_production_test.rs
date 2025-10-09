@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 use std::thread;
 
 // Import REAL production modules from the library
-use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer;
+use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer;
 
 const TEST_DURATION_SECS: u64 = 30;
 const NUM_THREADS: usize = 16;
@@ -104,8 +104,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             while !stop.load(Ordering::Relaxed) {
                 // Use REAL SharedMemoryBuffer read method
                 let mut temp = vec![0u8; 256];
-                if buffer.lock().unwrap().read(&mut temp).unwrap_or(0) > 0 {
-                    metrics.messages_received.fetch_add(1, Ordering::Relaxed);
+                if let Some(data) = buffer.lock().unwrap().read() {
+                    if !data.is_empty() {
+                        metrics.messages_received.fetch_add(1, Ordering::Relaxed);
+                    }
                 }
             }
         }));

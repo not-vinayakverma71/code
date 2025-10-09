@@ -1,4 +1,4 @@
-use lapce_ai_rust::working_cache_system::{WorkingCacheSystem, CacheStats};
+use lapce_ai_rust::working_cache_system::WorkingCacheSystem;
 use std::time::Instant;
 
 #[tokio::main]

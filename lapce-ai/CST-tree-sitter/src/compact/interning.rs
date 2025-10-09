@@ -8,7 +8,7 @@ use std::sync::atomic::{AtomicUsize, AtomicU64, AtomicBool, Ordering};
 use once_cell::sync::Lazy;
 
 // Feature-gated imports
-#[cfg(feature = "global-interning")]
+#[cfg(feature = "global-string-interning")]
 use lasso::{ThreadedRodeo, Spur, Key};
 
 /// Symbol ID type for interned strings
@@ -51,7 +51,7 @@ impl Default for InternConfig {
             max_string_length: 128,
             memory_cap_bytes: 100 * 1024 * 1024, // 100MB
             shard_count: 64,
-            enabled: cfg!(feature = "global-interning"),
+            enabled: cfg!(feature = "global-string-interning"),
         }
     }
 }
@@ -69,7 +69,7 @@ pub struct InternStats {
 
 /// Global string interning pool
 pub struct GlobalInternPool {
-    #[cfg(feature = "global-interning")]
+    #[cfg(feature = "global-string-interning")]
     rodeo: Arc<ThreadedRodeo>,
     
     config: InternConfig,
@@ -85,7 +85,7 @@ pub struct GlobalInternPool {
 impl GlobalInternPool {
     /// Create a new global intern pool
     pub fn new(config: InternConfig) -> Self {
-        #[cfg(feature = "global-interning")]
+        #[cfg(feature = "global-string-interning")]
         {
             Self {
                 rodeo: Arc::new(ThreadedRodeo::new()),
@@ -98,7 +98,7 @@ impl GlobalInternPool {
             }
         }
         
-        #[cfg(not(feature = "global-interning"))]
+        #[cfg(not(feature = "global-string-interning"))]
         {
             Self {
                 config,
@@ -138,7 +138,7 @@ impl GlobalInternPool {
             return InternResult::Bypassed(s.to_string());
         }
         
-        #[cfg(feature = "global-interning")]
+        #[cfg(feature = "global-string-interning")]
         {
             // Check if already interned (hit)
             if let Some(spur) = self.rodeo.get(s) {
@@ -154,7 +154,7 @@ impl GlobalInternPool {
             InternResult::Interned(SymbolId(spur.into_usize() as u32))
         }
         
-        #[cfg(not(feature = "global-interning"))]
+        #[cfg(not(feature = "global-string-interning"))]
         {
             InternResult::Bypassed(s.to_string())
         }
@@ -162,32 +162,32 @@ impl GlobalInternPool {
     
     /// Get the ID for an already-interned string (without interning it)
     /// Returns None if the string has not been interned yet
-    pub fn get_id(&self, s: &str) -> Option<SymbolId> {
+    pub fn get_id(&self, _s: &str) -> Option<SymbolId> {
         if !self.enabled.load(Ordering::Relaxed) {
             return None;
         }
         
-        #[cfg(feature = "global-interning")]
+        #[cfg(feature = "global-string-interning")]
         {
             self.rodeo.get(s).map(|spur| SymbolId(spur.into_usize() as u32))
         }
         
-        #[cfg(not(feature = "global-interning"))]
+        #[cfg(not(feature = "global-string-interning"))]
         {
             None
         }
     }
     
     /// Resolve a symbol ID to its string
-    pub fn resolve(&self, id: SymbolId) -> Option<String> {
-        #[cfg(feature = "global-interning")]
+    pub fn resolve(&self, _id: SymbolId) -> Option<String> {
+        #[cfg(feature = "global-string-interning")]
         {
             // Use try_from_usize since it's safe
             Spur::try_from_usize(id.0 as usize)
                 .and_then(|spur| self.rodeo.try_resolve(&spur).map(|s| s.to_string()))
         }
         
-        #[cfg(not(feature = "global-interning"))]
+        #[cfg(not(feature = "global-string-interning"))]
         {
             None
         }
@@ -195,7 +195,7 @@ impl GlobalInternPool {
     
     /// Get statistics about the intern pool
     pub fn stats(&self) -> InternStats {
-        #[cfg(feature = "global-interning")]
+        #[cfg(feature = "global-string-interning")]
         {
             let total_strings = self.rodeo.len();
             let total_bytes = self.total_bytes.load(Ordering::Relaxed);
@@ -357,7 +357,7 @@ mod tests {
         
         let stats = pool.stats();
         
-        #[cfg(feature = "global-interning")]
+        #[cfg(feature = "global-string-interning")]
         {
             assert_eq!(stats.total_strings, 2);
             assert_eq!(stats.hit_count, 1);
@@ -378,7 +378,7 @@ mod tests {
         let pool = Arc::new(pool);
         let mut handles = vec![];
         
-        for i in 0..10 {
+        for _i in 0..10 {
             let pool = pool.clone();
             let handle = thread::spawn(move || {
                 for j in 0..100 {
@@ -394,8 +394,8 @@ mod tests {
         }
         
         // No deadlocks, should complete successfully
-        // Without the global-interning feature, interning won't actually happen
-        #[cfg(feature = "global-interning")]
+        // Without the global-string-interning feature, interning won't actually happen
+        #[cfg(feature = "global-string-interning")]
         assert!(pool.stats().total_strings > 0);
         
         // Test passes if it completes without deadlock

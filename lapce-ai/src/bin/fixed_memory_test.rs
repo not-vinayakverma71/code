@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 use tokio::sync::Semaphore;
 use sysinfo::{System, Pid};
 
-use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer;
+use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -49,7 +49,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let mut buf = buffer.write().await;
                 buf.write(&test_msg).ok();
                 let mut temp = vec![0u8; 1024];
-                buf.read(&mut temp).ok();
+                buf.read();
                 drop(buf);
                 cnt.fetch_add(1, Ordering::Relaxed);
             }

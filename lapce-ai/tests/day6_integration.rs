@@ -9,7 +9,7 @@ async fn test_shm_cache_integration() {
     println!("\n=== Testing SharedMemory + Cache Integration ===");
     
     // Create components
-    let mut shm = optimized_shared_memory::OptimizedSharedMemory::create("integration", 8 * 1024 * 1024).unwrap();
+    let mut shm = optimized_shared_memory::lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer::create("integration", 8 * 1024 * 1024).unwrap();
     let cache = optimized_cache::OptimizedCache::new();
     
     // Write data to SharedMemory
@@ -111,7 +111,7 @@ async fn test_full_stack_integration() {
     println!("\n=== Testing Full Stack Integration ===");
     
     // All components together
-    let mut shm = optimized_shared_memory::OptimizedSharedMemory::create("full_stack", 16 * 1024 * 1024).unwrap();
+    let mut shm = optimized_shared_memory::lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer::create("full_stack", 16 * 1024 * 1024).unwrap();
     let cache = optimized_cache::OptimizedCache::new();
     let mut search = optimized_vector_search::OptimizedVectorSearch::new(256);
     let embeddings = minilm_embeddings::MiniLMEmbeddings::new().await.unwrap();
@@ -166,7 +166,7 @@ fn test_concurrent_operations() {
     
     runtime.block_on(async {
         let shm = Arc::new(Mutex::new(
-            optimized_shared_memory::OptimizedSharedMemory::create("concurrent", 32 * 1024 * 1024).unwrap()
+            optimized_shared_memory::lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer::create("concurrent", 32 * 1024 * 1024).unwrap()
         ));
         let cache = Arc::new(optimized_cache::OptimizedCache::new());
         
@@ -215,7 +215,7 @@ fn test_performance_targets() {
     
     runtime.block_on(async {
         // Test SharedMemory throughput
-        let mut shm = optimized_shared_memory::OptimizedSharedMemory::create("perf", 16 * 1024 * 1024).unwrap();
+        let mut shm = optimized_shared_memory::lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer::create("perf", 16 * 1024 * 1024).unwrap();
         let data = vec![0xFF; 256];
         
         let start = Instant::now();

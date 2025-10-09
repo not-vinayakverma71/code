@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use anyhow::{Result, bail};
+use anyhow::Result;
 use serde_json::json;
 use futures::stream::BoxStream;
 // Placeholder types for missing dependencies

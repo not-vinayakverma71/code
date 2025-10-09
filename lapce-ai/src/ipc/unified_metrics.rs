@@ -1,10 +1,8 @@
 /// Unified metrics collection for IPC, connection pools, and multiplexers
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
-use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 use dashmap::DashMap;
-use tokio::time::{Duration, Instant};
 
 /// Unified metrics for all connection types
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -263,7 +261,7 @@ impl MetricsCollector {
             health_score,
             last_updated: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
+                .unwrap_or_else(|_| std::time::Duration::from_secs(0))
                 .as_secs(),
         };
         

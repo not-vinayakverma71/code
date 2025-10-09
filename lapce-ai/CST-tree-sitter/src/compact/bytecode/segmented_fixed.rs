@@ -7,9 +7,9 @@ use std::fs;
 use std::io::{self, Read};
 use moka::sync::Cache;
 use std::sync::atomic::{AtomicU64, Ordering};
-use super::BytecodeStream;
 use serde::{Serialize, Deserialize};
 use tempfile::tempdir;
+use super::opcodes::BytecodeStream;
 
 /// Size of each bytecode segment (256KB)
 const SEGMENT_SIZE: usize = 256 * 1024;
@@ -32,8 +32,8 @@ pub struct FormatHeader {
     version: u32,
     /// Creation timestamp
     created_at: u64,
-    /// Checksum of the data
-    checksum: u32,
+    /// CRC32 checksum of the data
+    crc32: u32,
     /// Optional metadata
     metadata: Option<String>,
 }
@@ -97,6 +97,12 @@ impl SegmentedBytecodeStream {
         // Create storage directory
         fs::create_dir_all(&storage_dir)?;
         
+        // Calculate CRC32 of the bytecode
+        use crc32fast::Hasher;
+        let mut hasher = Hasher::new();
+        hasher.update(&stream.bytes);
+        let crc32_value = hasher.finalize();
+        
         // Write format header
         let header = FormatHeader {
             magic: *MAGIC_BYTES,
@@ -105,7 +111,7 @@ impl SegmentedBytecodeStream {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_secs(),
-            checksum: 0, // Will be calculated later
+            crc32: crc32_value,
             metadata: Some(format!("node_count:{}", stream.node_count)),
         };
         
@@ -122,7 +128,7 @@ impl SegmentedBytecodeStream {
         let mut node_index = 0;
         
         let temp_dir = tempdir()?;
-        let temp_path = temp_dir.path().join("temp.zst");
+        let _temp_path = temp_dir.path().join("temp.zst");
         
         // Iterate over bytecode and split into segments
         // Simple segmentation: split by size
@@ -165,6 +171,21 @@ impl SegmentedBytecodeStream {
                 segment_id += 1;
                 node_start = node_index;
             }
+        }
+        
+        // Persist index and segment metadata for later loads
+        {
+            // Save index
+            let index_path = storage_dir.join("index.bin");
+            let index_data = bincode::serialize(&index)
+                .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+            fs::write(&index_path, index_data)?;
+            
+            // Save segment metadata
+            let meta_path = storage_dir.join("segments.json");
+            let meta_json = serde_json::to_string_pretty(&segments)
+                .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+            fs::write(&meta_path, meta_json)?;
         }
         
         // Create segment cache
@@ -234,7 +255,8 @@ impl SegmentedBytecodeStream {
     }
     
     /// Load from existing storage with version checking
-    pub fn load_from_disk(storage_dir: PathBuf) -> io::Result<Self> {
+    /// Load from disk with CRC32 verification
+    pub fn load(storage_dir: PathBuf) -> io::Result<Self> {
         // Read and validate header
         let header_path = storage_dir.join("header.json");
         let header_json = fs::read_to_string(&header_path)?;
@@ -254,16 +276,35 @@ impl SegmentedBytecodeStream {
             return Self::migrate_from_version(header.version, storage_dir);
         }
         
+        // Load segment metadata early (used for CRC validation)
+        let meta_path = storage_dir.join("segments.json");
+        let meta_json = fs::read_to_string(&meta_path)?;
+        let segments: Vec<SegmentMetadata> = serde_json::from_str(&meta_json)
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        
+        // Verify CRC32 if present by recomputing from decompressed segments
+        if header.crc32 != 0 {
+            use crc32fast::Hasher;
+            let mut hasher = Hasher::new();
+            for meta in &segments {
+                let compressed = fs::read(&meta.path)?;
+                let decompressed = zstd::decode_all(&compressed[..])
+                    .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+                hasher.update(&decompressed);
+            }
+            let computed_crc = hasher.finalize();
+            if computed_crc != header.crc32 {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!("CRC32 mismatch: expected {}, got {}", header.crc32, computed_crc)
+                ));
+            }
+        }
+        
         // Load index
         let index_path = storage_dir.join("index.bin");
         let index_data = fs::read(&index_path)?;
         let index: Vec<(u16, u32)> = bincode::deserialize(&index_data)
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
-        
-        // Load segment metadata
-        let meta_path = storage_dir.join("segments.json");
-        let meta_json = fs::read_to_string(&meta_path)?;
-        let segments: Vec<SegmentMetadata> = serde_json::from_str(&meta_json)
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
         
         // Create segment cache
@@ -302,7 +343,7 @@ impl SegmentedBytecodeStream {
     }
     
     /// Migrate from older version
-    fn migrate_from_version(version: u32, storage_dir: PathBuf) -> io::Result<Self> {
+    fn migrate_from_version(version: u32, _storage_dir: PathBuf) -> io::Result<Self> {
         match version {
             0 => {
                 // Version 0 -> Version 1 migration
@@ -354,7 +395,7 @@ impl SegmentedBytecodeStream {
             ));
         }
         
-        let (segment_id, offset) = self.index[node_index];
+        let (segment_id, _offset) = self.index[node_index];
         let segment = self.load_segment(segment_id)?;
         
         Ok(SegmentedNavigator {
@@ -379,6 +420,11 @@ impl SegmentedBytecodeStream {
                 .map(|s| s.uncompressed_size)
                 .sum(),
         }
+    }
+
+    /// Public getter for index length (number of indexed nodes)
+    pub fn index_len(&self) -> usize {
+        self.index.len()
     }
 }
 
@@ -434,20 +480,84 @@ mod tests {
     use tempfile::tempdir;
     
     #[test]
-    fn test_segmentation() {
+    fn test_crc32_integrity() {
+        use crc32fast::Hasher;
+        let dir = tempdir().unwrap();
+        
+        // Create stream with known data
+        let mut stream = BytecodeStream::new();
+        stream.bytes = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        stream.node_count = 5;
+        
+        // Calculate expected CRC32
+        let mut hasher = Hasher::new();
+        hasher.update(&stream.bytes);
+        let expected_crc = hasher.finalize();
+        
+        // Create segmented version
+        let _segmented = SegmentedBytecodeStream::from_bytecode_stream(
+            stream.clone(),
+            dir.path().to_path_buf()
+        ).unwrap();
+        
+        // Read header and verify CRC32
+        let header_path = dir.path().join("header.json");
+        let header_json = fs::read_to_string(&header_path).unwrap();
+        let header: FormatHeader = serde_json::from_str(&header_json).unwrap();
+        
+        assert_eq!(header.crc32, expected_crc, "CRC32 mismatch");
+        assert_eq!(header.magic, *MAGIC_BYTES, "Magic bytes mismatch");
+        assert_eq!(header.version, FORMAT_VERSION, "Version mismatch");
+    }
+    
+    #[test]
+    fn test_crc32_verification_on_load() {
+        let dir = tempdir().unwrap();
+        
+        // Create and save a segmented stream
+        let mut stream = BytecodeStream::new();
+        stream.bytes = vec![10, 20, 30, 40, 50];
+        stream.node_count = 3;
+        
+        let _segmented = SegmentedBytecodeStream::from_bytecode_stream(
+            stream,
+            dir.path().to_path_buf()
+        ).unwrap();
+        
+        // Load and verify CRC32 passes
+        let loaded = SegmentedBytecodeStream::load(dir.path().to_path_buf());
+        assert!(loaded.is_ok(), "Should load with valid CRC32");
+        
+        // Corrupt a compressed segment file
+        let segment_path = dir.path().join("seg_0000.zst");
+        if segment_path.exists() {
+            let mut data = fs::read(&segment_path).unwrap();
+            if !data.is_empty() {
+                data[0] ^= 0xFF; // Flip bits in first byte
+                fs::write(&segment_path, data).unwrap();
+            }
+        }
+        
+        // Load should fail due to corruption
+        let corrupted_load = SegmentedBytecodeStream::load(dir.path().to_path_buf());
+        assert!(corrupted_load.is_err(), "Should fail on corrupted segment");
+    }
+    
+    #[test]
+    fn test_segmented_stream() {
         let dir = tempdir().unwrap();
         
         // Create a bytecode stream
         let mut stream = BytecodeStream::new();
         
         // Add some data
-        for i in 0..1000u64 {
+        for _i in 0..1000u64 {
             stream.bytes.extend_from_slice(&i.to_le_bytes());
         }
         stream.node_count = 100;
         
         // Create segmented version
-        let segmented = SegmentedBytecodeStream::from_bytecode_stream(
+        let _segmented = SegmentedBytecodeStream::from_bytecode_stream(
             stream,
             dir.path().to_path_buf()
         ).unwrap();

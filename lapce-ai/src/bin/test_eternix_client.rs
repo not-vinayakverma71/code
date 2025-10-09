@@ -10,7 +10,7 @@ use std::time::Instant;
 #[tokio::main]
 async fn main() -> Result<()> {
     println!("\n📱 ETERNIX CLIENT TEST");
-    println!("=" * 50);
+    println!("{}", "=".repeat(50));
     
     // Connect to AI server
     println!("\nConnecting to AI server...");

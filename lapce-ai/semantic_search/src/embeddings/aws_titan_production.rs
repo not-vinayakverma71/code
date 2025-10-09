@@ -1,7 +1,7 @@
 // Production-ready AWS Titan Embedder with enterprise features
 use crate::error::{Error, Result};
-use crate::embeddings::config::TitanConfig;
-use crate::embeddings::embedder_interface::{IEmbedder, EmbeddingResponse, EmbedderInfo, AvailableEmbedders};
+use crate::embeddings::embedder_interface::{IEmbedder, EmbeddingResponse, EmbedderInfo, AvailableEmbedders, EmbeddingUsage};
+use crate::embeddings::aws_config_validator::{validate_aws_config, load_env_file};
 use aws_sdk_bedrockruntime::Client as BedrockClient;
 use aws_config;
 use std::sync::Arc;
@@ -134,18 +134,17 @@ impl Default for RetryConfig {
 }
 
 impl AwsTitanProduction {
-    pub async fn new(region: &str, tier: AwsTier) -> Result<Self> {
-        // Load AWS config
-        let config = aws_config::from_env()
-            .region(aws_config::Region::new(region.to_string()))
-            .load()
-            .await;
-        let client = BedrockClient::new(&config);
+    pub fn new(
+        client: BedrockClient,
+        tier: AwsTier,
+        max_batch_size: usize,
+        requests_per_second: f64,
+    ) -> Self {
+        let rate_limiter = Arc::new(Semaphore::new(
+            (requests_per_second as usize).max(1)
+        ));
         
-        // Create rate limiter based on tier
-        let rate_limiter = Arc::new(Semaphore::new(tier.max_requests_per_second()));
-        
-        Ok(Self {
+        Self {
             client,
             tier,
             cache: Arc::new(RwLock::new(HashMap::new())),
@@ -155,40 +154,27 @@ impl AwsTitanProduction {
             cache_ttl: Duration::from_secs(3600), // 1 hour cache
             max_cache_size: 10_000,
             retry_config: RetryConfig::default(),
-        })
+        }
     }
     
     pub async fn new_from_config() -> Result<Self> {
-        // Load config from environment
-        let titan_config = TitanConfig::from_env()?;
-        titan_config.validate_dimensions()?;
+        // Load .env file if it exists
+        load_env_file();
         
-        // Build AWS config with optional credentials
-        let mut aws_config_builder = aws_config::from_env()
-            .region(aws_config::Region::new(titan_config.aws_region.clone()));
+        // Validate AWS configuration with detailed errors
+        let aws_requirements = validate_aws_config()?;
         
-        // Load AWS config
-        let config = aws_config_builder.load().await;
+        let config = aws_config::load_from_env().await;
         let client = BedrockClient::new(&config);
-        
-        // Determine tier from config
-        let tier = if titan_config.requests_per_second <= 5 {
-            AwsTier::OnDemand
-        } else {
-            AwsTier::Provisioned
-        };
-        
-        // Create rate limiter based on config
-        let rate_limiter = Arc::new(Semaphore::new(titan_config.max_concurrent_requests));
         
         Ok(Self {
             client,
-            tier,
+            tier: AwsTier::Standard,
             cache: Arc::new(RwLock::new(HashMap::new())),
-            rate_limiter,
+            rate_limiter: Arc::new(Semaphore::new(aws_requirements.max_batch_size)),
             metrics: Arc::new(RwLock::new(UsageMetrics::default())),
             latencies: Arc::new(RwLock::new(Vec::new())),
-            cache_ttl: Duration::from_secs(3600), // 1 hour cache
+            cache_ttl: Duration::from_secs(3600),
             max_cache_size: 10_000,
             retry_config: RetryConfig::default(),
         })
@@ -300,7 +286,9 @@ impl AwsTitanProduction {
                     // Add simple jitter using current time (±25%)
                     let now = std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap()
+                        .map_err(|e| Error::Runtime {
+                            message: format!("Failed to get system time: {}", e)
+                        })?
                         .as_nanos();
                     let jitter_factor = ((now % 100) as f64 / 100.0) * 0.25;
                     let jitter = (delay as f64 * jitter_factor) as u64;
@@ -352,8 +340,11 @@ impl AwsTitanProduction {
                 message: "Missing embedding in AWS response".to_string()
             })?
             .iter()
-            .map(|v| v.as_f64().unwrap() as f32)
-            .collect::<Vec<f32>>();
+            .map(|v| v.as_f64().ok_or_else(|| Error::Runtime {
+                message: "Invalid float value in embedding".to_string()
+            }).map(|f| f as f32))
+            .collect::<std::result::Result<Vec<f32>, Error>>()?
+;
         
         // Update metrics
         let mut metrics = self.metrics.write().await;
@@ -426,7 +417,7 @@ impl AwsTitanProduction {
         // Calculate percentiles
         if !latencies.is_empty() {
             let mut sorted: Vec<f64> = latencies.clone();
-            sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
             
             result.avg_latency_ms = sorted.iter().sum::<f64>() / sorted.len() as f64;
             result.p95_latency_ms = sorted[(sorted.len() as f64 * 0.95) as usize];
@@ -446,7 +437,7 @@ impl AwsTitanProduction {
     /// Export metrics for monitoring
     pub async fn export_metrics(&self) -> String {
         let metrics = self.get_metrics().await;
-        serde_json::to_string_pretty(&metrics).unwrap()
+        serde_json::to_string_pretty(&metrics).unwrap_or_else(|_| "Failed to serialize metrics".to_string())
     }
 }
 

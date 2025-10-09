@@ -4,6 +4,9 @@ use std::path::PathBuf;
 use serde::{Serialize, Deserialize};
 use anyhow::Result;
 use tokio::sync::mpsc;
+use async_trait::async_trait;
+
+use super::traits::{Adapter, DiffController};
 
 /// Diff-related messages for Lapce integration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -359,5 +362,55 @@ mod tests {
         // Old file should be removed, new file should remain
         assert!(!old_file.exists());
         assert!(new_file.exists());
+    }
+}
+
+// Trait implementations for DiffAdapter
+impl Adapter for DiffAdapter {
+    fn name(&self) -> &'static str {
+        "lapce_diff"
+    }
+    
+    fn is_available(&self) -> bool {
+        !self.sender.is_closed()
+    }
+}
+
+#[async_trait]
+impl DiffController for DiffAdapter {
+    async fn open_diff(
+        &self,
+        left_path: String,
+        right_path: String,
+        title: Option<String>,
+    ) -> Result<()> {
+        let message = DiffMessage::OpenDiffFiles {
+            left_path: PathBuf::from(left_path),
+            right_path: PathBuf::from(right_path),
+            title,
+        };
+        
+        self.sender.send(message)?;
+        Ok(())
+    }
+    
+    async fn close_diff(&self, left_path: String, right_path: String) -> Result<()> {
+        let message = DiffMessage::CloseDiff {
+            left_path: PathBuf::from(left_path),
+            right_path: PathBuf::from(right_path),
+        };
+        
+        self.sender.send(message)?;
+        Ok(())
+    }
+    
+    async fn save_diff(&self, target_path: String, content: String) -> Result<()> {
+        let message = DiffMessage::DiffSave {
+            file_path: PathBuf::from(target_path),
+            content,
+        };
+        
+        self.sender.send(message)?;
+        Ok(())
     }
 }

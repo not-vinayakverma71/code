@@ -226,7 +226,7 @@ impl PrefixSumIndex {
         
         // Skip to correct position in data
         let mut data_position = 0;
-        for i in 0..block_idx {
+        for _i in 0..block_idx {
             // Skip entire blocks (block_size - 1 values since we don't encode block boundaries)
             for _ in 0..(self.block_size - 1) {
                 let (_, consumed) = VarInt::decode_u64(&self.data[data_position..])?;

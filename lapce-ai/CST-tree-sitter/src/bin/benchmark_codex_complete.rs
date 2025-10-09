@@ -9,18 +9,18 @@ static GLOBAL: MiMalloc = MiMalloc;
 use std::time::{Instant, Duration};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::collections::HashMap;
+
 use std::sync::Arc;
 use tempfile::tempdir;
 use lapce_tree_sitter::phase4_cache_fixed::{Phase4Cache, Phase4Config};
 use lapce_tree_sitter::compact::bytecode::{
     TreeSitterBytecodeEncoder,
-    SegmentedBytecodeStream,
+
 };
 use ignore::WalkBuilder;
 use indicatif::{ProgressBar, ProgressStyle, MultiProgress};
 use tree_sitter::{Parser, Language};
-use bytes::Bytes;
+
 
 // Import language parsers
 use tree_sitter_rust;
@@ -35,6 +35,7 @@ use tree_sitter_c;
 use tree_sitter_cpp;
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct MemorySnapshot {
     timestamp: Instant,
     rss_mb: f64,
@@ -241,7 +242,7 @@ fn main() {
     }
     
     pb.finish_with_message("Complete");
-    let parse_time = start.elapsed();
+    let _parse_time = start.elapsed();
     
     // Final tier management
     let _ = cache.manage_tiers();
@@ -289,7 +290,7 @@ fn main() {
     let mut total_hits = 0;
     
     for round in 0..5 {
-        let round_start = Instant::now();
+        let _round_start = Instant::now();
         let mut hits = 0;
         
         for _ in 0..1000 {

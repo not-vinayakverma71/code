@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
 use lapce_ai_rust::{IpcServer, IpcConfig};
-use lapce_ai_rust::shared_memory_complete::SharedMemoryStream;
+use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryStream;
 use bytes::Bytes;
 
 const CYCLES: usize = 120;
@@ -174,10 +174,10 @@ fn drop_and_measure_memory() -> f64 {
     drop(vec![0u8; 1_000_000]); // Allocate and drop to trigger cleanup
     std::thread::sleep(Duration::from_millis(100));
     
-    use sysinfo::{System, SystemExt, ProcessExt, PidExt};
+    use sysinfo::{System, Pid};
     
     let mut sys = System::new();
-    sys.refresh_processes(sysinfo::ProcessesToUpdate::All);
+    sys.refresh_all();
     
     let pid = sysinfo::Pid::from(std::process::id() as usize);
     if let Some(process) = sys.process(pid) {

@@ -16,9 +16,10 @@ pub enum Opcode {
     Text = 0x05,        // Text content (followed by length, bytes)
     Children = 0x06,    // Children count (followed by count)
     
-    // Position opcodes
+    // Position/size opcodes
     SetPos = 0x10,      // Set absolute position (followed by varint)
     DeltaPos = 0x11,    // Delta position (followed by signed varint)
+    Length = 0x12,      // Explicit length marker (followed by varint)
     
     // Field opcodes
     Field = 0x20,       // Set field (followed by field_id)
@@ -45,6 +46,7 @@ impl Opcode {
             0x06 => Some(Opcode::Children),
             0x10 => Some(Opcode::SetPos),
             0x11 => Some(Opcode::DeltaPos),
+            0x12 => Some(Opcode::Length),
             0x20 => Some(Opcode::Field),
             0x21 => Some(Opcode::NoField),
             0x30 => Some(Opcode::RepeatLast),
@@ -109,6 +111,10 @@ pub struct BytecodeStream {
     /// Every N nodes, store offset
     pub checkpoints: Vec<(usize, usize)>, // (node_index, byte_offset)
     
+    /// Stable node IDs for semantic tracking across edits
+    /// Maps node index to stable ID
+    pub stable_ids: Vec<u64>,
+    
     /// String tables
     pub kind_names: Vec<String>,
     pub field_names: Vec<String>,
@@ -116,6 +122,7 @@ pub struct BytecodeStream {
     /// Metadata
     pub node_count: usize,
     pub source_len: usize,
+    pub next_stable_id: u64, // For generating new IDs
 }
 
 impl BytecodeStream {
@@ -124,10 +131,12 @@ impl BytecodeStream {
             bytes: Vec::new(),
             jump_table: Vec::new(),
             checkpoints: Vec::new(),
+            stable_ids: Vec::new(),
             kind_names: Vec::new(),
             field_names: Vec::new(),
             node_count: 0,
             source_len: 0,
+            next_stable_id: 1, // Start IDs at 1 (0 reserved for null)
         }
     }
     

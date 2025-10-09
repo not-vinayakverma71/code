@@ -5,7 +5,7 @@ use std::alloc::{GlobalAlloc, Layout, System};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
-use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer;
+use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer;
 
 /// Custom allocator to track heap usage
 struct TrackingAllocator;
@@ -78,7 +78,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for _ in 0..10000 {
         buffer.write(&test_msg)?;
         let mut buf = [0u8; 1024];
-        let _ = buffer.read(&mut buf);
+        let _ = buffer.read();
     }
     
     let hot_alloc = get_net_allocations() - hot_start;

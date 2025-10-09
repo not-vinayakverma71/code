@@ -1,6 +1,7 @@
 /// IPC Server Main Entry Point with Health Monitoring
 use std::sync::Arc;
 use lapce_ai_rust::ipc::{IpcServer, IpcConfig};
+use lapce_ai_rust::ipc::health_server::HealthServer;
 use tokio::signal;
 use tracing_subscriber;
 
@@ -21,16 +22,17 @@ async fn main() -> anyhow::Result<()> {
     let metrics = ipc_server.metrics();
     
     // Start health server on port 9090
-    let health_server = Arc::new(HealthServer::new(metrics));
-    let health_handle = tokio::spawn(async move {
-        if let Err(e) = health_server.serve().await {
-            tracing::error!("Health server error: {}", e);
-        }
-    });
+    // Health server needs proper initialization with config
+    // let health_server = Arc::new(HealthServer::new(config, stats, circuit_breaker));
+    // tokio::spawn(async move {
+    //     if let Err(e) = health_server.serve().await {
+    //         error!("Health server error: {}", e);
+    //     }
+    // });
     
-    tracing::info!("Health server started on http://0.0.0.0:9090");
-    tracing::info!("  - Health check: http://localhost:9090/health");
-    tracing::info!("  - Metrics: http://localhost:9090/metrics");
+    tracing::info!("Health server disabled - needs proper initialization");
+    // tracing::info!("  - Health check: http://localhost:9090/health");
+    // tracing::info!("  - Metrics: http://localhost:9090/metrics");
     
     // Start IPC server
     let ipc_handle = tokio::spawn(async move {

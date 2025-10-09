@@ -512,7 +512,7 @@ impl DirectoryScanner {
             .enumerate()
             .map(|(index, block)| {
                 let normalized_path = generate_normalized_absolute_path(&block.file_path, scan_workspace);
-                let point_id = Uuid::new_v5(&QDRANT_CODE_BLOCK_NAMESPACE, block.segment_hash.as_bytes());
+                let point_id = Uuid::new_v4();
                 
                 PointStruct {
                     id: point_id.to_string(),

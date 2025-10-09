@@ -1,22 +1,16 @@
 /// X.AI (Grok) Provider - EXACT port from Codex/src/api/providers/xai.ts
 use std::sync::Arc;
 use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
-use futures::stream::{Stream, StreamExt, BoxStream};
-use tokio::time::Duration;
+use futures::stream::{StreamExt, BoxStream};
 use tokio::sync::RwLock;
-use anyhow::{Result, anyhow, bail};
+use anyhow::{Result, bail};
 use serde_json::json;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
 use crate::ai_providers::core_trait::{
     AiProvider, CompletionRequest, CompletionResponse, ChatRequest, ChatResponse,
-    StreamToken, HealthStatus, Model, ProviderCapabilities, RateLimits, Usage,
-    ChatMessage, ChatChoice, CompletionChoice
+    StreamToken, HealthStatus, Model, ProviderCapabilities, RateLimits
 };
-use crate::ai_providers::sse_decoder::{SseDecoder, SseEvent};
-use crate::ai_providers::streaming_integration::{
-    process_sse_response, ProviderType
-};
+use crate::ai_providers::sse_decoder::SseDecoder;
 
 #[derive(Debug, Clone)]
 pub struct XaiConfig {

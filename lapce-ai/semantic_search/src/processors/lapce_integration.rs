@@ -172,7 +172,7 @@ impl LapceTreeSitterBridge {
                 name: id.clone(),
                 kind: format!("{:?}", node.node_type),
                 line: node.metadata.start_line,
-                scope_depth: node.semantic_info.scope_depth,
+                scope_depth: node.semantic_info.as_ref().map(|s| s.scope_depth).unwrap_or(0),
             });
         }
         

@@ -136,13 +136,16 @@ impl Phase4Cache {
         tree: Tree,
         source: &[u8],
     ) -> Result<(), Box<dyn std::error::Error>> {
+        use crate::{STORE_LATENCY, BYTES_WRITTEN};
+        let timer = STORE_LATENCY.start_timer();
+        
         // Step 1: Convert to bytecode
         let mut encoder = TreeSitterBytecodeEncoder::new();
         let bytecode = encoder.encode_tree(&tree, source);
         let bytecode_size = bytecode.bytes.len();
         
         // Step 2: Segment the bytecode
-        let segmented = SegmentedBytecodeStream::from_bytecode_stream(
+        let _segmented = SegmentedBytecodeStream::from_bytecode_stream(
             bytecode,
             self.segment_dir.clone()
         )?;
@@ -166,31 +169,30 @@ impl Phase4Cache {
             self.freeze_oldest()?;
         }
         
+        // Record metrics
+        BYTES_WRITTEN.inc_by(bytecode_size as u64);
+        timer.observe_duration();
+        
         Ok(())
     }
-    
     /// Get a tree from cache
-    pub fn get(
-        &self,
-        path: &Path,
-        hash: u64,
-    ) -> Result<Option<(Tree, Bytes)>, Box<dyn std::error::Error>> {
+    pub fn get(&self, path: &PathBuf) -> Option<Arc<SegmentedBytecodeStream>> {
+        use crate::{CACHE_HITS, CACHE_MISSES, GET_LATENCY};
+        let timer = GET_LATENCY.start_timer();
+        
         // Check bytecode store
-        if let Some(segmented) = self.bytecode_store.read().get(path) {
-            // Get source
-            if let Some(source) = self.source_store.read().get(&hash) {
-                // For now, just return the source and a marker that we have the bytecode
-                // Full reconstruction would require parsing the bytecode back
-                // Return None for now - full reconstruction would require reparsing
-                return Ok(None);
-            }
+        let store = self.bytecode_store.read();
+        let result = store.get(path).cloned();
+        
+        // Record metrics
+        if result.is_some() {
+            CACHE_HITS.inc();
+        } else {
+            CACHE_MISSES.inc();
         }
+        timer.observe_duration();
         
-        // Check frozen tier (would need path-based lookup)
-        // For now, frozen tier is not directly accessible by hash
-        // This would require maintaining a hash->path mapping
-        
-        Ok(None)
+        result
     }
     
     /// Move oldest entries to frozen tier
@@ -206,7 +208,7 @@ impl Phase4Cache {
             drop(bytecode_store);
             
             for key in keys {
-                if let Some(segmented) = self.bytecode_store.write().remove(&key) {
+                if let Some(_segmented) = self.bytecode_store.write().remove(&key) {
                     // Move to frozen tier
                     // This would serialize the segmented stream and compress it
                     let mut stats = self.stats.write();
@@ -263,9 +265,16 @@ impl SyncPhase4Cache {
     pub fn get(
         &self,
         path: &Path,
-        hash: u64,
+        _hash: u64,
     ) -> Result<Option<(Tree, Bytes)>, Box<dyn std::error::Error>> {
-        self.cache.get(path, hash)
+        // Get returns Arc<SegmentedBytecodeStream>, not (Tree, Bytes)
+        // For now, just check if exists
+        if let Some(_segmented) = self.cache.get(&path.to_path_buf()) {
+            // TODO: Reconstruct tree from bytecode
+            Ok(None)
+        } else {
+            Ok(None)
+        }
     }
     
     /// Get statistics
@@ -290,21 +299,20 @@ mod tests {
         let cache = Phase4Cache::new(config).unwrap();
         
         // Create a test tree
-        let source = "fn main() { println!(\"Hello\"); }";
+        let _source = "fn main() { println!(\"Hello\"); }";
         let mut parser = Parser::new();
         parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-        let tree = parser.parse(source, None).unwrap();
+        let _tree = parser.parse(source, None).unwrap();
         
         // Store
         let path = PathBuf::from("test.rs");
         let hash = 12345;
         cache.store(path.clone(), hash, tree, source.as_bytes()).unwrap();
         
-        // Get - NOTE: This always returns None in the broken implementation
-        // We have a fixed version in phase4_cache_fixed.rs
-        let result = cache.get(&path, hash).unwrap();
-        // assert!(result.is_some()); // This is broken, keeping for reference
-        assert!(result.is_none()); // Expected behavior of broken implementation
+        // Get - NOTE: This returns Arc<SegmentedBytecodeStream> or None
+        let result = cache.get(&path.to_path_buf());
+        // Check that something was stored
+        assert!(result.is_some()); // Should find the stored bytecode
         
         // Check stats
         let stats = cache.stats();

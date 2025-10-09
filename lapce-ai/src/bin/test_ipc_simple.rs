@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::Result;
 
 use lapce_ai_rust::{
-    shared_memory_complete::{SharedMemoryListener, SharedMemoryStream},
+    ipc::shared_memory_complete::{SharedMemoryListener, SharedMemoryStream},
 };
 
 #[tokio::main]

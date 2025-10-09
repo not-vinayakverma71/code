@@ -1,0 +1,25 @@
+[package]
+name = "lapce-ai-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+lapce-ai-rust = { path = ".." }
+bytes = "1.5"
+
+[[bin]]
+name = "fuzz_binary_codec"
+path = "fuzz_targets/fuzz_binary_codec.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_header_parsing"
+path = "fuzz_targets/fuzz_header_parsing.rs"
+test = false
+doc = false

@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
 use lapce_ai_rust::{IpcServer, IpcConfig};
-use lapce_ai_rust::shared_memory_complete::SharedMemoryStream;
+use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryStream;
 use bytes::Bytes;
 
 const BACKGROUND_CONNECTIONS: usize = 999;

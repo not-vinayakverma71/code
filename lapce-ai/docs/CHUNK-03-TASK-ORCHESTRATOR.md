@@ -63,12 +63,12 @@
                      ═════════▼═════════
                      SharedMemory IPC
                      /tmp/lapce-ai.sock
-                     5.1μs latency ✅
-                     1.38M msg/sec ✅
+                     5.1μs latency 
+                     1.38M msg/sec 
                      ═════════│═════════
                               │
 ┌─────────────────────────────▼──────────────────────────────────┐
-│  lapce-ai-rust/src/ (Backend)                                 │
+│  lapce-ai/src/ (Backend)                                 │
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │ ipc_server.rs (MessageRouter - EXISTING)                 │  │
 │  │ - register_handler(MessageType::StartTask, ...)          │  │
@@ -107,7 +107,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 
 **Rust with IPC (Step 29)**:
 ```rust
-// Backend: lapce-ai-rust/src/handlers/task_orchestrator.rs
+// Backend: lapce-ai/src/handlers/task_orchestrator.rs
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum TaskEvent {
@@ -1201,7 +1201,7 @@ mod benchmarks {
 # Part 6: Complete Module Structure
 
 ```
-lapce-ai-rust/
+lapce-ai/
 ├── src/
 │   ├── task/
 │   │   ├── task.rs                     # Main Task struct (2859 lines)

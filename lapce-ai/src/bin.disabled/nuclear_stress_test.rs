@@ -10,7 +10,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use futures::future;
 use rand::Rng;
 
-use lapce_ai_rust::shared_memory_complete::{SharedMemoryBuffer, SharedMemoryListener, SharedMemoryStream};
+use lapce_ai_rust::ipc::shared_memory_complete::{SharedMemoryBuffer, SharedMemoryListener, SharedMemoryStream};
 use lapce_ai_rust::ipc_server::IpcServer;
 
 const MAX_MESSAGE_SIZE: usize = 10 * 1024 * 1024;

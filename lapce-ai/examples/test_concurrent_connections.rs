@@ -1,5 +1,5 @@
 /// Test 1000+ concurrent connections
-use lapce_ai_rust::shared_memory_complete::*;
+use lapce_ai_rust::ipc::shared_memory_complete::*;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;

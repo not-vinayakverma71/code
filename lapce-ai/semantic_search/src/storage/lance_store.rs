@@ -148,9 +148,15 @@ impl IVectorStore for LanceVectorStore {
         }
         
         // Create vector array as FixedSizeListArray
-        let vectors_list = FixedSizeListArray::from_iter_primitive::<Float32Type, _, _>(
-            points.iter().map(|p| Some(p.vector.iter().map(|v| Some(*v)).collect::<Vec<_>>())),
+        let flat_vectors: Vec<f32> = points.iter()
+            .flat_map(|p| p.vector.clone())
+            .collect();
+        let vector_values = Float32Array::from(flat_vectors);
+        let vectors_list = FixedSizeListArray::new(
+            Arc::new(Field::new("item", DataType::Float32, true)),
             self.vector_dimension as i32,
+            Arc::new(vector_values),
+            None,
         );
         
         // Create RecordBatch
@@ -314,9 +320,20 @@ impl IVectorStore for LanceVectorStore {
                     .map(|arr| arr.value(i) as u32)
                     .unwrap_or(0);
                 
+                // Extract distance score from _distance column
+                let score = batch.column_by_name("_distance")
+                    .and_then(|c| c.as_any().downcast_ref::<arrow_array::Float32Array>())
+                    .map(|arr| {
+                        let distance = arr.value(i);
+                        // Convert distance to similarity score (cosine distance range is [0, 2])
+                        // Lower distance = higher similarity
+                        1.0 - (distance / 2.0).min(1.0).max(0.0)
+                    })
+                    .unwrap_or(0.5);
+                
                 search_results.push(VectorStoreSearchResult {
                     id: id_col,
-                    score: 1.0, // Lance doesn't return distance scores directly
+                    score,
                     payload: Some(SearchPayload {
                         file_path,
                         code_chunk,

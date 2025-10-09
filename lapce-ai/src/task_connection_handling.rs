@@ -44,6 +44,9 @@ impl Task {
     
     /// get taskMode - sync getter
     pub async fn task_mode(&self) -> Result<String, String> {
+        let mut tracker = self.tool_usage.write().await;
+        tracker.usage_count.clear();
+        tracker.failure_count.clear();
         let mode = self.task_mode.read().await;
         if mode.is_none() {
             return Err("Task mode accessed before initialization. Use getTaskMode() or wait for taskModeReady.".to_string());
@@ -148,6 +151,7 @@ impl Task {
     
     /// overwriteClineMessages - exact translation
     pub async fn overwrite_cline_messages(&self, new_messages: Vec<ClineMessage>) {
+        *self.last_message_ts.write().await = Some(0);
         *self.cline_messages.write().await = new_messages;
         restore_todo_list_for_task(self).await;
         // self.save_cline_messages().await;

@@ -527,7 +527,7 @@ impl FileWatcher {
         
         // Create points
         let points: Vec<PointStruct> = blocks.iter().enumerate().map(|(i, block)| {
-            let point_id = Uuid::new_v5(&QDRANT_CODE_BLOCK_NAMESPACE, block.segment_hash.as_bytes());
+            let point_id = Uuid::new_v4();
             
             PointStruct {
                 id: point_id.to_string(),

@@ -7,7 +7,7 @@ use tokio;
 use lapce_ai_rust::optimized_vector_search::OptimizedVectorSearch;
 use lapce_ai_rust::cache::final_cache::CacheV3;
 use lapce_ai_rust::cache::types::{CacheConfig, CacheKey, CacheValue};
-use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer as OptimizedSharedMemory;
+use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer as lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -163,7 +163,7 @@ async fn test_cache_stress(num_docs: usize) -> Result<()> {
 fn test_shared_memory_stress(num_docs: usize) -> Result<()> {
     println!("\n🔗 SharedMemory Stress Test...");
     
-    let mut shm = OptimizedSharedMemory::create("stress_test", 64 * 1024 * 1024)?; // 64MB
+    let mut shm = lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer::create("stress_test", 64 * 1024 * 1024)?; // 64MB
     
     let start = Instant::now();
     let data_size = 256; // 256 bytes per message

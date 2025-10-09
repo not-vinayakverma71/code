@@ -15,6 +15,50 @@ pub struct XmlToolArgs {
     pub multi_file: Option<Vec<FileSpec>>,
 }
 
+/// Generate a tool_use XML from parsed arguments for roundtrip tests
+pub fn generate_tool_use_xml(args: &XmlToolArgs) -> Result<String> {
+    let mut writer = Writer::new(Cursor::new(Vec::new()));
+    // <tool_use name="...">
+    let mut root = BytesStart::new("tool_use");
+    root.push_attribute(("name", args.tool_name.as_str()));
+    writer.write_event(Event::Start(root))?;
+
+    // Arguments as simple child elements (stringified)
+    if let Value::Object(map) = &args.arguments {
+        for (key, value) in map {
+            writer.write_event(Event::Start(BytesStart::new(key)))?;
+            match value {
+                Value::Null => {
+                    let mut elem = BytesStart::new(key);
+                    elem.push_attribute(("null", "true"));
+                    writer.write_event(Event::Empty(elem))?;
+                }
+                _ => {
+                    writer.write_event(Event::Text(BytesText::new(&value.to_string())))?;
+                    writer.write_event(Event::End(BytesEnd::new(key)))?;
+                }
+            }
+        }
+    }
+
+    // Multi-file specs as <file ... /> entries with attributes
+    if let Some(files) = &args.multi_file {
+        for f in files {
+            let mut elem = BytesStart::new("file");
+            if !f.path.is_empty() {
+                elem.push_attribute(("path", f.path.as_str()));
+            }
+            if let Some(sl) = f.start_line { elem.push_attribute(("start_line", sl.to_string().as_str())); }
+            if let Some(el) = f.end_line { elem.push_attribute(("end_line", el.to_string().as_str())); }
+            writer.write_event(Event::Empty(elem))?;
+        }
+    }
+
+    writer.write_event(Event::End(BytesEnd::new("tool_use")))?;
+    let bytes = writer.into_inner().into_inner();
+    Ok(String::from_utf8(bytes)?)
+}
+
 /// File specification for multi-file operations
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileSpec {
@@ -44,7 +88,6 @@ pub fn parse_tool_xml(xml: &str) -> Result<XmlToolArgs> {
                 let name = String::from_utf8_lossy(e.name().as_ref()).to_string();
                 
                 if name == "tool_use" {
-                    // Parse tool name from attribute
                     for attr in e.attributes() {
                         let attr = attr?;
                         if attr.key.as_ref() == b"name" {
@@ -298,5 +341,165 @@ mod tests {
         assert!(xml.contains("false"));
         assert!(xml.contains("value1"));
         assert!(xml.contains("456"));
+    }
+    
+    #[test]
+    fn test_parse_generate_roundtrip() {
+        // Test that we can parse XML and regenerate it
+        let args = XmlToolArgs {
+            tool_name: "testTool".to_string(),
+            arguments: serde_json::json!({
+                "path": "/test/path",
+                "content": "test content",
+                "line": 42
+            }),
+            multi_file: Some(vec![
+                FileSpec {
+                    path: "file1.txt".to_string(),
+                    start_line: Some(10),
+                    end_line: Some(20),
+                },
+                FileSpec {
+                    path: "file2.txt".to_string(),
+                    start_line: None,
+                    end_line: None,
+                },
+            ]),
+        };
+        
+        // Generate XML from args
+        let xml = generate_tool_use_xml(&args).unwrap();
+        
+        // Parse it back
+        let parsed = parse_tool_xml(&xml).unwrap();
+        
+        // Verify roundtrip equality
+        assert_eq!(parsed.tool_name, args.tool_name);
+        assert_eq!(parsed.arguments["path"], args.arguments["path"]);
+        assert_eq!(parsed.arguments["content"], args.arguments["content"]);
+        assert_eq!(parsed.arguments["line"], args.arguments["line"]);
+        
+        let parsed_files = parsed.multi_file.unwrap();
+        let orig_files = args.multi_file.unwrap();
+        assert_eq!(parsed_files.len(), orig_files.len());
+        
+        for (parsed_file, orig_file) in parsed_files.iter().zip(orig_files.iter()) {
+            assert_eq!(parsed_file.path, orig_file.path);
+            assert_eq!(parsed_file.start_line, orig_file.start_line);
+            assert_eq!(parsed_file.end_line, orig_file.end_line);
+        }
+    }
+    
+    #[test]
+    fn test_xml_parse_performance() {
+        use std::time::Instant;
+        
+        // Create a complex XML with multiple files
+        let xml = r#"
+            <tool_use name="complexTool">
+                <path>/complex/path</path>
+                <content>Complex content with special chars &lt;&gt;&amp;</content>
+                <file path="file1.txt" start_line="1" end_line="100" />
+                <file path="file2.txt" start_line="50" end_line="150" />
+                <file path="file3.txt" />
+                <file path="file4.txt" start_line="200" />
+                <file path="file5.txt" end_line="300" />
+            </tool_use>
+        "#;
+        
+        // Warm up
+        for _ in 0..10 {
+            let _ = parse_tool_xml(xml);
+        }
+        
+        // Measure parse time
+        let iterations = 1000;
+        let start = Instant::now();
+        
+        for _ in 0..iterations {
+            let _ = parse_tool_xml(xml).unwrap();
+        }
+        
+        let elapsed = start.elapsed();
+        let avg_parse_us = elapsed.as_micros() / iterations as u128;
+        
+        println!("Average XML parse time: {}µs", avg_parse_us);
+        
+        // Assert reasonable performance (should be < 100µs for moderate XML)
+        assert!(avg_parse_us < 100, "Parse took {}µs, expected < 100µs", avg_parse_us);
+    }
+    
+    #[test]
+    fn test_xml_generate_performance() {
+        use std::time::Instant;
+        
+        let complex_result = serde_json::json!({
+            "status": "success",
+            "files": ["file1.txt", "file2.txt", "file3.txt"],
+            "stats": {
+                "lines": 1000,
+                "bytes": 50000,
+                "duration_ms": 123
+            },
+            "nested": {
+                "level1": {
+                    "level2": {
+                        "value": "deeply nested"
+                    }
+                }
+            }
+        });
+        
+        // Warm up
+        for _ in 0..10 {
+            let _ = generate_tool_xml("perfTest", &complex_result);
+        }
+        
+        // Measure generation time
+        let iterations = 1000;
+        let start = Instant::now();
+        
+        for _ in 0..iterations {
+            let _ = generate_tool_xml("perfTest", &complex_result).unwrap();
+        }
+        
+        let elapsed = start.elapsed();
+        let avg_gen_us = elapsed.as_micros() / iterations as u128;
+        
+        println!("Average XML generation time: {}µs", avg_gen_us);
+        
+        // Assert reasonable performance
+        assert!(avg_gen_us < 100, "Generation took {}µs, expected < 100µs", avg_gen_us);
+    }
+    
+    #[test]
+    fn test_parse_edge_cases() {
+        // Empty tool name
+        let xml = r#"<tool_use name=""></tool_use>"#;
+        let result = parse_tool_xml(xml);
+        assert!(result.is_ok()); // Empty name is technically valid
+        
+        // Special characters in content
+        let xml = r#"
+            <tool_use name="special">
+                <content>&lt;tag&gt; &amp; "quotes" 'apostrophe'</content>
+            </tool_use>
+        "#;
+        let args = parse_tool_xml(xml).unwrap();
+        assert!(args.arguments["content"].as_str().unwrap().contains("<tag>"));
+        assert!(args.arguments["content"].as_str().unwrap().contains("&"));
+        
+        // Mixed file formats
+        let xml = r#"
+            <tool_use name="mixed">
+                <file path="inline.txt" start_line="1" />
+                <file>
+                    <path>nested.txt</path>
+                    <start_line>10</start_line>
+                </file>
+            </tool_use>
+        "#;
+        let args = parse_tool_xml(xml).unwrap();
+        assert_eq!(args.multi_file.as_ref().unwrap().len(), 2);
     }
 }

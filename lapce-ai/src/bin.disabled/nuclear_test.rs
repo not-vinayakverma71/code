@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 use anyhow::Result;
 
 // Use the nuclear-optimized version
-use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer;
+use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer;
 
 const TEST_ITERATIONS: usize = 1_000_000;
 const CONNECTION_COUNT: usize = 1000;

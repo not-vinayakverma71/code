@@ -9,7 +9,7 @@ use sysinfo::{System, Pid};
 // Direct include to avoid lib compilation issues
 #[path = "../shared_memory_complete.rs"]
 mod shared_memory_complete;
-use shared_memory_complete::SharedMemoryBuffer;
+use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer;
 
 const TEST_DURATION: Duration = Duration::from_secs(30);
 const CONCURRENT_CONNECTIONS: usize = 1000;

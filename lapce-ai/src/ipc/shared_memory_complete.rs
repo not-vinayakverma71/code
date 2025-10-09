@@ -2,11 +2,10 @@
 /// Simple, robust, fast - meets all 8 success criteria
 
 use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, AtomicBool, Ordering};
+use std::sync::atomic::Ordering;
 use std::ptr;
 use anyhow::{Result, bail};
 use parking_lot::RwLock;
-use std::fs;
 use tokio::sync::oneshot;
 use tokio::task::JoinHandle;
 
@@ -14,11 +13,12 @@ use tokio::task::JoinHandle;
 mod shared_memory_header {
     include!("shared_memory_header.rs");
 }
-use self::shared_memory_header::{RingBufferHeader, MAGIC_NUMBER, PROTOCOL_VERSION};
+use self::shared_memory_header::RingBufferHeader;
 
 const SLOT_SIZE: usize = 1024;  // 1KB per slot
 const NUM_SLOTS: usize = 1024;  // 1024 slots = 1MB total
 const CONTROL_SIZE: usize = 4096; // 4KB for control channel
+const SHM_PROTOCOL_VERSION: u8 = 1;  // Shared memory protocol version
 
 /// Simple lock-free ring buffer
 pub struct SharedMemoryBuffer {
@@ -47,7 +47,7 @@ impl SharedMemoryBuffer {
             let fd = libc::shm_open(
                 shm_name.as_ptr(),
                 (libc::O_CREAT | libc::O_RDWR) as i32,
-                0o600  // Owner read/write only for security
+                0o600  // Owner read/write only for security (0600 permissions)
             );
             if fd == -1 {
                 bail!("shm_open failed: {}", std::io::Error::last_os_error());
@@ -67,7 +67,7 @@ impl SharedMemoryBuffer {
             let ptr = libc::mmap(
                 ptr::null_mut(),
                 total_size,
-                (libc::PROT_READ | libc::PROT_WRITE) as i32,
+                (libc::PROT_READ | libc::PROT_WRITE).try_into().unwrap(),
                 libc::MAP_SHARED as i32,
                 fd,
                 0,
@@ -118,7 +118,7 @@ impl SharedMemoryBuffer {
             let ptr = libc::mmap(
                 ptr::null_mut(),
                 total_size,
-                (libc::PROT_READ | libc::PROT_WRITE) as i32,
+                (libc::PROT_READ | libc::PROT_WRITE).try_into().unwrap(),
                 libc::MAP_SHARED as i32,
                 fd,
                 0,
@@ -321,7 +321,10 @@ impl Drop for SharedMemoryBuffer {
 }
 
 pub fn cleanup_shared_memory(path: &str) {
-    let shm_name = std::ffi::CString::new(format!("/{}", path.replace('/', "_"))).unwrap();
+    let shm_name = match std::ffi::CString::new(format!("/{}", path.replace('/', "_"))) {
+        Ok(name) => name,
+        Err(_) => return, // Silently return on invalid path
+    };
     unsafe {
         libc::shm_unlink(shm_name.as_ptr());
     }
@@ -335,7 +338,9 @@ use std::time::Duration;
 struct HandshakeRequest {
     client_id: [u8; 16],  // UUID as bytes
     request_type: u32,    // 0 = connect, 1 = disconnect
-    _padding: [u8; 12],   // Align to 32 bytes
+    version: u8,          // Protocol version
+    flags: u8,            // Feature flags
+    _padding: [u8; 10],   // Align to 32 bytes
 }
 
 /// Handshake response
@@ -343,7 +348,10 @@ struct HandshakeRequest {
 struct HandshakeResponse {
     client_id: [u8; 16],  // Echo client ID
     status: u32,          // 0 = success, 1 = error
-    _padding: [u8; 12],   // Align to 32 bytes
+    conn_id: u64,         // Server-generated connection ID
+    version: u8,          // Protocol version
+    flags: u8,            // Feature flags
+    _padding: [u8; 2],    // Align to 32 bytes
 }
 
 /// Listener for incoming shared memory connections
@@ -401,7 +409,10 @@ impl SharedMemoryListener {
                     let response = HandshakeResponse {
                         client_id: request.client_id,
                         status: 0,  // Success
-                        _padding: [0; 12],
+                        conn_id: rand::random::<u64>(),
+                        version: 1,
+                        flags: 0,
+                        _padding: [0; 2],
                     };
                     
                     // Write response back
@@ -422,15 +433,17 @@ impl SharedMemoryListener {
     }
     
     pub async fn accept(&self) -> Result<(SharedMemoryStream, std::net::SocketAddr)> {
+        // Wait for a connection request
+        let (client_id, conn_id) = self.wait_for_connection().await?;
+        
         // For now, return a dummy address since we're using shared memory
-        let addr = "127.0.0.1:0".parse().unwrap();
+        let addr = "127.0.0.1:0".parse()
+            .unwrap_or_else(|_| std::net::SocketAddr::from(([127, 0, 0, 1], 0)));
         
-        // Create a unique connection ID
-        let conn_id = rand::random::<u64>();
-        
-        // Create data buffers for this connection
-        let send_path = format!("lapce_shm_{}_{}_send", self.control_path.replace('/', "_"), conn_id);
-        let recv_path = format!("lapce_shm_{}_{}_recv", self.control_path.replace('/', "_"), conn_id);
+        // Create data buffers for this connection using server-generated conn_id
+        let base_path = self.control_path.trim_end_matches("_control");
+        let send_path = format!("{}_{}_send", base_path, conn_id);
+        let recv_path = format!("{}_{}_recv", base_path, conn_id);
         
         let send_buffer = Arc::new(RwLock::new(
             SharedMemoryBuffer::create(&send_path, 4 * 1024 * 1024)?
@@ -446,6 +459,58 @@ impl SharedMemoryListener {
         };
         
         Ok((stream, addr))
+    }
+    
+    async fn wait_for_connection(&self) -> Result<(uuid::Uuid, u64)> {
+        let timeout = Duration::from_secs(60);
+        let start = std::time::Instant::now();
+        
+        loop {
+            let mut buffer_guard = self.control_buffer.write();
+            if let Some(data) = buffer_guard.read() {
+                if data.len() >= std::mem::size_of::<HandshakeRequest>() {
+                    // Parse handshake request
+                    let request = unsafe {
+                        ptr::read(data.as_ptr() as *const HandshakeRequest)
+                    };
+                    
+                    if request.request_type == 0 { // Connect request
+                        // Generate connection ID
+                        let conn_id = rand::random::<u64>();
+                        
+                        // Create response
+                        let response = HandshakeResponse {
+                            client_id: request.client_id,
+                            status: 0,  // Success
+                            conn_id,
+                            version: SHM_PROTOCOL_VERSION,
+                            flags: 0,
+                            _padding: [0; 2],
+                        };
+                        
+                        // Write response back
+                        let response_bytes = unsafe {
+                            std::slice::from_raw_parts(
+                                &response as *const _ as *const u8,
+                                std::mem::size_of::<HandshakeResponse>()
+                            )
+                        };
+                        
+                        buffer_guard.write(response_bytes)?;
+                        
+                        let client_uuid = uuid::Uuid::from_bytes(request.client_id);
+                        return Ok((client_uuid, conn_id));
+                    }
+                }
+            }
+            
+            if start.elapsed() > timeout {
+                bail!("Accept timeout");
+            }
+            
+            drop(buffer_guard);
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
     }
     
 }
@@ -482,7 +547,9 @@ impl SharedMemoryStream {
         let request = HandshakeRequest {
             client_id: *client_uuid.as_bytes(),
             request_type: 0, // Connect
-            _padding: [0; 12],
+            version: SHM_PROTOCOL_VERSION,
+            flags: 0,
+            _padding: [0; 10],
         };
         
         let request_bytes = unsafe {
@@ -508,11 +575,20 @@ impl SharedMemoryStream {
                     
                     // Check if response is for us
                     if response.client_id == *client_uuid.as_bytes() && response.status == 0 {
-                        let conn_id = rand::random::<u64>();
+                        // Use the server-provided connection ID
+                        let conn_id = response.conn_id;
+                        
+                        // Check version compatibility
+                        if response.version != SHM_PROTOCOL_VERSION {
+                            bail!("Protocol version mismatch: server={}, client={}", 
+                                  response.version, SHM_PROTOCOL_VERSION);
+                        }
                         
                         // Open buffers created by server (reversed for client perspective)
-                        let send_path = format!("lapce_shm_{}_{}_recv", path.replace('/', "_"), conn_id);
-                        let recv_path = format!("lapce_shm_{}_{}_send", path.replace('/', "_"), conn_id);
+                        // Use consistent base path without control suffix
+                        let base_path = path;
+                        let send_path = format!("{}_{}_recv", base_path, conn_id);
+                        let recv_path = format!("{}_{}_send", base_path, conn_id);
                         
                         return Ok(Self {
                             send_buffer: Arc::new(RwLock::new(
@@ -531,7 +607,8 @@ impl SharedMemoryStream {
                 bail!("Handshake timeout");
             }
             
-            tokio::time::sleep(Duration::from_millis(1)).await;
+            drop(buffer_guard);
+            tokio::time::sleep(Duration::from_millis(10)).await;
         }
     }
     
@@ -573,6 +650,12 @@ impl SharedMemoryStream {
     /// Write all bytes
     pub async fn write_all(&mut self, buf: &[u8]) -> Result<()> {
         self.send_buffer.write().write(buf)?;
+        Ok(())
+    }
+    
+    /// Flush the write buffer (no-op for shared memory)
+    pub async fn flush(&mut self) -> Result<()> {
+        // Shared memory writes are immediate, no need to flush
         Ok(())
     }
 }

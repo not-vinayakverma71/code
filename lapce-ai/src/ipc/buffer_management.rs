@@ -1,7 +1,3 @@
-/// Exact 1:1 Translation of TypeScript buffer/stream management from codex-reference/api/transform/stream.ts
-/// DAY 3 H1-2: Translate buffer management from TypeScript
-
-use serde::{Deserialize, Serialize};
 use futures::stream::Stream;
 use std::pin::Pin;
 use std::task::{Context, Poll};

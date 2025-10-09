@@ -1,5 +1,3 @@
-/// REAL MCP TOOLS TEST - Actually tests if tools work
-use std::path::Path;
 use tempfile::TempDir;
 
 #[test]

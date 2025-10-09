@@ -4,9 +4,55 @@
 use std::{pin::Pin, sync::Arc};
 
 pub use arrow_schema;
-use datafusion_common::DataFusionError;
+use datafusion_common::{DataFusionError, Result as DfResult};
+use datafusion_physical_plan::RecordBatchStream as DFRecordBatchStream;
 use datafusion_physical_plan::stream::RecordBatchStreamAdapter;
-use futures::{Stream, StreamExt, TryStreamExt};
+use futures::{stream, Stream, StreamExt, TryStreamExt};
+use arrow_array::{RecordBatch, RecordBatchIterator};
+use arrow_schema::{ArrowError, DataType, Field, FieldRef, Fields, Schema, SchemaRef};
+
+// Helper function to convert arrow_schema types to datafusion arrow types
+pub fn convert_arrow_type_to_datafusion(dt: &arrow_schema::DataType) -> datafusion_common::arrow::datatypes::DataType {
+    use arrow_schema::DataType as ArrowDT;
+    use datafusion_common::arrow::datatypes::DataType as DfDT;
+    
+    match dt {
+        ArrowDT::Null => DfDT::Null,
+        ArrowDT::Boolean => DfDT::Boolean,
+        ArrowDT::Int8 => DfDT::Int8,
+        ArrowDT::Int16 => DfDT::Int16,
+        ArrowDT::Int32 => DfDT::Int32,
+        ArrowDT::Int64 => DfDT::Int64,
+        ArrowDT::UInt8 => DfDT::UInt8,
+        ArrowDT::UInt16 => DfDT::UInt16,
+        ArrowDT::UInt32 => DfDT::UInt32,
+        ArrowDT::UInt64 => DfDT::UInt64,
+        ArrowDT::Float16 => DfDT::Float16,
+        ArrowDT::Float32 => DfDT::Float32,
+        ArrowDT::Float64 => DfDT::Float64,
+        ArrowDT::Utf8 => DfDT::Utf8,
+        ArrowDT::LargeUtf8 => DfDT::LargeUtf8,
+        ArrowDT::Binary => DfDT::Binary,
+        ArrowDT::LargeBinary => DfDT::LargeBinary,
+        ArrowDT::FixedSizeBinary(n) => DfDT::FixedSizeBinary(*n),
+        ArrowDT::Date32 => DfDT::Date32,
+        ArrowDT::Date64 => DfDT::Date64,
+        ArrowDT::List(f) => DfDT::List(Arc::new(datafusion_common::arrow::datatypes::Field::new(
+            f.name(),
+            convert_arrow_type_to_datafusion(f.data_type()),
+            f.is_nullable(),
+        ))),
+        ArrowDT::FixedSizeList(f, size) => DfDT::FixedSizeList(
+            Arc::new(datafusion_common::arrow::datatypes::Field::new(
+                f.name(),
+                convert_arrow_type_to_datafusion(f.data_type()),
+                f.is_nullable(),
+            )),
+            *size,
+        ),
+        _ => DfDT::Utf8, // Default fallback for unsupported types
+    }
+}
 
 #[cfg(feature = "polars")]
 use {crate::polars_arrow_convertors, polars::frame::ArrowChunk, polars::prelude::DataFrame};
@@ -74,9 +120,21 @@ pub trait SendableRecordBatchStreamExt {
 impl SendableRecordBatchStreamExt for SendableRecordBatchStream {
     fn into_df_stream(self) -> datafusion_physical_plan::SendableRecordBatchStream {
         let schema = self.schema();
+        // Convert arrow_schema::Schema to datafusion's schema
+        let df_schema = Arc::new(datafusion_common::arrow::datatypes::Schema::new(
+            schema.fields().iter().map(|f| {
+                datafusion_common::arrow::datatypes::Field::new(
+                    f.name(),
+                    convert_arrow_type_to_datafusion(&f.data_type()),
+                    f.is_nullable(),
+                )
+            }).collect()
+        ));
+        
+        let mapped_stream = self.map(|r| r.map_err(|ldb_err| DataFusionError::External(ldb_err.into())));
         Box::pin(RecordBatchStreamAdapter::new(
-            schema,
-            self.map_err(|ldb_err| DataFusionError::External(ldb_err.into())),
+            df_schema,
+            mapped_stream,
         ))
     }
 }
@@ -157,7 +215,7 @@ impl IntoArrowStream for datafusion_physical_plan::SendableRecordBatchStream {
         let stream = self.map_err(|df_err| Error::Runtime {
             message: df_err.to_string(),
         });
-        Ok(Box::pin(SimpleRecordBatchStream::new(stream, schema)))
+        Ok(Box::pin(SimpleRecordBatchStream { schema, stream }))
     }
 }
 

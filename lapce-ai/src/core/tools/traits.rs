@@ -1,15 +1,17 @@
 // Core traits for tool system - P0-0: Scaffold core layer
 
 use crate::core::tools::permissions::rooignore::RooIgnore;
-use crate::mcp_tools::permission_manager::PermissionManager;
-use crate::mcp_tools::permissions::Permission;
+use crate::core::tools::permissions::PermissionManager;
+use crate::core::tools::config::ToolConfig;
+use crate::core::tools::logging::{LogContext, log_tool_start, log_tool_complete, log_approval_request, log_file_operation};
+use crate::core::permissions::Permission;
 use std::path::{Path, PathBuf};
 use std::collections::HashMap;
 use std::sync::Arc;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use anyhow::Result;
 use async_trait::async_trait;
+use std::time::Instant;
 
 /// Tool permissions
 #[derive(Debug, Clone)]
@@ -20,6 +22,7 @@ pub struct ToolPermissions {
     pub file_read: bool,
     pub file_write: bool,
     pub network: bool,
+    pub command_execute: bool,
 }
 
 impl Default for ToolPermissions {
@@ -31,6 +34,7 @@ impl Default for ToolPermissions {
             file_read: true,
             file_write: false,
             network: false,
+            command_execute: false,
         }
     }
 }
@@ -67,6 +71,21 @@ pub struct ToolContext {
     
     /// Permission manager for enforcing permissions
     pub permission_manager: Option<Arc<PermissionManager>>,
+    
+    /// Tool configuration
+    pub config: Arc<ToolConfig>,
+    
+    /// Logging context for audit trails
+    pub log_context: Option<LogContext>,
+    
+    /// Adapters for external integrations (IPC, diff view, terminal, etc.)
+    pub adapters: HashMap<String, Arc<dyn std::any::Any + Send + Sync>>,
+    
+    /// Event emitter adapters (IPC, webhooks, etc.)
+    pub event_emitters: Vec<Arc<dyn crate::core::tools::adapters::EventEmitter>>,
+    
+    /// Diff controller adapters
+    pub diff_controllers: Vec<Arc<dyn crate::core::tools::adapters::DiffController>>,
 }
 
 impl ToolContext {
@@ -74,17 +93,89 @@ impl ToolContext {
         // Create RooIgnore for the workspace
         let rooignore = Arc::new(RooIgnore::new(workspace.clone()));
         
+        // Get global config
+        let config = Arc::new(crate::core::tools::config::get_config().clone());
+        
+        let session_id = uuid::Uuid::new_v4().to_string();
+        let execution_id = uuid::Uuid::new_v4().to_string();
+        
+        // Create log context
+        let log_context = LogContext::new(session_id.clone(), user_id.clone());
+        
         Self {
             workspace: workspace.clone(),
             user_id,
-            session_id: uuid::Uuid::new_v4().to_string(),
-            execution_id: uuid::Uuid::new_v4().to_string(),
+            session_id,
+            execution_id,
             require_approval: true,
             dry_run: false,
             metadata: HashMap::new(),
             permissions: ToolPermissions::default(),
             rooignore: Some(rooignore),
             permission_manager: None,
+            config,
+            log_context: Some(log_context),
+            adapters: HashMap::new(),
+            event_emitters: Vec::new(),
+            diff_controllers: Vec::new(),
+        }
+    }
+    
+    /// Get an adapter by name (legacy, use specific methods)
+    pub fn get_adapter(&self, name: &str) -> Option<Arc<dyn std::any::Any + Send + Sync>> {
+        self.adapters.get(name).cloned()
+    }
+    
+    /// Add an adapter
+    pub fn add_adapter(&mut self, name: String, adapter: Arc<dyn std::any::Any + Send + Sync>) {
+        self.adapters.insert(name, adapter);
+    }
+    
+    /// Add event emitter adapter
+    pub fn add_event_emitter(&mut self, emitter: Arc<dyn crate::core::tools::adapters::EventEmitter>) {
+        self.event_emitters.push(emitter);
+    }
+    
+    /// Get first available event emitter
+    pub fn get_event_emitter(&self) -> Option<Arc<dyn crate::core::tools::adapters::EventEmitter>> {
+        self.event_emitters.first().cloned()
+    }
+    
+    /// Add diff controller adapter
+    pub fn add_diff_controller(&mut self, controller: Arc<dyn crate::core::tools::adapters::DiffController>) {
+        self.diff_controllers.push(controller);
+    }
+    
+    /// Get first available diff controller
+    pub fn get_diff_controller(&self) -> Option<Arc<dyn crate::core::tools::adapters::DiffController>> {
+        self.diff_controllers.first().cloned()
+    }
+    
+    /// Create context with custom config
+    pub fn with_config(workspace: PathBuf, user_id: String, config: ToolConfig) -> Self {
+        let rooignore = Arc::new(RooIgnore::new(workspace.clone()));
+        let config = Arc::new(config);
+        
+        let session_id = uuid::Uuid::new_v4().to_string();
+        let execution_id = uuid::Uuid::new_v4().to_string();
+        let log_context = LogContext::new(session_id.clone(), user_id.clone());
+        
+        Self {
+            workspace: workspace.clone(),
+            user_id,
+            session_id,
+            execution_id,
+            require_approval: true,
+            dry_run: false,
+            metadata: HashMap::new(),
+            permissions: ToolPermissions::default(),
+            rooignore: Some(rooignore),
+            permission_manager: None,
+            config,
+            log_context: Some(log_context),
+            adapters: HashMap::new(),
+            event_emitters: Vec::new(),
+            diff_controllers: Vec::new(),
         }
     }
     
@@ -111,10 +202,7 @@ impl ToolContext {
         
         // Then check with permission manager if available
         if let Some(ref pm) = self.permission_manager {
-            match pm.check_permission("read_file", &Permission::FileRead(path.to_string_lossy().to_string()), Some(path)).await {
-                Ok(allowed) => allowed,
-                Err(_) => false,
-            }
+            pm.check_permission(path, &Permission::Read)
         } else {
             true
         }
@@ -129,10 +217,7 @@ impl ToolContext {
         
         // Then check with permission manager if available
         if let Some(ref pm) = self.permission_manager {
-            match pm.check_permission("write_file", &Permission::FileWrite(path.to_string_lossy().to_string()), Some(path)).await {
-                Ok(allowed) => allowed,
-                Err(_) => false,
-            }
+            pm.check_permission(path, &Permission::Write)
         } else {
             true
         }
@@ -146,6 +231,63 @@ impl ToolContext {
     /// Check if network access is allowed
     pub fn can_access_network(&self) -> bool {
         self.permissions.network
+    }
+    
+    /// Check if a specific command is blocked by config
+    pub fn is_command_blocked(&self, command: &str) -> bool {
+        self.config.is_command_blocked(command)
+    }
+    
+    /// Get timeout for a specific tool from config
+    pub fn get_tool_timeout(&self, tool_name: &str) -> std::time::Duration {
+        self.config.get_timeout(tool_name)
+    }
+    
+    /// Check if approval is required for a tool operation based on config
+    pub fn requires_approval_for(&self, tool_name: &str, operation: &str) -> bool {
+        // Override with context's require_approval if it's false
+        if !self.require_approval {
+            return false;
+        }
+        self.config.requires_approval(tool_name, operation)
+    }
+    
+    /// Get maximum file size from config
+    pub fn max_file_size(&self) -> usize {
+        self.config.max_file_size()
+    }
+    
+    /// Get maximum output size from config
+    pub fn max_output_size(&self) -> usize {
+        self.config.max_output_size()
+    }
+    
+    /// Log start of tool execution
+    pub fn log_start(&self, tool_name: &str) {
+        log_tool_start(tool_name, &self.execution_id, &self.session_id);
+    }
+    
+    /// Log completion of tool execution
+    pub fn log_complete(&self, tool_name: &str, success: bool, error: Option<&str>) {
+        if let Some(ref log_ctx) = self.log_context {
+            log_tool_complete(
+                tool_name,
+                &self.execution_id,
+                log_ctx.elapsed(),
+                success,
+                error
+            );
+        }
+    }
+    
+    /// Log file operation for audit
+    pub fn log_file_op(&self, operation: &str, path: &str, success: bool, error: Option<&str>) {
+        log_file_operation(operation, path, success, error);
+    }
+    
+    /// Log approval request and return approval ID
+    pub fn log_approval(&self, tool_name: &str, operation: &str, target: &str) -> String {
+        log_approval_request(tool_name, operation, target, &self.user_id)
     }
 }
 
@@ -247,16 +389,16 @@ pub struct ApprovalRequired {
     pub tool_name: String,
     pub operation: String,
     pub target: String,
-    pub details: String,
+    pub approval_id: String,
 }
 
-/// Core tool trait - all tools must implement this
+/// Core trait for tools
 #[async_trait]
 pub trait Tool: Send + Sync {
-    /// Unique name for the tool
+    /// Name of the tool
     fn name(&self) -> &'static str;
     
-    /// Tool description
+    /// Description of what the tool does
     fn description(&self) -> &'static str;
     
     /// Whether this tool requires approval for execution
@@ -264,14 +406,39 @@ pub trait Tool: Send + Sync {
         false
     }
     
+    /// Execute the tool with given arguments
+    async fn execute(&self, args: Value, context: ToolContext) -> ToolResult;
+    
+    /// Execute with automatic logging
+    async fn execute_with_logging(&self, args: Value, context: ToolContext) -> ToolResult {
+        let tool_name = self.name();
+        
+        // Log start
+        context.log_start(tool_name);
+        
+        // Execute tool
+        let start = Instant::now();
+        let result = self.execute(args, context.clone()).await;
+        
+        // Log completion
+        match &result {
+            Ok(_) => {
+                context.log_complete(tool_name, true, None);
+            }
+            Err(e) => {
+                let error_msg = format!("{:?}", e);
+                context.log_complete(tool_name, false, Some(&error_msg));
+            }
+        }
+        
+        result
+    }
+    
     /// Validate arguments before execution
-    fn validate_args(&self, args: &Value) -> Result<()> {
+    fn validate_args(&self, args: &Value) -> anyhow::Result<()> {
         // Default implementation - tools can override for specific validation
         Ok(())
     }
-    
-    /// Execute the tool with given arguments and context
-    async fn execute(&self, args: Value, context: ToolContext) -> ToolResult;
     
     /// Get tool metadata (parameter schema, examples, etc.)
     fn metadata(&self) -> Value {

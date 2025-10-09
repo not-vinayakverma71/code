@@ -29,11 +29,12 @@ pub struct CstNode {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AstNode {
     pub node_type: AstNodeType,
+    pub text: String,
     pub identifier: Option<String>,
     pub value: Option<String>,
-    pub metadata: NodeMetadata,
     pub children: Vec<AstNode>,
-    pub semantic_info: SemanticInfo,
+    pub metadata: NodeMetadata,
+    pub semantic_info: Option<SemanticInfo>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -423,6 +424,7 @@ fn transform_rust_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Result<
     
     Ok(AstNode {
         node_type,
+        text: cst.text.clone(),
         identifier,
         value: if cst.children.is_empty() { Some(cst.text.clone()) } else { None },
         metadata: NodeMetadata {
@@ -435,13 +437,13 @@ fn transform_rust_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Result<
             complexity: calculate_complexity(cst),
         },
         children: ast_children,
-        semantic_info: SemanticInfo {
+        semantic_info: Some(SemanticInfo {
             scope_depth,
             symbol_table: HashMap::new(),
             type_info: None,
             data_flow: Vec::new(),
             control_flow: Vec::new(),
-        },
+        }),
     })
 }
 
@@ -479,6 +481,7 @@ fn transform_js_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Result<As
     
     Ok(AstNode {
         node_type,
+        text: cst.text.clone(),
         identifier,
         value: if cst.children.is_empty() { Some(cst.text.clone()) } else { None },
         metadata: NodeMetadata {
@@ -491,13 +494,13 @@ fn transform_js_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Result<As
             complexity: calculate_complexity(cst),
         },
         children: ast_children,
-        semantic_info: SemanticInfo {
+        semantic_info: Some(SemanticInfo {
             scope_depth,
             symbol_table: HashMap::new(),
             type_info: None,
             data_flow: Vec::new(),
             control_flow: Vec::new(),
-        },
+        }),
     })
 }
 
@@ -543,6 +546,7 @@ fn transform_python_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Resul
     
     Ok(AstNode {
         node_type,
+        text: cst.text.clone(),
         identifier,
         value: if cst.children.is_empty() { Some(cst.text.clone()) } else { None },
         metadata: NodeMetadata {
@@ -555,13 +559,13 @@ fn transform_python_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Resul
             complexity: calculate_complexity(cst),
         },
         children: ast_children,
-        semantic_info: SemanticInfo {
+        semantic_info: Some(SemanticInfo {
             scope_depth,
             symbol_table: HashMap::new(),
             type_info: None,
             data_flow: Vec::new(),
             control_flow: Vec::new(),
-        },
+        }),
     })
 }
 
@@ -597,6 +601,7 @@ fn transform_go_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Result<As
     
     Ok(AstNode {
         node_type,
+        text: cst.text.clone(),
         identifier,
         value: if cst.children.is_empty() { Some(cst.text.clone()) } else { None },
         metadata: NodeMetadata {
@@ -609,13 +614,13 @@ fn transform_go_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Result<As
             complexity: calculate_complexity(cst),
         },
         children: ast_children,
-        semantic_info: SemanticInfo {
+        semantic_info: Some(SemanticInfo {
             scope_depth,
             symbol_table: HashMap::new(),
             type_info: None,
             data_flow: Vec::new(),
             control_flow: Vec::new(),
-        },
+        }),
     })
 }
 
@@ -653,6 +658,7 @@ fn transform_java_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Result<
     
     Ok(AstNode {
         node_type,
+        text: cst.text.clone(),
         identifier,
         value: if cst.children.is_empty() { Some(cst.text.clone()) } else { None },
         metadata: NodeMetadata {
@@ -665,13 +671,13 @@ fn transform_java_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Result<
             complexity: calculate_complexity(cst),
         },
         children: ast_children,
-        semantic_info: SemanticInfo {
+        semantic_info: Some(SemanticInfo {
             scope_depth,
             symbol_table: HashMap::new(),
             type_info: None,
             data_flow: Vec::new(),
             control_flow: Vec::new(),
-        },
+        }),
     })
 }
 

@@ -5,10 +5,10 @@ use lapce_tree_sitter::compact::bytecode::{
 use tree_sitter::Parser;
 
 fn main() {
-    let source = "fn main() { println!(\"hello\"); }";
+    let _source = "fn main() { println!(\"hello\"); }";
     let mut parser = Parser::new();
     parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-    let tree = parser.parse(source, None).unwrap();
+    let _tree = parser.parse(source, None).unwrap();
     
     // Encode
     let mut encoder = TreeSitterBytecodeEncoder::new();

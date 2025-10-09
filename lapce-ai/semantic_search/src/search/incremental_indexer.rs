@@ -3,16 +3,15 @@
 // Incremental Indexing for Real-time Updates - Lines 469-511 from doc
 
 use crate::error::{Error, Result};
-use crate::processors::file_watcher::FileWatcher;
-use crate::search::semantic_search_engine::SemanticSearchEngine;
-use crate::search::code_indexer::CodeIndexer;
-use crate::search::semantic_search_engine::IndexStats;
-use crate::search::improved_cache::ImprovedQueryCache;
-use std::collections::VecDeque;
+use crate::processors::native_file_watcher::NativeFileWatcher;
+use crate::processors::cst_to_ast_pipeline::{CstToAstPipeline, PipelineOutput};
+use crate::search::semantic_search_engine::{SemanticSearchEngine, ChunkMetadata, IndexStats};
+use notify::{Event, EventKind, RecursiveMode, Watcher};
+use std::collections::{HashSet, HashMap};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::{broadcast, Mutex};
+use tokio::sync::Mutex;
 use tokio::time::sleep;
 
 /// File change event
@@ -29,32 +28,57 @@ pub enum ChangeKind {
     Delete,
 }
 
-/// Incremental indexer for real-time file updates - Lines 470-474 from doc
-#[derive(Clone)]
+/// Incremental indexer for real-time updates - Lines 470-475 from doc
 pub struct IncrementalIndexer {
     search_engine: Arc<SemanticSearchEngine>,
-    code_indexer: Arc<CodeIndexer>,
-    query_cache: Arc<ImprovedQueryCache>,
+    file_watcher: Arc<NativeFileWatcher>,
+    cst_pipeline: Arc<CstToAstPipeline>,
     change_buffer: Arc<Mutex<Vec<FileChange>>>,
-    shutdown_tx: broadcast::Sender<()>,
+    indexed_files: Arc<Mutex<HashSet<PathBuf>>>,
+    shutdown_tx: tokio::sync::broadcast::Sender<()>,
+    use_cst: bool,
     debounce_duration: Duration,
 }
 
 impl IncrementalIndexer {
+    /// Extract chunks from AST
+    fn extract_chunks_from_ast(&self, ast: &crate::processors::cst_to_ast_pipeline::AstNode) -> Result<Vec<ChunkMetadata>> {
+        let mut chunks = Vec::new();
+        
+        // Extract function/class definitions as chunks
+        chunks.push(ChunkMetadata {
+            path: PathBuf::from(ast.metadata.source_file.as_ref().unwrap_or(&PathBuf::from(""))),
+            content: ast.text.clone(),
+            start_line: ast.metadata.start_line as i32,
+            end_line: ast.metadata.end_line as i32,
+            language: Some(ast.metadata.language.clone()),
+            metadata: HashMap::new(),
+        });
+        
+        // Recursively extract from children
+        for child in &ast.children {
+            if let Ok(child_chunks) = self.extract_chunks_from_ast(child) {
+                chunks.extend(child_chunks);
+            }
+        }
+        
+        Ok(chunks)
+    }
+    
     /// Create new incremental indexer
     pub fn new(
         search_engine: Arc<SemanticSearchEngine>,
-        query_cache: Arc<ImprovedQueryCache>,
     ) -> Self {
-        let (shutdown_tx, _) = broadcast::channel(1);
-        let code_indexer = Arc::new(CodeIndexer::new(search_engine.clone()));
+        let (shutdown_tx, _) = tokio::sync::broadcast::channel(1);
         
         Self {
             search_engine,
-            code_indexer,
-            query_cache,
+            file_watcher: Arc::new(NativeFileWatcher::default()),
+            cst_pipeline: Arc::new(CstToAstPipeline::new()),
             change_buffer: Arc::new(Mutex::new(Vec::new())),
+            indexed_files: Arc::new(Mutex::new(HashSet::new())),
             shutdown_tx,
+            use_cst: true,
             debounce_duration: Duration::from_millis(500),
         }
     }
@@ -65,30 +89,67 @@ impl IncrementalIndexer {
         self
     }
     
+    /// Process a file change using CST pipeline - Lines 492-510 from doc
+    pub async fn process_file_change(&self, path: PathBuf, kind: ChangeKind) -> Result<()> {
+        let start = std::time::Instant::now();
+        
+        match kind {
+            ChangeKind::Delete => {
+                // Delete entries for removed file
+                self.search_engine.delete_by_path(&path).await?;
+                
+                // Clear query cache
+                self.search_engine.query_cache.clear().await;
+            }
+            ChangeKind::Create | ChangeKind::Modify => {
+                // Delete old entries first
+                self.search_engine.delete_by_path(&path).await?;
+                
+                // Parse file with CST pipeline
+                let output = self.cst_pipeline.process_file(&path).await?;
+                
+                // Extract chunks from AST
+                let chunks = self.extract_chunks_from_ast(&output.ast)?;
+                
+                // Generate embeddings and insert
+                let mut embeddings = Vec::new();
+                for chunk in &chunks {
+                    let response = self.search_engine.embedder
+                        .create_embeddings(vec![chunk.content.clone()], None)
+                        .await?;
+                    if let Some(embedding) = response.embeddings.into_iter().next() {
+                        embeddings.push(embedding);
+                    }
+                }
+                
+                if !embeddings.is_empty() {
+                    self.search_engine.batch_insert(embeddings, chunks).await?;
+                }
+                
+                let elapsed = start.elapsed();
+                if elapsed > Duration::from_millis(100) {
+                    tracing::warn!(
+                        "File update took {:?} (target: <100ms) for {:?}",
+                        elapsed, path
+                    );
+                } else {
+                    tracing::debug!(
+                        "File update completed in {:?} for {:?}",
+                        elapsed, path
+                    );
+                }
+            }
+        }
+        
+        Ok(())
+    }
+    
     /// Start monitoring for file changes - Lines 477-490 from doc
     pub async fn start(&self, watch_path: PathBuf) -> Result<()> {
         let mut shutdown_rx = self.shutdown_tx.subscribe();
         let change_buffer = self.change_buffer.clone();
-        let code_indexer = self.code_indexer.clone();
-        let query_cache = self.query_cache.clone();
+        let search_engine = self.search_engine.clone();
         let debounce = self.debounce_duration;
-        
-        // Spawn file watcher task
-        let watcher_handle = tokio::spawn(async move {
-            // In a real implementation, we'd integrate with the FileWatcher
-            // For now, this is a placeholder for the monitoring loop
-            loop {
-                tokio::select! {
-                    _ = shutdown_rx.recv() => {
-                        log::info!("Shutting down file watcher");
-                        break;
-                    }
-                    _ = sleep(Duration::from_secs(5)) => {
-                        // Check for changes and process them
-                    }
-                }
-            }
-        });
         
         // Clone what we need for the async block
         let shutdown_tx_clone = self.shutdown_tx.clone();
@@ -101,21 +162,28 @@ impl IncrementalIndexer {
             loop {
                 tokio::select! {
                     _ = shutdown_rx.recv() => {
-                        log::info!("Shutting down incremental indexer");
+                        log::info!("Shutting down processor");
                         break;
                     }
                     _ = sleep(debounce) => {
                         // Process buffered changes
-                        if let Err(e) = indexer_clone.flush_changes().await {
-                            log::error!("Error processing changes: {}", e);
+                        let changes = {
+                            let mut buffer = change_buffer.lock().await;
+                            std::mem::take(&mut *buffer)
+                        };
+                        
+                        for change in changes {
+                            if let Err(e) = indexer_clone.process_file_change(change.path, change.kind).await {
+                                log::error!("Failed to process change: {}", e);
+                            }
                         }
                     }
                 }
             }
         });
         
-        // Wait for tasks to complete
-        tokio::try_join!(watcher_handle, processor_handle)
+        // Wait for processor to complete
+        processor_handle.await
             .map_err(|e| Error::Runtime {
                 message: format!("Task failed: {}", e)
             })?;
@@ -160,36 +228,45 @@ impl IncrementalIndexer {
                     // Delete old entries if modifying
                     if matches!(change.kind, ChangeKind::Modify) {
                         self.search_engine.delete_by_path(&change.path).await?;
-                        // Invalidate cache entries for this path
-                        self.query_cache.invalidate_by_path(
-                            &change.path.to_string_lossy()
-                        ).await;
                     }
                     
                     // Parse and index the file
-                    if change.path.exists() {
-                        let chunks = self.parse_file(&change.path).await?;
-                        if !chunks.is_empty() {
-                            let mut embeddings = Vec::new();
-                            
-                            for chunk in &chunks {
-                                let embedding_response = self.search_engine
-                                    .embedder
-                                    .create_embeddings(vec![chunk.content.clone()], None)
-                                    .await?;
-                                    
-                                if let Some(embedding) = embedding_response.embeddings.into_iter().next() {
-                                    embeddings.push(embedding);
-                                }
+                    let content = tokio::fs::read_to_string(&change.path).await
+                        .map_err(|e| Error::Runtime {
+                            message: format!("Failed to read file: {}", e)
+                        })?;
+                    
+                    let chunks = vec![ChunkMetadata {
+                        path: change.path.clone(),
+                        content,
+                        start_line: 1,
+                        end_line: 1,
+                        language: change.path.extension()
+                            .and_then(|ext| ext.to_str())
+                            .map(|s| s.to_string()),
+                        metadata: HashMap::new(),
+                    }];
+                    
+                    if !chunks.is_empty() {
+                        let mut embeddings = Vec::new();
+                        
+                        for chunk in &chunks {
+                            let embedding_response = self.search_engine
+                                .embedder
+                                .create_embeddings(vec![chunk.content.clone()], None)
+                                .await?;
+                                
+                            if let Some(embedding) = embedding_response.embeddings.into_iter().next() {
+                                embeddings.push(embedding);
                             }
-                            
-                            if !embeddings.is_empty() {
-                                let batch_stats = self.search_engine
-                                    .batch_insert(embeddings, chunks)
-                                    .await?;
-                                stats.files_indexed += batch_stats.files_indexed;
-                                stats.chunks_created += batch_stats.chunks_created;
-                            }
+                        }
+                        
+                        if !embeddings.is_empty() {
+                            let batch_stats = self.search_engine
+                                .batch_insert(embeddings, chunks)
+                                .await?;
+                            stats.files_indexed += batch_stats.files_indexed;
+                            stats.chunks_created += batch_stats.chunks_created;
                         }
                     }
                 }
@@ -199,9 +276,7 @@ impl IncrementalIndexer {
                     self.search_engine.delete_by_path(&change.path).await?;
                     
                     // Invalidate cache entries for this path
-                    self.query_cache.invalidate_by_path(
-                        &change.path.to_string_lossy()
-                    ).await;
+                    self.search_engine.query_cache.clear().await;
                 }
             }
         }
@@ -212,34 +287,6 @@ impl IncrementalIndexer {
         }
         
         Ok(stats)
-    }
-    
-    /// Parse file into chunks (delegate to CodeIndexer)
-    async fn parse_file(&self, path: &Path) -> Result<Vec<crate::search::semantic_search_engine::ChunkMetadata>> {
-        // Read file content
-        let content = tokio::fs::read_to_string(path).await.map_err(|e| Error::Runtime {
-            message: format!("Failed to read file {}: {}", path.display(), e)
-        })?;
-        
-        // Use the code parser to get chunks
-        let parser = crate::processors::parser::CodeParser::new();
-        let blocks = parser.parse_file(path, Some(&content), None).await?;
-        
-        // Convert to ChunkMetadata
-        let chunks = blocks.into_iter().map(|block| {
-            crate::search::semantic_search_engine::ChunkMetadata {
-                path: path.to_path_buf(),
-                content: block.content,
-                start_line: block.start_line,
-                end_line: block.end_line,
-                language: path.extension()
-                    .and_then(|ext| ext.to_str())
-                    .map(|s| s.to_string()),
-                metadata: std::collections::HashMap::new(),
-            }
-        }).collect();
-        
-        Ok(chunks)
     }
     
     /// Stop the incremental indexer

@@ -4,7 +4,6 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, AtomicBool, Ordering};
 use std::time::{Duration, Instant};
-use anyhow::Result;
 
 /// Statistics for connection reuse
 #[derive(Debug, Clone)]

@@ -3,6 +3,8 @@
 
 pub mod adapters;
 pub mod permissions;
+pub mod logging;
+pub mod config;
 pub mod util;
 pub mod fs;
 pub mod execute_command;
@@ -13,7 +15,7 @@ mod traits;
 mod registry;
 mod xml_util;
 
-pub use traits::{Tool, ToolContext, ToolResult, ToolError, ApprovalRequired};
+pub use traits::{Tool, ToolContext, ToolOutput, ToolResult, ToolError, ApprovalRequired};
 pub use registry::{ToolRegistry, ToolMetadata};
 
 // Re-export adapters for convenient access
@@ -31,3 +33,6 @@ pub use util::xml::{parse_tool_xml, generate_tool_xml, XmlToolArgs};
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod security_tests;

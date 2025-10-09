@@ -2,7 +2,7 @@
 use lancedb::search::semantic_search_engine::{
     SearchConfig, SemanticSearchEngine, ChunkMetadata, SearchFilters
 };
-use lancedb::embeddings::aws_titan_production::{AwsTitanProduction, AwsTier};
+use lancedb::embeddings::aws_titan_production::AwsTitanProduction;
 use lancedb::embeddings::embedder_interface::IEmbedder;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -11,6 +11,20 @@ use std::collections::HashMap;
 use tokio::time::sleep;
 use std::fs;
 use walkdir::WalkDir;
+
+fn detect_language(path: &std::path::Path) -> Option<String> {
+    match path.extension()?.to_str()? {
+        "rs" => Some("rust".to_string()),
+        "py" => Some("python".to_string()),
+        "js" | "jsx" => Some("javascript".to_string()),
+        "ts" | "tsx" => Some("typescript".to_string()),
+        "go" => Some("go".to_string()),
+        "java" => Some("java".to_string()),
+        "cpp" | "cc" | "cxx" => Some("cpp".to_string()),
+        "c" | "h" => Some("c".to_string()),
+        _ => None,
+    }
+}
 
 #[derive(Debug, Clone)]
 struct MemoryMeasurement {
@@ -57,7 +71,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         index_nprobes: Some(2),
     };
     
-    let embedder = Arc::new(AwsTitanProduction::new("us-east-1", AwsTier::Standard).await?);
+    let embedder: Arc<dyn IEmbedder> = Arc::new(AwsTitanProduction::new_from_config().await?);
     let engine = Arc::new(SemanticSearchEngine::new(config.clone(), embedder.clone()).await?);
     
     let after_init = get_memory_mb();
@@ -97,13 +111,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 
                 if let Some(embedding) = response.embeddings.into_iter().next() {
                     embeddings.push(embedding);
+                    let lines = content.lines().collect::<Vec<_>>();
                     metadata.push(ChunkMetadata {
                         path: path.clone(),
                         content: truncated.to_string(),
                         start_line: 0,
-                        end_line: content.lines().count(),
-                        language: Some("rust".to_string()),
-                        metadata: HashMap::new(),
+                        end_line: lines.len(),
+                        language: detect_language(&path),
+                        metadata: std::collections::HashMap::new(),
                     });
                     total_indexed += 1;
                 }

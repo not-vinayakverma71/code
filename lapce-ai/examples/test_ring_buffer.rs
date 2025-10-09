@@ -1,4 +1,4 @@
-use lapce_ai_rust::ultra_fast_shared_memory::UltraFastSharedMemory;
+use lapce_ai_rust::ipc::shared_memory_complete::UltraFastSharedMemory;
 
 fn main() -> anyhow::Result<()> {
     println!("Testing ring buffer fix...\n");

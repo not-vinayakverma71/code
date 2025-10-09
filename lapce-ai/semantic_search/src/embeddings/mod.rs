@@ -1,4 +1,5 @@
 // Embeddings module
+pub mod aws_config_validator;
 pub mod aws_titan_production;
 pub mod aws_titan_robust;
 pub mod bedrock;
@@ -9,6 +10,7 @@ pub mod gemini_embedder;
 pub mod openai;
 pub mod openai_compatible_embedder;
 pub mod openai_embedder;
+pub mod optimized_embedder_wrapper;
 pub mod sentence_transformers;
 pub mod service_factory;
 pub mod zstd_compression;

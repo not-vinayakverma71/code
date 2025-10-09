@@ -161,7 +161,6 @@ mod tests {
     async fn test_read_file_with_line_range() {
         let temp_dir = TempDir::new().unwrap();
         let file_path = temp_dir.path().join("test.txt");
-        
         let mut file = File::create(&file_path).unwrap();
         for i in 1..=10 {
             writeln!(file, "Line {}", i).unwrap();
@@ -187,13 +186,13 @@ mod tests {
         assert!(!content.contains("Line 1"));
         assert!(!content.contains("Line 6"));
     }
-    
     #[tokio::test]
     async fn test_read_binary_file() {
         let temp_dir = TempDir::new().unwrap();
         let file_path = temp_dir.path().join("binary.bin");
         
-        let mut file = File::create(&file_path).unwrap();
+        let mut file = std::fs::File::create(&file_path).unwrap();
+        use std::io::Write;
         file.write_all(&[0, 1, 2, 3, 255, 254]).unwrap();
         
         let tool = ReadFileTool;

@@ -24,7 +24,7 @@ use lapce_ai_rust::streaming_pipeline::{
     BackpressureConfig,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct ValidationMetrics {
     // Performance metrics
     tokens_processed: AtomicUsize,

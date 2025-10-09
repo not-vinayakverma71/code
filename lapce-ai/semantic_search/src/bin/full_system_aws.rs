@@ -4,7 +4,7 @@ use lancedb::search::semantic_search_engine::{
     SearchFilters,
     SemanticSearchEngine,
 };
-use lancedb::embeddings::aws_titan_production::{AwsTitanProduction, AwsTier};
+use lancedb::embeddings::aws_titan_production::AwsTitanProduction;
 use lancedb::embeddings::embedder_interface::IEmbedder;
 use std::collections::HashMap;
 use std::fs;
@@ -13,6 +13,20 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
 use walkdir::WalkDir;
+
+fn detect_language(path: &std::path::Path) -> Option<String> {
+    match path.extension()?.to_str()? {
+        "rs" => Some("rust".to_string()),
+        "py" => Some("python".to_string()),
+        "js" | "jsx" => Some("javascript".to_string()),
+        "ts" | "tsx" => Some("typescript".to_string()),
+        "go" => Some("go".to_string()),
+        "java" => Some("java".to_string()),
+        "cpp" | "cc" | "cxx" => Some("cpp".to_string()),
+        "c" | "h" => Some("c".to_string()),
+        _ => None,
+    }
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -52,7 +66,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("════════════════════════════════════════════════════════");
 
     let aws_init = Instant::now();
-    let embedder = Arc::new(AwsTitanProduction::new("us-east-1", AwsTier::Standard).await?);
+    let embedder: Arc<dyn IEmbedder> = Arc::new(AwsTitanProduction::new_from_config().await?);
     println!("  ✅ AWS Titan ready in {:?}", aws_init.elapsed());
 
     let config = SearchConfig {
@@ -110,7 +124,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             content: truncated.to_string(),
             start_line: 0,
             end_line: lines,
-            language: Some("rust".to_string()),
+            language: detect_language(path),
             metadata,
         });
 

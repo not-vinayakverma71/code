@@ -3,7 +3,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::sleep;
 use lapce_ai_rust::{IpcServer, IpcConfig, HealthServer, CircuitBreaker, CircuitBreakerConfig};
-use lapce_ai_rust::shared_memory_complete::SharedMemoryStream;
+use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryStream;
 use bytes::Bytes;
 use reqwest;
 

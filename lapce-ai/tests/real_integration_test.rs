@@ -1,5 +1,5 @@
 // REAL integration test - actually test things work
-use lapce_ai_rust::working_shared_memory::WorkingSharedMemory;
+use lapce_ai_rust::ipc::shared_memory_complete::WorkingSharedMemory;
 use lapce_ai_rust::working_cache_system::WorkingCacheSystem;
 use lapce_ai_rust::vector_search::VectorSearch;
 
@@ -84,7 +84,7 @@ fn test_vector_search_actually_works() {
 
 #[tokio::test] 
 async fn test_connection_pool_actually_works() {
-    use lapce_ai_rust::working_connection_pool::{WorkingConnectionPool, ConnectionConfig};
+    use lapce_ai_rust::ipc::connection_pool::{WorkingConnectionPool, ConnectionConfig};
     
     let config = ConnectionConfig {
         max_connections: 100,

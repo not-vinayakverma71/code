@@ -7,6 +7,11 @@
 //! - Phase 4a: Frozen Tier (93% cumulative)
 //! - Phase 4b: Memory-Mapped Sources (95% cumulative)
 
+pub mod ast;
+pub mod symbols;
+pub mod incremental;
+pub mod cst_api;
+
 use lazy_static::lazy_static;
 use prometheus::{Histogram, HistogramOpts, IntCounter, IntGauge, register_histogram, register_int_counter, register_int_gauge};
 use serde::{Deserialize, Serialize};
@@ -60,6 +65,52 @@ lazy_static! {
     pub static ref DISK_USAGE: IntGauge = register_int_gauge!(
         "cst_cache_disk_bytes",
         "Current disk usage in bytes"
+    ).unwrap();
+    
+    // Parsing metrics
+    pub static ref PARSE_DURATION: Histogram = register_histogram!(
+        HistogramOpts::new("cst_parse_duration_seconds", "Tree-sitter parse duration")
+            .buckets(vec![0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0])
+    ).unwrap();
+    
+    pub static ref VERIFY_DURATION: Histogram = register_histogram!(
+        HistogramOpts::new("cst_verify_duration_seconds", "Bytecode verification duration")
+            .buckets(vec![0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1])
+    ).unwrap();
+    
+    pub static ref ENCODE_DURATION: Histogram = register_histogram!(
+        HistogramOpts::new("cst_encode_duration_seconds", "Bytecode encoding duration")
+            .buckets(vec![0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0])
+    ).unwrap();
+    
+    pub static ref DECODE_DURATION: Histogram = register_histogram!(
+        HistogramOpts::new("cst_decode_duration_seconds", "Bytecode decoding duration")
+            .buckets(vec![0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.25])
+    ).unwrap();
+    
+    pub static ref NODES_ENCODED: IntCounter = register_int_counter!(
+        "cst_nodes_encoded_total",
+        "Total number of nodes encoded"
+    ).unwrap();
+    
+    pub static ref NODES_DECODED: IntCounter = register_int_counter!(
+        "cst_nodes_decoded_total",
+        "Total number of nodes decoded"
+    ).unwrap();
+    
+    pub static ref SEGMENT_LOADS: IntCounter = register_int_counter!(
+        "cst_segment_loads_total",
+        "Total number of segment loads from disk"
+    ).unwrap();
+    
+    pub static ref BYTES_WRITTEN: IntCounter = register_int_counter!(
+        "cst_bytes_written_total",
+        "Total bytes written to cache"
+    ).unwrap();
+    
+    pub static ref BYTES_READ: IntCounter = register_int_counter!(
+        "cst_bytes_read_total",
+        "Total bytes read from cache"
     ).unwrap();
 }
 
@@ -202,7 +253,7 @@ mod tests {
     #[test]
     fn test_parse() {
         let mut parser = TreeSitterIntegration::new();
-        let tree = parser.parse_rust("fn main() {}");
+        let _tree = parser.parse_rust("fn main() {}");
         assert!(tree.is_some());
     }
 }

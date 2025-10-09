@@ -172,13 +172,17 @@ impl BedrockEmbeddingFunction {
                         .invoke_model()
                         .model_id(model_id)
                         .body(aws_sdk_bedrockruntime::primitives::Blob::new(
-                            serde_json::to_vec(&request_body).unwrap(),
+                            serde_json::to_vec(&request_body).map_err(|e| Error::Runtime {
+                                message: format!("Failed to serialize request: {}", e)
+                            })?,
                         ))
                         .send()
                         .await
                 })
             })
-            .unwrap();
+            .map_err(|e| Error::Runtime {
+                message: format!("Failed to invoke model: {}", e)
+            })?;
 
             let response_json: Value =
                 serde_json::from_slice(response.body.as_ref()).map_err(|e| Error::Runtime {
@@ -192,16 +196,20 @@ impl BedrockEmbeddingFunction {
                         message: "Missing embedding in response".to_string(),
                     })?
                     .iter()
-                    .map(|v| v.as_f64().unwrap() as f32)
-                    .collect::<Vec<f32>>(),
+                    .map(|v| v.as_f64().ok_or_else(|| Error::Runtime {
+                        message: "Invalid float value in embedding".to_string()
+                    }).map(|f| f as f32))
+                    .collect::<std::result::Result<Vec<f32>, Error>>()?,
                 BedrockEmbeddingModel::CohereLarge => response_json["embeddings"][0]
                     .as_array()
                     .ok_or_else(|| Error::Runtime {
                         message: "Missing embeddings in response".to_string(),
                     })?
                     .iter()
-                    .map(|v| v.as_f64().unwrap() as f32)
-                    .collect::<Vec<f32>>(),
+                    .map(|v| v.as_f64().ok_or_else(|| Error::Runtime {
+                        message: "Invalid float value in embedding".to_string()
+                    }).map(|f| f as f32))
+                    .collect::<std::result::Result<Vec<f32>, Error>>()?,
             };
 
             builder.append_slice(&embedding);

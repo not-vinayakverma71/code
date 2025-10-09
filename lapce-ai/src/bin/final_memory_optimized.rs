@@ -30,8 +30,8 @@ impl SharedMemoryBuffer {
             let ptr = libc::mmap(
                 ptr::null_mut(),
                 total_size,
-                (libc::PROT_READ | libc::PROT_WRITE) as i32,
-                (libc::MAP_SHARED | libc::MAP_ANONYMOUS) as i32,
+                libc::PROT_READ | libc::PROT_WRITE,
+                libc::MAP_SHARED | libc::MAP_ANONYMOUS,
                 -1,
                 0,
             ) as *mut u8;

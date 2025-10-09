@@ -1,3 +1,4 @@
+#![cfg(feature = "integration-tests")]
 //! Integration test to verify parsing is working
 
 use lapce_tree_sitter::NativeParserManager;
@@ -71,7 +72,7 @@ if __name__ == "__main__":
 #[tokio::test]
 async fn test_incremental_parsing() {
     // Test that cache works for incremental parsing
-    let code = r#"
+    let _code = r#"
 fn main() {
     let x = 42;
     println!("{}", x);

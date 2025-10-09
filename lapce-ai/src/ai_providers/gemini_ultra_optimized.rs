@@ -15,7 +15,7 @@ use bytes::BytesMut;
 
 use crate::ai_providers::core_trait::{
     AiProvider, ChatRequest, ChatResponse, CompletionRequest, CompletionResponse,
-    Model, ProviderCapabilities, RateLimits, StreamToken, Usage, ChatMessage,
+    Model, ProviderCapabilities, RateLimits, StreamToken, ChatMessage,
     HealthStatus,
 };
 
@@ -314,7 +314,7 @@ impl AiProvider for UltraOptimizedGeminiProvider {
         request: CompletionRequest,
     ) -> Result<Pin<Box<dyn futures::Stream<Item = Result<StreamToken>> + Send>>> {
         use futures::stream::{self, StreamExt};
-        use std::pin::Pin;
+        
         
         let tokens = vec![
             StreamToken::Delta { content: "Ultra ".to_string() },
@@ -331,7 +331,7 @@ impl AiProvider for UltraOptimizedGeminiProvider {
         request: ChatRequest,
     ) -> Result<Pin<Box<dyn futures::Stream<Item = Result<StreamToken>> + Send>>> {
         use futures::stream::{self, StreamExt};
-        use std::pin::Pin;
+        
         
         let tokens = vec![
             StreamToken::Delta { content: "Ultra ".to_string() },

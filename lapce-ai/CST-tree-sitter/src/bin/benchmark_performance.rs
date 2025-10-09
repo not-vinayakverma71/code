@@ -25,6 +25,7 @@ struct PerformanceMetrics {
 }
 
 #[derive(Debug, serde::Serialize)]
+#[allow(dead_code)]
 struct BenchmarkResults {
     timestamp: String,
     #[serde(rename = "process_info")]
@@ -97,15 +98,55 @@ fn main() {
     benchmark_memory_efficiency(&cache, &test_data);
     
     // Benchmark 6: Tier Transition Performance
-    println!("\nBENCHMARK 6: TIER TRANSITION PERFORMANCE");
     println!("{}", "=".repeat(50));
     
     benchmark_tier_transitions(&cache, &test_data);
     
     // Final Summary
-    println!("\n{}", "=".repeat(50));
-    println!("PERFORMANCE VALIDATION SUMMARY");
-    println!("{}", "=".repeat(50));
+    // Calculate performance grade
+    let grade = if write_metrics.throughput > 2000.0 
+        && read_metrics.throughput > 5000.0 
+        && random_metrics.avg_latency_ms < 5.0 {
+        "A"
+    } else if write_metrics.throughput > 1000.0 
+        && read_metrics.throughput > 2500.0 
+        && random_metrics.avg_latency_ms < 10.0 {
+        "B"
+    } else {
+        "C"
+    };
+    
+    println!("\n{}", "=".repeat(60));
+    println!("PERFORMANCE GRADE: {}", grade);
+    println!("{}", "=".repeat(60));
+    
+    // Output JSON metrics for CI
+    if std::env::var("OUTPUT_JSON").is_ok() {
+        let json_output = serde_json::json!({
+            "timestamp": std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
+            "grade": grade,
+            "metrics": {
+                "write_throughput": write_metrics.throughput,
+                "read_throughput": read_metrics.throughput,
+                "avg_latency_ms": random_metrics.avg_latency_ms,
+                "p99_latency_ms": random_metrics.p99_latency_ms,
+                "memory_mb": write_metrics.memory_mb,
+            },
+            "slo_pass": grade != "C",
+        });
+        
+        let json_file = "benchmark_results.json";
+        std::fs::write(json_file, serde_json::to_string_pretty(&json_output).unwrap()).unwrap();
+        println!("\nJSON metrics written to {}", json_file);
+        
+        // Exit with error if SLO fails
+        if grade == "C" {
+            std::process::exit(1);
+        }
+    }
     
     let baseline_throughput = 1000.0; // ops/sec baseline
     let baseline_latency = 10.0; // ms baseline
@@ -164,7 +205,7 @@ fn main() {
 fn prepare_test_data(count: usize) -> Vec<(PathBuf, u64, String)> {
     let mut data = Vec::new();
     
-    for i in 0..count {
+    for _i in 0..count {
         let name = format!("test_file_{}.rs", i);
         let path = PathBuf::from(&name);
         let hash = hash_string(&name);
@@ -177,7 +218,7 @@ fn prepare_test_data(count: usize) -> Vec<(PathBuf, u64, String)> {
 fn function_{}() {{
     let data = "{}";
     println!("Processing: {{}}", data);
-    for i in 0..{} {{
+    for _i in 0..{} {{
         process_item(i);
     }}
 }}
@@ -201,7 +242,7 @@ fn benchmark_writes(
 ) -> PerformanceMetrics {
     let mut latencies = Vec::new();
     let start = Instant::now();
-    let mut system = System::new_all();
+    let mut _system = System::new_all();
     
     for (path, hash, content) in test_data {
         let op_start = Instant::now();
@@ -357,7 +398,7 @@ fn benchmark_tier_transitions(
     let start = Instant::now();
     
     // Force multiple tier management cycles
-    for i in 0..10 {
+    for _i in 0..10 {
         cache.manage_tiers().unwrap();
         thread::sleep(Duration::from_millis(100));
         

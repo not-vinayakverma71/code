@@ -4,7 +4,7 @@ fn test_what_actually_exists() {
     println!("\n=== TESTING WHAT ACTUALLY EXISTS ===\n");
     
     // Test if SharedMemory actually works
-    use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer;
+    use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer;
     
     let result = WorkingSharedMemory::create("test", 1024);
     match result {
@@ -66,7 +66,7 @@ fn test_compilation_status() {
     println!("\n=== MODULE COMPILATION STATUS ===\n");
     
     // These should compile
-    use lapce_ai_rust::shared_memory_complete;
+    use lapce_ai_rust::ipc::shared_memory_complete;
     use lapce_ai_rust::working_cache_system;
     use lapce_ai_rust::connection_pool_complete_real::ConnectionPool;
     use lapce_ai_rust::vector_search;

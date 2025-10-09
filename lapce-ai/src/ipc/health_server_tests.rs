@@ -1,13 +1,16 @@
 // Health server metrics tests - P0-OPS-tests
 
-#[cfg(test)]
-mod tests {
-    use super::super::*;
-    use std::sync::Arc;
-    use std::time::Duration;
-    
-    #[tokio::test]
-    async fn test_tool_metrics_recording() {
+use super::*;
+use std::sync::Arc;
+use std::time::Duration;
+use std::sync::atomic::Ordering;
+use hyper::StatusCode;
+use http_body_util::BodyExt; // For collecting body bytes
+use crate::ipc::circuit_breaker::CircuitBreaker;
+use crate::ipc::ipc_server::IpcServerStats;
+
+#[tokio::test]
+async fn test_tool_metrics_recording() {
         let metrics = ToolMetrics::new();
         
         // Record successful execution
@@ -92,8 +95,8 @@ mod tests {
         
         // Get metrics response
         let response = health_server.handle_metrics().await.unwrap();
-        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
-        let metrics_text = String::from_utf8(body.to_vec()).unwrap();
+        let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
+        let metrics_text = String::from_utf8(body_bytes.to_vec()).unwrap();
         
         // Check Prometheus format
         assert!(metrics_text.contains("# HELP tool_runs"));
@@ -114,8 +117,8 @@ mod tests {
         let response = health_server.handle_health().await.unwrap();
         assert_eq!(response.status(), StatusCode::OK);
         
-        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
-        let health_json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
+        let health_json: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
         
         assert_eq!(health_json["status"], "healthy");
         assert!(health_json["checks"]["ipc_server"].as_bool().unwrap());
@@ -139,5 +142,4 @@ mod tests {
         assert_eq!(durations.len(), 1000);
         assert_eq!(durations[0], 101); // First 100 were removed
         assert_eq!(durations[999], 1100);
-    }
 }

@@ -89,7 +89,7 @@ impl RateLimiter {
 impl RobustAwsTitan {
     /// Create new robust AWS Titan embedder
     pub async fn new(region: &str, tier: AwsTier, config: RobustConfig) -> Result<Self> {
-        let inner = AwsTitanProduction::new(region, tier).await
+        let inner = AwsTitanProduction::new_from_config().await
             .map_err(|e| Error::Runtime { 
                 message: format!("Failed to create AWS Titan client: {}", e) 
             })?;

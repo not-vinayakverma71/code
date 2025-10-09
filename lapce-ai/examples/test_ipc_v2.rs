@@ -1,6 +1,6 @@
 /// Test IPC Server V2 - Testing 1:1 TypeScript Translation
-use lapce_ai_rust::ipc_server_v2::{IpcServer, IpcMessage, IpcMessageType, IpcOrigin, TaskCommand, TaskCommandName};
-use lapce_ai_rust::ipc_client_v2::IpcClient;
+// use lapce_ai_rust::ipc_server_v2 // Module not available::{IpcServer, IpcMessage, IpcMessageType, IpcOrigin, TaskCommand, TaskCommandName};
+// use lapce_ai_rust::ipc_client_v2::IpcClient; // Module not available
 use std::time::Duration;
 use tokio::time::sleep;
 

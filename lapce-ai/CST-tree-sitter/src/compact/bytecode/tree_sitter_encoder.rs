@@ -24,6 +24,9 @@ impl TreeSitterBytecodeEncoder {
     
     /// Encode a tree-sitter Tree to bytecode
     pub fn encode_tree(&mut self, tree: &Tree, source: &[u8]) -> BytecodeStream {
+        use std::time::Instant;
+        let start = Instant::now();
+        
         self.stream.source_len = source.len();
         
         // Encode root node
@@ -34,6 +37,12 @@ impl TreeSitterBytecodeEncoder {
         
         // Set metadata
         self.stream.node_count = self.node_count;
+        
+        // Record metrics
+        let duration = start.elapsed();
+        crate::ENCODE_DURATION.observe(duration.as_secs_f64());
+        crate::NODES_ENCODED.inc_by(self.node_count as u64);
+        
         // Return the stream
         std::mem::take(&mut self.stream)
     }
@@ -41,6 +50,11 @@ impl TreeSitterBytecodeEncoder {
     /// Encode a tree-sitter Node to bytecode
     fn encode_node(&mut self, node: Node, source: &[u8]) {
         self.node_count += 1;
+        
+        // Generate and store stable ID for this node
+        let stable_id = self.stream.next_stable_id;
+        self.stream.next_stable_id += 1;
+        self.stream.stable_ids.push(stable_id);
         
         // Check if we should add a checkpoint
         if self.node_count % 1000 == 0 {
@@ -64,7 +78,7 @@ impl TreeSitterBytecodeEncoder {
         self.stream.write_varint(node.kind_id() as u64);
         
         // Pack flags
-        let flags = NodeFlags {
+        let _flags = NodeFlags {
             is_named: node.is_named(),
             is_missing: node.is_missing(),
             is_extra: node.is_extra(),
@@ -89,7 +103,8 @@ impl TreeSitterBytecodeEncoder {
         }
         
         // Write length for all nodes
-        let length = node.end_byte() - node.start_byte();
+        let _length = node.end_byte() - node.start_byte();
+        self.stream.write_op(Opcode::Length);
         self.stream.write_varint(length as u64);
         
         // For leaf nodes, we're done
@@ -98,7 +113,7 @@ impl TreeSitterBytecodeEncoder {
         }
         
         // Encode children
-        for i in 0..node.child_count() {
+        for _i in 0..node.child_count() {
             if let Some(child) = node.child(i) {
                 self.encode_node(child, source);
             }
@@ -248,6 +263,10 @@ impl TreeSitterBytecodeDecoder {
                 Opcode::SetPos | Opcode::DeltaPos => {
                     self.read_varint();
                 }
+                Opcode::Length => {
+                    // Consume the length varint and return to allow caller to handle boundaries
+                    self.read_varint();
+                }
                 Opcode::Enter | Opcode::Exit | Opcode::Leaf => {
                     // Node boundary, step back
                     self.cursor -= 1;
@@ -302,8 +321,8 @@ impl TreeSitterBytecodeDecoder {
                     enter_count += 1;
                     depth += 1;
                     // Read node data - kind_id is varint
-                    let kind = self.read_varint().ok_or("Missing kind ID")?;
-                    let flags = self.read_flags().ok_or("Missing flags")?;
+                    let _kind = self.read_varint().ok_or("Missing kind ID")?;
+                    let _flags = self.read_flags().ok_or("Missing flags")?;
                     
                     
                     // Check for optional position opcode
@@ -330,7 +349,15 @@ impl TreeSitterBytecodeDecoder {
                     }
                     
                     // Read length
-                    let length = self.read_varint().ok_or("Missing length")?;
+                    let len_op = self.read_op().ok_or("Missing Length opcode")?;
+                    if len_op != Opcode::Length {
+                        return Err(format!(
+                            "Expected Length opcode after Enter at {} but found {:?}",
+                            self.cursor - 1,
+                            len_op
+                        ));
+                    }
+                    let _length = self.read_varint().ok_or("Missing length")?;
                     
                 }
                 Opcode::Leaf => {
@@ -363,6 +390,14 @@ impl TreeSitterBytecodeDecoder {
                     }
                     
                     // Read length
+                    let len_op = self.read_op().ok_or("Missing Length opcode")?;
+                    if len_op != Opcode::Length {
+                        return Err(format!(
+                            "Expected Length opcode after Leaf at {} but found {:?}",
+                            self.cursor - 1,
+                            len_op
+                        ));
+                    }
                     let _length = self.read_varint().ok_or("Missing length")?;
                 }
                 Opcode::Exit => {
@@ -496,15 +531,15 @@ fn read_varint_from_slice(slice: &[u8]) -> (u64, usize) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tree_sitter::{Parser, Language};
+    use tree_sitter::Parser;
     
     #[test]
     fn test_encode_decode_tree() {
         // Create a simple Rust tree
-        let source = "fn main() {}";
+        let _source = "fn main() {}";
         let mut parser = Parser::new();
         parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-        let tree = parser.parse(source, None).unwrap();
+        let _tree = parser.parse(source, None).unwrap();
         
         // Encode
         let mut encoder = TreeSitterBytecodeEncoder::new();
@@ -553,19 +588,26 @@ mod tests {
                     _ => {}
                 }
                 
-                // After Enter/Leaf, read length if we haven't hit a position opcode
+                // After Enter/Leaf, consume any inline position opcode, then read length
                 if matches!(op, Opcode::Enter | Opcode::Leaf) {
                     // Check if next is a position opcode
                     if decoder.cursor < decoder.stream.bytes.len() {
                         let peek = decoder.stream.bytes[decoder.cursor];
                         if let Some(next_op) = Opcode::from_byte(peek) {
                             if matches!(next_op, Opcode::SetPos | Opcode::DeltaPos) {
-                                // Position opcode will be read in next iteration
-                                continue;
+                                // Consume inline position and its varint now
+                                let _ = decoder.read_op();
+                                decoder.read_varint();
                             }
                         }
                     }
-                    decoder.read_varint(); // length
+                    // Expect Length opcode then length varint
+                    if let Some(op2) = decoder.read_op() {
+                        assert_eq!(op2, Opcode::Length, "Expected Length opcode");
+                        decoder.read_varint(); // length
+                    } else {
+                        panic!("Unexpected end of stream while reading length");
+                    }
                 }
             } else {
                 break;
@@ -580,10 +622,10 @@ mod tests {
     #[test]
     fn test_position_encoding() {
         // Test with code that has varied positions
-        let source = "fn test() {\n    let x = 42;\n}";
+        let _source = "fn test() {\n    let x = 42;\n}";
         let mut parser = Parser::new();
         parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-        let tree = parser.parse(source, None).unwrap();
+        let _tree = parser.parse(source, None).unwrap();
         
         // Encode
         let mut encoder = TreeSitterBytecodeEncoder::new();
@@ -615,12 +657,20 @@ mod tests {
                         let peek = decoder.stream.bytes[decoder.cursor];
                         if let Some(next_op) = Opcode::from_byte(peek) {
                             if matches!(next_op, Opcode::SetPos | Opcode::DeltaPos) {
-                                // Skip the position handling - it will be read in next iteration
-                                continue;
+                                // Consume inline position and mark found
+                                has_position_opcode = true;
+                                let _ = decoder.read_op();
+                                decoder.read_varint();
                             }
                         }
                     }
-                    decoder.read_varint(); // length
+                    // Expect Length opcode then length varint
+                    if let Some(op2) = decoder.read_op() {
+                        assert_eq!(op2, Opcode::Length, "Expected Length opcode");
+                        decoder.read_varint(); // length
+                    } else {
+                        panic!("Unexpected end of stream while reading length");
+                    }
                 }
                 Opcode::SetPos | Opcode::DeltaPos | Opcode::Checkpoint => {
                     decoder.read_varint(); // value
@@ -636,12 +686,12 @@ mod tests {
     
     #[test]
     fn test_empty_tree() {
-        let source = "";
+        let _source = "";
         let mut parser = Parser::new();
         parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
         
         // Parse empty source - this creates a tree with an ERROR node
-        let tree = parser.parse(source, None).unwrap();
+        let _tree = parser.parse(source, None).unwrap();
         
         // Should still encode without panicking
         let mut encoder = TreeSitterBytecodeEncoder::new();
@@ -656,10 +706,10 @@ mod tests {
     
     #[test]
     fn test_nested_structures() {
-        let source = "struct Foo { fn bar() { if true { 42 } else { 0 } } }";
+        let _source = "struct Foo { fn bar() { if true { 42 } else { 0 } } }";
         let mut parser = Parser::new();
         parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-        let tree = parser.parse(source, None).unwrap();
+        let _tree = parser.parse(source, None).unwrap();
         
         // Encode
         let mut encoder = TreeSitterBytecodeEncoder::new();
@@ -694,7 +744,7 @@ mod tests {
         for (name, source) in samples {
             let mut parser = Parser::new();
             parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-            let tree = parser.parse(source, None).unwrap();
+            let _tree = parser.parse(source, None).unwrap();
             
             // Check tree is valid - skip if it has errors
             if tree.root_node().has_error() {
@@ -750,10 +800,10 @@ mod tests {
     #[test]
     fn test_error_node_handling() {
         // Test with invalid syntax that creates error nodes
-        let source = "fn main() { let x = ; }"; // Missing value
+        let _source = "fn main() { let x = ; }"; // Missing value
         let mut parser = Parser::new();
         parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-        let tree = parser.parse(source, None).unwrap();
+        let _tree = parser.parse(source, None).unwrap();
         
         // Should still encode without panicking
         let mut encoder = TreeSitterBytecodeEncoder::new();
@@ -787,7 +837,13 @@ mod tests {
                     }
                     
                     // Read length
-                    decoder.read_varint();
+                    if let Some(op2) = Opcode::from_byte(decoder.stream.bytes[decoder.cursor]) {
+                        assert_eq!(op2, Opcode::Length, "Expected Length opcode");
+                        decoder.cursor += 1;
+                        decoder.read_varint();
+                    } else {
+                        panic!("Missing Length opcode");
+                    }
                 }
                 Opcode::End => break,
                 Opcode::SetPos | Opcode::DeltaPos => {
@@ -810,7 +866,7 @@ mod tests {
         source.push_str("// Large test file\n\n");
         
         // Generate 100 functions
-        for i in 0..100 {
+        for _i in 0..100 {
             source.push_str(&format!("fn function_{}() {{\n", i));
             source.push_str(&format!("    let value = {};\n", i * 42));
             source.push_str(&format!("    println!(\"Value: {{}}\", value);\n"));
@@ -819,7 +875,7 @@ mod tests {
         
         let mut parser = Parser::new();
         parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-        let tree = parser.parse(&source, None).unwrap();
+        let _tree = parser.parse(&source, None).unwrap();
         
         // Encode
         let mut encoder = TreeSitterBytecodeEncoder::new();
@@ -837,12 +893,42 @@ mod tests {
     }
     
     #[test]
-    fn test_position_preservation() {
-        // Test that positions are correctly preserved
-        let source = "fn a() {}\n\nfn b() {}\n\n\nfn c() {}";
+    fn test_stable_ids_generated() {
+        let _source = "fn main() { let x = 42; }";
         let mut parser = Parser::new();
         parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-        let tree = parser.parse(source, None).unwrap();
+        let _tree = parser.parse(source, None).unwrap();
+        
+        // Encode tree
+        let mut encoder = TreeSitterBytecodeEncoder::new();
+        let bytecode = encoder.encode_tree(&tree, source.as_bytes());
+        
+        // Check stable IDs were generated
+        assert!(!bytecode.stable_ids.is_empty(), "Should have stable IDs");
+        assert_eq!(bytecode.stable_ids.len(), bytecode.node_count, "Should have ID for each node");
+        
+        // IDs should be unique and sequential
+        for (i, &id) in bytecode.stable_ids.iter().enumerate() {
+            assert_eq!(id, (i + 1) as u64, "IDs should be sequential starting from 1");
+        }
+        
+        // Re-encode same tree should get same structure but new IDs
+        let mut encoder2 = TreeSitterBytecodeEncoder::new();
+        let bytecode2 = encoder2.encode_tree(&tree, source.as_bytes());
+        
+        assert_eq!(bytecode.node_count, bytecode2.node_count, "Same tree should have same node count");
+        assert_eq!(bytecode.bytes, bytecode2.bytes, "Same tree should produce same bytecode");
+        // But IDs continue from where last encoder left off (each encoder starts fresh)
+        assert_eq!(bytecode.stable_ids, bytecode2.stable_ids, "Fresh encoder should produce same ID sequence");
+    }
+    
+    #[test]
+    fn test_positions_preserved() {
+        // Test that positions are correctly preserved
+        let _source = "fn a() {}\n\nfn b() {}\n\n\nfn c() {}";
+        let mut parser = Parser::new();
+        parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
+        let _tree = parser.parse(source, None).unwrap();
         
         // Collect original positions
         let mut original_positions = Vec::new();
@@ -869,16 +955,24 @@ mod tests {
                 Opcode::Enter | Opcode::Leaf => {
                     decoder.read_varint(); // kind
                     decoder.read_flags();  // flags
-                    // Check for inline position
+                    // Consume inline position if present
                     if decoder.cursor < decoder.stream.bytes.len() {
                         let peek = decoder.stream.bytes[decoder.cursor];
                         if let Some(next_op) = Opcode::from_byte(peek) {
                             if matches!(next_op, Opcode::SetPos | Opcode::DeltaPos) {
-                                continue; // Will be handled in next iteration
+                                let _ = decoder.read_op();
+                                position_count += 1;
+                                decoder.read_varint();
                             }
                         }
                     }
-                    decoder.read_varint(); // length
+                    // Expect Length opcode then length varint
+                    if let Some(op2) = decoder.read_op() {
+                        assert_eq!(op2, Opcode::Length, "Expected Length opcode");
+                        decoder.read_varint();
+                    } else {
+                        panic!("Unexpected end of stream while reading length");
+                    }
                 }
                 Opcode::End => break,
                 _ => {}
@@ -892,7 +986,7 @@ mod tests {
 // Helper function for position test
 fn collect_positions(node: tree_sitter::Node, positions: &mut Vec<(usize, usize)>) {
     positions.push((node.start_byte(), node.end_byte()));
-    for i in 0..node.child_count() {
+    for _i in 0..node.child_count() {
         if let Some(child) = node.child(i) {
             collect_positions(child, positions);
         }

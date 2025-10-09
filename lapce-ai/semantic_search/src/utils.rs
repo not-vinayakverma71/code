@@ -16,7 +16,7 @@ use lazy_static::lazy_static;
 use std::pin::Pin;
 
 use crate::error::{Error, Result};
-use datafusion_physical_plan::SendableRecordBatchStream;
+use crate::arrow::SendableRecordBatchStream;
 
 lazy_static! {
     static ref TABLE_NAME_REGEX: regex::Regex = regex::Regex::new(r"^[a-zA-Z0-9_\-\.]+$").unwrap();
@@ -236,13 +236,19 @@ impl TimeoutStream {
 }
 
 impl RecordBatchStream for TimeoutStream {
-    fn schema(&self) -> SchemaRef {
+    fn schema(&self) -> Arc<datafusion_common::arrow::datatypes::Schema> {
+        self.inner.schema()
+    }
+}
+
+impl crate::arrow::RecordBatchStream for TimeoutStream {
+    fn schema(&self) -> Arc<arrow_schema::Schema> {
         self.inner.schema()
     }
 }
 
 impl Stream for TimeoutStream {
-    type Item = DataFusionResult<RecordBatch>;
+    type Item = Result<RecordBatch>;
 
     fn poll_next(
         mut self: std::pin::Pin<&mut Self>,
@@ -251,7 +257,9 @@ impl Stream for TimeoutStream {
         match &mut self.state {
             TimeoutState::NotStarted { timeout } => {
                 if timeout.is_zero() {
-                    return std::task::Poll::Ready(Some(Err(Self::timeout_error(timeout))));
+                    return std::task::Poll::Ready(Some(Err(Error::Runtime { 
+                        message: format!("Query timeout after {} ms", timeout.as_millis())
+                    })));
                 }
                 let deadline = Box::pin(tokio::time::sleep(*timeout));
                 self.state = TimeoutState::Started {
@@ -260,15 +268,19 @@ impl Stream for TimeoutStream {
                 };
                 self.poll_next(cx)
             }
-            TimeoutState::Started { deadline, timeout } => match deadline.poll_unpin(cx) {
-                std::task::Poll::Ready(_) => {
-                    let err = Self::timeout_error(timeout);
-                    self.state = TimeoutState::Completed;
-                    std::task::Poll::Ready(Some(Err(err)))
-                }
-                std::task::Poll::Pending => {
-                    let inner = Pin::new(&mut self.inner);
-                    inner.poll_next(cx)
+            TimeoutState::Started { deadline, timeout } => {
+                let timeout_ms = timeout.as_millis();
+                match deadline.poll_unpin(cx) {
+                    std::task::Poll::Ready(_) => {
+                        self.state = TimeoutState::Completed;
+                        std::task::Poll::Ready(Some(Err(Error::Runtime { 
+                            message: format!("Query timeout after {} ms", timeout_ms)
+                        })))
+                    }
+                    std::task::Poll::Pending => {
+                        let inner = Pin::new(&mut self.inner);
+                        inner.poll_next(cx)
+                    }
                 }
             },
             TimeoutState::Completed => std::task::Poll::Ready(None),

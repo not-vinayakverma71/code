@@ -94,6 +94,14 @@ impl ImprovedQueryCache {
     where 
         T: serde::Serialize 
     {
+        self.put(key, data).await;
+    }
+    
+    /// Put data into cache with automatic eviction
+    pub async fn put<T>(&self, key: Vec<u8>, data: T) 
+    where 
+        T: serde::Serialize 
+    {
         let serialized = match bincode::serialize(&data) {
             Ok(bytes) => bytes,
             Err(e) => {
@@ -156,6 +164,17 @@ impl ImprovedQueryCache {
     pub fn compute_cache_key(&self, query: &str) -> Vec<u8> {
         let mut hasher = Sha256::new();
         hasher.update(query.as_bytes());
+        hasher.finalize().to_vec()
+    }
+    
+    /// Compute cache key including filters
+    pub fn compute_cache_key_with_filters(&self, query: &str, filters: Option<&str>) -> Vec<u8> {
+        let mut hasher = Sha256::new();
+        hasher.update(query.as_bytes());
+        if let Some(filter) = filters {
+            hasher.update(b"|");
+            hasher.update(filter.as_bytes());
+        }
         hasher.finalize().to_vec()
     }
     

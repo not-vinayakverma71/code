@@ -9,11 +9,16 @@ use tokio;
 use anyhow::Result;
 
 // Import ALL required components
-use lapce_ai_rust::cache_v2::promotion_policy::{PromotionPolicy, CacheKey, CacheValue, AccessHistory};
-use lapce_ai_rust::cache_v2::query_cache::{QueryCache, QueryResult};
-use lapce_ai_rust::cache_v2::embedding_cache::EmbeddingCache;
-use lapce_ai_rust::cache_v2::cache_warmer::{CacheWarmer, CacheCoordinator, AccessPredictor};
-use lapce_ai_rust::cache_v2::proper_cache_system::CacheSystem;
+// use lapce_ai_rust::cache_v2:: // Module not available
+/*promotion_policy::{PromotionPolicy, CacheKey, CacheValue, AccessHistory};
+// use lapce_ai_rust::cache_v2:: // Module not available
+/*query_cache::{QueryCache, QueryResult};
+// use lapce_ai_rust::cache_v2:: // Module not available
+/*embedding_cache::EmbeddingCache;
+// use lapce_ai_rust::cache_v2:: // Module not available
+/*cache_warmer::{CacheWarmer, CacheCoordinator, AccessPredictor};
+// use lapce_ai_rust::cache_v2:: // Module not available
+/*proper_cache_system::CacheSystem;
 
 #[tokio::main]
 async fn main() -> Result<()> {

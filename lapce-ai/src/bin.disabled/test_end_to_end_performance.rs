@@ -11,7 +11,7 @@ use lapce_ai_rust::tools_translation::*;
 use lapce_ai_rust::global_settings_exact_translation::*;
 
 // Import performance modules
-use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer as OptimizedSharedMemory;
+use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer as lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer;
 use lapce_ai_rust::optimized_cache::OptimizedCache;
 use lapce_ai_rust::optimized_vector_search::OptimizedVectorSearch;
 // use lapce_ai_rust::connection_pool_complete::ConnectionPool as WorkingConnectionPool; // Module doesn't exist
@@ -109,7 +109,7 @@ async fn test_shared_memory_performance() {
     let data = vec![0u8; message_size];
     
     // Create shared memory
-    let mut shm = OptimizedSharedMemory::create("test_perf", 4 * 1024 * 1024).unwrap();
+    let mut shm = lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer::create("test_perf", 4 * 1024 * 1024).unwrap();
     
     // Write test
     let start = Instant::now();

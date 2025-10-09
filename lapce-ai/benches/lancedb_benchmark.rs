@@ -2,7 +2,8 @@
 /// Must meet ALL 8 performance requirements
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-use lapce_ai_rust::lancedb::*;
+// use lapce_ai_rust::lancedb // Module not available
+// Original: use lapce_ai_rust::lancedb::*;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 use tokio::runtime::Runtime;

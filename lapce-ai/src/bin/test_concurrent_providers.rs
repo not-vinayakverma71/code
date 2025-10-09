@@ -228,7 +228,7 @@ async fn create_providers() -> Vec<(String, Arc<dyn AiProvider>)> {
         };
         
         let provider = AzureOpenAiProvider::new(config);
-        providers.push(("Azure".to_string(), Arc::new(provider) as Arc<dyn AiProvider>));
+        providers.push(("Azure".to_string(), Arc::new(provider.await?) as Arc<dyn AiProvider>));
     }
     
     // 6. xAI
@@ -239,7 +239,7 @@ async fn create_providers() -> Vec<(String, Arc<dyn AiProvider>)> {
         };
         
         let provider = XaiProvider::new(config);
-        providers.push(("xAI".to_string(), Arc::new(provider) as Arc<dyn AiProvider>));
+        providers.push(("xAI".to_string(), Arc::new(provider.await?) as Arc<dyn AiProvider>));
     }
     
     // 7. Vertex AI

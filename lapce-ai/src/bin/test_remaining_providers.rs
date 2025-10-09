@@ -276,8 +276,8 @@ async fn test_azure_provider() -> Result<usize> {
         endpoint: "https://test.openai.azure.com".to_string(),
         deployment_name: "gpt-4".to_string(),
         api_version: "2024-02-15-preview".to_string(),
-        default_model: Some("gpt-4".to_string()),
         timeout_ms: Some(30000),
+        use_entra_id: false,
     };
     
     match AzureOpenAiProvider::new(config).await {
@@ -320,8 +320,6 @@ async fn test_xai_provider() -> Result<usize> {
     let config = XaiConfig {
         api_key: "test_key_placeholder".to_string(),
         base_url: Some("https://api.x.ai/v1".to_string()),
-        default_model: Some("grok-beta".to_string()),
-        timeout_ms: Some(30000),
     };
     
     match XaiProvider::new(config).await {
@@ -365,9 +363,8 @@ async fn test_vertex_provider() -> Result<usize> {
     let config = VertexAiConfig {
         project_id: "test-project".to_string(),
         location: "us-central1".to_string(),
-        model_id: Some("gemini-1.5-pro".to_string()),
-        access_token: Some("test_token".to_string()),
-        api_endpoint: Some("https://us-central1-aiplatform.googleapis.com".to_string()),
+        default_model: Some("gemini-1.5-pro".to_string()),
+        access_token: "test_token".to_string(),
         timeout_ms: Some(30000),
     };
     
@@ -407,11 +404,16 @@ async fn test_openrouter_provider() -> Result<usize> {
     println!("   • Testing OpenRouter provider initialization...");
     let config = OpenRouterConfig {
         api_key: "test_key_placeholder".to_string(),
-        base_url: Some("https://openrouter.ai/api/v1".to_string()),
-        default_model: Some("openai/gpt-4".to_string()),
-        site_url: Some("https://example.com".to_string()),
-        site_name: Some("Test App".to_string()),
-        timeout_ms: Some(30000),
+        base_url: "https://openrouter.ai/api/v1".to_string(),
+        default_model: "openai/gpt-4".to_string(),
+        timeout_ms: 30000,
+        allow_fallbacks: true,
+        app_title: "Test App".to_string(),
+        data_collection: None,
+        provider_sort: None,
+        specific_provider: None,
+        use_middle_out_transform: false,
+        referer: None,
     };
     
     match OpenRouterProvider::new(config).await {

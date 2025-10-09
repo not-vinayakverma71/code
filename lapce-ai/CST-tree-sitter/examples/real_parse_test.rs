@@ -1,4 +1,5 @@
 //! Simple synchronous test - REAL tree-sitter parsing
+#![cfg(all(feature = "lang-javascript", feature = "lang-typescript"))]
 use std::fs;
 use std::io::{self, Write};
 use tree_sitter::{Parser, Tree};

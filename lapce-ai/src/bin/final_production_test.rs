@@ -8,7 +8,7 @@ use tokio::sync::{Semaphore, RwLock};
 use sysinfo::{System, Pid};
 
 use lapce_ai_rust::{
-    shared_memory_complete::SharedMemoryBuffer,
+    ipc::shared_memory_complete::SharedMemoryBuffer,
     cross_platform_ipc::CrossPlatformIpc,
 };
 
@@ -290,7 +290,7 @@ async fn test_memory_footprint(results: &mut TestResults) {
     // Baseline
     system.refresh_all();
     if let Some(process) = system.process(pid) {
-        results.memory_baseline_mb = process.memory() as f64 / 1024.0 / 1024.0;
+        results.memory_baseline_mb.store((process.memory() as f64 / 1024.0 / 1024.0) as u64, Ordering::Relaxed);
     }
     
     // Create resources
@@ -305,10 +305,12 @@ async fn test_memory_footprint(results: &mut TestResults) {
     tokio::time::sleep(Duration::from_millis(100)).await;
     system.refresh_all();
     if let Some(process) = system.process(pid) {
-        results.memory_peak_mb = process.memory() as f64 / 1024.0 / 1024.0;
+        results.memory_peak_mb.store((process.memory() as f64 / 1024.0 / 1024.0) as u64, Ordering::Relaxed);
     }
     
-    results.memory_overhead_mb = results.memory_peak_mb - results.memory_baseline_mb;
+    let peak = results.memory_peak_mb.load(Ordering::Relaxed);
+    let baseline = results.memory_baseline_mb.load(Ordering::Relaxed);
+    results.memory_overhead_mb.store(peak.saturating_sub(baseline), Ordering::Relaxed);
     println!("   ✅ Memory Overhead: {:.2} MB", results.memory_overhead_mb);
 }
 

@@ -5,8 +5,10 @@ use tokio::sync::{mpsc, oneshot};
 use parking_lot::RwLock;
 use serde::{Serialize, Deserialize};
 use anyhow::Result;
+use async_trait::async_trait;
 
 use crate::core::tools::traits::{ToolContext, ToolOutput, ApprovalRequired};
+use super::traits::{Adapter, EventEmitter};
 
 /// IPC messages for tool execution lifecycle
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -160,21 +162,13 @@ impl IpcAdapter {
         
         self.sender.send(message)?;
         
-        // Wait for response with timeout
-        match tokio::time::timeout(
-            tokio::time::Duration::from_secs(30),
-            rx
-        ).await {
-            Ok(Ok(approved)) => Ok(approved),
-            Ok(Err(_)) => {
+        // Wait for response (blocking)
+        match rx.blocking_recv() {
+            Ok(approved) => Ok(approved),
+            Err(_) => {
                 // Channel closed
                 self.pending_approvals.write().remove(&context.execution_id);
                 Ok(false) // Default to denial
-            }
-            Err(_) => {
-                // Timeout
-                self.pending_approvals.write().remove(&context.execution_id);
-                Ok(false) // Default to denial on timeout
             }
         }
     }
@@ -253,7 +247,7 @@ mod tests {
             tool_name: "writeFile".to_string(),
             operation: "write".to_string(),
             target: "/path/to/file".to_string(),
-            details: "Writing content to file".to_string(),
+            approval_id: "test-approval-001".to_string(),
         };
         
         // Spawn approval request
@@ -297,7 +291,7 @@ mod tests {
             tool_name: "deleteFile".to_string(),
             operation: "delete".to_string(),
             target: "/path/to/file".to_string(),
-            details: "Deleting file".to_string(),
+            approval_id: "test-approval-002".to_string(),
         };
         
         // This should timeout and return false
@@ -305,9 +299,48 @@ mod tests {
         let result = tokio::time::timeout(
             tokio::time::Duration::from_millis(100),
             adapter.request_approval(&context, approval)
-        ).await;
+        );
         
         // Should timeout
-        assert!(result.is_err());
+        assert!(result.await.is_err());
+    }
+}
+
+// Trait implementations for IpcAdapter
+impl Adapter for IpcAdapter {
+    fn name(&self) -> &'static str {
+        "ipc"
+    }
+    
+    fn is_available(&self) -> bool {
+        !self.sender.is_closed()
+    }
+}
+
+#[async_trait]
+impl EventEmitter for IpcAdapter {
+    async fn emit_event(&self, event: serde_json::Value) -> Result<()> {
+        // Emit as a generic message
+        self.sender.send(ToolExecutionMessage::Progress {
+            execution_id: "generic".to_string(),
+            message: event.to_string(),
+            percentage: None,
+        })?;
+        
+        Ok(())
+    }
+    
+    async fn emit_correlated(
+        &self,
+        correlation_id: String,
+        event: serde_json::Value,
+    ) -> Result<()> {
+        self.sender.send(ToolExecutionMessage::Progress {
+            execution_id: correlation_id,
+            message: event.to_string(),
+            percentage: None,
+        })?;
+        
+        Ok(())
     }
 }

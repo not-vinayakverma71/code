@@ -1,6 +1,6 @@
 /// Complete Integration Test Suite for lapce-ai-rust
 use lapce_ai_rust::{
-    shared_memory_complete::{SharedMemoryListener, SharedMemoryStream, SharedMemoryBuffer},
+    ipc::shared_memory_complete::{SharedMemoryListener, SharedMemoryStream, SharedMemoryBuffer},
     ipc_server_complete::IpcServerComplete,
     ipc_messages::{AIRequest, Message, MessageRole, MessageType},
     provider_pool::{ProviderPool, ProviderPoolConfig},
@@ -287,7 +287,7 @@ async fn test_zero_copy_serialization() {
 
 #[test]
 fn test_memory_usage() {
-    use lapce_ai_rust::shared_memory_complete::HEADER_SIZE;
+    use lapce_ai_rust::ipc::shared_memory_complete::HEADER_SIZE;
     
     // Verify memory overhead is minimal
     assert!(HEADER_SIZE <= 256, "Header size should be minimal");

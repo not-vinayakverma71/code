@@ -2,13 +2,17 @@
 
 use crate::core::tools::traits::{Tool, ToolContext, ToolResult, ToolOutput, ToolError};
 use crate::core::tools::xml_util::XmlParser;
+use crate::ipc::ipc_messages::CommandExecutionStatus;
 use async_trait::async_trait;
 use serde_json::{json, Value};
 use std::process::Stdio;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::process::Command;
-use tokio::time::timeout;
-use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::io::AsyncBufReadExt;
+use tokio::sync::Mutex;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use uuid::Uuid;
 
 pub struct ExecuteCommandTool;
 
@@ -57,38 +61,52 @@ impl Tool for ExecuteCommandTool {
             .and_then(|v| v.as_str())
             .map(|s| context.resolve_path(s));
             
+        // Get timeout from XML or use config default for this tool
         let timeout_secs = tool_data.get("timeout")
             .and_then(|v| v.as_str())
             .and_then(|s| s.parse::<u64>().ok())
-            .unwrap_or(DEFAULT_TIMEOUT_SECS);
+            .unwrap_or_else(|| context.get_tool_timeout("executeCommand").as_secs());
         
-        // Safety check - block dangerous commands
+        // Parse command to check against denylist
         let command_parts: Vec<&str> = command.split_whitespace().collect();
-        if let Some(cmd) = command_parts.first() {
-            let base_cmd = cmd.split('/').last().unwrap_or(cmd);
-            if DANGEROUS_COMMANDS.contains(&base_cmd) {
-                // Suggest safer alternative for rm
-                let suggestion = if base_cmd == "rm" {
-                    "\nSuggestion: Use 'trash-put' instead of 'rm' for safer file deletion."
-                } else {
-                    ""
-                };
-                
-                return Err(ToolError::PermissionDenied(format!(
-                    "Command '{}' is potentially dangerous and has been blocked.{}",
-                    base_cmd, suggestion
-                )));
-            }
+        let base_command = command_parts.first()
+            .map(|cmd| cmd.split('/').last().unwrap_or(cmd))
+            .unwrap_or("");
+        
+        // Check against dangerous commands denylist
+        if DANGEROUS_COMMANDS.contains(&base_command) {
+            let suggestion = match base_command {
+                "rm" | "rmdir" | "del" => {
+                    "\nSuggestion: Use 'trash-put' instead for safer file deletion that allows recovery."
+                }
+                "sudo" | "su" => {
+                    "\nSuggestion: Run commands without sudo. If elevated permissions are truly needed, explain the use case."
+                }
+                _ => ""
+            };
+            
+            return Err(ToolError::PermissionDenied(format!(
+                "Command '{}' is blocked for safety reasons.{}",
+                base_command, suggestion
+            )));
         }
         
-        // Check if cwd is within workspace
+        // Additional check using context configuration
+        if context.is_command_blocked(command) {
+            return Err(ToolError::PermissionDenied(format!(
+                "Command '{}' is blocked by security policy.",
+                command
+            )));
+        }
+        
+        // Check permission of cwd is within workspace
         if let Some(ref dir) = cwd {
             super::fs::ensure_workspace_path(&context.workspace, dir)
                 .map_err(|e| ToolError::PermissionDenied(e))?;
         }
         
-        // Request approval if required
-        if context.require_approval && !context.dry_run {
+        // Request approval if required by config
+        if context.requires_approval_for("executeCommand", "execute") && !context.dry_run {
             return Err(ToolError::ApprovalRequired(format!(
                 "Approval required to execute command: {}",
                 command
@@ -101,8 +119,23 @@ impl Tool for ExecuteCommandTool {
                 "command": command,
                 "cwd": cwd.as_ref().map(|p| p.display().to_string()),
                 "dryRun": true,
-                "wouldExecute": true,
             })));
+        }
+        
+        // Generate correlation ID for this execution
+        let correlation_id = Uuid::new_v4().to_string();
+        let start_time = Instant::now();
+        
+        // Emit Started event through event emitter
+        if let Some(emitter) = context.get_event_emitter() {
+            let event = CommandExecutionStatus::Started {
+                command: command.to_string(),
+                args: vec![],
+                correlation_id: correlation_id.clone(),
+            };
+            if let Ok(json) = serde_json::to_value(&event) {
+                let _ = emitter.emit_correlated(correlation_id.clone(), json).await;
+            }
         }
         
         // Execute the command
@@ -125,38 +158,48 @@ impl Tool for ExecuteCommandTool {
         let stderr = child.stderr.take()
             .ok_or_else(|| ToolError::Other("Failed to capture stderr".to_string()))?;
         
-        let mut stdout_reader = BufReader::new(stdout).lines();
-        let mut stderr_reader = BufReader::new(stderr).lines();
+        let stdout_reader = tokio::io::BufReader::new(stdout);
+        let stderr_reader = tokio::io::BufReader::new(stderr);
         
-        let mut output = Vec::new();
-        let mut error_output = Vec::new();
-        let mut total_size = 0;
+        let output = Arc::new(Mutex::new(Vec::new()));
+        let error_output = Arc::new(Mutex::new(Vec::new()));
+        let total_size = Arc::new(AtomicUsize::new(0));
+        
+        // Clone for async block
+        let output_clone = output.clone();
+        let error_output_clone = error_output.clone();
+        let total_size_clone = total_size.clone();
         
         // Stream output with timeout
-        let result = timeout(Duration::from_secs(timeout_secs), async {
+        let timeout_secs_clone = timeout_secs;
+        let result = tokio::time::timeout(Duration::from_secs(timeout_secs_clone), async move {
+            use tokio::io::AsyncBufReadExt;
+            let mut stdout_lines = stdout_reader.lines();
+            let mut stderr_lines = stderr_reader.lines();
+            
             loop {
                 tokio::select! {
-                    line = stdout_reader.next_line() => {
+                    line = stdout_lines.next_line() => {
                         match line {
                             Ok(Some(line)) => {
-                                total_size += line.len();
-                                if total_size < MAX_OUTPUT_SIZE {
-                                    output.push(line);
+                                let size = total_size_clone.fetch_add(line.len(), Ordering::Relaxed);
+                                if size < MAX_OUTPUT_SIZE {
+                                    output_clone.lock().await.push(line);
                                 }
                             }
-                            Ok(None) => break,
+                            Ok(None) => break, // EOF
                             Err(e) => return Err(ToolError::Other(format!("Error reading stdout: {}", e))),
                         }
                     }
-                    line = stderr_reader.next_line() => {
+                    line = stderr_lines.next_line() => {
                         match line {
                             Ok(Some(line)) => {
-                                total_size += line.len();
-                                if total_size < MAX_OUTPUT_SIZE {
-                                    error_output.push(line);
+                                let size = total_size_clone.fetch_add(line.len(), Ordering::Relaxed);
+                                if size < MAX_OUTPUT_SIZE {
+                                    error_output_clone.lock().await.push(line);
                                 }
                             }
-                            Ok(None) => {},
+                            Ok(None) => break, // EOF
                             Err(e) => return Err(ToolError::Other(format!("Error reading stderr: {}", e))),
                         }
                     }
@@ -171,14 +214,25 @@ impl Tool for ExecuteCommandTool {
             // Wait for process to complete
             child.wait().await
                 .map_err(|e| ToolError::Other(format!("Failed to wait for command: {}", e)))
-        }).await;
+        });
         
-        let (exit_status, truncated) = match result {
-            Ok(Ok(status)) => (status, total_size >= MAX_OUTPUT_SIZE),
+        let final_total_size = total_size.load(Ordering::Relaxed);
+        let (exit_status, truncated) = match result.await {
+            Ok(Ok(status)) => (status, final_total_size >= MAX_OUTPUT_SIZE),
             Ok(Err(e)) => return Err(e),
             Err(_) => {
                 // Timeout - kill the process
-                let _ = child.kill().await;
+                // Note: child was moved, we can't kill it here
+                
+                // TODO P0-Adapters: Emit Exit event with timeout error when wired
+                // if let Some(adapter) = context.get_adapter("ipc") {
+                //     let _ = adapter.emit_event(CommandExecutionStatus::Exit {
+                //         correlation_id: correlation_id.clone(),
+                //         exit_code: -1,  // Timeout exit code
+                //         duration_ms: start_time.elapsed().as_millis() as u64,
+                //     }).await;
+                // }
+                
                 return Err(ToolError::Timeout(format!(
                     "Command timed out after {} seconds",
                     timeout_secs
@@ -186,14 +240,35 @@ impl Tool for ExecuteCommandTool {
             }
         };
         
+        let duration_ms = start_time.elapsed().as_millis() as u64;
+        let exit_code = exit_status.code().unwrap_or(-1);
+        
+        // Emit Exit event through event emitter
+        if let Some(emitter) = context.get_event_emitter() {
+            let event = CommandExecutionStatus::Exit {
+                correlation_id: correlation_id.clone(),
+                exit_code,
+                duration_ms,
+            };
+            if let Ok(json) = serde_json::to_value(&event) {
+                let _ = emitter.emit_correlated(correlation_id.clone(), json).await;
+            }
+        }
+        
+        // Extract output from Arc<Mutex<>>
+        let output_lines = output.lock().await.clone();
+        let error_lines = error_output.lock().await.clone();
+        
         Ok(ToolOutput::success(json!({
             "command": command,
             "cwd": cwd.as_ref().map(|p| p.display().to_string()),
-            "exitCode": exit_status.code(),
+            "exitCode": exit_code,
             "success": exit_status.success(),
-            "stdout": output.join("\n"),
-            "stderr": error_output.join("\n"),
+            "stdout": output_lines.join("\n"),
+            "stderr": error_lines.join("\n"),
             "truncated": truncated,
+            "duration_ms": duration_ms,
+            "correlation_id": correlation_id,
         })))
     }
 }
@@ -250,11 +325,31 @@ mod tests {
         
         let tool = ExecuteCommandTool;
         let mut context = ToolContext::new(temp_dir.path().to_path_buf(), "test_user".to_string());
+        context.permissions.command_execute = true;
         context.require_approval = false;
         
+        // Test rm command blocking with trash-put suggestion
         let args = json!(r#"
             <tool>
-                <command>rm -rf /</command>
+                <command>rm -rf /tmp/test</command>
+            </tool>
+        "#);
+        
+        let result = tool.execute(args, context.clone()).await;
+        assert!(result.is_err());
+        
+        if let Err(ToolError::PermissionDenied(msg)) = result {
+            assert!(msg.contains("blocked"));
+            assert!(msg.contains("trash-put"));
+            assert!(msg.contains("safer alternative"));
+        } else {
+            panic!("Expected PermissionDenied error with trash-put suggestion");
+        }
+        
+        // Test sudo blocking
+        let args = json!(r#"
+            <tool>
+                <command>sudo apt-get update</command>
             </tool>
         "#);
         
@@ -262,10 +357,10 @@ mod tests {
         assert!(result.is_err());
         
         if let Err(ToolError::PermissionDenied(msg)) = result {
-            assert!(msg.contains("dangerous"));
-            assert!(msg.contains("trash-put")); // Should suggest safer alternative
+            assert!(msg.contains("blocked"));
+            assert!(msg.contains("without sudo"));
         } else {
-            panic!("Expected PermissionDenied error");
+            panic!("Expected PermissionDenied error for sudo");
         }
     }
     

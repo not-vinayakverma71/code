@@ -323,24 +323,10 @@ mod tests {
 
     #[test]
     fn test_tool_context_workspace() {
-        let ctx = ToolContext {
-            workspace: std::path::PathBuf::from("/workspace"),
-            user_id: "user123".to_string(),
-            session_id: "session456".to_string(),
-            execution_id: "exec789".to_string(),
-            require_approval: true,
-            dry_run: false,
-            metadata: std::collections::HashMap::new(),
-            permissions: ToolPermissions {
-                read: true,
-                write: false,
-                execute: true,
-                file_read: true,
-                file_write: false,
-                network: false,
-            },
-            rooignore: None,
-        };
+        let ctx = ToolContext::new(
+            std::path::PathBuf::from("/workspace"),
+            "user123".to_string(),
+        );
         
         assert_eq!(ctx.workspace.to_str().unwrap(), "/workspace");
         assert_eq!(ctx.user_id, "user123");

@@ -39,23 +39,8 @@ async fn main() -> Result<()> {
     
     // Initialize provider pool
     let provider_config = ProviderPoolConfig {
-        providers: config.providers.enabled_providers.iter().map(|name| {
-            lapce_ai_rust::provider_pool::ProviderConfig {
-                name: name.clone(),
-                enabled: true,
-                api_key: std::env::var(format!("{}_API_KEY", name.to_uppercase())).ok(),
-                base_url: None,
-                default_model: None,
-                max_retries: 3,
-                timeout_secs: config.performance.request_timeout_secs,
-                rate_limit_per_minute: None,
-            }
-        }).collect(),
-        fallback_enabled: config.providers.fallback_enabled,
-        fallback_order: config.providers.fallback_order.clone(),
-        load_balance: config.providers.load_balance,
-        circuit_breaker_enabled: config.providers.circuit_breaker_enabled,
-        circuit_breaker_threshold: config.providers.circuit_breaker_threshold,
+        max_providers: 10,
+        retry_attempts: 3,
     };
     
     let provider_pool = Arc::new(ProviderPool::new());
@@ -189,16 +174,16 @@ fn init_logging() -> Result<()> {
 async fn start_metrics_server(
     port: u16,
     endpoint: String,
-    _metrics: Arc<lapce_ai_rust::ipc_server::Metrics>,
+    metrics: Arc<lapce_ai_rust::ipc_server::Metrics>,
 ) -> Result<()> {
     use warp::Filter;
     
     let endpoint = endpoint.trim_start_matches('/').to_string();
     
     let routes = warp::path(endpoint)
-        .map(|| {
-            // Return mock metrics for now
-            "# HELP requests Total requests\n# TYPE requests counter\nrequests 0\n"
+        .map(move || {
+            // Return real metrics from IpcServer
+            metrics.export_prometheus()
         });
     
     tokio::spawn(async move {

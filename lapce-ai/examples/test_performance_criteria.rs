@@ -1,5 +1,5 @@
 // Test all 8 success criteria with real measurements
-// use lapce_ai_rust::lancedb_search::*;
+// use lapce_ai_rust::lancedb::*;
 use std::sync::Arc;
 use std::time::Instant;
 use tempfile::TempDir;

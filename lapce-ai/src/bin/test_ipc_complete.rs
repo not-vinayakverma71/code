@@ -1,6 +1,6 @@
 /// Complete IPC System Test - Verifies <10μs latency, >1M msg/sec
 use std::time::Instant;
-use lapce_ai_rust::shared_memory_complete::{SharedMemoryListener, SharedMemoryStream};
+use lapce_ai_rust::ipc::shared_memory_complete::{SharedMemoryListener, SharedMemoryStream};
 use lapce_ai_rust::ipc_server::IpcServer;
 use lapce_ai_rust::ipc_messages::{MessageType, ClineMessage, ClineAsk, AIRequest, Message};
 use std::sync::Arc;

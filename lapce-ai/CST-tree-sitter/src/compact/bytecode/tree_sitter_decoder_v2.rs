@@ -37,6 +37,10 @@ impl BytecodeDecoderV2 {
                     let _kind = self.read_varint().ok_or("Missing kind ID")?;
                     let _flags = self.read_byte().ok_or("Missing flags")?;
                     self.skip_position_if_present();
+                    // Length may be prefixed by Length opcode
+                    if self.cursor < self.stream.bytes.len() && self.stream.bytes[self.cursor] == 0x12 {
+                        self.cursor += 1; // consume Length opcode
+                    }
                     let _length = self.read_varint().ok_or("Missing length")?;
                     
                     // Push to stack - we expect an Exit later
@@ -50,6 +54,10 @@ impl BytecodeDecoderV2 {
                     let _kind = self.read_varint().ok_or("Missing kind ID")?;
                     let _flags = self.read_byte().ok_or("Missing flags")?;
                     self.skip_position_if_present();
+                    // Length may be prefixed by Length opcode
+                    if self.cursor < self.stream.bytes.len() && self.stream.bytes[self.cursor] == 0x12 {
+                        self.cursor += 1; // consume Length opcode
+                    }
                     let _length = self.read_varint().ok_or("Missing length")?;
                     
                     // Leaf nodes don't need Exit
@@ -67,6 +75,10 @@ impl BytecodeDecoderV2 {
                     // These should only appear after flags, not as top-level opcodes
                     // This indicates a misalignment
                     return Err(format!("Unexpected position opcode at {}", self.cursor));
+                }
+                Some(Opcode::Length) => {
+                    // Length should not appear as top-level opcode
+                    return Err(format!("Unexpected Length opcode at {}", self.cursor));
                 }
                 Some(Opcode::End) => {
                     break;

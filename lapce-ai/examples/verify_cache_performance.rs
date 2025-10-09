@@ -1,4 +1,4 @@
-use lapce_ai_rust::cache_v2::proper_cache_system::CacheSystem;
+// use lapce_ai_rust::cache_v2 // Module not available::proper_cache_system::CacheSystem;
 use std::time::Instant;
 use tempfile::tempdir;
 

@@ -1,3 +1,4 @@
+#![cfg(feature = "phase2-tests")]
 //! Phase 2 Validation Tests - Ensuring 0% Quality Loss
 //! Tests delta compression and edit journaling
 

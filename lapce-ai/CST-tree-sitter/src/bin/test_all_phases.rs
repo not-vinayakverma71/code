@@ -4,7 +4,7 @@ use lapce_tree_sitter::complete_pipeline::{
     CompletePipeline,
     CompletePipelineConfig,
 };
-use tree_sitter::{Parser, Language};
+use tree_sitter::Parser;
 use tree_sitter_rust;
 use std::path::PathBuf;
 use tempfile::tempdir;
@@ -13,7 +13,7 @@ fn main() {
     println!("=== TESTING ALL OPTIMIZATION PHASES ===\n");
     
     // Test source code
-    let source = r#"
+    let _source = r#"
 fn fibonacci(n: u64) -> u64 {
     match n {
         0 => 0,
@@ -23,7 +23,7 @@ fn fibonacci(n: u64) -> u64 {
 }
 
 fn main() {
-    for i in 0..10 {
+    for _i in 0..10 {
         println!("fib({}) = {}", i, fibonacci(i));
     }
 }
@@ -32,7 +32,7 @@ fn main() {
     // Parse tree
     let mut parser = Parser::new();
     parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-    let tree = parser.parse(source, None).unwrap();
+    let _tree = parser.parse(source, None).unwrap();
     
     println!("Original source: {} bytes", source.len());
     println!("Nodes in tree: {}\n", count_nodes(tree.root_node()));
@@ -101,7 +101,7 @@ fn main() {
 
 fn count_nodes(node: tree_sitter::Node) -> usize {
     let mut count = 1;
-    for i in 0..node.child_count() {
+    for _i in 0..node.child_count() {
         if let Some(child) = node.child(i) {
             count += count_nodes(child);
         }

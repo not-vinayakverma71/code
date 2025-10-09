@@ -1,6 +1,6 @@
-use lapce_ai_rust::working_shared_memory::WorkingSharedMemory;
+use lapce_ai_rust::ipc::shared_memory_complete::WorkingSharedMemory;
 use lapce_ai_rust::working_cache_system::WorkingCacheSystem;
-use lapce_ai_rust::working_connection_pool::{WorkingConnectionPool, ConnectionConfig};
+use lapce_ai_rust::ipc::connection_pool::{WorkingConnectionPool, ConnectionConfig};
 use std::time::{Instant, Duration};
 use std::process::Command;
 use serde::{Serialize, Deserialize};

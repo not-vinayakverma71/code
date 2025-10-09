@@ -43,7 +43,7 @@ async fn main() -> Result<()> {
 fn test_message_size(size: usize, label: &str) -> Result<()> {
     println!("\n📊 Testing {} messages...", label);
     
-    let mut shm = OptimizedSharedMemory::create("test_msg_size", 1024 * 1024)?; // 1MB buffer
+    let mut shm = lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer::create("test_msg_size", 1024 * 1024)?; // 1MB buffer
     let data = vec![0x42u8; size];
     
     // Write test
@@ -73,7 +73,7 @@ fn test_message_size(size: usize, label: &str) -> Result<()> {
 fn benchmark_latency() -> Result<()> {
     println!("\n⏱️  Benchmarking SharedMemory latency...");
     
-    let mut shm = OptimizedSharedMemory::create("test_latency", 1024 * 1024)?;
+    let mut shm = lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer::create("test_latency", 1024 * 1024)?;
     let data = vec![0x42u8; 128];
     let mut latencies = Vec::new();
     
@@ -108,7 +108,7 @@ fn test_concurrent_access() -> Result<()> {
     println!("\n🔀 Testing concurrent access...");
     
     // Create the shared memory file first
-    let _master = OptimizedSharedMemory::create("test_concurrent", 1024 * 1024)?;
+    let _master = lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer::create("test_concurrent", 1024 * 1024)?;
     
     let mut handles = Vec::new();
     
@@ -116,7 +116,7 @@ fn test_concurrent_access() -> Result<()> {
     for i in 0..10 {
         let handle = thread::spawn(move || -> Result<()> {
             thread::sleep(Duration::from_millis(10)); // Small delay to ensure master creates file
-            let mut shm = OptimizedSharedMemory::open_existing("test_concurrent", 1024 * 1024)?;
+            let mut shm = lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer::open("test_concurrent", 1024 * 1024)?;
             let data = vec![i as u8; 128];
             for _ in 0..100 {
                 shm.write(&data);
@@ -131,7 +131,7 @@ fn test_concurrent_access() -> Result<()> {
     for _ in 0..10 {
         let handle = thread::spawn(move || -> Result<()> {
             thread::sleep(Duration::from_millis(10)); // Small delay to ensure master creates file
-            let mut shm = OptimizedSharedMemory::open_existing("test_concurrent", 1024 * 1024)?;
+            let mut shm = lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer::open("test_concurrent", 1024 * 1024)?;
             for _ in 0..100 {
                 shm.read();
                 thread::sleep(Duration::from_micros(10));
@@ -153,7 +153,7 @@ fn test_concurrent_access() -> Result<()> {
 fn test_ring_buffer() -> Result<()> {
     println!("\n🔄 Testing ring buffer behavior...");
     
-    let mut shm = OptimizedSharedMemory::create("test_ring", 1024)?; // Small buffer to test wrapping
+    let mut shm = lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer::create("test_ring", 1024)?; // Small buffer to test wrapping
     
     // Fill buffer multiple times to test wrap-around
     for i in 0..100 {
@@ -173,7 +173,7 @@ fn profile_memory_usage() -> Result<()> {
     println!("\n💾 Profiling memory usage...");
     
     let mut system = System::new();
-    system.refresh_processes(sysinfo::ProcessesToUpdate::All);
+    system.refresh_processes();
     let pid = Pid::from(std::process::id() as usize);
     let initial_memory = system.process(pid)
         .map(|p| p.memory())
@@ -182,10 +182,10 @@ fn profile_memory_usage() -> Result<()> {
     // Create multiple SharedMemory instances
     let mut instances = Vec::new();
     for i in 0..10 {
-        instances.push(OptimizedSharedMemory::create(&format!("test_mem_{}", i), 1024 * 1024)?);
+        instances.push(lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer::create(&format!("test_mem_{}", i), 1024 * 1024)?);
     }
     
-    system.refresh_processes(sysinfo::ProcessesToUpdate::All);
+    system.refresh_processes();
     let final_memory = system.process(pid)
         .map(|p| p.memory())
         .unwrap_or(0);

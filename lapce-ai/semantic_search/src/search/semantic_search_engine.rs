@@ -5,7 +5,7 @@
 use crate::error::{Error, Result};
 use crate::embeddings::service_factory::IEmbedder;
 use crate::search::improved_cache::ImprovedQueryCache;
-use crate::search::search_metrics::SearchMetrics;
+use crate::search::search_metrics::{SearchMetrics, SEARCH_LATENCY, CACHE_MISSES_TOTAL};
 use crate::memory::profiler::{MemoryProfiler, MemoryDashboard};
 use arrow_array::{Float32Array, StringArray, Int32Array, RecordBatch, ArrayRef};
 use arrow_schema::{DataType, Field, Schema, TimeUnit};
@@ -65,7 +65,7 @@ pub struct SemanticSearchEngine {
     pub(crate) doc_table: Arc<RwLock<Option<Table>>>,
     
     // Query cache
-    query_cache: Arc<ImprovedQueryCache>,
+    pub query_cache: Arc<ImprovedQueryCache>,
     
     // Metrics
     pub(crate) metrics: Arc<SearchMetrics>,
@@ -116,6 +116,9 @@ impl SemanticSearchEngine {
         
         // Create or open tables
         engine.initialize_tables().await?;
+        
+        // Create or refresh vector indices
+        engine.ensure_vector_indices().await?;
         
         Ok(engine)
     }
@@ -374,6 +377,44 @@ impl SemanticSearchEngine {
     }
     
     
+    /// Ensure vector indices exist on all tables
+    async fn ensure_vector_indices(&self) -> Result<()> {
+        // Create index on code table if it exists and has data
+        let code_table_guard = self.code_table.read().await;
+        if let Some(table) = code_table_guard.as_ref() {
+            let row_count = table.count_rows(None).await.unwrap_or(0);
+            if row_count > 0 {
+                drop(code_table_guard);
+                self.create_vector_index_with_params(256, 48, 10).await?;
+            }
+        }
+        
+        // Create index on doc table if it exists and has data
+        let doc_table_guard = self.doc_table.read().await;
+        if let Some(table) = doc_table_guard.as_ref() {
+            let row_count = table.count_rows(None).await.unwrap_or(0);
+            if row_count > 0 {
+                // Create index for doc table too
+                let indices = table.list_indices().await.map_err(|e| Error::Runtime {
+                    message: format!("Failed to list doc indices: {}", e)
+                })?;
+                
+                if !indices.iter().any(|idx| idx.name == "doc_vector_idx") {
+                    table.create_index(&["vector"], Index::IvfPq(
+                        IvfPqIndexBuilder::default()
+                            .distance_type(crate::DistanceType::Cosine)
+                            .num_partitions(256)
+                            .num_sub_vectors(48)
+                    )).name("doc_vector_idx".to_string()).execute().await.map_err(|e| Error::Runtime {
+                        message: format!("Failed to create doc vector index: {}", e)
+                    })?;
+                }
+            }
+        }
+        
+        Ok(())
+    }
+    
     /// Create optimized vector index with configurable parameters
     pub async fn create_vector_index(&self) -> Result<()> {
         self.create_vector_index_with_params(256, 48, 10).await
@@ -422,9 +463,15 @@ impl SemanticSearchEngine {
     ) -> Result<Vec<SearchResult>> {
         let start = Instant::now();
         
-        // Check cache
-        let cache_key = self.query_cache.compute_cache_key(query);
+        // Check cache with filter-aware key
+        let filters_string = filters.as_ref().map(|f| format!("{:?}", f));
+        let cache_key = self.query_cache.compute_cache_key_with_filters(
+            query, 
+            filters_string.as_deref()
+        );
+        let cache_start = std::time::Instant::now();
         if let Some(cached) = self.query_cache.get(&cache_key).await {
+            self.metrics.record_cache_hit(cache_start.elapsed());
             return Ok(cached);
         }
         
@@ -471,13 +518,16 @@ impl SemanticSearchEngine {
             }
             
             // Sort by score (highest first)
-            search_results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
+            search_results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
             
-            // Update cache
-            self.query_cache.insert(cache_key, search_results.clone()).await;
-            
+            // Cache the results with filter-aware key
+            self.query_cache.put(cache_key, search_results.clone()).await;
+        
             // Record metrics
-            self.metrics.record_search(start.elapsed(), search_results.len());
+            let duration = start.elapsed();
+            self.metrics.record_search(duration, search_results.len());
+            SEARCH_LATENCY.with_label_values(&["search"]).observe(duration.as_secs_f64());
+            CACHE_MISSES_TOTAL.inc();
             
             Ok(search_results)
         } else {
@@ -493,6 +543,19 @@ impl SemanticSearchEngine {
         embeddings: Vec<Vec<f32>>,
         metadata: Vec<ChunkMetadata>,
     ) -> Result<IndexStats> {
+        // Validate embedding dimensions
+        let expected_dim = self.config.max_embedding_dim.unwrap_or(1536);
+        for (idx, embedding) in embeddings.iter().enumerate() {
+            if embedding.len() != expected_dim {
+                return Err(Error::Runtime {
+                    message: format!(
+                        "Embedding dimension mismatch at index {}: expected {}, got {}",
+                        idx, expected_dim, embedding.len()
+                    )
+                });
+            }
+        }
+        
         let code_table_guard = self.code_table.read().await;
         if let Some(table) = code_table_guard.as_ref() {
             // Create Arrow arrays
@@ -598,6 +661,17 @@ impl SemanticSearchEngine {
                 .map_err(|e| Error::Runtime {
                     message: format!("Failed to insert batch: {}", e)
                 })?;
+            
+            // Drop the table guard before calling ensure_vector_indices
+            drop(code_table_guard);
+            
+            // Optimize table after large batch (>1000 chunks)
+            if metadata.len() > 1000 {
+                self.optimize_index().await?;
+            }
+            
+            // Refresh index after batch insert
+            self.ensure_vector_indices().await?;
             
             Ok(IndexStats {
                 files_indexed: metadata.len(),

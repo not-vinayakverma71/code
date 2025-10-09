@@ -4,7 +4,7 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Instant, Duration};
-use tokio::sync::{RwLock, Semaphore};
+use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 use anyhow::Result;
 use serde_json::json;
@@ -93,7 +93,7 @@ impl McpTestMetrics {
 async fn test_mcp_marketplace_10k(metrics: Arc<McpTestMetrics>) -> Result<()> {
     println!("🛒 Testing MCP Marketplace with 10,000 requests...");
     
-    let mut marketplace = McpMarketplace::new();
+    let marketplace = McpMarketplace::new();
     
     // Test 1000 catalog fetches
     for i in 0..1000 {

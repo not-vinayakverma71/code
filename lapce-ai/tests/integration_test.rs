@@ -13,13 +13,13 @@ use futures::StreamExt;
 use lapce_ai_rust::ai_providers::{
     core_trait::{AiProvider, ChatRequest, ChatResponse, ChatMessage, StreamToken},
     provider_manager::{ProviderManager, ProvidersConfig, ProviderConfig},
-    openai_exact::OpenAIProvider,
-    anthropic_exact::AnthropicProvider,
-    gemini_exact::GeminiProvider,
-    bedrock_exact::BedrockProvider,
-    azure_exact::AzureProvider,
-    xai_exact::XAiProvider,
-    vertex_ai_exact::VertexAiProvider,
+    // openai_exact::OpenAIProvider, // Module not available
+    // anthropic_exact::AnthropicProvider, // Module not available
+    // gemini_exact::GeminiProvider, // Module not available
+    // bedrock_exact::BedrockProvider, // Module not available
+    // azure_exact::AzureProvider, // Module not available
+    // xai_exact::XAiProvider, // Module not available
+    // vertex_ai_exact::VertexAiProvider, // Module not available
 };
 
 #[cfg(test)]

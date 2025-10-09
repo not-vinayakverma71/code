@@ -127,12 +127,103 @@ dist/
     });
 }
 
+fn bench_rooignore_many_paths(c: &mut Criterion) {
+    use tempfile::TempDir;
+    
+    let temp_dir = TempDir::new().unwrap();
+    let mut rooignore = RooIgnore::new(temp_dir.path().to_path_buf());
+    
+    let patterns = r#"
+*.log
+*.tmp
+node_modules/
+target/
+"#;
+    
+    rooignore.load_from_string(patterns).unwrap();
+    
+    // Create 100 test paths
+    let paths: Vec<PathBuf> = (0..100)
+        .map(|i| temp_dir.path().join(format!("src/file{}.rs", i)))
+        .collect();
+    
+    c.bench_function("rooignore_match_many_paths", |b| {
+        b.iter(|| {
+            for path in &paths {
+                black_box(rooignore.is_allowed(path));
+            }
+        });
+    });
+}
+
+fn bench_diff_apply(c: &mut Criterion) {
+    use tempfile::TempDir;
+    use std::fs;
+    use lapce_ai_rust::core::tools::diff_engine::DiffEngine;
+    
+    let temp_dir = TempDir::new().unwrap();
+    
+    // Create a 1k-line file
+    let original = (0..1000)
+        .map(|i| format!("Line {} with some content\n", i))
+        .collect::<String>();
+    
+    let modified = (0..1000)
+        .map(|i| {
+            if i % 10 == 0 {
+                format!("Modified line {} with different content\n", i)
+            } else {
+                format!("Line {} with some content\n", i)
+            }
+        })
+        .collect::<String>();
+    
+    let engine = DiffEngine::new();
+    
+    c.bench_function("diff_apply_1k_lines", |b| {
+        b.iter(|| {
+            engine.generate_diff(black_box(&original), black_box(&modified))
+        });
+    });
+}
+
+fn bench_multi_file_read(c: &mut Criterion) {
+    use tempfile::TempDir;
+    use std::fs;
+    
+    let temp_dir = TempDir::new().unwrap();
+    
+    // Create 10 files with 100 lines each
+    for i in 0..10 {
+        let file_path = temp_dir.path().join(format!("file{}.txt", i));
+        let content = (0..100)
+            .map(|j| format!("Line {} in file {}\n", j, i))
+            .collect::<String>();
+        fs::write(&file_path, content).unwrap();
+    }
+    
+    let file_paths: Vec<PathBuf> = (0..10)
+        .map(|i| temp_dir.path().join(format!("file{}.txt", i)))
+        .collect();
+    
+    c.bench_function("multi_file_read_10_files", |b| {
+        b.iter(|| {
+            for path in &file_paths {
+                black_box(fs::read_to_string(path).unwrap());
+            }
+        });
+    });
+}
+
 criterion_group!(
     benches,
     bench_registry_lookup,
     bench_xml_parse,
     bench_xml_multi_file_parse,
     bench_xml_generate,
-    bench_rooignore
+    bench_rooignore,
+    bench_rooignore_many_paths,
+    bench_diff_apply,
+    bench_multi_file_read
 );
 criterion_main!(benches);

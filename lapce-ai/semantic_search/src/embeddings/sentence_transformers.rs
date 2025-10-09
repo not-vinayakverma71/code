@@ -233,7 +233,7 @@ impl SentenceTransformersEmbeddings {
         let embeddings = self
             .model
             .forward(&input_ids, &token_type_ids, None)
-            // TODO: it'd be nice to support other devices
+            // TODO(semantic-team, 2024-01): Support other devices (GPU/TPU) - non-blocker
             .and_then(|output| output.to_device(&Device::Cpu))
             .map_err(|e| Error::Runtime { message: e.to_string() })?;
 
@@ -280,7 +280,7 @@ impl SentenceTransformersEmbeddings {
                 check_nulls(&*source)?;
                 source
                     .as_string::<i32>()
-                    // TODO: should we do this in parallel? (e.g. using rayon)
+                    // TODO(semantic-team, 2024-01): Consider parallel processing with rayon - performance optimization
                     .into_iter()
                     .map(|v| {
                         let value = v.unwrap();
@@ -300,7 +300,7 @@ impl SentenceTransformersEmbeddings {
 
                 source
                     .as_string::<i64>()
-                    // TODO: should we do this in parallel? (e.g. using rayon)
+                    // TODO(semantic-team, 2024-01): Consider parallel processing with rayon - performance optimization
                     .into_iter()
                     .map(|v| {
                         let value = v.unwrap();

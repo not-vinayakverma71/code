@@ -1,27 +1,24 @@
 /// IPC Server Implementation - SharedMemory with Zero-Copy
 /// Achieves <10μs latency and >1M msg/sec
 use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{Duration, Instant};
-use std::collections::HashMap;
-use std::path::Path;
-use std::fs;
+use std::sync::atomic::AtomicU64;
+use std::time::Duration;
 
 use super::shared_memory_complete::{SharedMemoryListener, SharedMemoryStream};
-use super::binary_codec::{BinaryCodec, Message as BinaryMessage, MessageType as BinaryMessageType};
+use super::binary_codec::{
+    BinaryCodec, Message, MessageType, MessagePayload, ErrorMessage,
+    MAGIC_HEADER, HEADER_SIZE, MAX_MESSAGE_SIZE
+};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::sync::{mpsc, RwLock, Semaphore, broadcast};
+use tokio::sync::{Semaphore, broadcast};
 use bytes::{Bytes, BytesMut};
 use dashmap::DashMap;
 use parking_lot::Mutex;
 
-use super::ipc_messages::{MessageType, ClineMessage, AIRequest, Message as IpcMessage};
-use crate::events_exact_translation::TaskEvent;
 use super::connection_pool::ConnectionPool;
-use super::auto_reconnection::{AutoReconnectionManager, ReconnectionStrategy, ConnectionState};
-use super::circuit_breaker::{CircuitBreaker, CircuitBreakerConfig};
+use super::auto_reconnection::{AutoReconnectionManager, ReconnectionStrategy};
+use super::circuit_breaker::CircuitBreaker;
 
-const MAX_MESSAGE_SIZE: usize = 10 * 1024 * 1024; // 10MB
 const MAX_CONNECTIONS: usize = 1000; // Fixed to support 1000+ connections
 const BUFFER_POOL_SIZE: usize = 100;
 
@@ -37,14 +34,23 @@ pub enum IpcError {
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
     
+    #[error("Codec error: {0}")]
+    Codec(#[from] anyhow::Error),
+    
     #[error("Message too large: {0} bytes")]
     MessageTooLarge(usize),
     
-    #[error("Unknown message type: {0:?}")]
-    UnknownMessageType(MessageType),
+    #[error("Invalid magic: {0:#x}")]
+    InvalidMagic(u32),
     
-    #[error("Anyhow error: {0}")]
-    Anyhow(#[from] anyhow::Error),
+    #[error("Connection pool error: {0}")]
+    ConnectionPool(String),
+    
+    #[error("Handler error: {0}")]
+    Handler(String),
+    
+    #[error("Protocol error: {0}")]
+    Protocol(String),
     
     #[error("Handler panic")]
     HandlerPanic,
@@ -54,6 +60,12 @@ pub enum IpcError {
     
     #[error("Server shutdown")]
     Shutdown,
+    
+    #[error("Unknown message type: {0:?}")]
+    UnknownMessageType(MessageType),
+    
+    #[error("Anyhow error: {0}")]
+    Anyhow(anyhow::Error),
 }
 
 /// Connection metrics
@@ -124,6 +136,16 @@ impl Metrics {
         self.latency_buckets[bucket_idx].fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         
         *self.message_type_counts.entry(msg_type).or_insert(0) += 1;
+    }
+    
+    pub fn update_latency(&self, duration: Duration) {
+        let micros = duration.as_micros();
+        let bucket_idx = if micros < 1000 { 0 }
+        else if micros < 10000 { 1 }
+        else if micros < 100000 { 2 }
+        else { 3 };
+        
+        self.latency_buckets[bucket_idx].fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     }
     
     pub fn export_prometheus(&self) -> String {
@@ -231,7 +253,7 @@ impl ConnectionHandler {
                 result = Self::read_message_static(&mut stream, &mut buffer) => {
                     match result {
                         Ok(data) => {
-                            if let Err(e) = Self::process_message_static(&mut stream, codec.clone(), metrics.clone(), data).await {
+                            if let Err(e) = Self::process_message_static(&mut stream, codec.clone(), handlers.clone(), metrics.clone(), data).await {
                                 tracing::error!("Error processing message: {}", e);
                             }
                         }
@@ -246,42 +268,72 @@ impl ConnectionHandler {
     }
     
     async fn read_message_static(stream: &mut SharedMemoryStream, buffer: &mut BytesMut) -> Result<Bytes, IpcError> {
-        // Read message header
-        let mut header_buf = vec![0u8; 16]; // MIN_HEADER_SIZE
+        // Read message header (24 bytes as per canonical spec)
+        let mut header_buf = vec![0u8; HEADER_SIZE];
         stream.read_exact(&mut header_buf).await?;
         
-        // Peek at length to know how much more to read
-        let length = u32::from_be_bytes([header_buf[8], header_buf[9], header_buf[10], header_buf[11]]) as usize;
+        // Validate magic (Little-Endian)
+        let magic = u32::from_le_bytes([header_buf[0], header_buf[1], header_buf[2], header_buf[3]]);
+        if magic != MAGIC_HEADER {
+            return Err(IpcError::InvalidMagic(magic));
+        }
+        
+        // Get payload length (Little-Endian at offset 8)
+        let length = u32::from_le_bytes([header_buf[8], header_buf[9], header_buf[10], header_buf[11]]) as usize;
         
         if length > MAX_MESSAGE_SIZE {
             return Err(IpcError::MessageTooLarge(length));
         }
         
-        // Read rest of message
+        // Read full message
         buffer.clear();
         buffer.extend_from_slice(&header_buf);
-        buffer.resize(16 + length, 0);
-        stream.read_exact(&mut buffer[16..]).await?;
+        buffer.resize(HEADER_SIZE + length, 0);
+        stream.read_exact(&mut buffer[HEADER_SIZE..]).await?;
         
         Ok(buffer.clone().freeze())
     }
     
-    async fn process_message_static(stream: &mut SharedMemoryStream, mut codec: BinaryCodec, metrics: Arc<Metrics>, data: Bytes) -> Result<(), IpcError> {
+    async fn process_message_static(
+        stream: &mut SharedMemoryStream, 
+        mut codec: BinaryCodec, 
+        handlers: Arc<DashMap<MessageType, Handler>>,
+        metrics: Arc<Metrics>, 
+        data: Bytes
+    ) -> Result<(), IpcError> {
         let start = std::time::Instant::now();
         
         // Decode using binary codec
         let msg = codec.decode(&data)?;
         
-        // Process based on message type
-        let msg_type = msg.msg_type;
+        // Look up handler for message type
+        let response = if let Some(handler) = handlers.get(&msg.msg_type) {
+            // Call the registered handler
+            handler(data).await?
+        } else {
+            // No handler registered - return error
+            let error_msg = Message {
+                id: msg.id,  // Echo request ID
+                msg_type: MessageType::Error,
+                payload: MessagePayload::Error(ErrorMessage {
+                    code: 404,
+                    message: format!("No handler for message type: {:?}", msg.msg_type),
+                    details: String::new(),
+                }),
+                timestamp: std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs(),
+            };
+            codec.encode(&error_msg)?
+        };
         
-        // For now, echo back
-        let response = codec.encode(&msg)?;
+        // Send response
         stream.write_all(&response).await?;
         
         // Record metrics  
         let duration = start.elapsed();
-        metrics.record(MessageType::Complete, duration);
+        metrics.record(msg.msg_type, duration);
         
         Ok(())
     }
@@ -396,115 +448,122 @@ impl IpcServer {
         }
     }
     
-    /// Handle a single connection
-    async fn handle_connection(&self, mut stream: SharedMemoryStream) -> Result<(), IpcError> {
-        let mut buffer = self.buffer_pool.acquire(8192);
-        let mut conn_metrics = ConnectionMetrics::default();
-        let conn_id = rand::random::<u64>();
+    async fn read_message_static(stream: &mut SharedMemoryStream, buffer: &mut BytesMut) -> Result<Bytes, IpcError> {
+        // Read message header (24 bytes as per canonical spec)
+        let mut header_buf = vec![0u8; HEADER_SIZE];
+        stream.read_exact(&mut header_buf).await?;
         
-        loop {
-            // Ensure buffer has at least 4 bytes
-            if buffer.len() < 4 {
-                buffer.resize(4, 0);
-            }
-            
-            // Read message length (4 bytes)
-            if stream.read_exact(&mut buffer[..4]).await.is_err() {
-                break; // Connection closed
-            }
-            
-            let msg_len = u32::from_le_bytes([
-                buffer[0], buffer[1], buffer[2], buffer[3]
-            ]) as usize;
-            
-            // Validate message size
-            if msg_len > MAX_MESSAGE_SIZE {
-                return Err(IpcError::MessageTooLarge(msg_len));
-            }
-            
-            // Resize buffer to hold the full message
-            buffer.resize(msg_len, 0);
-            
-            // Read message body
-            if stream.read_exact(&mut buffer[..msg_len]).await.is_err() {
-                break;
-            }
-            
-            conn_metrics.bytes_in += msg_len as u64 + 4;
-            
-            // Process message with error recovery
-            let response = match self.process_message(&buffer[..msg_len], &mut conn_metrics).await {
-                Ok(resp) => resp,
-                Err(e) => {
-                    self.handle_error(e, conn_id).await;
-                    continue;
-                }
-            };
-            
-            // Write response
-            let response_len = response.len() as u32;
-            stream.write_all(&response_len.to_le_bytes()).await?;
-            stream.write_all(&response).await?;
-            
-            conn_metrics.bytes_out += response.len() as u64 + 4;
-            
-            // Clear buffer for reuse
-            buffer.clear();
+        // Validate magic (Little-Endian)
+        let magic = u32::from_le_bytes([header_buf[0], header_buf[1], header_buf[2], header_buf[3]]);
+        if magic != MAGIC_HEADER {
+            return Err(IpcError::Protocol(format!("Invalid magic: {}", magic)));
         }
         
-        self.buffer_pool.release(buffer);
+        // Extract version (1 byte at offset 4)
+        let version = header_buf[4];
+        if version != 1 {
+            return Err(IpcError::Protocol(format!("Unsupported version: {}", version)));
+        }
+        
+        // Extract message type (2 bytes at offset 5, Little-Endian)
+        let _msg_type = u16::from_le_bytes([header_buf[5], header_buf[6]]);
+        
+        // Extract flags (1 byte at offset 7)
+        let _flags = header_buf[7];
+        
+        // Extract payload length (4 bytes at offset 20, Little-Endian)
+        let payload_len = u32::from_le_bytes([header_buf[20], header_buf[21], header_buf[22], header_buf[23]]) as usize;
+        
+        if payload_len > MAX_MESSAGE_SIZE {
+            return Err(IpcError::Protocol(format!("Message too large: {}", payload_len)));
+        }
+        
+        // Read payload
+        buffer.resize(payload_len, 0);
+        stream.read_exact(&mut buffer[..payload_len]).await?;
+        
+        Ok(buffer.split_to(payload_len).freeze())
+    }
+    
+    async fn process_message_static(
+        stream: &mut SharedMemoryStream,
+        mut codec: BinaryCodec,
+        handlers: Arc<DashMap<MessageType, Handler>>,
+        metrics: Arc<Metrics>,
+        data: Bytes,
+    ) -> Result<(), IpcError> {
+        let start = std::time::Instant::now();
+        
+        // Decode the message
+        let message = codec.decode(&data)?;
+        let msg_type = message.msg_type();
+        
+        // Look up handler
+        if let Some(handler) = handlers.get(&msg_type) {
+            let response_future = handler(data.clone());
+            let response_bytes = response_future.await?;
+            let response = codec.decode(&response_bytes)?;
+            
+            // Encode and send response
+            let response_data = codec.encode(&response)?;
+            
+            // Write response header
+            let mut header = vec![0u8; HEADER_SIZE];
+            header[0..4].copy_from_slice(&MAGIC_HEADER.to_le_bytes());
+            header[4] = 1; // version
+            header[5..7].copy_from_slice(&(response.msg_type() as u16).to_le_bytes());
+            header[7] = 0; // flags
+            header[20..24].copy_from_slice(&(response_data.len() as u32).to_le_bytes());
+            
+            stream.write_all(&header).await?;
+            stream.write_all(&response_data).await?;
+            stream.flush().await?;
+        }
+        
+        // Update metrics
+        metrics.update_latency(start.elapsed());
+        
         Ok(())
     }
     
-    /// Process a single message
-    async fn process_message(&self, data: &[u8], metrics: &mut ConnectionMetrics) -> Result<Bytes, IpcError> {
-        // Check circuit breaker state
-        if !self.circuit_breaker.is_allowed() {
-            return Err(IpcError::Anyhow(anyhow::anyhow!("Circuit breaker open - too many failures")));
-        }
+    /// Handle a single connection using canonical 24-byte header
+    async fn handle_connection(&self, mut stream: SharedMemoryStream) -> Result<(), IpcError> {
+        let mut buffer = BytesMut::with_capacity(8192);
+        let codec = BinaryCodec::new();
+        let conn_id = rand::random::<u64>();
+        let mut shutdown_rx = self.shutdown.subscribe();
         
-        let start = Instant::now();
-        
-        // Parse message type
-        let msg_type = MessageType::from_bytes(&data[..4]).map_err(|_| IpcError::HandlerPanic)?;
-        
-        // Get handler
-        let handler = self.handlers
-            .get(&msg_type)
-            .ok_or(IpcError::UnknownMessageType(msg_type))?;
-        
-        // Execute handler with zero-copy data - use Bytes::from_static or slice reference
-        // Convert Vec to Bytes without copy
-        let payload = if data.len() > 4 {
-            Bytes::copy_from_slice(&data[4..])
-        } else {
-            Bytes::new()
-        };
-        let future = handler.value()(payload);
-        
-        // Process with circuit breaker monitoring
-        match Box::pin(future).await {
-            Ok(response) => {
-                // Record success to circuit breaker
-                self.circuit_breaker.record_success();
-                
-                // Update metrics
-                let elapsed = start.elapsed();
-                metrics.requests += 1;
-                metrics.total_time += elapsed;
-                self.metrics.record(msg_type, elapsed);
-                
-                Ok(response)
-            }
-            Err(e) => {
-                // Record failure to circuit breaker
-                self.circuit_breaker.record_failure();
-                
-                // Return error
-                Err(e)
+        loop {
+            tokio::select! {
+                _ = shutdown_rx.recv() => {
+                    tracing::info!("Connection {} shutting down", conn_id);
+                    return Ok(());
+                }
+                result = Self::read_message_static(&mut stream, &mut buffer) => {
+                    match result {
+                        Ok(data) => {
+                            if let Err(e) = Self::process_message_static(
+                                &mut stream, 
+                                codec.clone(), 
+                                self.handlers.clone(), 
+                                self.metrics.clone(), 
+                                data
+                            ).await {
+                                tracing::error!("Error processing message: {}", e);
+                                self.handle_error(e, conn_id).await;
+                            }
+                        }
+                        Err(e) => {
+                            tracing::error!("Error reading message: {}", e);
+                            return Err(e);
+                        }
+                    }
+                }
             }
         }
     }
+    
+    // Removed duplicate process_message - now using unified process_message_static with canonical header
     
     pub fn metrics(&self) -> Arc<Metrics> {
         self.metrics.clone()
@@ -623,24 +682,25 @@ impl Drop for IpcServer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::Path;
     
     #[tokio::test]
     async fn test_server_creation() {
         let server = IpcServer::new("/tmp/test_ipc.sock").await.unwrap();
-        assert!(Path::new("/tmp/test_ipc.sock").exists());
+        assert!(std::path::Path::new("/tmp/test_ipc.sock").exists());
         drop(server);
-        assert!(!Path::new("/tmp/test_ipc.sock").exists());
+        assert!(!std::path::Path::new("/tmp/test_ipc.sock").exists());
     }
     
     #[tokio::test]
     async fn test_handler_registration() {
         let server = IpcServer::new("/tmp/test_ipc2.sock").await.unwrap();
         
-        server.register_handler(MessageType::Echo, |data| async move {
+        server.register_handler(MessageType::Heartbeat, |data| async move {
             Ok(data)
         });
         
-        assert!(server.handlers.contains_key(&MessageType::Echo));
+        assert!(server.handlers.contains_key(&MessageType::Heartbeat));
     }
     
     #[tokio::test]
@@ -664,8 +724,8 @@ mod tests {
     async fn test_metrics() {
         let metrics = Metrics::new();
         
-        metrics.record(MessageType::Echo, Duration::from_micros(500));
-        metrics.record(MessageType::Complete, Duration::from_micros(5000));
+        metrics.record(MessageType::Heartbeat, Duration::from_micros(500));
+        metrics.record(MessageType::CompletionResponse, Duration::from_micros(5000));
         
         let prometheus = metrics.export_prometheus();
         assert!(prometheus.contains("ipc_requests_total 2"));

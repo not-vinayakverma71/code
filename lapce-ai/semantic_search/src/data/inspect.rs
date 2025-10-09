@@ -144,16 +144,15 @@ mod tests {
                     Some(vec![Some(2.0_f64), Some(3.0_f64)]),
                     Some(vec![Some(4.0_f64), Some(5.0_f64), Some(6.0_f64)]),
                 ])),
-                Arc::new(
-                    FixedSizeListArray::from_iter_primitive::<Float32Type, _, _>(
-                        vec![
-                            Some(vec![Some(1.0); 32]),
-                            Some(vec![Some(2.0); 32]),
-                            Some(vec![Some(3.0); 32]),
-                        ],
+                Arc::new({
+                    let flat_values: Vec<f32> = vec![1.0; 32 * 3];
+                    FixedSizeListArray::new(
+                        Arc::new(Field::new("item", DataType::Float32, true)),
                         32,
-                    ),
-                ),
+                        Arc::new(Float32Array::from(flat_values)),
+                        None,
+                    )
+                }),
             ],
         )
         .unwrap();

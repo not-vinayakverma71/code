@@ -4,8 +4,9 @@
 
 use crate::error::{Error, Result};
 use crate::processors::parser::CodeParser;
+use crate::processors::cst_to_ast_pipeline::{CstToAstPipeline, PipelineOutput};
 use crate::search::semantic_search_engine::{SemanticSearchEngine, ChunkMetadata, IndexStats};
-use std::collections::VecDeque;
+use std::collections::{VecDeque, HashMap};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -16,8 +17,10 @@ use walkdir::WalkDir;
 pub struct CodeIndexer {
     search_engine: Arc<SemanticSearchEngine>,
     parser: Arc<CodeParser>,
+    cst_pipeline: Arc<CstToAstPipeline>,
     batch_size: usize,
     index_queue: Arc<Mutex<VecDeque<IndexTask>>>,
+    use_cst: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -39,8 +42,10 @@ impl CodeIndexer {
         Self {
             search_engine,
             parser: Arc::new(CodeParser::new()),
+            cst_pipeline: Arc::new(CstToAstPipeline::new()),
             batch_size: 100,
             index_queue: Arc::new(Mutex::new(VecDeque::new())),
+            use_cst: true, // Enable CST by default
         }
     }
     
@@ -122,8 +127,12 @@ impl CodeIndexer {
         let mut metadata = Vec::new();
         
         for file in files {
-            // Parse code chunks
-            let chunks = self.parse_file(file).await?;
+            // Parse code chunks using CST pipeline if enabled
+            let chunks = if self.use_cst {
+                self.parse_file_with_cst(file).await?
+            } else {
+                self.parse_file(file).await?
+            };
             
             for chunk in chunks {
                 // Generate embedding using the search engine's embedder
@@ -147,24 +156,56 @@ impl CodeIndexer {
         }
     }
     
-    /// Parse file into chunks
-    async fn parse_file(&self, file: &Path) -> Result<Vec<ChunkMetadata>> {
+    /// Parse file with CST pipeline - SEM-004
+    async fn parse_file_with_cst(&self, path: &Path) -> Result<Vec<ChunkMetadata>> {
+        let output = self.cst_pipeline.process_file(path).await?;
+        
+        // Extract semantic chunks from AST
+        self.extract_chunks_from_ast(&output.ast)
+    }
+    
+    /// Extract chunks from AST
+    fn extract_chunks_from_ast(&self, ast: &crate::processors::cst_to_ast_pipeline::AstNode) -> Result<Vec<ChunkMetadata>> {
+        let mut chunks = Vec::new();
+        
+        // Extract function/class definitions as chunks
+        chunks.push(ChunkMetadata {
+            path: PathBuf::from(ast.metadata.source_file.as_ref().unwrap_or(&PathBuf::from(""))),
+            content: ast.text.clone(),
+            start_line: ast.metadata.start_line as i32,
+            end_line: ast.metadata.end_line as i32,
+            language: Some(ast.metadata.language.clone()),
+            metadata: HashMap::new(),
+        });
+        
+        // Recursively extract from children
+        for child in &ast.children {
+            if let Ok(child_chunks) = self.extract_chunks_from_ast(child) {
+                chunks.extend(child_chunks);
+            }
+        }
+        
+        Ok(chunks)
+    }
+    
+    /// Parse file into chunks (fallback method)
+    async fn parse_file(&self, path: &Path) -> Result<Vec<ChunkMetadata>> {
         // Read file content
-        let content = tokio::fs::read_to_string(file).await.map_err(|e| Error::Runtime {
-            message: format!("Failed to read file {}: {}", file.display(), e)
+        let content = tokio::fs::read_to_string(path).await.map_err(|e| Error::Runtime {
+            message: format!("Failed to read file {}: {}", path.display(), e)
         })?;
         
         // Use the parser to get code blocks
-        let blocks = self.parser.parse_file(file, Some(&content), None).await?;
+        let blocks = self.parser.parse_file(path, Some(&content), None).await?;
         
         // Convert to ChunkMetadata
         let chunks = blocks.into_iter().map(|block| {
             ChunkMetadata {
-                path: file.to_path_buf(),
+                path: path.to_path_buf(),
                 content: block.content,
                 start_line: block.start_line,
                 end_line: block.end_line,
-                language: detect_language(file),
+                language: detect_language(path),
                 metadata: std::collections::HashMap::new(),
             }
         }).collect();

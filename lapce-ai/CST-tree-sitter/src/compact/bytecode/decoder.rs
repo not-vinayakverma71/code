@@ -17,6 +17,7 @@ pub struct DecodedNode {
     pub end_byte: usize,
     pub children: Vec<usize>,
     pub parent: Option<usize>,
+    pub stable_id: u64,  // Added stable ID for tracking across edits
 }
 
 /// Bytecode decoder
@@ -41,21 +42,34 @@ impl BytecodeDecoder {
     
     /// Decode bytecode stream to nodes
     pub fn decode(&mut self, stream: &BytecodeStream) -> Result<Vec<DecodedNode>, String> {
+        use std::time::Instant;
+        let start = Instant::now();
+        
         let mut reader = BytecodeReader::new(&stream.bytes);
+        let mut node_index = 0usize;
         
         while !reader.is_at_end() {
             let op = reader.read_op()
                 .ok_or_else(|| "Failed to read opcode".to_string())?;
             
             match op {
-                Opcode::Enter => self.handle_enter(&mut reader, stream)?,
+                Opcode::Enter => {
+                    self.handle_enter(&mut reader, stream, &mut node_index)?;
+                }
                 Opcode::Exit => self.handle_exit()?,
-                Opcode::Leaf => self.handle_leaf(&mut reader, stream)?,
+                Opcode::Leaf => {
+                    self.handle_leaf(&mut reader, stream, &mut node_index)?;
+                }
                 Opcode::SetPos => self.handle_set_pos(&mut reader)?,
                 Opcode::DeltaPos => self.handle_delta_pos(&mut reader)?,
+                Opcode::Length => {
+                    // Length should be handled within Enter/Leaf handlers.
+                    // If we see it at top-level, consume its varint to stay in sync.
+                    let _ = reader.read_varint();
+                }
                 Opcode::Field => self.handle_field(&mut reader)?,
                 Opcode::NoField => self.handle_no_field()?,
-                Opcode::RepeatLast => self.handle_repeat(&mut reader, stream)?,
+                Opcode::RepeatLast => self.handle_repeat(&mut reader, stream, &mut node_index)?,
                 Opcode::Skip => self.handle_skip(&mut reader)?,
                 Opcode::Checkpoint => self.handle_checkpoint(&mut reader)?,
                 Opcode::End => break,
@@ -85,17 +99,22 @@ impl BytecodeDecoder {
             return Err(format!("Unclosed nodes: {} remaining", self.node_stack.len()));
         }
         
+        // Record metrics
+        let duration = start.elapsed();
+        crate::DECODE_DURATION.observe(duration.as_secs_f64());
+        crate::NODES_DECODED.inc_by(self.nodes.len() as u64);
+        
         Ok(std::mem::take(&mut self.nodes))
     }
     
     /// Handle Enter opcode
-    fn handle_enter(&mut self, reader: &mut BytecodeReader, stream: &BytecodeStream) -> Result<(), String> {
+    fn handle_enter(&mut self, reader: &mut BytecodeReader, stream: &BytecodeStream, node_index: &mut usize) -> Result<(), String> {
         let kind_id = reader.read_varint()
             .ok_or("Failed to read kind_id")? as u16;
         let flags_byte = reader.read_byte()
             .ok_or("Failed to read flags")?;
         
-        let flags = NodeFlags::from_byte(flags_byte);
+        let _flags = NodeFlags::from_byte(flags_byte);
         let kind_name = stream.kind_names.get(kind_id as usize)
             .ok_or_else(|| format!("Invalid kind_id: {}", kind_id))?
             .clone();
@@ -109,8 +128,53 @@ impl BytecodeDecoder {
         } else {
             None
         };
+
+        // Optional inline position opcode (SetPos/DeltaPos) after flags
+        if reader.pos < reader.bytes.len() {
+            if let Some(next_op) = Opcode::from_byte(reader.bytes[reader.pos]) {
+                match next_op {
+                    Opcode::SetPos => {
+                        // consume opcode and apply position
+                        reader.read_op();
+                        self.handle_set_pos(reader)?;
+                    }
+                    Opcode::DeltaPos => {
+                        reader.read_op();
+                        self.handle_delta_pos(reader)?;
+                    }
+                    _ => {}
+                }
+            }
+        }
+        // Expect explicit Length opcode then span length varint, or legacy inline varint
+        if reader.pos < reader.bytes.len() {
+            if let Some(next_op) = Opcode::from_byte(reader.bytes[reader.pos]) {
+                if next_op == Opcode::Length {
+                    reader.read_op();
+                    let _span_len = reader.read_varint().ok_or("Failed to read length")? as usize;
+                    let _ = _span_len;
+                } else {
+                    // Legacy: next data is varint length
+                    let _span_len = reader.read_varint().ok_or("Failed to read length")? as usize;
+                    let _ = _span_len;
+                }
+            } else {
+                // Treat as legacy varint
+                let _span_len = reader.read_varint().ok_or("Failed to read length")? as usize;
+                let _ = _span_len;
+            }
+        }
         
-        let node_idx = self.nodes.len();
+        // Get stable ID from stream
+        let stable_id = if *node_index < stream.stable_ids.len() {
+            stream.stable_ids[*node_index]
+        } else {
+            // Fallback if no stable ID available
+            (*node_index as u64) + 1
+        };
+        *node_index += 1;
+        
+        let _node_idx = self.nodes.len();
         self.nodes.push(DecodedNode {
             kind_name,
             kind_id,
@@ -123,6 +187,7 @@ impl BytecodeDecoder {
             end_byte: 0, // Will be set on exit
             children: Vec::new(),
             parent: self.node_stack.last().cloned(),
+            stable_id,
         });
         
         // Add to parent's children
@@ -138,7 +203,7 @@ impl BytecodeDecoder {
     
     /// Handle Exit opcode
     fn handle_exit(&mut self) -> Result<(), String> {
-        let node_idx = self.node_stack.pop()
+        let _node_idx = self.node_stack.pop()
             .ok_or("Exit without matching Enter")?;
         
         self.nodes[node_idx].end_byte = self.current_position;
@@ -147,15 +212,46 @@ impl BytecodeDecoder {
     }
     
     /// Handle Leaf opcode
-    fn handle_leaf(&mut self, reader: &mut BytecodeReader, stream: &BytecodeStream) -> Result<(), String> {
+    fn handle_leaf(&mut self, reader: &mut BytecodeReader, stream: &BytecodeStream, node_index: &mut usize) -> Result<(), String> {
         let kind_id = reader.read_varint()
             .ok_or("Failed to read kind_id")? as u16;
         let flags_byte = reader.read_byte()
             .ok_or("Failed to read flags")?;
-        let length = reader.read_varint()
-            .ok_or("Failed to read length")? as usize;
+
+        // Optional inline position opcode (SetPos/DeltaPos) after flags
+        if reader.pos < reader.bytes.len() {
+            if let Some(next_op) = Opcode::from_byte(reader.bytes[reader.pos]) {
+                match next_op {
+                    Opcode::SetPos => {
+                        reader.read_op();
+                        self.handle_set_pos(reader)?;
+                    }
+                    Opcode::DeltaPos => {
+                        reader.read_op();
+                        self.handle_delta_pos(reader)?;
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        // Expect explicit Length opcode then length varint, or legacy inline varint
+        let _length = if reader.pos < reader.bytes.len() {
+            if let Some(next_op) = Opcode::from_byte(reader.bytes[reader.pos]) {
+                if next_op == Opcode::Length {
+                    reader.read_op();
+                    reader.read_varint().ok_or("Failed to read length")? as usize
+                } else {
+                    reader.read_varint().ok_or("Failed to read length")? as usize
+                }
+            } else {
+                reader.read_varint().ok_or("Failed to read length")? as usize
+            }
+        } else {
+            return Err("Unexpected end while reading length".to_string());
+        };
         
-        let flags = NodeFlags::from_byte(flags_byte);
+        let _flags = NodeFlags::from_byte(flags_byte);
         let kind_name = stream.kind_names.get(kind_id as usize)
             .ok_or_else(|| format!("Invalid kind_id: {}", kind_id))?
             .clone();
@@ -170,7 +266,16 @@ impl BytecodeDecoder {
             None
         };
         
-        let node_idx = self.nodes.len();
+        // Get stable ID from stream
+        let stable_id = if *node_index < stream.stable_ids.len() {
+            stream.stable_ids[*node_index]
+        } else {
+            // Fallback if no stable ID available
+            (*node_index as u64) + 1
+        };
+        *node_index += 1;
+        
+        let _node_idx = self.nodes.len();
         self.nodes.push(DecodedNode {
             kind_name,
             kind_id,
@@ -183,6 +288,7 @@ impl BytecodeDecoder {
             end_byte: self.current_position + length,
             children: Vec::new(),
             parent: self.node_stack.last().cloned(),
+            stable_id,
         });
         
         // Add to parent's children
@@ -231,8 +337,8 @@ impl BytecodeDecoder {
     }
     
     /// Handle RepeatLast opcode
-    fn handle_repeat(&mut self, reader: &mut BytecodeReader, stream: &BytecodeStream) -> Result<(), String> {
-        let length = reader.read_varint()
+    fn handle_repeat(&mut self, reader: &mut BytecodeReader, stream: &BytecodeStream, node_index: &mut usize) -> Result<(), String> {
+        let _length = reader.read_varint()
             .ok_or("Failed to read length")? as usize;
         
         let kind_id = self.last_kind
@@ -244,7 +350,15 @@ impl BytecodeDecoder {
                 .ok_or_else(|| format!("Invalid kind_id: {}", kind_id))?
                 .clone();
             
-            let node_idx = self.nodes.len();
+            // Get stable ID from stream
+            let stable_id = if *node_index < stream.stable_ids.len() {
+                stream.stable_ids[*node_index]
+            } else {
+                (*node_index as u64) + 1
+            };
+            *node_index += 1;
+            
+            let _node_idx = self.nodes.len();
             self.nodes.push(DecodedNode {
                 kind_name,
                 kind_id,
@@ -257,6 +371,7 @@ impl BytecodeDecoder {
                 end_byte: 0,
                 children: Vec::new(),
                 parent: self.node_stack.last().cloned(),
+                stable_id,
             });
             
             if let Some(parent_idx) = self.node_stack.last() {
@@ -270,7 +385,15 @@ impl BytecodeDecoder {
                 .ok_or_else(|| format!("Invalid kind_id: {}", kind_id))?
                 .clone();
             
-            let node_idx = self.nodes.len();
+            // Get stable ID from stream
+            let stable_id = if *node_index < stream.stable_ids.len() {
+                stream.stable_ids[*node_index]
+            } else {
+                (*node_index as u64) + 1
+            };
+            *node_index += 1;
+            
+            let _node_idx = self.nodes.len();
             self.nodes.push(DecodedNode {
                 kind_name,
                 kind_id,
@@ -283,6 +406,7 @@ impl BytecodeDecoder {
                 end_byte: self.current_position + length,
                 children: Vec::new(),
                 parent: self.node_stack.last().cloned(),
+                stable_id,
             });
             
             if let Some(parent_idx) = self.node_stack.last() {
@@ -297,7 +421,7 @@ impl BytecodeDecoder {
     
     /// Handle Skip opcode
     fn handle_skip(&mut self, reader: &mut BytecodeReader) -> Result<(), String> {
-        let count = reader.read_varint()
+        let _count = reader.read_varint()
             .ok_or("Failed to read skip count")? as usize;
         self.current_position += count;
         Ok(())

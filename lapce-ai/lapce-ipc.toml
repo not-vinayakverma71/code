@@ -29,20 +29,28 @@ enable_zero_copy = true
 batch_size = 100
 
 [security]
-# Enable authentication (not implemented yet)
+# Enable authentication
 enable_authentication = false
-# Enable encryption (not implemented yet)
+# Authentication token (set via environment variable LAPCE_AUTH_TOKEN in production)
+auth_token = ""
+# Enable encryption
 enable_encryption = false
+# IP allowlist (empty = allow all)
+ip_allowlist = []
 # Maximum request rate per client per second
 max_request_rate = 1000
 # Ban duration in seconds for rate limit violations
 ban_duration_seconds = 300
 # List of allowed RPC methods
-allowed_methods = ["echo", "ping", "api", "stream", "health", "metrics"]
+allowed_methods = ["echo", "ping", "api", "stream", "health", "metrics", "completion", "ask", "edit", "chat"]
 # Enable audit logging for security events
 enable_audit_log = true
 # Maximum failed authentication attempts before ban
 max_failed_attempts = 5
+# Enable request validation
+enable_request_validation = true
+# Maximum payload size for validation (bytes)
+max_validation_size = 10485760
 
 [monitoring]
 # Enable metrics collection

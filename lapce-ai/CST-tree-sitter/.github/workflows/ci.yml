@@ -81,6 +81,24 @@ jobs:
         
       - name: Run doc tests
         run: cargo test --doc --verbose
+        
+      - name: Run cross-platform determinism tests
+        run: cargo test --test cross_platform_determinism --verbose
+      
+      - name: Run crash recovery tests
+        run: cargo test --test crash_recovery --verbose
+      
+      - name: Check code coverage (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cargo install cargo-tarpaulin
+          cargo tarpaulin --out Xml --output-dir coverage
+      
+      - name: Run cargo-deny checks
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cargo install cargo-deny
+          cargo deny check
 
   # Test with all language features (nightly job)
   test-all-langs:
@@ -100,6 +118,11 @@ jobs:
         
       - name: Test with all languages
         run: cargo test --test lang_smoke --features all-langs
+      
+      - name: Run performance benchmarks with SLO check
+        run: |
+          OUTPUT_JSON=1 cargo run --release --bin benchmark_performance
+          echo "Performance benchmarks passed SLO checks"
 
   # Build binaries to ensure they compile
   build-bins:

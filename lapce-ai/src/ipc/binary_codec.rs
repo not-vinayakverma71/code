@@ -1,8 +1,3 @@
-/// Binary Protocol Implementation with rkyv
-/// Zero-copy serialization for high-performance IPC
-/// Implements the protocol from docs/02-BINARY-PROTOCOL-DESIGN.md
-
-use std::sync::Arc;
 use anyhow::{Result, bail};
 use bytes::{Bytes, BytesMut, BufMut};
 use rkyv::{Archive, Deserialize, Serialize, AlignedVec};
@@ -12,7 +7,8 @@ use tokio_util::codec::{Encoder, Decoder};
 pub const MAGIC_BYTES: &[u8] = b"LAPC";
 pub const MAGIC_HEADER: u32 = 0x4C415043;  // "LAPC" in hex
 pub const PROTOCOL_VERSION: u8 = 1;
-pub const MIN_HEADER_SIZE: usize = 16;  // 4 (magic) + 1 (version) + 1 (flags) + 2 (type) + 4 (length) + 4 (checksum)
+pub const HEADER_SIZE: usize = 24;  // 4 (magic) + 1 (version) + 1 (flags) + 2 (type) + 4 (length) + 8 (id) + 4 (crc32)
+pub const MIN_HEADER_SIZE: usize = HEADER_SIZE;  // Compatibility alias
 pub const MAX_MESSAGE_SIZE: usize = 10 * 1024 * 1024;  // 10MB max
 
 // Flags
@@ -24,7 +20,8 @@ pub const FLAG_PRIORITY: u8 = 0x08;
 const COMPRESSION_THRESHOLD: usize = 1024;  // Compress messages > 1KB
 
 /// Message types matching Codex protocol
-#[derive(Archive, Deserialize, Serialize, Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Archive, Serialize, Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 #[archive(check_bytes)]
 #[repr(u16)]
 pub enum MessageType {
@@ -75,38 +72,44 @@ impl TryFrom<u16> for MessageType {
     }
 }
 
-/// Binary message envelope structure
-#[repr(C)]
+/// Binary message envelope structure (24 bytes)
+#[repr(C, packed)]
 pub struct MessageEnvelope {
-    pub magic: u32,
-    pub version: u8,
-    pub flags: u8,
-    pub msg_type: u16,
-    pub length: u32,
-    pub checksum: u32,
+    pub magic: u32,      // 0-3: Magic number "LAPC" (LE)
+    pub version: u8,     // 4: Protocol version
+    pub flags: u8,       // 5: Bit flags
+    pub msg_type: u16,   // 6-7: Message type (LE)
+    pub length: u32,     // 8-11: Payload length (LE)
+    pub msg_id: u64,     // 12-19: Message ID (LE)
+    pub crc32: u32,      // 20-23: CRC32 checksum (LE)
 }
 
 impl MessageEnvelope {
-    pub fn new(msg_type: MessageType, length: u32, flags: u8) -> Self {
+    pub fn new(msg_type: MessageType, length: u32, flags: u8, msg_id: u64) -> Self {
         Self {
             magic: MAGIC_HEADER,
             version: PROTOCOL_VERSION,
             flags,
             msg_type: msg_type as u16,
             length,
-            checksum: 0,  // Will be calculated after payload is added
+            msg_id,
+            crc32: 0,  // Will be calculated after full message is built
         }
     }
     
     pub fn validate(&self) -> Result<()> {
-        if self.magic != MAGIC_HEADER {
-            bail!("Invalid magic header: {:#x}", self.magic);
+        let magic = self.magic;
+        let version = self.version;
+        let length = self.length;
+        
+        if magic != MAGIC_HEADER {
+            bail!("Invalid magic header: {:#x}", magic);
         }
-        if self.version != PROTOCOL_VERSION {
-            bail!("Unsupported protocol version: {}", self.version);
+        if version != PROTOCOL_VERSION {
+            bail!("Unsupported protocol version: {}", version);
         }
-        if self.length as usize > MAX_MESSAGE_SIZE {
-            bail!("Message too large: {} bytes", self.length);
+        if length as usize > MAX_MESSAGE_SIZE {
+            bail!("Message too large: {} bytes", length);
         }
         Ok(())
     }
@@ -120,6 +123,12 @@ pub struct Message {
     pub msg_type: MessageType,
     pub payload: MessagePayload,
     pub timestamp: u64,
+}
+
+impl Message {
+    pub fn msg_type(&self) -> MessageType {
+        self.msg_type
+    }
 }
 
 /// Message payloads matching Codex TypeScript types
@@ -288,8 +297,12 @@ impl BinaryCodec {
         #[cfg(feature = "compression")]
         let (compressor, decompressor) = if enable {
             (
-                Some(Arc::new(zstd::bulk::Compressor::new(3).unwrap())),
-                Some(Arc::new(zstd::bulk::Decompressor::new().unwrap())),
+                Some(Arc::new(zstd::bulk::Compressor::new(3)
+                    .map_err(|e| anyhow::anyhow!("Failed to create compressor: {}", e))
+                    .ok()?)),
+                Some(Arc::new(zstd::bulk::Decompressor::new()
+                    .map_err(|e| anyhow::anyhow!("Failed to create decompressor: {}", e))
+                    .ok()?)),
             )
         } else {
             (None, None)
@@ -314,8 +327,8 @@ impl BinaryCodec {
         self.encode_buffer.clear();
         self.aligned_buffer.clear();
         
-        // Serialize payload with rkyv (zero-copy)
-        let archived = rkyv::to_bytes::<_, 256>(&msg.payload)
+        // Serialize the full message (including timestamp) with rkyv
+        let archived = rkyv::to_bytes::<_, 256>(msg)
             .map_err(|e| anyhow::anyhow!("Serialization failed: {}", e))?;
         
         let payload_bytes = archived.as_slice();
@@ -327,97 +340,139 @@ impl BinaryCodec {
         }
         
         // Determine if compression needed
-        let should_compress = self.enable_compression && payload_len > COMPRESSION_THRESHOLD;
-        let flags = if should_compress { FLAG_COMPRESSED } else { 0 };
+        let should_compress = self.enable_compression && payload_len > self.compression_threshold;
+        let flags = 0u8;
         
-        // Create envelope
-        let envelope = MessageEnvelope::new(msg.msg_type, payload_len as u32, flags);
+        let final_payload = if should_compress {
+            #[cfg(feature = "compression")]
+            {
+                if let Some(ref compressor) = self.compressor {
+                    let compressed = compressor.compress(payload_bytes)
+                        .map_err(|e| anyhow::anyhow!("Compression failed: {}", e))?;
+                    payload_len = compressed.len();
+                    flags |= FLAG_COMPRESSED;
+                    let timestamp = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_else(|_| std::time::Duration::from_secs(0))
+                        .as_secs();
+                    Bytes::from(compressed)
+                } else {
+                    Bytes::copy_from_slice(payload_bytes)
+                }
+            }
+            #[cfg(not(feature = "compression"))]
+            Bytes::copy_from_slice(payload_bytes)
+        } else {
+            Bytes::copy_from_slice(payload_bytes)
+        };
         
-        // Write envelope (16 bytes)
-        self.encode_buffer.put_u32(envelope.magic);
-        self.encode_buffer.put_u8(envelope.version);
-        self.encode_buffer.put_u8(envelope.flags);
-        self.encode_buffer.put_u16(envelope.msg_type);
-        self.encode_buffer.put_u32(envelope.length);
+        // Write header (24 bytes) - all Little-Endian as per spec
+        self.encode_buffer.put_u32_le(MAGIC_HEADER);
+        self.encode_buffer.put_u8(PROTOCOL_VERSION);
+        self.encode_buffer.put_u8(flags);
+        self.encode_buffer.put_u16_le(msg.msg_type as u16);
+        self.encode_buffer.put_u32_le(payload_len as u32);
+        self.encode_buffer.put_u64_le(msg.id);
         
-        // Calculate simple checksum (sum of bytes for now, CRC32 can be added later)
-        let checksum = payload_bytes.iter().fold(0u32, |acc, &b| acc.wrapping_add(b as u32));
-        self.encode_buffer.put_u32(checksum);
+        // Reserve space for CRC32
+        let crc_offset = self.encode_buffer.len();
+        self.encode_buffer.put_u32_le(0);
         
         // Write payload
-        self.encode_buffer.extend_from_slice(payload_bytes);
+        self.encode_buffer.extend_from_slice(&final_payload);
+        
+        // Calculate CRC32 over entire message (header with crc=0 + payload)
+        let crc = crc32fast::hash(&self.encode_buffer[..]);
+        
+        // Write CRC32 at reserved position
+        self.encode_buffer[crc_offset..crc_offset+4].copy_from_slice(&crc.to_le_bytes());
         
         Ok(self.encode_buffer.clone().freeze())
     }
     
     /// Decode a message with zero-copy deserialization
     pub fn decode(&mut self, data: &[u8]) -> Result<Message> {
-        if data.len() < MIN_HEADER_SIZE {
-            bail!("Message too small: {} bytes", data.len());
+        if data.len() < HEADER_SIZE {
+            bail!("Message too small: {} bytes, need at least {}", data.len(), HEADER_SIZE);
         }
         
-        // Read envelope
-        let mut cursor = 0;
-        let magic = u32::from_be_bytes([data[0], data[1], data[2], data[3]]);
-        cursor += 4;
+        // Read header - all Little-Endian as per spec
+        let magic = u32::from_le_bytes([data[0], data[1], data[2], data[3]]);
+        let version = data[4];
+        let flags = data[5];
+        let msg_type_raw = u16::from_le_bytes([data[6], data[7]]);
+        let length = u32::from_le_bytes([data[8], data[9], data[10], data[11]]);
+        let msg_id = u64::from_le_bytes([
+            data[12], data[13], data[14], data[15],
+            data[16], data[17], data[18], data[19]
+        ]);
+        let crc32_received = u32::from_le_bytes([data[20], data[21], data[22], data[23]]);
         
-        let version = data[cursor];
-        cursor += 1;
+        // Validate magic and version
+        if magic != MAGIC_HEADER {
+            bail!("Invalid magic header: {:#x}, expected {:#x}", magic, MAGIC_HEADER);
+        }
+        if version != PROTOCOL_VERSION {
+            bail!("Unsupported protocol version: {}, expected {}", version, PROTOCOL_VERSION);
+        }
         
-        let flags = data[cursor];
-        cursor += 1;
+        // Check message size
+        if length as usize > self.max_message_size {
+            bail!("Message too large: {} bytes, max {}", length, self.max_message_size);
+        }
         
-        let msg_type_raw = u16::from_be_bytes([data[cursor], data[cursor + 1]]);
-        cursor += 2;
+        // Verify we have full message
+        let total_size = HEADER_SIZE + length as usize;
+        if data.len() < total_size {
+            bail!("Incomplete message: expected {} bytes, got {}", total_size, data.len());
+        }
         
-        let length = u32::from_be_bytes([data[cursor], data[cursor + 1], data[cursor + 2], data[cursor + 3]]);
-        cursor += 4;
-        
-        let checksum = u32::from_be_bytes([data[cursor], data[cursor + 1], data[cursor + 2], data[cursor + 3]]);
-        cursor += 4;
-        
-        // Validate envelope
-        let envelope = MessageEnvelope {
-            magic,
-            version,
-            flags,
-            msg_type: msg_type_raw,
-            length,
-            checksum,
-        };
-        envelope.validate()?;
-        
-        // Verify we have full payload
-        let payload_end = cursor + length as usize;
-        if data.len() < payload_end {
-            bail!("Incomplete message: expected {} bytes, got {}", payload_end, data.len());
+        // Verify CRC32 (calculate with crc field set to 0)
+        let mut check_data = data[..total_size].to_vec();
+        check_data[20..24].fill(0);  // Zero out CRC field for calculation
+        let calculated_crc = crc32fast::hash(&check_data);
+        if calculated_crc != crc32_received {
+            bail!("CRC32 mismatch: expected {:#x}, got {:#x}", crc32_received, calculated_crc);
         }
         
         // Get payload slice
-        let payload_bytes = &data[cursor..payload_end];
+        let payload_bytes = &data[HEADER_SIZE..total_size];
         
-        // Verify checksum
-        let calculated_checksum = payload_bytes.iter().fold(0u32, |acc, &b| acc.wrapping_add(b as u32));
-        if calculated_checksum != checksum {
-            bail!("Checksum mismatch: expected {:#x}, got {:#x}", checksum, calculated_checksum);
-        }
+        // Decompress if needed
+        let decompressed_payload = if (flags & FLAG_COMPRESSED) != 0 {
+            #[cfg(feature = "compression")]
+            {
+                if let Some(ref decompressor) = self.decompressor {
+                    Bytes::from(decompressor.decompress(payload_bytes, self.max_message_size)
+                        .map_err(|e| anyhow::anyhow!("Decompression failed: {}", e))?)
+                } else {
+                    bail!("Message is compressed but decompressor not available");
+                }
+            }
+            #[cfg(not(feature = "compression"))]
+            bail!("Message is compressed but compression feature not enabled")
+        } else {
+            Bytes::copy_from_slice(payload_bytes)
+        };
         
-        // Deserialize payload (zero-copy with rkyv)
-        let msg_type = MessageType::try_from(msg_type_raw)?;
-        let archived = rkyv::check_archived_root::<MessagePayload>(payload_bytes)
-            .map_err(|e| anyhow::anyhow!("Deserialization failed: {}", e))?;
-        let payload: MessagePayload = archived.deserialize(&mut rkyv::Infallible)
+        // Deserialize full message (zero-copy with rkyv)
+        let archived = rkyv::check_archived_root::<Message>(&decompressed_payload)
+            .map_err(|e| anyhow::anyhow!("Archive validation failed: {}", e))?;
+        let message: Message = archived.deserialize(&mut rkyv::Infallible)
             .map_err(|e| anyhow::anyhow!("Deserialization failed: {:?}", e))?;
         
-        Ok(Message {
-            id: 0, // Will be set by caller
-            msg_type,
-            payload,
-            timestamp: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs(),
-        })
+        // Verify message type matches header
+        let msg_type = MessageType::try_from(msg_type_raw)?;
+        if message.msg_type != msg_type {
+            bail!("Message type mismatch: header says {:?}, payload says {:?}", msg_type, message.msg_type);
+        }
+        
+        // Verify message ID matches
+        if message.id != msg_id {
+            bail!("Message ID mismatch: header says {}, payload says {}", msg_id, message.id);
+        }
+        
+        Ok(message)
     }
 }
 
@@ -427,13 +482,13 @@ impl Decoder for BinaryCodec {
     type Error = anyhow::Error;
     
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-        if src.len() < MIN_HEADER_SIZE {
+        if src.len() < HEADER_SIZE {
             return Ok(None); // Need more data
         }
         
-        // Peek at length field
-        let length = u32::from_be_bytes([src[8], src[9], src[10], src[11]]) as usize;
-        let total_len = MIN_HEADER_SIZE + length;
+        // Peek at length field (Little-Endian at offset 8)
+        let length = u32::from_le_bytes([src[8], src[9], src[10], src[11]]) as usize;
+        let total_len = HEADER_SIZE + length;
         
         if src.len() < total_len {
             return Ok(None); // Need more data
@@ -477,8 +532,8 @@ mod tests {
             timestamp: 1234567890,
         };
         
-        let encoded = codec.encode(&msg).unwrap();
-        let decoded = codec.decode(&encoded).unwrap();
+        let encoded = codec.encode(&msg).expect("Test encoding failed");
+        let decoded = codec.decode(&encoded).expect("Test decoding failed");
         
         assert_eq!(decoded.id, msg.id);
         assert_eq!(decoded.msg_type, msg.msg_type);

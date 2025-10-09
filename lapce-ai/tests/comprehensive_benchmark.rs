@@ -1,7 +1,7 @@
 // COMPREHENSIVE FULL SYSTEM BENCHMARK
 // Tests our actual implemented system
 
-use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer;
+use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer;
 use std::time::{Instant, Duration};
 use std::collections::HashMap;
 use std::sync::Arc;

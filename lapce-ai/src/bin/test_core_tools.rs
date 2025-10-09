@@ -1,10 +1,10 @@
 // Test runner for core tools module
 
 use lapce_ai_rust::core::tools::{
-    ToolRegistry, ToolContext, ToolOutput, ToolError,
-    RooIgnore,
-    parse_tool_xml, generate_tool_xml, XmlToolArgs,
+    ToolRegistry, ToolContext, RooIgnore,
+    parse_tool_xml, generate_tool_xml,
 };
+use lapce_ai_rust::core::tools::traits::ToolOutput;
 use std::time::Instant;
 use std::path::PathBuf;
 
@@ -21,7 +21,7 @@ fn main() {
 fn test_registry_lookup_performance() {
     println!("Testing Registry Lookup Performance...");
     
-    use lapce_ai_rust::core::tools::traits::{Tool, ToolResult};
+    use lapce_ai_rust::core::tools::{Tool, ToolResult};
     use async_trait::async_trait;
     use serde_json::Value;
     

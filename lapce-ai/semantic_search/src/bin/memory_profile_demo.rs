@@ -1,6 +1,6 @@
 // Memory Profiling Demo - Shows < 3MB steady state achievement
 use lancedb::search::semantic_search_engine::{SearchConfig, SemanticSearchEngine, ChunkMetadata, SearchFilters};
-use lancedb::embeddings::aws_titan_production::{AwsTitanProduction, AwsTier};
+use lancedb::embeddings::aws_titan_production::AwsTitanProduction;
 use lancedb::embeddings::embedder_interface::IEmbedder;
 use lancedb::memory::profiler::{get_memory_stats, is_steady_state};
 use std::sync::Arc;
@@ -36,7 +36,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     
     // Use AWS Titan for consistency but with smaller dimension
-    let embedder = Arc::new(AwsTitanProduction::new("us-east-1", AwsTier::Standard).await?);
+    let embedder: Arc<dyn IEmbedder> = Arc::new(AwsTitanProduction::new_from_config().await?);
     
     // Initialize engine
     let engine = Arc::new(SemanticSearchEngine::new(config, embedder.clone()).await?);
@@ -71,9 +71,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             path: PathBuf::from(file),
             content: content.to_string(),
             start_line: 0,
-            end_line: 1,
+            end_line: 10,
             language: Some("rust".to_string()),
-            metadata: HashMap::new(),
+            metadata: std::collections::HashMap::new(),
         });
     }
     

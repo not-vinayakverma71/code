@@ -45,7 +45,7 @@ async fn test_parse_rust() -> Result<()> {
     
     let mut parser = Parser::new();
     let language = unsafe { tree_sitter_rust() };
-    parser.set_language(language)?;
+    parser.set_language(&language)?;
     
     let rust_code = r#"
 fn main() {
@@ -111,7 +111,7 @@ async fn test_parse_python() -> Result<()> {
     
     let mut parser = Parser::new();
     let language = unsafe { tree_sitter_python() };
-    parser.set_language(language)?;
+    parser.set_language(&language)?;
     
     let python_code = r#"
 import sys
@@ -178,7 +178,7 @@ async fn test_parse_javascript() -> Result<()> {
     
     let mut parser = Parser::new();
     let language = unsafe { tree_sitter_javascript() };
-    parser.set_language(language)?;
+    parser.set_language(&language)?;
     
     let js_code = r#"
 const greeting = "Hello, World!";
@@ -245,7 +245,7 @@ async fn test_parse_typescript() -> Result<()> {
     
     let mut parser = Parser::new();
     let language = unsafe { tree_sitter_typescript() };
-    parser.set_language(language)?;
+    parser.set_language(&language)?;
     
     let ts_code = r#"
 interface User {
@@ -321,7 +321,7 @@ async fn test_parse_go() -> Result<()> {
     
     let mut parser = Parser::new();
     let language = unsafe { tree_sitter_go() };
-    parser.set_language(language)?;
+    parser.set_language(&language)?;
     
     let go_code = r#"
 package main
@@ -415,7 +415,7 @@ async fn test_parser_performance() -> Result<()> {
     
     for (name, language, code) in languages {
         let mut parser = Parser::new();
-        parser.set_language(language)?;
+        parser.set_language(&language)?;
         
         let code_size = code.len();
         let lines = code.lines().count();

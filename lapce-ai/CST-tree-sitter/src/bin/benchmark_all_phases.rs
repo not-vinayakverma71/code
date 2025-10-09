@@ -11,15 +11,15 @@ use mimalloc::MiMalloc;
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
-use std::time::Instant;
+
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::collections::HashMap;
+
 use tempfile::tempdir;
 use lapce_tree_sitter::complete_pipeline::{
     CompletePipeline,
     CompletePipelineConfig,
-    StorageLocation,
+
 };
 use ignore::WalkBuilder;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -224,6 +224,7 @@ fn main() {
     }
 }
 
+#[allow(dead_code)]
 struct TestResult {
     memory_mb: f64,
     compression_ratio: f64,

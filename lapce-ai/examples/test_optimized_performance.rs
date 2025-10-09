@@ -1,5 +1,5 @@
 /// Test optimized lock-free performance - targeting 55M msg/sec
-use lapce_ai_rust::shared_memory_complete::*;
+use lapce_ai_rust::ipc::shared_memory_complete::*;
 use std::time::Instant;
 
 fn main() {

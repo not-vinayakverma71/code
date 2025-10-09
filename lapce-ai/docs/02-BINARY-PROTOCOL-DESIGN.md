@@ -26,13 +26,18 @@ Our binary protocol replaces JSON with a custom format using `rkyv` (zero-copy d
 ## Protocol Specification
 
 ### Message Structure
+**See [CANONICAL_BINARY_HEADER_SPEC.md](./CANONICAL_BINARY_HEADER_SPEC.md) for the authoritative header specification.**
+
 ```
-┌─────────────┬──────────┬────────────┬──────────┬─────────────┐
-│ Magic (4B)  │ Ver (1B) │ Type (2B)  │ Len (4B) │ Payload     │
-├─────────────┼──────────┼────────────┼──────────┼─────────────┤
-│ 0x4C415043  │   0x01   │  0x0001    │  0x00FF  │ Binary Data │
-└─────────────┴──────────┴────────────┴──────────┴─────────────┘
+┌──────────────┬─────────┬─────────┬──────────┬──────────┬──────────┬──────────┐
+│ Magic (4B)   │ Ver(1B) │ Flags(1B)│ Type(2B) │ Len(4B)  │ ID(8B)   │ CRC32(4B)│
+├──────────────┼─────────┼─────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0x4C415043   │  0x01   │  0x00    │  0x0001  │ 0x0000FF │ 0x00..01 │ 0x1234.. │
+│ "LAPC" LE    │ Version │ Bit flags│ Msg Type │ Payload  │ Msg ID   │ Checksum │
+│              │         │          │    LE    │ Size LE  │    LE    │    LE    │
+└──────────────┴─────────┴─────────┴──────────┴──────────┴──────────┴──────────┘
 ```
+Total header size: 24 bytes (was 11, now includes ID and CRC32 for reliability)
 
 ### Implementation
 ```rust

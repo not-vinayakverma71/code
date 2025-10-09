@@ -1,5 +1,5 @@
 /// Simple IPC Performance Test
-use lapce_ai_rust::shared_memory_complete::{SharedMemoryBuffer};
+use lapce_ai_rust::ipc::shared_memory_complete::{SharedMemoryBuffer};
 use std::time::Instant;
 
 fn main() {
@@ -24,7 +24,7 @@ fn test_shared_memory() {
     for _ in 0..iterations {
         buffer.write(&data).unwrap();
         let mut temp = vec![0u8; 1024];
-        buffer.read(&mut temp).unwrap();
+        buffer.read();
     }
     let duration = start.elapsed();
     

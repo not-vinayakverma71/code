@@ -28,13 +28,30 @@ impl<'a> BytecodeNavigator<'a> {
         }
         
         // Use jump table for O(1) access
-        let offset = *self.stream.jump_table.get(index)? as usize;
-        let node = self.decode_node_at(offset)?;
+        let _offset = *self.stream.jump_table.get(index)? as usize;
+        let mut node = self.decode_node_at(offset)?;
+        
+        // Add stable ID from stream
+        if index < self.stream.stable_ids.len() {
+            node.stable_id = self.stream.stable_ids[index];
+        } else {
+            node.stable_id = (index as u64) + 1;
+        }
         
         // Cache the result
         self.cache.borrow_mut().insert(index, node.clone());
         
         Some(node)
+    }
+    
+    /// Get stable ID for node at index
+    pub fn get_stable_id(&self, index: usize) -> Option<u64> {
+        if index < self.stream.stable_ids.len() {
+            Some(self.stream.stable_ids[index])
+        } else {
+            // Fallback for nodes without stable IDs
+            Some((index as u64) + 1)
+        }
     }
     
     /// Decode node at specific byte offset
@@ -56,12 +73,38 @@ impl<'a> BytecodeNavigator<'a> {
     /// Decode an Enter node
     fn decode_enter_node(&self, reader: &mut BytecodeReader) -> Option<DecodedNode> {
         let kind_id = reader.read_varint()? as u16;
-        let flags = NodeFlags::from_byte(reader.read_byte()?);
+        let _flags = NodeFlags::from_byte(reader.read_byte()?);
+        
+        // Optional position opcode
+        if !reader.is_at_end() {
+            if let Some(next_op) = Opcode::from_byte(reader.bytes[reader.pos]) {
+                match next_op {
+                    Opcode::SetPos | Opcode::DeltaPos => {
+                        reader.read_op();
+                        reader.read_varint();
+                    }
+                    _ => {}
+                }
+            }
+        }
+        // Length: support new Length opcode or legacy inline varint
+        if let Some(next) = Opcode::from_byte(*reader.bytes.get(reader.position()).unwrap_or(&0)) {
+            if next == Opcode::Length {
+                reader.read_op();
+                reader.read_varint();
+            } else {
+                // Legacy
+                reader.read_varint();
+            }
+        } else {
+            // Legacy
+            reader.read_varint();
+        }
         
         let kind_name = self.stream.kind_names.get(kind_id as usize)?.clone();
         
         // For internal nodes, we need to scan for children and exit
-        let start_pos = reader.position();
+        let _start_pos = reader.position();
         let mut children = Vec::new();
         let mut depth = 1;
         
@@ -74,15 +117,40 @@ impl<'a> BytecodeNavigator<'a> {
                     // Skip kind and flags
                     reader.read_varint()?;
                     reader.read_byte()?;
+                    // Optional position
+                    if let Some(next) = Opcode::from_byte(*reader.bytes.get(reader.position()).unwrap_or(&0)) {
+                        if matches!(next, Opcode::SetPos | Opcode::DeltaPos) {
+                            reader.read_op();
+                            reader.read_varint();
+                        }
+                    }
+                    // Length handling (Length opcode or legacy varint)
+                    if let Some(next2) = Opcode::from_byte(*reader.bytes.get(reader.position()).unwrap_or(&0)) {
+                        if next2 == Opcode::Length {
+                            reader.read_op();
+                            reader.read_varint()?;
+                        } else {
+                            reader.read_varint()?;
+                        }
+                    } else {
+                        reader.read_varint()?;
+                    }
                 }
                 Opcode::Exit => {
                     depth -= 1;
                 }
                 Opcode::Leaf => {
                     children.push(reader.position() - 1);
-                    // Skip kind, flags, and length
+                    // Skip kind, flags, optional position, and length
                     reader.read_varint()?;
                     reader.read_byte()?;
+                    if let Some(next) = Opcode::from_byte(*reader.bytes.get(reader.position()).unwrap_or(&0)) {
+                        if matches!(next, Opcode::SetPos | Opcode::DeltaPos) {
+                            reader.read_op();
+                            reader.read_varint();
+                        }
+                    }
+                    if reader.read_op()? != Opcode::Length { return None; }
                     reader.read_varint()?;
                 }
                 _ => {
@@ -103,14 +171,32 @@ impl<'a> BytecodeNavigator<'a> {
             end_byte: 0,
             children,
             parent: None,
+            stable_id: 0, // Will be set by get_node
         })
     }
     
     /// Decode a Leaf node
     fn decode_leaf_node(&self, reader: &mut BytecodeReader) -> Option<DecodedNode> {
         let kind_id = reader.read_varint()? as u16;
-        let flags = NodeFlags::from_byte(reader.read_byte()?);
-        let length = reader.read_varint()? as usize;
+        let _flags = NodeFlags::from_byte(reader.read_byte()?);
+        // Optional position
+        if let Some(next) = Opcode::from_byte(*reader.bytes.get(reader.position()).unwrap_or(&0)) {
+            if matches!(next, Opcode::SetPos | Opcode::DeltaPos) {
+                reader.read_op();
+                reader.read_varint();
+            }
+        }
+        // Expect Length opcode or legacy varint
+        let _length = if let Some(next) = Opcode::from_byte(*reader.bytes.get(reader.position()).unwrap_or(&0)) {
+            if next == Opcode::Length {
+                reader.read_op();
+                reader.read_varint()? as usize
+            } else {
+                reader.read_varint()? as usize
+            }
+        } else {
+            reader.read_varint()? as usize
+        };
         
         let kind_name = self.stream.kind_names.get(kind_id as usize)?.clone();
         
@@ -126,12 +212,13 @@ impl<'a> BytecodeNavigator<'a> {
             end_byte: length,
             children: Vec::new(),
             parent: None,
+            stable_id: 0, // Will be set by get_node
         })
     }
     
     /// Decode a Repeat node
     fn decode_repeat_node(&self, reader: &mut BytecodeReader) -> Option<DecodedNode> {
-        let length = reader.read_varint()? as usize;
+        let _length = reader.read_varint()? as usize;
         
         // TODO: Track last kind properly
         // For now, return a placeholder
@@ -147,6 +234,7 @@ impl<'a> BytecodeNavigator<'a> {
             end_byte: length,
             children: Vec::new(),
             parent: None,
+            stable_id: 0, // Will be set by get_node
         })
     }
     

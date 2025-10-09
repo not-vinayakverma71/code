@@ -1,7 +1,6 @@
 /// Message structures - Direct 1:1 port from TypeScript
 /// Now includes COMPLETE ipc.ts translation
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use crate::events_exact_translation::TaskEvent;
 use crate::global_settings_exact_translation::RooCodeSettings;
 
@@ -121,6 +120,117 @@ pub enum IpcMessage {
 // ============================================================================
 // END ipc.ts TRANSLATION
 // ============================================================================
+
+// ============================================================================
+// P0-2: Tool Execution Lifecycle Messages
+// ============================================================================
+
+/// Tool execution lifecycle states
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ToolExecutionStatus {
+    Started {
+        tool_name: String,
+        correlation_id: String,
+        timestamp: u64,
+    },
+    Progress {
+        correlation_id: String,
+        message: String,
+        percentage: Option<u8>,
+    },
+    Completed {
+        correlation_id: String,
+        result: serde_json::Value,
+        duration_ms: u64,
+    },
+    Failed {
+        correlation_id: String,
+        error: String,
+        duration_ms: u64,
+    },
+}
+
+/// Command execution status for execute_command tool
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum CommandExecutionStatus {
+    Started {
+        command: String,
+        args: Vec<String>,
+        correlation_id: String,
+    },
+    OutputChunk {
+        correlation_id: String,
+        chunk: String,
+        stream_type: StreamType,
+    },
+    Exit {
+        correlation_id: String,
+        exit_code: i32,
+        duration_ms: u64,
+    },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum StreamType {
+    Stdout,
+    Stderr,
+}
+
+/// Diff operations for diff_tool
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum DiffOperation {
+    OpenDiffFiles {
+        left_path: String,
+        right_path: String,
+        correlation_id: String,
+    },
+    SaveDiff {
+        correlation_id: String,
+        target_path: String,
+    },
+    RevertDiff {
+        correlation_id: String,
+    },
+    CloseDiff {
+        correlation_id: String,
+    },
+}
+
+/// Approval flow messages
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ApprovalMessage {
+    ApprovalRequested {
+        tool_name: String,
+        operation: String,
+        details: serde_json::Value,
+        correlation_id: String,
+        timeout_ms: Option<u64>,
+    },
+    ApprovalDecision {
+        correlation_id: String,
+        approved: bool,
+        reason: Option<String>,
+    },
+}
+
+/// Internal command for Lapce integration
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum InternalCommand {
+    OpenDiffFiles {
+        left_path: String,
+        right_path: String,
+    },
+    ExecuteProcess {
+        program: String,
+        arguments: Vec<String>,
+    },
+}
 
 // ============================================================================
 // COMPLETE message.ts TRANSLATION START
@@ -476,5 +586,190 @@ impl MessageType {
     
     pub fn to_bytes(&self) -> [u8; 4] {
         (*self as u32).to_le_bytes()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_tool_execution_status_roundtrip() {
+        let statuses = vec![
+            ToolExecutionStatus::Started {
+                tool_name: "test_tool".to_string(),
+                correlation_id: "corr-123".to_string(),
+                timestamp: 1234567890,
+            },
+            ToolExecutionStatus::Progress {
+                correlation_id: "corr-123".to_string(),
+                message: "Processing...".to_string(),
+                percentage: Some(50),
+            },
+            ToolExecutionStatus::Completed {
+                correlation_id: "corr-123".to_string(),
+                result: serde_json::json!({"success": true}),
+                duration_ms: 1500,
+            },
+            ToolExecutionStatus::Failed {
+                correlation_id: "corr-123".to_string(),
+                error: "Something went wrong".to_string(),
+                duration_ms: 500,
+            },
+        ];
+        
+        for status in statuses {
+            let json = serde_json::to_string(&status).unwrap();
+            let deserialized: ToolExecutionStatus = serde_json::from_str(&json).unwrap();
+            assert_eq!(status, deserialized);
+        }
+    }
+    
+    #[test]
+    fn test_command_execution_status_roundtrip() {
+        let statuses = vec![
+            CommandExecutionStatus::Started {
+                command: "echo".to_string(),
+                args: vec!["hello".to_string()],
+                correlation_id: "cmd-456".to_string(),
+            },
+            CommandExecutionStatus::OutputChunk {
+                correlation_id: "cmd-456".to_string(),
+                chunk: "hello world\n".to_string(),
+                stream_type: StreamType::Stdout,
+            },
+            CommandExecutionStatus::Exit {
+                correlation_id: "cmd-456".to_string(),
+                exit_code: 0,
+                duration_ms: 100,
+            },
+        ];
+        
+        for status in statuses {
+            let json = serde_json::to_string(&status).unwrap();
+            let deserialized: CommandExecutionStatus = serde_json::from_str(&json).unwrap();
+            assert_eq!(status, deserialized);
+        }
+    }
+    
+    #[test]
+    fn test_diff_operation_roundtrip() {
+        let ops = vec![
+            DiffOperation::OpenDiffFiles {
+                left_path: "/tmp/left.txt".to_string(),
+                right_path: "/tmp/right.txt".to_string(),
+                correlation_id: "diff-789".to_string(),
+            },
+            DiffOperation::SaveDiff {
+                correlation_id: "diff-789".to_string(),
+                target_path: "/tmp/merged.txt".to_string(),
+            },
+            DiffOperation::RevertDiff {
+                correlation_id: "diff-789".to_string(),
+            },
+            DiffOperation::CloseDiff {
+                correlation_id: "diff-789".to_string(),
+            },
+        ];
+        
+        for op in ops {
+            let json = serde_json::to_string(&op).unwrap();
+            let deserialized: DiffOperation = serde_json::from_str(&json).unwrap();
+            assert_eq!(op, deserialized);
+        }
+    }
+    
+    #[test]
+    fn test_approval_message_roundtrip() {
+        let messages = vec![
+            ApprovalMessage::ApprovalRequested {
+                tool_name: "write_file".to_string(),
+                operation: "create".to_string(),
+                details: serde_json::json!({"path": "/tmp/test.txt"}),
+                correlation_id: "appr-111".to_string(),
+                timeout_ms: Some(30000),
+            },
+            ApprovalMessage::ApprovalDecision {
+                correlation_id: "appr-111".to_string(),
+                approved: true,
+                reason: Some("User approved".to_string()),
+            },
+        ];
+        
+        for msg in messages {
+            let json = serde_json::to_string(&msg).unwrap();
+            let deserialized: ApprovalMessage = serde_json::from_str(&json).unwrap();
+            assert_eq!(msg, deserialized);
+        }
+    }
+    
+    #[test]
+    fn test_backward_compatibility() {
+        // Test that old IpcMessage formats still deserialize
+        let old_ack_json = r#"{
+            "type": "Ack",
+            "origin": "client",
+            "data": {
+                "clientId": "client-123",
+                "pid": 1234,
+                "ppid": 1000
+            }
+        }"#;
+        
+        let msg: IpcMessage = serde_json::from_str(old_ack_json).unwrap();
+        match msg {
+            IpcMessage::Ack { origin, data } => {
+                assert_eq!(origin, IpcOrigin::Client);
+                assert_eq!(data.client_id, "client-123");
+                assert_eq!(data.pid, 1234);
+            }
+            _ => panic!("Expected Ack message"),
+        }
+        
+        // Test old TaskCommand format
+        let old_task_json = r#"{
+            "type": "TaskCommand",
+            "origin": "client",
+            "clientId": "client-456",
+            "data": {
+                "commandName": "CancelTask",
+                "data": "task-789"
+            }
+        }"#;
+        
+        let msg: IpcMessage = serde_json::from_str(old_task_json).unwrap();
+        match msg {
+            IpcMessage::TaskCommand { origin, client_id, data } => {
+                assert_eq!(origin, IpcOrigin::Client);
+                assert_eq!(client_id, "client-456");
+                match data {
+                    TaskCommand::CancelTask { data } => {
+                        assert_eq!(data, "task-789");
+                    }
+                    _ => panic!("Expected CancelTask"),
+                }
+            }
+            _ => panic!("Expected TaskCommand message"),
+        }
+    }
+    
+    #[test]
+    fn test_internal_command_serialization() {
+        let cmds = vec![
+            InternalCommand::OpenDiffFiles {
+                left_path: "/tmp/original.txt".to_string(),
+                right_path: "/tmp/modified.txt".to_string(),
+            },
+            InternalCommand::ExecuteProcess {
+                program: "ls".to_string(),
+                arguments: vec!["-la".to_string(), "/tmp".to_string()],
+            },
+        ];
+        
+        for cmd in cmds {
+            let json = serde_json::to_string(&cmd).unwrap();
+            let deserialized: InternalCommand = serde_json::from_str(&json).unwrap();
+            assert_eq!(cmd, deserialized);
+        }
     }
 }

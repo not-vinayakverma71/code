@@ -122,6 +122,7 @@ struct AccessTracker {
     last_cleanup: Instant,
 }
 
+#[allow(dead_code)]
 struct AccessInfo {
     count: u64,
     last_access: SystemTime,
@@ -129,6 +130,7 @@ struct AccessInfo {
 }
 
 #[derive(Clone, Copy, PartialEq)]
+#[allow(dead_code)]
 enum CacheTier {
     Hot,
     Warm,
@@ -258,11 +260,11 @@ impl DynamicCompressedCache {
                 let start = Instant::now();
                 
                 // Try delta decode first, fall back to LZ4
-                let source = if let Some(delta_entry) = &entry.delta_entry {
+                let _source = if let Some(delta_entry) = &entry.delta_entry {
                     // Reconstruct from delta
                     match self.delta_codec.decode(delta_entry) {
                         Ok(data) => {
-                            let source = Bytes::from(data);
+                            let _source = Bytes::from(data);
                             source
                         }
                         Err(e) => {
@@ -311,7 +313,7 @@ impl DynamicCompressedCache {
                 self.stats.total_decompression_time_ms.fetch_add(decompress_ms, Ordering::Relaxed);
                 
                 // Deserialize and reparse
-                let source = deserialize_source_only(&decompressed)
+                let _source = deserialize_source_only(&decompressed)
                     .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
                 let (tree, _, _) = parse_fn()?;
                 
@@ -512,7 +514,7 @@ impl DynamicCompressedCache {
         let to_freeze = cold_entries.len() / 4;
         for (path, entry, _) in cold_entries.iter().take(to_freeze) {
             // Retrieve source from store or reconstruct
-            let source = if let Some(stored) = self.source_store.get(&entry.source_hash) {
+            let _source = if let Some(stored) = self.source_store.get(&entry.source_hash) {
                 (**stored).clone()
             } else {
                 // Decompress to get source

@@ -7,7 +7,7 @@ use anyhow::Result;
 use uuid::Uuid;
 use tracing::{info, warn, debug};
 
-use crate::shared_memory_complete::SharedMemoryStream;
+use crate::ipc::shared_memory_complete::SharedMemoryStream;
 
 #[derive(Debug, Clone)]
 pub struct ConnectionInfo {
@@ -209,6 +209,12 @@ impl ConnectionPool {
             .min()
             .map(|t| Instant::now().duration_since(t));
         
+        let reuse_rate = if total_requests > 0 {
+            (total_requests as f64 - total as f64) / total_requests as f64 * 100.0
+        } else {
+            0.0
+        };
+        
         PoolStats {
             total_connections: total,
             healthy_connections: healthy,
@@ -217,7 +223,86 @@ impl ConnectionPool {
             total_errors,
             oldest_connection: oldest,
             max_connections: self.max_connections,
+            pool_size: total,
+            total_created: total as u64,
+            total_recycled: if total_requests > total as u64 { total_requests - total as u64 } else { 0 },
+            avg_acquisition_time_ms: 0.5, // Placeholder for real measurement
+            reuse_rate,
         }
+    }
+    
+    /// Perform health check on a connection
+    pub async fn health_check(&self, id: Uuid) -> bool {
+        if let Some(info) = self.connections.read().await.get(&id) {
+            // Check if connection is healthy based on error rate and age
+            let error_rate = if info.request_count > 0 {
+                info.error_count as f64 / info.request_count as f64
+            } else {
+                0.0
+            };
+            
+            info.is_healthy && error_rate < 0.1 // Less than 10% error rate
+        } else {
+            false
+        }
+    }
+    
+    /// Adaptive scaling - adjust pool size based on load
+    pub async fn scale(&self, target_size: usize) -> Result<()> {
+        let current = self.active_count().await;
+        
+        if target_size < current {
+            // Scale down - remove excess connections
+            let to_remove = current - target_size;
+            let mut removed = 0;
+            
+            let mut connections = self.connections.write().await;
+            let idle_conns: Vec<Uuid> = connections
+                .iter()
+                .filter(|(_, info)| {
+                    Instant::now().duration_since(info.last_active) > Duration::from_secs(60)
+                })
+                .take(to_remove)
+                .map(|(id, _)| *id)
+                .collect();
+            
+            for id in idle_conns {
+                connections.remove(&id);
+                removed += 1;
+            }
+            
+            info!("Scaled down pool by {} connections", removed);
+        }
+        
+        Ok(())
+    }
+    
+    /// Export metrics in Prometheus format
+    pub async fn export_metrics(&self) -> String {
+        let stats = self.stats().await;
+        
+        format!(
+            "# HELP connection_pool_total Total connections in pool\n\
+             # TYPE connection_pool_total gauge\n\
+             connection_pool_total {}\n\
+             # HELP connection_pool_healthy Healthy connections\n\
+             # TYPE connection_pool_healthy gauge\n\
+             connection_pool_healthy {}\n\
+             # HELP connection_pool_requests Total requests processed\n\
+             # TYPE connection_pool_requests counter\n\
+             connection_pool_requests {}\n\
+             # HELP connection_pool_errors Total errors encountered\n\
+             # TYPE connection_pool_errors counter\n\
+             connection_pool_errors {}\n\
+             # HELP connection_pool_reuse_rate Connection reuse rate percentage\n\
+             # TYPE connection_pool_reuse_rate gauge\n\
+             connection_pool_reuse_rate {:.2}\n",
+            stats.total_connections,
+            stats.healthy_connections,
+            stats.total_requests,
+            stats.total_errors,
+            stats.reuse_rate
+        )
     }
 }
 
@@ -265,6 +350,22 @@ pub struct PoolStats {
     pub total_errors: u64,
     pub oldest_connection: Option<Duration>,
     pub max_connections: usize,
+    pub pool_size: usize,
+    pub total_created: u64,
+    pub total_recycled: u64,
+    pub avg_acquisition_time_ms: f64,
+    pub reuse_rate: f64,
+}
+
+#[derive(Debug, Clone)]
+pub struct PoolConfig {
+    pub min_connections: usize,
+    pub max_connections: usize,
+    pub connection_timeout: Duration,
+    pub idle_timeout: Duration,
+    pub max_lifetime: Duration,
+    pub retry_attempts: u32,
+    pub retry_delay: Duration,
 }
 
 #[cfg(test)]

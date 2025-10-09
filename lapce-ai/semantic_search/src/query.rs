@@ -19,7 +19,7 @@ use lance_datafusion::exec::execute_plan;
 use lance_index::scalar::inverted::SCORE_COL;
 use lance_index::scalar::FullTextSearchQuery;
 use lance_index::vector::DIST_COL;
-use lance_io::stream::RecordBatchStreamAdapter;
+use datafusion_physical_plan::stream::RecordBatchStreamAdapter;
 
 use crate::error::{Error, Result};
 use crate::rerankers::rrf::RRFReranker;
@@ -1148,12 +1148,32 @@ impl VectorQuery {
         }
 
         if !self.request.base.with_row_id {
-            results = results.drop_column(ROW_ID)?;
+            // Remove ROW_ID column if not requested
+            let schema = results.schema();
+            if let Some(idx) = schema.column_with_name(ROW_ID) {
+                let columns: Vec<_> = results.columns().iter()
+                    .enumerate()
+                    .filter(|(i, _)| *i != idx.0)
+                    .map(|(_, c)| c.clone())
+                    .collect();
+                let new_schema = Arc::new(arrow_schema::Schema::new(
+                    schema.fields().iter()
+                        .enumerate()
+                        .filter(|(i, _)| *i != idx.0)
+                        .map(|(_, f)| f.clone())
+                        .collect::<Vec<_>>()
+                ));
+                results = arrow_array::RecordBatch::try_new(new_schema, columns)?;
+            }
         }
 
-        Ok(SendableRecordBatchStream::from(
-            RecordBatchStreamAdapter::new(results.schema(), stream::iter([Ok(results)])),
-        ))
+        // Use SimpleRecordBatchStream which implements the RecordBatchStream trait
+        let schema = results.schema();
+        let stream = stream::iter(vec![Ok(results)]);
+        Ok(Box::pin(crate::arrow::SimpleRecordBatchStream {
+            schema,
+            stream: Box::pin(stream),
+        }))
     }
 
     async fn inner_execute_with_options(
@@ -1162,12 +1182,18 @@ impl VectorQuery {
     ) -> Result<SendableRecordBatchStream> {
         let plan = self.create_plan(options.clone()).await?;
         let inner = execute_plan(plan, Default::default())?;
-        let inner = if let Some(timeout) = options.timeout {
-            TimeoutStream::new_boxed(inner, timeout)
+        // Keep as datafusion stream for DatasetRecordBatchStream
+        let result_stream = if let Some(timeout) = options.timeout {
+            // For timeout, we need to convert to arrow and back
+            let arrow_stream = crate::arrow::IntoArrowStream::into_arrow(inner)?;
+            let timeout_stream = TimeoutStream::new_boxed(arrow_stream, timeout);
+            // Convert back to SendableRecordBatchStream for return
+            timeout_stream
         } else {
-            inner
+            // Convert to arrow stream for consistency
+            crate::arrow::IntoArrowStream::into_arrow(inner)?
         };
-        Ok(DatasetRecordBatchStream::new(inner).into())
+        Ok(result_stream)
     }
 }
 
@@ -1352,10 +1378,7 @@ mod tests {
 
     use super::*;
     use arrow::{array::downcast_array, compute::concat_batches, datatypes::Int32Type};
-    use arrow_array::{
-        cast::AsArray, types::Float32Type, FixedSizeListArray, Float32Array, Int32Array,
-        RecordBatch, RecordBatchIterator, RecordBatchReader, StringArray,
-    };
+    use arrow_array::{cast::AsArray, types::Float32Type, FixedSizeListArray, Float32Array, Int32Array, RecordBatch, RecordBatchReader, StringArray};
     use arrow_schema::{DataType, Field as ArrowField, Schema as ArrowSchema};
     use futures::{StreamExt, TryStreamExt};
     use lance_testing::datagen::{BatchGenerator, IncrementingInt32, RandomVector};
@@ -1820,7 +1843,16 @@ mod tests {
             Some(vec![Some(50.0), Some(50.0)]),
             Some(vec![Some(-30.0), Some(-30.0)]),
         ];
-        let vector = FixedSizeListArray::from_iter_primitive::<Float32Type, _, _>(vectors, dims);
+        let flat_vectors: Vec<f32> = vectors.iter()
+            .filter_map(|v| v.as_ref())
+            .flat_map(|v| v.iter().filter_map(|x| *x))
+            .collect();
+        let vector = FixedSizeListArray::new(
+            Arc::new(ArrowField::new("item", DataType::Float32, true)),
+            dims,
+            Arc::new(Float32Array::from(flat_vectors)),
+            None,
+        );
 
         let record_batch =
             RecordBatch::try_new(schema.clone(), vec![Arc::new(text), Arc::new(vector)]).unwrap();
@@ -1905,9 +1937,18 @@ mod tests {
             schema.clone(),
             vec![
                 Arc::new(StringArray::from(Vec::<&str>::new())),
-                Arc::new(
-                    FixedSizeListArray::from_iter_primitive::<Float32Type, _, _>(vectors, dims),
-                ),
+                Arc::new({
+                    let flat_vectors: Vec<f32> = vectors.iter()
+                        .filter_map(|v| v.as_ref())
+                        .flat_map(|v| v.iter().filter_map(|x| *x))
+                        .collect();
+                    FixedSizeListArray::new(
+                        Arc::new(ArrowField::new("item", DataType::Float32, true)),
+                        dims,
+                        Arc::new(Float32Array::from(flat_vectors)),
+                        None,
+                    )
+                }),
             ],
         )
         .unwrap();

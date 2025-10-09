@@ -61,6 +61,7 @@ path = "src/bin/test_promotions.rs"
 [features]
 default = ["core-langs"]
 core-langs = []  # 30 languages from crates.io
+strict-perf = []  # Enable strict performance assertions for CI
 
 # Meta-feature for all languages
 all-langs = [
@@ -71,7 +72,7 @@ all-langs = [
     "lang-clojure", "lang-crystal", "lang-fortran", "lang-vhdl", "lang-racket",
     "lang-ada", "lang-prolog", "lang-gradle", "lang-xml", "lang-markdown",
     "lang-svelte", "lang-scheme", "lang-fennel", "lang-gleam", "lang-hcl",
-    "lang-solidity", "lang-fsharp", "lang-cobol", "lang-systemverilog"
+    "lang-solidity", "lang-fsharp", "lang-cobol", "lang-systemverilog", "lang-objc"
 ]
 
 # Individual external grammar features (37 languages)
@@ -113,15 +114,21 @@ lang-solidity = ["tree-sitter-solidity"]
 lang-fsharp = ["tree-sitter-fsharp"]
 lang-cobol = ["tree-sitter-cobol"]
 lang-systemverilog = ["tree-sitter-systemverilog"]
+lang-objc = ["tree-sitter-objc"]
 
 # Other features
 compact-cst = []
 global-string-interning = ["lasso"]
 unsafe-send-sync = []
+demo-example = []
+phase4-cache-tests = []
+phase2-tests = []
+phase3-tests = []
+integration-tests = []
 
 [dependencies]
-tree-sitter = "0.23.0"
-tree-sitter-highlight = "0.23"
+tree-sitter = "=0.23.2"
+tree-sitter-highlight = "=0.23.2"
 streaming-iterator = "0.1"
 once_cell = "1.18"
 regex = "1.9"
@@ -149,8 +156,12 @@ lz4 = "1.24"  # For tree compression
 rand = "0.8"  # For benchmark simulation
 lasso = { version = "0.7", optional = true, features = ["multi-threaded"] }  # For global string interning
 bincode = "1.3"  # For frozen tier serialization
+crc32fast = "1.4"  # For CRC32 checksums and validation
+axum = "0.7"  # For metrics server
+prometheus = "0.13"  # For metrics collection
+clap = { version = "4.0", features = ["derive"] }  # For CLI tools
+walkdir = "2.3"  # For directory traversal
 tempfile = "3.8"  # For testing frozen tier
-crc32fast = "1.4"  # For delta codec validation
 memmap2 = "0.9"  # For memory-mapped files
 num_cpus = "1.16"  # For CPU detection
 libc = "0.2"  # For system calls
@@ -162,39 +173,38 @@ slog = "2.7"
 slog-term = "2.9"
 slog-async = "2.8"
 slog-json = "2.6"
-prometheus = "0.13"
-axum = "0.7"
 indicatif = "0.17"  # Progress bars for benchmarks
 # === CORE LANGUAGES (30) - From crates.io ===
-tree-sitter-rust = "0.23.0"
-tree-sitter-python = "0.23.0"
-tree-sitter-go = "0.23.0"
-tree-sitter-java = "0.23.0"
-tree-sitter-c = "0.23.0"
-tree-sitter-cpp = "0.23.0"
-tree-sitter-c-sharp = "0.23.0"
-tree-sitter-ruby = "0.23.0"
-tree-sitter-php = "0.23.0"
-tree-sitter-lua = "0.2.0"
-tree-sitter-bash = "0.23.0"
-tree-sitter-css = "0.23.0"
-tree-sitter-json = "0.23.0"
-tree-sitter-swift = "0.6.0"
-tree-sitter-scala = "0.23.1"
-tree-sitter-elixir = "0.3.1"
-tree-sitter-html = "0.23.0"
-tree-sitter-ocaml = "0.23.2"
-tree-sitter-nix = "0.3.0"
-tree-sitter-make = "1.1.1"
-tree-sitter-cmake = "0.7.1"
-tree-sitter-verilog = "1.0.3"
-tree-sitter-erlang = "0.14.0"
-tree-sitter-d = "0.8.2"
-tree-sitter-pascal = "0.10.0"
-tree-sitter-commonlisp = "0.4.1"
-tree-sitter-objc = "3.0.1"
+# Pinned to exact versions for reproducible builds
+tree-sitter-rust = "=0.23.0"
+tree-sitter-python = "=0.23.0"
+tree-sitter-go = "=0.23.0"
+tree-sitter-java = "=0.23.0"
+tree-sitter-c = "=0.23.0"
+tree-sitter-cpp = "=0.23.0"
+tree-sitter-c-sharp = "=0.23.0"
+tree-sitter-ruby = "=0.23.0"
+tree-sitter-php = "=0.23.0"
+tree-sitter-lua = "=0.2.0"
+tree-sitter-bash = "=0.23.0"
+tree-sitter-css = "=0.23.0"
+tree-sitter-json = "=0.23.0"
+tree-sitter-swift = "=0.6.0"
+tree-sitter-scala = "0.23"
+tree-sitter-elixir = "=0.3.1"
+tree-sitter-html = "=0.23.0"
+tree-sitter-ocaml = "=0.23.2"
+tree-sitter-nix = "=0.3.0"
+tree-sitter-make = "=1.1.1"
+tree-sitter-cmake = "=0.7.1"
+tree-sitter-verilog = "=1.0.3"
+tree-sitter-erlang = "=0.14.0"
+tree-sitter-d = "=0.8.2"
+tree-sitter-pascal = "=0.10.0"
+tree-sitter-commonlisp = "=0.4.1"
+tree-sitter-objc = { version = "=3.0.2", optional = true }
 tree-sitter-groovy = "0.1.1"
-tree-sitter-embedded-template = "0.23.2"
+tree-sitter-embedded-template = "=0.23.2"
 
 # === EXTERNAL GRAMMAR LANGUAGES (37) - From external-grammars ===
 tree-sitter-javascript = { path = "external-grammars/tree-sitter-javascript", optional = true }
@@ -240,7 +250,6 @@ tree-sitter-systemverilog = { path = "external-grammars/tree-sitter-systemverilo
 crossbeam = "0.8"
 async-trait = "0.1"
 glob = "0.3"
-walkdir = "2.4"
 chrono = "0.4"
 pathdiff = "0.2"
 
@@ -262,3 +271,14 @@ codegen-units = 1
 
 [profile.bench]
 inherits = "release"
+
+# Limit examples to required features
+[[example]]
+name = "real_parse_test"
+required-features = ["lang-javascript", "lang-typescript"]
+
+[[example]]
+name = "demo"
+required-features = ["demo-example"]
+
+

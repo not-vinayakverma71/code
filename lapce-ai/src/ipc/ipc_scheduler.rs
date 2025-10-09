@@ -2,7 +2,7 @@
 /// Implements permit-based scheduling similar to HTTP/2 multiplexer
 
 use std::sync::Arc;
-use tokio::sync::{Semaphore, SemaphorePermit, mpsc};
+use tokio::sync::Semaphore;
 use anyhow::{Result, bail};
 use std::collections::VecDeque;
 use dashmap::DashMap;
@@ -179,7 +179,7 @@ impl IpcScheduler {
             let mut best_msg = None;
             let mut best_priority = MessagePriority::Low;
             
-            for mut entry in self.connection_queues.iter_mut() {
+            for entry in self.connection_queues.iter_mut() {
                 if let Some(msg) = entry.queue.front() {
                     if msg.priority >= best_priority {
                         best_priority = msg.priority;

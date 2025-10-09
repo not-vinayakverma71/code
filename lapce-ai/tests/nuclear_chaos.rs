@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicU64, AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 use tokio::time::{sleep, timeout};
 use lapce_ai_rust::{IpcServer, IpcConfig};
-use lapce_ai_rust::shared_memory_complete::SharedMemoryStream;
+use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryStream;
 use bytes::Bytes;
 use rand::Rng;
 
@@ -42,7 +42,7 @@ async fn nuclear_chaos() {
     let server = Arc::new(IpcServer::new(socket_path).await.unwrap());
     
     // Register chaos handler
-    server.register_handler(0, |data| async move {
+    server.register_handler(MessageType::CompletionRequest, |data| async move {
         let mut rng = rand::thread_rng();
         
         // Randomly inject delays

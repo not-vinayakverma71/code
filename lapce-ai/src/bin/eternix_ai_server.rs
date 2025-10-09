@@ -8,8 +8,8 @@ use tracing::{info, error};
 
 use lapce_ai_rust::{
     ipc_server::IpcServer,
-    provider_pool::{ProviderPool, ProviderPoolConfig, ProviderConfig},
-    shared_memory_lapce::LapceMemoryManager,
+    provider_pool::{ProviderPool, ProviderPoolConfig},
+    ipc::shared_memory_complete::SharedMemoryBuffer,
 };
 
 #[tokio::main]
@@ -32,38 +32,13 @@ async fn main() -> Result<()> {
     
     // Configure AI providers
     let provider_config = ProviderPoolConfig {
-        providers: vec![
-            ProviderConfig {
-                name: "gemini".to_string(),
-                enabled: true,
-                api_key: std::env::var("GEMINI_API_KEY").ok(),
-                base_url: None,
-                default_model: Some("gemini-1.5-flash".to_string()),
-                max_retries: 3,
-                timeout_secs: 30,
-                rate_limit_per_minute: None,
-            },
-            ProviderConfig {
-                name: "openai".to_string(),
-                enabled: true,
-                api_key: std::env::var("OPENAI_API_KEY").ok(),
-                base_url: None,
-                default_model: Some("gpt-4o-mini".to_string()),
-                max_retries: 3,
-                timeout_secs: 30,
-                rate_limit_per_minute: None,
-            }
-        ],
-        fallback_enabled: true,
-        fallback_order: vec!["gemini".to_string(), "openai".to_string()],
-        load_balance: false,
-        circuit_breaker_enabled: true,
-        circuit_breaker_threshold: 5,
+        max_providers: 10,
+        retry_attempts: 3,
     };
     
     let provider_pool = Arc::new(ProviderPool::new(provider_config).await?);
     ipc_server.register_provider_pool(provider_pool);
-    info!("✅ Provider pool registered with {} providers", 2);
+    info!("✅ Provider pool registered with {} providers", 0);
     
     // Register handlers
     ipc_server.register_handlers();

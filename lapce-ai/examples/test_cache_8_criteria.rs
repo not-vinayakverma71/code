@@ -1,7 +1,7 @@
 /// TEST - All 8 Criteria from docs/09-CACHE-ARCHITECTURE.md
 /// This test WILL RUN and show REAL results
 
-use lapce_ai_rust::cache_v2::working_complete_cache::{CacheSystem};
+// use lapce_ai_rust::cache_v2 // Module not available::working_complete_cache::{CacheSystem};
 use std::time::{Instant, Duration};
 use tempfile::tempdir;
 

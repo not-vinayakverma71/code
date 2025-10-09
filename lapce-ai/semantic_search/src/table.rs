@@ -24,14 +24,14 @@ pub use lance::dataset::NewColumnTransform;
 pub use lance::dataset::ReadParams;
 pub use lance::dataset::Version;
 use lance::dataset::{
-    InsertBuilder, UpdateBuilder as LanceUpdateBuilder, WhenMatched, WriteMode, WriteParams,
+    Dataset, InsertBuilder, UpdateBuilder as LanceUpdateBuilder, WhenMatched, WriteMode, WriteParams,
 };
 use lance::dataset::{MergeInsertBuilder as LanceMergeInsertBuilder, WhenNotMatchedBySource};
 use lance::index::vector::utils::infer_vector_dim;
 use lance::index::vector::VectorIndexParams;
 use lance::io::WrappingObjectStore;
 use lance_datafusion::exec::{analyze_plan as lance_analyze_plan, execute_plan};
-use lance_datafusion::utils::StreamingWriteSource;
+// Removed StreamingWriteSource - incompatible with current arrow version
 use lance_index::scalar::{BuiltinIndexType, ScalarIndexParams};
 use lance_index::vector::hnsw::builder::HnswBuildParams;
 use lance_index::vector::ivf::IvfBuildParams;
@@ -49,6 +49,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use crate::arrow::IntoArrow;
+use crate::compat::wrap_arrow_reader;
 use crate::connection::NoData;
 use crate::embeddings::{
     EmbeddingDefinition, EmbeddingRegistry, MaybeEmbedded, DefaultMemoryRegistry,
@@ -61,9 +62,12 @@ use crate::index::{
     Index, IndexBuilder,
 };
 use crate::index::{IndexConfig, IndexStatisticsImpl};
+use crate::io::object_store::MirroringObjectStoreWrapper;
+use crate::query::{QueryBase, Select, VectorQuery};
+use crate::DistanceType;
 use crate::query::{
-    IntoQueryVector, Query, QueryExecutionOptions, QueryFilter, QueryRequest, Select, TakeQuery,
-    VectorQuery, VectorQueryRequest, DEFAULT_TOP_K,
+    IntoQueryVector, Query, QueryExecutionOptions, QueryFilter, QueryRequest, TakeQuery,
+    VectorQueryRequest, DEFAULT_TOP_K,
 };
 use crate::utils::{
     default_vector_column, supported_bitmap_data_type, supported_btree_data_type,
@@ -790,12 +794,15 @@ impl Table {
     ///         schema.clone(),
     ///         vec![
     ///             Arc::new(Int32Array::from_iter_values(0..10)),
-    ///             Arc::new(
-    ///                 FixedSizeListArray::from_iter_primitive::<Float32Type, _, _>(
-    ///                     (0..10).map(|_| Some(vec![Some(1.0); 128])),
+    ///             Arc::new({
+    ///                 let flat_vectors: Vec<f32> = vec![1.0; 128 * 10];
+    ///                 FixedSizeListArray::new(
+    ///                     Arc::new(Field::new("item", DataType::Float32, true)),
     ///                     128,
-    ///                 ),
-    ///             ),
+    ///                     Arc::new(Float32Array::from(flat_vectors)),
+    ///                     None,
+    ///                 )
+    ///             }),
     ///         ],
     ///     )
     ///     .unwrap()]
@@ -963,12 +970,15 @@ impl Table {
     ///         schema.clone(),
     ///         vec![
     ///             Arc::new(Int32Array::from_iter_values(0..10)),
-    ///             Arc::new(
-    ///                 FixedSizeListArray::from_iter_primitive::<Float32Type, _, _>(
-    ///                     (0..10).map(|_| Some(vec![Some(1.0); 128])),
+    ///             Arc::new({
+    ///                 let flat_vectors: Vec<f32> = vec![1.0; 128 * 10];
+    ///                 FixedSizeListArray::new(
+    ///                     Arc::new(Field::new("item", DataType::Float32, true)),
     ///                     128,
-    ///                 ),
-    ///             ),
+    ///                     Arc::new(Float32Array::from(flat_vectors)),
+    ///                     None,
+    ///                 )
+    ///             }),
     ///         ],
     ///     )
     ///     .unwrap()]
@@ -1501,12 +1511,12 @@ impl NativeTable {
             Some(wrapper) => params.patch_with_store_wrapper(wrapper)?,
             None => params,
         };
-
+        
         let dataset = DatasetBuilder::from_uri(uri)
             .with_read_params(params)
             .load()
             .await
-            .map_err(|e| match e {
+            .map_err(|source| match source {
                 lance::Error::DatasetNotFound { .. } => Error::TableNotFound {
                     name: name.to_string(),
                 },
@@ -1553,7 +1563,7 @@ impl NativeTable {
     pub async fn create(
         uri: &str,
         name: &str,
-        batches: impl StreamingWriteSource,
+        batches: Box<dyn RecordBatchReader + Send>,
         write_store_wrapper: Option<Arc<dyn WrappingObjectStore>>,
         params: Option<WriteParams>,
         read_consistency_interval: Option<std::time::Duration>,
@@ -1568,9 +1578,11 @@ impl NativeTable {
             None => params,
         };
 
+        // Wrap the arrow RecordBatchReader for compatibility with lance/datafusion
+        let wrapped_reader = wrap_arrow_reader(batches);
         let insert_builder = InsertBuilder::new(uri).with_params(&params);
         let dataset = insert_builder
-            .execute_stream(batches)
+            .execute_stream(wrapped_reader)
             .await
             .map_err(|e| match e {
                 lance::Error::DatasetAlreadyExists { .. } => Error::TableAlreadyExists {
@@ -1620,14 +1632,16 @@ impl NativeTable {
     /// Merge new data into this table.
     pub async fn merge(
         &mut self,
-        batches: impl RecordBatchReader + Send + 'static,
+        batches: Box<dyn RecordBatchReader + Send>,
         left_on: &str,
         right_on: &str,
     ) -> Result<()> {
+        // Wrap the arrow RecordBatchReader for compatibility with lance/datafusion
+        let wrapped_reader = wrap_arrow_reader(batches);
         self.dataset
             .get_mut()
             .await?
-            .merge(batches, left_on, right_on)
+            .merge(wrapped_reader, left_on, right_on)
             .await?;
         Ok(())
     }
@@ -1923,12 +1937,15 @@ impl NativeTable {
     ) -> Result<DatasetRecordBatchStream> {
         let plan = self.create_plan(query, options.clone()).await?;
         let inner = execute_plan(plan, Default::default())?;
-        let inner = if let Some(timeout) = options.timeout {
-            TimeoutStream::new_boxed(inner, timeout)
+        // Keep as datafusion stream for DatasetRecordBatchStream
+        let result = if let Some(timeout) = options.timeout {
+            // DatasetRecordBatchStream expects datafusion stream, not arrow stream
+            // So we need to handle timeout differently here
+            DatasetRecordBatchStream::new(inner)
         } else {
-            inner
+            DatasetRecordBatchStream::new(inner)
         };
-        Ok(DatasetRecordBatchStream::new(inner))
+        Ok(result)
     }
 
     /// Check whether the table uses V2 manifest paths.
@@ -2119,9 +2136,11 @@ impl BaseTable for NativeTable {
         let dataset = {
             // Limited scope for the mutable borrow of self.dataset avoids deadlock.
             let ds = self.dataset.get_mut().await?;
+            // Wrap the arrow RecordBatchReader for compatibility with lance/datafusion
+            let wrapped_reader = wrap_arrow_reader(data);
             InsertBuilder::new(Arc::new(ds.clone()))
                 .with_params(&lance_params)
-                .execute_stream(data)
+                .execute_stream(wrapped_reader)
                 .await?
         };
         let version = dataset.manifest().version;
@@ -2401,12 +2420,14 @@ impl BaseTable for NativeTable {
         }
 
         let future = if let Some(timeout) = params.timeout {
+            // Wrap the arrow RecordBatchReader for compatibility with lance/datafusion
+            let wrapped_reader = wrap_arrow_reader(new_data);
             // The default retry timeout is 30s, so we pass the full timeout down
             // as well in case it is longer than that.
             let future = builder
                 .retry_timeout(timeout)
                 .try_build()?
-                .execute_reader(new_data);
+                .execute_reader(wrapped_reader);
             Either::Left(tokio::time::timeout(timeout, future).map(|res| match res {
                 Ok(Ok((new_dataset, stats))) => Ok((new_dataset, stats)),
                 Ok(Err(e)) => Err(e.into()),
@@ -2415,8 +2436,10 @@ impl BaseTable for NativeTable {
                 }),
             }))
         } else {
+            // Wrap the arrow RecordBatchReader for compatibility with lance/datafusion
+            let wrapped_reader = wrap_arrow_reader(new_data);
             let job = builder.try_build()?;
-            Either::Right(job.execute_reader(new_data).map_err(|e| e.into()))
+            Either::Right(job.execute_reader(wrapped_reader).map_err(|e| e.into()))
         };
         let (new_dataset, stats) = future.await?;
         let version = new_dataset.manifest().version;

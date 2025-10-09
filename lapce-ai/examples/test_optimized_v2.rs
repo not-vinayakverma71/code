@@ -1,5 +1,5 @@
 /// Test optimized performance with better buffer management
-use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer as OptimizedSharedMemory;
+use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer as lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer;
 use std::time::Instant;
 
 fn main() {
@@ -7,7 +7,7 @@ fn main() {
     println!("{}", "=".repeat(60));
     
     // Use larger buffer for better throughput
-    let mut server = OptimizedSharedMemory::new();
+    let mut server = lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer::new();
     let mut server = OptimizedIpcServer::new();
     let channel_id = server.create_channel(26); // 64MB buffer (2^26)
     

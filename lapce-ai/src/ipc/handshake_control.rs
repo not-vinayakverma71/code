@@ -4,8 +4,6 @@
 use std::sync::atomic::{AtomicU64, AtomicU32, Ordering};
 use std::time::{Duration, Instant};
 use anyhow::{Result, bail};
-use tokio::sync::Semaphore;
-use std::sync::Arc;
 
 const HANDSHAKE_MAGIC: u32 = 0x4950434C; // "IPCL"
 const HANDSHAKE_VERSION: u8 = 1;
@@ -73,7 +71,7 @@ impl HandshakeControl {
                 let server_pid = self.server_pid.load(Ordering::Acquire);
                 let timestamp = std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
+                    .unwrap_or_else(|_| std::time::Duration::from_secs(0))
                     .as_nanos() as u64;
                 
                 let conn_id = Self::generate_conn_id(client_pid, server_pid, timestamp);
@@ -117,7 +115,7 @@ impl HandshakeControl {
         // Set timestamp
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
+            .unwrap_or_else(|_| std::time::Duration::from_secs(0))
             .as_nanos() as u64;
         self.timestamp_ns.store(timestamp, Ordering::Release);
         
@@ -224,10 +222,11 @@ impl UnifiedHandshake {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Arc;
     
     #[tokio::test]
     async fn test_handshake_blocking() {
-        let control = Arc::new(HandshakeControl::new());
+        let control = std::sync::Arc::new(HandshakeControl::new());
         let control_server = control.clone();
         
         // Server task
@@ -251,7 +250,7 @@ mod tests {
     
     #[tokio::test]
     async fn test_handshake_auth() {
-        let control = Arc::new(HandshakeControl::new());
+        let control = std::sync::Arc::new(HandshakeControl::new());
         let control_server = control.clone();
         
         let auth_token = b"secret_token_123";

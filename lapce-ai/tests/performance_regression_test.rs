@@ -1,7 +1,7 @@
 /// Performance Regression Test Suite
 /// Ensures performance doesn't degrade with changes
 use std::time::{Duration, Instant};
-use lapce_ai_rust::shared_memory_complete::SharedMemoryBuffer;
+use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer;
 
 #[test]
 fn test_regression_latency() {

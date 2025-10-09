@@ -9,9 +9,12 @@ pub fn init() {
 pub mod ai_completion;
 pub mod ai_providers;
 pub mod ai_tools;
+pub mod assistant_message_parser;
 pub mod buffer_management;
 pub mod core;
+pub mod handlers;  // P1-1: Tool execution handlers
 pub mod auto_reconnection;
+pub mod backoff_util;
 pub mod binary_codec;
 pub mod bug_detection_ai;
 pub mod cache;
@@ -44,9 +47,10 @@ pub mod ipc_server;
 pub mod ipc_server_complete;
 pub mod lapce_plugin;
 pub mod lapce_plugin_protocol;
-pub mod macos_shared_memory;
+// pub mod macos_shared_memory; // Moved to ipc module
 pub mod mcp_tools;
 pub mod message_framing;
+pub mod message_router;
 pub mod message_routing_dispatch;
 pub mod metrics_collection;
 pub mod mistral_format;
@@ -55,8 +59,10 @@ pub mod model_params;
 pub mod multi_language_parser;
 pub mod nodejs_comparison;
 pub mod openai_format;
-pub mod openai_provider_handler;
-pub mod optimized_cache;
+pub mod anthropic_provider_handler;
+pub mod api_client_complete;
+pub mod api_provider_integration;
+pub mod orchestrator_integration;
 pub mod optimized_vector_search;
 pub mod production_hardening;
 pub mod provider_pool;
@@ -65,20 +71,28 @@ pub mod r1_format;
 pub mod refactoring_engine;
 pub mod register_code_actions;
 pub mod register_terminal_actions;
+pub mod roo_controllers;
 pub mod search_files_tool;
 pub mod search_tools;
 pub mod semantic_engine;
 pub mod services;
-pub mod shared_memory_complete;
+// pub mod shared_memory_complete; // Moved to ipc module
 // pub mod shared_memory_nuclear; // Module file doesn't exist
 pub mod simple_format;
 pub mod streaming_pipeline;
 // streaming_response moved to streaming_pipeline module
+pub mod subtask_manager;
 pub mod tantivy_search;
 pub mod task_connection_handling;
 pub mod task_exact_translation;
+pub mod task_manager;
+pub mod task_orchestration_loop;
+pub mod task_orchestrator_metrics;
+pub mod task_persistence;
 pub mod titan_embedder;
 pub mod titan_embedding_client;
+pub mod tool_executor;
+pub mod tool_repetition_detector;
 pub mod types_api;
 pub mod types_codebase_index;
 pub mod types_events;
@@ -102,7 +116,7 @@ pub mod token_counting;
 // pub mod tools; // Module not implemented yet
 pub mod tools_translation;
 pub mod types;
-pub mod windows_shared_memory;
+// pub mod windows_shared_memory; // Moved to ipc module
 pub mod working_cache_system;
 pub mod xml_parsing_utils;
 

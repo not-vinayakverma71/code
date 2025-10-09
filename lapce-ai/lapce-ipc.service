@@ -6,24 +6,28 @@ Wants=network-online.target
 
 [Service]
 Type=notify
-ExecStart=/usr/local/bin/lapce-ipc-server
-ExecReload=/bin/kill -HUP $MAINPID
-ExecStop=/bin/kill -TERM $MAINPID
-Restart=always
-RestartSec=5
-StartLimitInterval=0
-
-# User and permissions
 User=lapce
 Group=lapce
+WorkingDirectory=/var/lib/lapce
 UMask=0027
+
+# Service configuration
+ExecStart=/usr/local/bin/lapce_ipc_server --config /etc/lapce/lapce-ipc.toml
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStop=/bin/kill -TERM $MAINPID
+
+# Environment
+Environment="RUST_LOG=info"
+Environment="LAPCE_CONFIG_PATH=/etc/lapce/lapce-ipc.toml"
+Environment="LAPCE_LOG_LEVEL=info"
+EnvironmentFile=-/etc/lapce/ipc.env
 
 # Security hardening
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/var/run/lapce /var/log/lapce
+ReadWritePaths=/var/run/lapce /var/log/lapce /tmp
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true
@@ -33,6 +37,7 @@ LockPersonality=true
 MemoryDenyWriteExecute=true
 RestrictRealtime=true
 RestrictSUIDSGID=true
+RemoveIPC=false
 
 # Resource limits
 LimitNOFILE=65536
@@ -42,68 +47,19 @@ CPUQuota=200%
 MemoryMax=2G
 MemoryHigh=1G
 
-# Environment
-Environment="RUST_LOG=info"
-Environment="IPC_SOCKET=/var/run/lapce/ipc.sock"
-Environment="METRICS_PORT=9090"
-EnvironmentFile=-/etc/lapce/ipc.env
-
-# Logging
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=lapce-ipc
-
-[Install]
-WantedBy=multi-user.target.com/lapce/lapce-ai-rust
-After=network.target
-
-[Service]
-Type=notify
-User=lapce
-Group=lapce
-WorkingDirectory=/var/lib/lapce
-
-# Service configuration
-ExecStart=/usr/local/bin/lapce-ipc-server --config /etc/lapce/ipc.toml
-ExecReload=/bin/kill -HUP $MAINPID
-ExecStop=/bin/kill -TERM $MAINPID
-
-# Environment
-Environment="RUST_LOG=info"
-Environment="IPC_SOCKET_PATH=/var/run/lapce/ipc.sock"
-Environment="IPC_MAX_CONNECTIONS=2000"
-
-# Security hardening
-NoNewPrivileges=true
-PrivateTmp=true
-ProtectSystem=strict
-ProtectHome=true
-ReadWritePaths=/var/run/lapce /var/log/lapce
-ProtectKernelTunables=true
-ProtectKernelModules=true
-ProtectControlGroups=true
-RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
-RestrictNamespaces=true
-LockPersonality=true
-MemoryDenyWriteExecute=true
-RestrictRealtime=true
-RestrictSUIDSGID=true
-RemoveIPC=true
-
-# Resource limits
-LimitNOFILE=65536
-LimitNPROC=4096
-MemoryLimit=500M
-CPUQuota=80%
-
 # Restart policy
 Restart=always
-RestartSec=10
+RestartSec=5
 StartLimitBurst=5
 StartLimitInterval=60
 
 # Watchdog
 WatchdogSec=30s
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=lapce-ipc
 
 [Install]
 WantedBy=multi-user.target

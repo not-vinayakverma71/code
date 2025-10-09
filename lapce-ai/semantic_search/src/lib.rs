@@ -192,6 +192,7 @@
 
 pub mod arrow;
 pub mod catalog;
+pub mod compat;
 pub mod connection;
 pub mod data;
 pub mod error;
@@ -205,11 +206,13 @@ pub mod processors;
 pub mod shared;
 pub mod memory;
 pub mod optimization;
+pub mod search;
+pub mod security;
 pub mod table;
+pub mod tracing;
 pub mod utils;
 pub mod types;
 pub mod incremental;
-pub mod search;
 pub mod database;
 
 // Storage modules with submodules

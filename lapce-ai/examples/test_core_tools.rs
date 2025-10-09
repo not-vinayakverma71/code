@@ -4,11 +4,11 @@ use std::path::PathBuf;
 use tempfile::TempDir;
 
 use lapce_ai_rust::core::tools::{
-    ToolRegistry, ToolContext, ToolOutput,
+    ToolRegistry, ToolContext, 
     RooIgnore,
     parse_tool_xml, generate_tool_xml,
 };
-use lapce_ai_rust::core::tools::traits::{Tool, ToolResult};
+use lapce_ai_rust::core::tools::{Tool, ToolResult, ToolOutput};
 use async_trait::async_trait;
 use serde_json::Value;
 
