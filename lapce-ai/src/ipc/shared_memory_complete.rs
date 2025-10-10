@@ -43,7 +43,13 @@ impl SharedMemoryBuffer {
         
         // Create namespaced SHM path with per-boot suffix for security
         let namespaced_path = create_namespaced_path(path);
-        let shm_name_str = namespaced_path.replace('/', "_");
+        
+        // shm_open requires name to start with '/' but have no other slashes
+        // Keep leading /, replace subsequent slashes with underscores
+        let shm_name_str = {
+            let without_leading = namespaced_path.trim_start_matches('/');
+            format!("/{}", without_leading.replace('/', "_"))
+        };
         
         // macOS has a 31-character limit (PSHMNAMLEN) for shm_open names
         #[cfg(target_os = "macos")]

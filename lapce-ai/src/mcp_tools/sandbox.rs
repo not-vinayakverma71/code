@@ -66,7 +66,9 @@ impl ProcessSandbox {
     pub fn new() -> Self {
         Self {
             chroot_path: PathBuf::from("/tmp/sandbox"),
+            #[cfg(unix)]
             uid: None,
+            #[cfg(unix)]
             gid: None,
             enable_namespaces: false,
             enable_seccomp: false,

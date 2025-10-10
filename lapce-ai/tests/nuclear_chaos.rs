@@ -44,7 +44,7 @@ async fn nuclear_chaos() {
     let server = Arc::new(IpcServer::new(socket_path).await.unwrap());
     
     // Register chaos handler
-    server.register_handler(MessageType::CompletionRequest, |data| async move {
+    server.register_handler(MessageType::Complete, |data| async move {
         let mut rng = rand::thread_rng();
         
         // Randomly inject delays
@@ -54,7 +54,7 @@ async fn nuclear_chaos() {
         
         // Randomly fail
         if rng.gen::<f64>() < 0.02 {
-            return Err(lapce_ai_rust::ipc::IpcError::HandlerPanic);
+            return Err(lapce_ai_rust::ipc::IpcError::handler("Chaos injection"));
         }
         
         Ok(data)

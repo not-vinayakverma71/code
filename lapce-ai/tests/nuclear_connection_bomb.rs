@@ -33,7 +33,7 @@ async fn nuclear_connection_bomb() {
     let server = Arc::new(IpcServer::new(socket_path).await.unwrap());
     
     // Register echo handler
-    server.register_handler(0, |data| async move {
+    server.register_handler(MessageType::Echo, |data| async move {
         Ok(data) // Echo back
     });
     

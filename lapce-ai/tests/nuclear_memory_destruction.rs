@@ -36,9 +36,10 @@ async fn nuclear_memory_destruction() {
     let server = Arc::new(IpcServer::new(socket_path).await.unwrap());
     
     // Register handlers for different sizes
-    for (idx, &size) in BUFFER_SIZES.iter().enumerate() {
+    // Use MessageType::Custom for all handlers since we're testing memory, not message types
+    for (_idx, &size) in BUFFER_SIZES.iter().enumerate() {
         let handler_size = size;
-        server.register_handler(idx as u32, move |data| async move {
+        server.register_handler(MessageType::Custom, move |data| async move {
             // Allocate temporary buffer to stress memory
             let mut buffer = vec![0u8; handler_size];
             buffer[0] = data[0]; // Touch memory
@@ -134,10 +135,10 @@ async fn nuclear_memory_destruction() {
 }
 
 fn get_process_memory_mb() -> f64 {
-    use sysinfo::{System, SystemExt, ProcessExt, PidExt};
+    use sysinfo::{System, Pid};
     
     let mut sys = System::new();
-    sys.refresh_processes(sysinfo::ProcessesToUpdate::All);
+    sys.refresh_processes();
     
     let pid = sysinfo::Pid::from(std::process::id() as usize);
     if let Some(process) = sys.process(pid) {

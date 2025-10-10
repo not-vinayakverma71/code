@@ -30,7 +30,7 @@ async fn nuclear_memory_leak() {
     let server = Arc::new(IpcServer::new(socket_path).await.unwrap());
     
     // Register handler
-    server.register_handler(0, |data| async move {
+    server.register_handler(MessageType::Echo, |data| async move {
         Ok(data)
     });
     
