@@ -119,17 +119,17 @@ smallvec = "1.11"
 jemallocator = { version = "0.5", optional = true }
 
 # Database
-lancedb = "0.10"
+lancedb = "0.22"
 tantivy = "0.22"
 sea-orm = { version = "1.1", features = ["runtime-tokio-rustls", "sqlx-sqlite"] }
 sea-orm-migration = "1.1"
 sled = "0.34"
 
 # Arrow & Data
-arrow = "52.2"
-arrow-array = "52.2"
-arrow-schema = "52.2"
-arrow-cast = "52.2"
+arrow = "53"
+arrow-array = "53"
+arrow-schema = "53"
+arrow-cast = "53"
 
 # AI & ML
 tokenizers = "0.21"
@@ -268,3 +268,5 @@ html-escape = "0.2"
 
 [workspace]
 members = [".", "optimized_ipc"]
+
+
