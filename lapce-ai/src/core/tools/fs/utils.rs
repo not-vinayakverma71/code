@@ -4,6 +4,7 @@
 use std::fs::{self, File};
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
+#[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
 
 /// Maximum file size for reading (100MB default)

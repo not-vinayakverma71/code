@@ -25,6 +25,7 @@ use crate::core::tools::security_hardening::validate_path_security;
 use tokio::process::Command;
 use std::collections::HashMap;
 use std::fs::Metadata;
+#[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 
 // ============= Git Tools =============

@@ -1,8 +1,10 @@
 /// REAL Process Sandboxing - Production Grade Implementation
 use std::path::{Path, PathBuf};
+#[cfg(unix)]
 use std::os::unix::process::CommandExt;
 use std::process::Command;
 use anyhow::{Result, Context};
+#[cfg(unix)]
 use nix::unistd::{Uid, Gid};
 
 pub struct ProcessSandbox {

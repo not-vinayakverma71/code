@@ -167,9 +167,9 @@ async fn main() {
 // Stub functions for testing
 async fn test_aws_connection() -> Result<(), String> {
     // Try to create AWS client
-    std::env::set_var("AWS_ACCESS_KEY_ID", "AKIA2RCKMSFVZ72HLCXD");
-    std::env::set_var("AWS_SECRET_ACCESS_KEY", "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");
-    std::env::set_var("AWS_REGION", "us-east-1");
+    std::env::set_var("AWS_ACCESS_KEY_ID", "stop");
+    std::env::set_var("AWS_SECRET_ACCESS_KEY", "no-key");
+    std::env::set_var("AWS_REGION", "wtf");
     
     let config = aws_config::load_from_env().await;
     let _client = aws_sdk_bedrockruntime::Client::new(&config);
