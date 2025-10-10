@@ -9,7 +9,9 @@ use nix::unistd::{Uid, Gid};
 
 pub struct ProcessSandbox {
     chroot_path: PathBuf,
+    #[cfg(unix)]
     uid: Option<Uid>,
+    #[cfg(unix)]
     gid: Option<Gid>,
     enable_namespaces: bool,
     enable_seccomp: bool,
@@ -29,7 +31,9 @@ impl ProcessSandbox {
     pub fn new(chroot_path: PathBuf) -> Self {
         Self {
             chroot_path,
+            #[cfg(unix)]
             uid: Some(Uid::from_raw(65534)), // nobody user
+            #[cfg(unix)]
             gid: Some(Gid::from_raw(65534)), // nogroup
             enable_namespaces: true,
             enable_seccomp: true,
@@ -47,34 +51,32 @@ impl ProcessSandbox {
         let mut cmd = Command::new("sh");
         cmd.arg("-c").arg(command);
         // Setup the sandbox environment
-        let enable_namespaces = self.enable_namespaces;
-        let resource_limits: Option<ResourceLimits> = None;
-        let enable_user_namespace = false;
-        let enable_mount_namespace = false;
-        let sandbox_dir: Option<String> = None;
-        
-        unsafe {
-            cmd.pre_exec(move || {
-                // Apply namespaces
-                if enable_namespaces {
-                    Self::setup_namespaces()?;
-                }
+        #[cfg(unix)]
+        {
+            let enable_namespaces = self.enable_namespaces;
+            let resource_limits: Option<ResourceLimits> = None;
+            let sandbox_dir: Option<String> = None;
+            
+            unsafe {
+                cmd.pre_exec(move || {
+                    // Apply namespaces
+                    if enable_namespaces {
+                        Self::setup_namespaces()?;
+                    }
+                    
+                    // Apply resource limits
+                    if let Some(ref limits) = resource_limits {
+                        Self::apply_resource_limits(limits)?;
+                    }
+                    
+                    // Change to sandbox directory
+                    if let Some(ref dir) = sandbox_dir {
+                        std::env::set_current_dir(dir)?;
+                    }
                 
-                // Apply resource limits
-                if let Some(ref limits) = resource_limits {
-                    Self::apply_resource_limits(limits)?;
-                }
-                
-                // User and mount namespaces not implemented in simplified version
-                // Skip namespace setup
-                
-                // Change to sandbox directory
-                if let Some(ref dir) = sandbox_dir {
-                    std::env::set_current_dir(dir)?;
-                }
-                
-                Ok(())
-            });
+                    Ok(())
+                });
+            }
         }
         
         let output = cmd.output().context("Failed to execute sandboxed command")?;

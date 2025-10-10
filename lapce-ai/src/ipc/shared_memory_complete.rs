@@ -43,7 +43,15 @@ impl SharedMemoryBuffer {
         
         // Create namespaced SHM path with per-boot suffix for security
         let namespaced_path = create_namespaced_path(path);
-        let shm_name = std::ffi::CString::new(namespaced_path.replace('/', "_"))
+        let shm_name_str = namespaced_path.replace('/', "_");
+        
+        // macOS has a 31-character limit (PSHMNAMLEN) for shm_open names
+        #[cfg(target_os = "macos")]
+        if shm_name_str.len() > 31 {
+            bail!("SHM name too long for macOS ({}>{} chars): '{}'", shm_name_str.len(), 31, shm_name_str);
+        }
+        
+        let shm_name = std::ffi::CString::new(shm_name_str)
             .map_err(|e| anyhow::anyhow!("Invalid path: {}", e))?;
         let fd = unsafe {
             let fd = libc::shm_open(

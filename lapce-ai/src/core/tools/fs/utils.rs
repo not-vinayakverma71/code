@@ -203,8 +203,12 @@ pub fn get_file_info(path: &Path) -> io::Result<FileInfo> {
         None
     };
     
-    // Check if readonly on Unix
+    // Check if readonly
+    #[cfg(unix)]
     let is_readonly = real_metadata.mode() & 0o200 == 0;
+    
+    #[cfg(not(unix))]
+    let is_readonly = real_metadata.permissions().readonly();
     
     Ok(FileInfo {
         path: path.to_path_buf(),

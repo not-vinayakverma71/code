@@ -26,7 +26,9 @@ pub struct ProcessOutput {
 
 pub struct ProcessSandbox {
     chroot_path: PathBuf,
+    #[cfg(unix)]
     uid: Option<Uid>,
+    #[cfg(unix)]
     gid: Option<Gid>,
     enable_namespaces: bool,
     enable_seccomp: bool,

@@ -67,11 +67,24 @@ fn generate_fallback_suffix() -> String {
 /// Create namespaced SHM path with boot suffix
 pub fn create_namespaced_path(base_path: &str) -> String {
     let suffix = get_boot_suffix();
-    if base_path.starts_with('/') {
-        format!("{}-{}", base_path, suffix)
+    let base = if base_path.starts_with('/') {
+        base_path
     } else {
-        format!("/{}-{}", base_path, suffix)
-    }
+        &format!("/{}", base_path)
+    };
+    
+    // macOS has a 31-character limit (PSHMNAMLEN) for shm names
+    // After replacing '/' with '_', we need: base + '-' + 8-char-suffix = max 31 chars
+    // So base can be at most 31 - 1 - 8 = 22 chars (including leading /)
+    #[cfg(target_os = "macos")]
+    let base = if base.len() > 22 {
+        // Truncate but keep leading /
+        &base[..22]
+    } else {
+        base
+    };
+    
+    format!("{}-{}", base, suffix)
 }
 
 /// Extract base path from namespaced path

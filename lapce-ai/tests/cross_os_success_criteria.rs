@@ -88,7 +88,7 @@ fn test_zero_copy_codec_roundtrip() {
 fn test_shared_memory_roundtrip_posix() {
     use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer;
 
-    let mut shm = SharedMemoryBuffer::create("/ci_cross_os_shm", 1 * 1024 * 1024).expect("create shm");
+    let mut shm = SharedMemoryBuffer::create("/ci_shm", 1 * 1024 * 1024).expect("create shm");
     let payload = b"hello-shm";
 
     shm.write(payload).expect("write");
