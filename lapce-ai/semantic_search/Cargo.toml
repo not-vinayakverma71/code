@@ -14,18 +14,18 @@ rust-version = "1.70"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 anyhow = "1.0"
-arrow = { version = "56", features = ["prettyprint", "ffi"] }
-arrow-arith = "56"
-arrow-array = "56"
-arrow-buffer = "56"
-arrow-cast = "56"
-arrow-data = "56"
-arrow-ipc = "56"
-arrow-json = "56"
-arrow-ord = "56"
-arrow-row = "56"
-arrow-schema = "56"
-arrow-select = "56"
+arrow = { version = "52.2", features = ["prettyprint", "ffi"] }
+arrow-arith = "52.2"
+arrow-array = "52.2"
+arrow-buffer = "52.2"
+arrow-cast = "52.2"
+arrow-data = "52.2"
+arrow-ipc = "52.2"
+arrow-json = "52.2"
+arrow-ord = "52.2"
+arrow-row = "52.2"
+arrow-schema = "52.2"
+arrow-select = "52.2"
 async-trait = "0.1"
 aws-config = "1.5"
 aws-sdk-bedrockruntime = "1.49"
@@ -69,6 +69,9 @@ base64 = "0.22"
 blake3 = "1.5"
 num-traits = "0.2"
 url = "2"
+
+# Optional integration with CST-tree-sitter for canonical kind mapping
+lapce-tree-sitter = { path = "../CST-tree-sitter", optional = true }
 
 # Memory optimization dependencies (Task 1)
 zstd = { version = "0.13.2", features = ["zstdmt"] }
@@ -143,7 +146,7 @@ name = "current_benchmark"
 harness = false
 
 [dev-dependencies]
-arrow = { version = "56", features = ["test_utils", "prettyprint"] }
+arrow = { version = "52.2", features = ["test_utils", "prettyprint"] }
 criterion = "0.5"
 fake = "2.9.2"
 hyper = { version = "1", features = ["server"] }
@@ -186,6 +189,8 @@ azure = ["lance/azure", "lance-io/azure"]
 dynamodb = ["lance/dynamodb", "aws"]
 # fp16kernels removed - required modern compiler (Clang >= 14 or GCC >= 12 with AVX2)
 # Can be re-added if FP16 quantization is needed in the future
+# Enable CST-tree-sitter integration (canonical AST kinds, parser manager, caching)
+cst_ts = ["dep:lapce-tree-sitter"]
 s3-test = []
 bedrock = []
 openai = []

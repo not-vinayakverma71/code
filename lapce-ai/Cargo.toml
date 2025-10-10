@@ -119,17 +119,17 @@ smallvec = "1.11"
 jemallocator = { version = "0.5", optional = true }
 
 # Database
-lancedb = "0.10"  # Use compatible version
+lancedb = "0.10"
 tantivy = "0.22"
 sea-orm = { version = "1.1", features = ["runtime-tokio-rustls", "sqlx-sqlite"] }
 sea-orm-migration = "1.1"
 sled = "0.34"
 
 # Arrow & Data
-arrow = "52.0"
-arrow-array = "52.0"
-arrow-schema = "52.0"
-arrow-cast = "52.0"
+arrow = "52.2"
+arrow-array = "52.2"
+arrow-schema = "52.2"
+arrow-cast = "52.2"
 
 # AI & ML
 tokenizers = "0.21"
@@ -143,8 +143,8 @@ ndarray = "0.16"
 
 # AWS
 aws-config = "1.5"
-aws-sdk-bedrock = "1.72"
-aws-sdk-bedrockruntime = "1.39"
+aws-sdk-bedrock = "1.77"
+aws-sdk-bedrockruntime = "1.76"
 aws-credential-types = "1.2"
 aws-types = "1.3"
 
