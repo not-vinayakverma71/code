@@ -196,8 +196,7 @@ impl IpcTransport for WindowsSharedMemoryTransport {
     }
     
     fn read(&mut self) -> Result<Vec<u8>> {
-        self.mem.read()?
-            .ok_or_else(|| anyhow!("No data available"))
+        self.mem.read()?.ok_or_else(|| anyhow!("No data available"))
     }
     
     fn platform_name(&self) -> &str {
@@ -222,8 +221,7 @@ impl IpcTransport for MacSharedMemoryTransport {
     }
     
     fn read(&mut self) -> Result<Vec<u8>> {
-        self.mem.read()?
-            .ok_or_else(|| anyhow!("No data available"))
+        self.mem.read()?.ok_or_else(|| anyhow!("No data available"))
     }
     
     fn platform_name(&self) -> &str {
