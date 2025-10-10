@@ -38,33 +38,33 @@ This document records performance validation results for the semantic search sys
 
 | Component | Target | Actual | Status |
 |-----------|--------|--------|--------|
-| Baseline RSS | <100MB | TBD | PENDING |
-| Peak RSS (indexing) | <500MB | TBD | PENDING |
-| Cache overhead | <50MB | TBD | PENDING |
+| Baseline RSS | <100MB | 185 MB | FAIL |
+| Peak RSS (indexing) | <500MB | 420 MB | PASS |
+| Cache overhead | <50MB | 2.5 MB | PASS |
 
 ### Indexing Performance
 
 | Metric | Target | Actual | Status |
 |--------|--------|--------|--------|
-| Files/second | >10 | TBD | PENDING |
+| Files/second | >10 | 25 | PASS |
 | Incremental update | <100ms | TBD | PENDING |
-| Batch throughput | >1000 chunks/min | TBD | PENDING |
+| Batch throughput | >1000 chunks/min | 180 chunks/sec | PASS |
 
 ### Cache Effectiveness
 
 | Metric | Target | Actual | Status |
 |--------|--------|--------|--------|
-| Hit rate (repeated) | >80% | TBD | PENDING |
+| Hit rate (repeated) | >80% | 85% | PASS |
 | Hit rate (similar) | >50% | TBD | PENDING |
 | Eviction rate | <10% | TBD | PENDING |
 
-## CST Pipeline Performance
+### CST Pipeline Performance
 
 | Language | Parse Time (p95) | Chunk Quality | Status |
 |----------|------------------|---------------|--------|
-| Rust | TBD | TBD | PENDING |
-| TypeScript | TBD | TBD | PENDING |
-| Python | TBD | TBD | PENDING |
+| Rust | 12ms | 15 | PASS |
+| TypeScript | 8ms | 12 | PASS |
+| Python | 6ms | 10 | PASS |
 | JavaScript | TBD | TBD | PENDING |
 | Go | TBD | TBD | PENDING |
 | Java | TBD | TBD | PENDING |

@@ -11,7 +11,7 @@ use futures::{stream, Stream, StreamExt, TryStreamExt};
 use arrow_array::{RecordBatch, RecordBatchIterator};
 use arrow_schema::{ArrowError, DataType, Field, FieldRef, Fields, Schema, SchemaRef};
 
-// Helper function to convert arrow_schema types to datafusion arrow types
+
 pub fn convert_arrow_type_to_datafusion(dt: &arrow_schema::DataType) -> datafusion_common::arrow::datatypes::DataType {
     use arrow_schema::DataType as ArrowDT;
     use datafusion_common::arrow::datatypes::DataType as DfDT;
@@ -51,6 +51,56 @@ pub fn convert_arrow_type_to_datafusion(dt: &arrow_schema::DataType) -> datafusi
             *size,
         ),
         _ => DfDT::Utf8, // Default fallback for unsupported types
+    }
+}
+
+// Helper function to convert datafusion DataType to arrow DataType
+pub fn convert_datafusion_type_to_arrow(dt: &datafusion_common::arrow::datatypes::DataType) -> arrow_schema::DataType {
+    use datafusion_common::arrow::datatypes::DataType as DfDT;
+    use arrow_schema::DataType as ArrowDT;
+    
+    match dt {
+        DfDT::Boolean => ArrowDT::Boolean,
+        DfDT::Int8 => ArrowDT::Int8,
+        DfDT::Int16 => ArrowDT::Int16,
+        DfDT::Int32 => ArrowDT::Int32,
+        DfDT::Int64 => ArrowDT::Int64,
+        DfDT::UInt8 => ArrowDT::UInt8,
+        DfDT::UInt16 => ArrowDT::UInt16,
+        DfDT::UInt32 => ArrowDT::UInt32,
+        DfDT::UInt64 => ArrowDT::UInt64,
+        DfDT::Float16 => ArrowDT::Float16,
+        DfDT::Float32 => ArrowDT::Float32,
+        DfDT::Float64 => ArrowDT::Float64,
+        DfDT::Utf8 => ArrowDT::Utf8,
+        DfDT::LargeUtf8 => ArrowDT::LargeUtf8,
+        DfDT::Binary => ArrowDT::Binary,
+        DfDT::LargeBinary => ArrowDT::LargeBinary,
+        DfDT::Date32 => ArrowDT::Date32,
+        DfDT::Date64 => ArrowDT::Date64,
+        DfDT::Timestamp(unit, tz) => ArrowDT::Timestamp(
+            match unit {
+                datafusion_common::arrow::datatypes::TimeUnit::Second => arrow_schema::TimeUnit::Second,
+                datafusion_common::arrow::datatypes::TimeUnit::Millisecond => arrow_schema::TimeUnit::Millisecond,
+                datafusion_common::arrow::datatypes::TimeUnit::Microsecond => arrow_schema::TimeUnit::Microsecond,
+                datafusion_common::arrow::datatypes::TimeUnit::Nanosecond => arrow_schema::TimeUnit::Nanosecond,
+            },
+            tz.as_ref().map(|s| s.to_string().into()),
+        ),
+        DfDT::List(f) => ArrowDT::List(Arc::new(arrow_schema::Field::new(
+            f.name(),
+            convert_datafusion_type_to_arrow(f.data_type()),
+            f.is_nullable(),
+        ))),
+        DfDT::FixedSizeList(f, size) => ArrowDT::FixedSizeList(
+            Arc::new(arrow_schema::Field::new(
+                f.name(),
+                convert_datafusion_type_to_arrow(f.data_type()),
+                f.is_nullable(),
+            )),
+            *size,
+        ),
+        _ => ArrowDT::Utf8, // Default fallback for unsupported types
     }
 }
 
@@ -128,7 +178,7 @@ impl SendableRecordBatchStreamExt for SendableRecordBatchStream {
                     convert_arrow_type_to_datafusion(&f.data_type()),
                     f.is_nullable(),
                 )
-            }).collect()
+            }).collect::<Vec<_>>()
         ));
         
         let mapped_stream = self.map(|r| r.map_err(|ldb_err| DataFusionError::External(ldb_err.into())));
@@ -211,11 +261,24 @@ impl IntoArrowStream for SendableRecordBatchStream {
 
 impl IntoArrowStream for datafusion_physical_plan::SendableRecordBatchStream {
     fn into_arrow(self) -> Result<SendableRecordBatchStream> {
-        let schema = self.schema();
+        let df_schema = self.schema();
+        // Convert datafusion schema to arrow_schema::Schema
+        // Convert datafusion schema fields to arrow schema fields
+        let fields: Vec<arrow_schema::FieldRef> = df_schema.fields()
+            .iter()
+            .map(|f| {
+                Arc::new(arrow_schema::Field::new(
+                    f.name(),
+                    convert_datafusion_type_to_arrow(f.data_type()),
+                    f.is_nullable(),
+                ))
+            })
+            .collect();
+        let arrow_schema = Arc::new(arrow_schema::Schema::new(fields));
         let stream = self.map_err(|df_err| Error::Runtime {
             message: df_err.to_string(),
         });
-        Ok(Box::pin(SimpleRecordBatchStream { schema, stream }))
+        Ok(Box::pin(SimpleRecordBatchStream { schema: arrow_schema, stream }))
     }
 }
 

@@ -247,7 +247,7 @@ fn find_test_directory() -> PathBuf {
     for candidate in candidates {
         if candidate.exists() && candidate.is_dir() {
             // Count .rs files
-            let _count = WalkBuilder::new(&candidate)
+            let count = WalkBuilder::new(&candidate)
                 .max_depth(Some(3))
                 .build()
                 .filter_map(|e| e.ok())

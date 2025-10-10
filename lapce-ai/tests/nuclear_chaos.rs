@@ -1,3 +1,4 @@
+#![cfg(any(target_os = "linux", target_os = "macos"))]
 /// Nuclear Test 5: Chaos Engineering
 /// 30 minutes of random failures (kills, corrupted messages, timeouts, oversized)
 /// Target: <1% recovery failures, 100ms recovery time
@@ -7,6 +8,7 @@ use std::sync::atomic::{AtomicU64, AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 use tokio::time::{sleep, timeout};
 use lapce_ai_rust::{IpcServer, IpcConfig};
+use lapce_ai_rust::ipc::MessageType;
 use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryStream;
 use bytes::Bytes;
 use rand::Rng;

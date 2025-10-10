@@ -182,9 +182,10 @@ pub struct HistoryItem {
 }
 
 /// ToolUsage tracking
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct ToolUsageTracker {
     pub usage_count: HashMap<String, u32>,
+    pub failure_count: HashMap<String, u32>,
 }
 
 /// Re-export types from mcp_tools
@@ -423,6 +424,110 @@ impl RooProtectedController {
 }
 
 impl Task {
+    // Missing methods needed by other modules
+    pub async fn set_task_mode(&self, mode: String) {
+        *self.task_mode.write().await = Some(mode);
+    }
+    
+    pub fn say(&self, message_type: String, text: Option<String>) -> Result<(), String> {
+        use crate::ipc_messages::ClineMessage;
+        let ts = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64;
+        
+        let message = ClineMessage {
+            ts,
+            msg_type: "say".to_string(),
+            ask: None,
+            say: Some(message_type),
+            text,
+            images: None,
+            partial: Some(false),
+            reasoning: None,
+            conversation_history_index: None,
+            checkpoint: None,
+            progress_status: None,
+            context_condense: None,
+            is_protected: None,
+            api_protocol: None,
+            metadata: None,
+        };
+        
+        self.cline_messages.blocking_write().push(message);
+        Ok(())
+    }
+    
+    pub fn request_abort(&self) {
+        let mut abort = self.abort.blocking_write();
+        *abort = true;
+    }
+    
+    pub fn pause(&self) -> Result<(), String> {
+        let mut paused = self.is_paused.blocking_write();
+        if *paused {
+            return Err("Task already paused".to_string());
+        }
+        *paused = true;
+        Ok(())
+    }
+    
+    pub fn mark_initialized(&self) {
+        let mut init = self.is_initialized.blocking_write();
+        *init = true;
+    }
+    
+    pub fn mark_abandoned(&self) {
+        let mut abandoned = self.abandoned.blocking_write();
+        *abandoned = true;
+    }
+    
+    pub fn is_aborted(&self) -> bool {
+        *self.abort.blocking_read()
+    }
+    
+    pub fn clear_asks(&self) {
+        *self.idle_ask.blocking_write() = None;
+        *self.resumable_ask.blocking_write() = None;
+        *self.interactive_ask.blocking_write() = None;
+    }
+    
+    pub fn increment_tool_mistakes(&self) {
+        let mut count = self.consecutive_mistake_count.blocking_write();
+        *count += 1;
+    }
+    
+    pub fn get_messages(&self) -> Vec<ClineMessage> {
+        self.cline_messages.blocking_read().clone()
+    }
+    
+    pub fn get_api_conversation(&self) -> Vec<ApiMessage> {
+        self.api_conversation_history.blocking_read().clone()
+    }
+    
+    pub fn get_last_message_ts(&self) -> Option<u64> {
+        *self.last_message_ts.blocking_read()
+    }
+    
+    pub fn is_paused(&self) -> bool {
+        *self.is_paused.blocking_read()
+    }
+    
+    pub fn is_initialized(&self) -> bool {
+        *self.is_initialized.blocking_read()
+    }
+    
+    pub fn is_abandoned(&self) -> bool {
+        *self.abandoned.blocking_read()
+    }
+    
+    pub fn get_consecutive_mistakes(&self) -> u32 {
+        *self.consecutive_mistake_count.blocking_read()
+    }
+    
+    pub fn get_all_tool_usage(&self) -> ToolUsageTracker {
+        self.tool_usage.blocking_read().clone()
+    }
     /// constructor - exact translation from TypeScript  
     pub fn new(options: TaskOptions) -> Arc<Self> {
         let TaskOptions {

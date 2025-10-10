@@ -3,7 +3,7 @@
 
 use std::sync::Arc;
 use anyhow::{Result, bail};
-use tracing::{info, warn, debug};
+use tracing::info;
 use serde::{Deserialize, Serialize};
 
 use crate::task_manager::TaskManager;
@@ -126,11 +126,11 @@ impl MessageRouter {
             history_item: None,
         };
         
-        let task_id = self.task_manager.create_task(options)?;
+        let task_id = self.task_manager.create_task(options).await?;
         
         // Set mode if specified
         if let Some(mode_str) = mode {
-            if let Some(task) = self.task_manager.get_task(&task_id) {
+            if let Some(task) = self.task_manager.get_task(&task_id).await {
                 task.set_task_mode(mode_str).await;
             }
         }
@@ -167,7 +167,7 @@ impl MessageRouter {
     }
     
     async fn handle_mode_switch(&self, task_id: &str, mode: &str) -> Result<MessageResponse> {
-        if let Some(task) = self.task_manager.get_task(task_id) {
+        if let Some(task) = self.task_manager.get_task(task_id).await {
             task.set_task_mode(mode.to_string()).await;
             info!("Switched task {} to mode: {}", task_id, mode);
             Ok(MessageResponse::Success)
@@ -182,15 +182,15 @@ impl MessageRouter {
         response: &str,
         approved: bool,
     ) -> Result<MessageResponse> {
-        if let Some(task) = self.task_manager.get_task(task_id) {
+        if let Some(task) = self.task_manager.get_task(task_id).await {
             // Clear ask states
             task.clear_asks();
             
             // Record response
             task.say(
-                crate::ipc_messages::ClineSay::Text,
+                "text".to_string(),
                 Some(format!("User response: {} (approved: {})", response, approved))
-            )?;
+            ).map_err(|e| anyhow::anyhow!(e))?;
             
             info!("Handled ask response for task {}", task_id);
             Ok(MessageResponse::Success)

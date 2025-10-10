@@ -49,8 +49,12 @@ jobs:
         run: cargo fmt --all -- --check
         working-directory: ./semantic_search
       
-      - name: Run clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Run clippy (default features)
+        run: cargo clippy --all-targets -- -D warnings
+        working-directory: ./semantic_search
+      
+      - name: Run clippy (production features)
+        run: cargo clippy --all-targets --features aws,bedrock -- -D warnings
         working-directory: ./semantic_search
       
       - name: Check compilation

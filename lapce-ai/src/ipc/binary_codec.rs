@@ -45,6 +45,9 @@ pub enum MessageType {
     ChatMessage = 0x0104,
     ToolCall = 0x0105,
     ToolResult = 0x0106,
+    ExecuteTool = 0x0107,
+    ToolProgress = 0x0108,
+    Ack = 0x0109,
 }
 
 impl TryFrom<u16> for MessageType {
@@ -67,6 +70,9 @@ impl TryFrom<u16> for MessageType {
             0x0104 => Ok(MessageType::ChatMessage),
             0x0105 => Ok(MessageType::ToolCall),
             0x0106 => Ok(MessageType::ToolResult),
+            0x0107 => Ok(MessageType::ExecuteTool),
+            0x0108 => Ok(MessageType::ToolProgress),
+            0x0109 => Ok(MessageType::Ack),
             _ => bail!("Unknown message type: {:#x}", value),
         }
     }
@@ -148,7 +154,10 @@ pub enum MessagePayload {
     EditResponse(EditResponse),
     ChatMessage(ChatMessage),
     ToolCall(ToolCall),
-    ToolResult(ToolResult),
+    ToolResult { correlation_id: String, success: bool, result: Option<String>, error: Option<String> },
+    ExecuteTool { tool_name: String, params: String, workspace_path: String, user_id: String, correlation_id: String, require_approval: bool },
+    ToolProgress { correlation_id: String, message: String, percentage: Option<u8> },
+    Ack,
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone)]
@@ -332,7 +341,7 @@ impl BinaryCodec {
             .map_err(|e| anyhow::anyhow!("Serialization failed: {}", e))?;
         
         let payload_bytes = archived.as_slice();
-        let payload_len = payload_bytes.len();
+        let mut payload_len = payload_bytes.len();
         
         // Check size limit
         if payload_len > self.max_message_size {
@@ -341,7 +350,7 @@ impl BinaryCodec {
         
         // Determine if compression needed
         let should_compress = self.enable_compression && payload_len > self.compression_threshold;
-        let flags = 0u8;
+        let mut flags = 0u8;
         
         let final_payload = if should_compress {
             #[cfg(feature = "compression")]
@@ -351,10 +360,6 @@ impl BinaryCodec {
                         .map_err(|e| anyhow::anyhow!("Compression failed: {}", e))?;
                     payload_len = compressed.len();
                     flags |= FLAG_COMPRESSED;
-                    let timestamp = std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap_or_else(|_| std::time::Duration::from_secs(0))
-                        .as_secs();
                     Bytes::from(compressed)
                 } else {
                     Bytes::copy_from_slice(payload_bytes)

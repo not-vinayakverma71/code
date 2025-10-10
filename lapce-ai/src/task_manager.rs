@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 use std::sync::Arc;
-use parking_lot::RwLock;
+use tokio::sync::RwLock;
 use tokio::sync::broadcast;
 use anyhow::{Result, bail};
 use tracing::{info, warn, error, debug};
@@ -36,10 +36,10 @@ impl TaskManager {
     
     /// Create a new task with given options
     /// Returns task_id on success
-    pub fn create_task(&self, mut options: TaskOptions) -> Result<String> {
+    pub async fn create_task(&self, mut options: TaskOptions) -> Result<String> {
         // Assign task number if not provided
         if options.task_number.is_none() {
-            let mut counter = self.task_counter.write();
+            let mut counter = self.task_counter.write().await;
             *counter += 1;
             options.task_number = Some(*counter);
         }
@@ -50,7 +50,7 @@ impl TaskManager {
         
         // Store in active tasks
         {
-            let mut tasks = self.tasks.write();
+            let mut tasks = self.tasks.write().await;
             if tasks.contains_key(&task_id) {
                 bail!("Task with ID {} already exists", task_id);
             }
@@ -76,7 +76,7 @@ impl TaskManager {
     /// For now, just updates state and publishes event
     pub async fn start_task(&self, task_id: &str) -> Result<()> {
         let task = {
-            let tasks = self.tasks.read();
+            let tasks = self.tasks.read().await;
             tasks.get(task_id).cloned()
                 .ok_or_else(|| anyhow::anyhow!("Task not found: {}", task_id))?
         };
@@ -105,7 +105,7 @@ impl TaskManager {
     /// Sets abort flag and publishes event
     pub async fn abort_task(&self, task_id: &str) -> Result<()> {
         let task = {
-            let tasks = self.tasks.read();
+            let tasks = self.tasks.read().await;
             tasks.get(task_id).cloned()
                 .ok_or_else(|| anyhow::anyhow!("Task not found: {}", task_id))?
         };
@@ -138,7 +138,7 @@ impl TaskManager {
     /// Pause a task by ID
     pub async fn pause_task(&self, task_id: &str) -> Result<()> {
         let task = {
-            let tasks = self.tasks.read();
+            let tasks = self.tasks.read().await;
             tasks.get(task_id).cloned()
                 .ok_or_else(|| anyhow::anyhow!("Task not found: {}", task_id))?
         };
@@ -170,7 +170,7 @@ impl TaskManager {
     /// Resume a paused task
     pub async fn resume_task(&self, task_id: &str) -> Result<()> {
         let task = {
-            let tasks = self.tasks.read();
+            let tasks = self.tasks.read().await;
             tasks.get(task_id).cloned()
                 .ok_or_else(|| anyhow::anyhow!("Task not found: {}", task_id))?
         };
@@ -199,21 +199,30 @@ impl TaskManager {
         Ok(())
     }
     
+    /// Check if a task exists by ID
+    pub async fn has_task(&self, task_id: &str) -> bool {
+        self.tasks.read().await.contains_key(task_id)
+    }
+    
     /// Get a task by ID
-    pub fn get_task(&self, task_id: &str) -> Option<Arc<Task>> {
-        let tasks = self.tasks.read();
-        tasks.get(task_id).cloned()
+    pub async fn get_task(&self, task_id: &str) -> Option<Arc<Task>> {
+        self.tasks.read().await.get(task_id).cloned()
+    }
+    
+    pub fn get_task_blocking(&self, task_id: &str) -> Option<Arc<Task>> {
+        futures::executor::block_on(async {
+            self.tasks.read().await.get(task_id).cloned()
+        })
     }
     
     /// List all active tasks
-    pub fn list_tasks(&self) -> Vec<String> {
-        let tasks = self.tasks.read();
-        tasks.keys().cloned().collect()
+    pub async fn list_tasks(&self) -> Vec<String> {
+        self.tasks.read().await.keys().cloned().collect()
     }
     
     /// Get task count
-    pub fn task_count(&self) -> usize {
-        let tasks = self.tasks.read();
+    pub async fn task_count(&self) -> usize {
+        let tasks = self.tasks.read().await;
         tasks.len()
     }
     
@@ -223,8 +232,8 @@ impl TaskManager {
     }
     
     /// Remove a completed/aborted task from tracking
-    pub fn cleanup_task(&self, task_id: &str) {
-        let mut tasks = self.tasks.write();
+    pub async fn cleanup_task(&self, task_id: &str) {
+        let mut tasks = self.tasks.write().await;
         if tasks.remove(task_id).is_some() {
             self.event_bus.cleanup_task(task_id);
             debug!("Cleaned up task: {}", task_id);
@@ -233,33 +242,33 @@ impl TaskManager {
     
     /// Determine task status (engine-only, based on flags)
     pub fn get_task_status(&self, task_id: &str) -> Option<TaskStatus> {
-        let task = self.get_task(task_id)?;
+        let task = self.get_task_blocking(task_id)?;
         
         // Check abort flag
-        if *task.abort.read() {
+        if *task.abort.blocking_read() {
             return Some(TaskStatus::Aborted);
         }
         
         // Check pause flag
-        if *task.is_paused.read() {
+        if *task.is_paused.blocking_read() {
             return Some(TaskStatus::Paused);
         }
         
         // Check if waiting for response
-        if task.idle_ask.read().is_some() {
+        if task.idle_ask.blocking_read().is_some() {
             return Some(TaskStatus::Idle);
         }
         
-        if task.resumable_ask.read().is_some() {
+        if task.resumable_ask.blocking_read().is_some() {
             return Some(TaskStatus::Resumable);
         }
         
-        if task.interactive_ask.read().is_some() {
+        if task.interactive_ask.blocking_read().is_some() {
             return Some(TaskStatus::Interactive);
         }
         
         // Check if initialized
-        if *task.is_initialized.read() {
+        if *task.is_initialized.blocking_read() {
             return Some(TaskStatus::Active);
         }
         
@@ -277,7 +286,7 @@ impl TaskManager {
         &self,
         persistence: &crate::task_persistence::TaskPersistence,
     ) -> Result<Vec<String>> {
-        use crate::task_persistence::PersistedTaskState;
+        
         
         // Load snapshot of active task IDs
         let task_ids = persistence.load_snapshot()
@@ -296,7 +305,7 @@ impl TaskManager {
         
         for task_id in task_ids {
             // Skip if already loaded (idempotency)
-            if self.get_task(&task_id).is_some() {
+            if self.get_task(&task_id).await.is_some() {
                 info!("Task {} already loaded, skipping", task_id);
                 continue;
             }
@@ -378,9 +387,9 @@ impl TaskManager {
         // Restore state from persisted data
         self.restore_task_state(&task, &state).await;
         
-        // Add to active tasks
+        // Register existing task in manager
         {
-            let mut tasks = self.tasks.write();
+            let mut tasks = self.tasks.write().await;
             tasks.insert(task_id.clone(), task);
         }
         
@@ -410,36 +419,36 @@ impl TaskManager {
         
         // Restore messages
         {
-            let mut messages = task.cline_messages.write();
+            let mut messages = task.cline_messages.blocking_write();
             *messages = state.cline_messages.clone();
         }
         
         // Restore API conversation
         {
-            let mut api_msgs = task.api_conversation_history.write();
+            let mut api_msgs = task.api_conversation_history.blocking_write();
             *api_msgs = state.api_messages.clone();
         }
         
         // Restore last message timestamp
         {
-            let mut last_ts = task.last_message_ts.write();
+            let mut last_ts = task.last_message_ts.blocking_write();
             *last_ts = state.last_message_ts;
         }
         
         // Restore mistake tracking
         {
-            let mut mistakes = task.consecutive_mistake_count.write();
+            let mut mistakes = task.consecutive_mistake_count.blocking_write();
             *mistakes = state.consecutive_mistakes;
         }
         
         {
-            let mut tool_mistakes = task.consecutive_mistake_count_for_apply_diff.write();
+            let mut tool_mistakes = task.consecutive_mistake_count_for_apply_diff.blocking_write();
             *tool_mistakes = state.tool_mistakes.clone();
         }
         
         // Restore tool usage
         {
-            let mut usage = task.tool_usage.write();
+            let mut usage = task.tool_usage.blocking_write();
             usage.usage_count = state.tool_usage.clone();
         }
         
@@ -450,22 +459,21 @@ impl TaskManager {
     }
     
     /// Save current snapshot of active tasks
-    pub fn save_snapshot(
+    pub async fn save_snapshot(
         &self,
         persistence: &crate::task_persistence::TaskPersistence,
     ) -> Result<()> {
-        let task_ids = self.list_tasks();
+        let task_ids = self.list_tasks().await;
         persistence.save_snapshot(&task_ids)
     }
     
     /// Save all active tasks to disk
-    pub fn save_all_tasks(
+    pub async fn save_all_tasks(
         &self,
         persistence: &crate::task_persistence::TaskPersistence,
     ) -> Result<()> {
-        let tasks = self.tasks.read();
-        
-        for (task_id, task) in tasks.iter() {
+        let tasks_guard = self.tasks.read().await;
+        for (task_id, task) in tasks_guard.iter() {
             let state = crate::task_persistence::task_to_persisted_state(task);
             if let Err(e) = persistence.save_task(&state) {
                 error!("Failed to save task {}: {}", task_id, e);

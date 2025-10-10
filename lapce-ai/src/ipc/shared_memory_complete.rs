@@ -8,6 +8,7 @@ use anyhow::{Result, bail};
 use parking_lot::RwLock;
 use tokio::sync::oneshot;
 use tokio::task::JoinHandle;
+use crate::ipc::shm_namespace::create_namespaced_path;
 
 // Include the header module inline
 mod shared_memory_header {
@@ -40,8 +41,9 @@ impl SharedMemoryBuffer {
         let header_size = std::mem::size_of::<RingBufferHeader>();
         let total_size = header_size + data_size;
         
-        // Create or open shared memory
-        let shm_name = std::ffi::CString::new(format!("/{}", path.replace('/', "_")))
+        // Create namespaced SHM path with per-boot suffix for security
+        let namespaced_path = create_namespaced_path(path);
+        let shm_name = std::ffi::CString::new(namespaced_path.replace('/', "_"))
             .map_err(|e| anyhow::anyhow!("Invalid path: {}", e))?;
         let fd = unsafe {
             let fd = libc::shm_open(

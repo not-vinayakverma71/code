@@ -117,7 +117,7 @@ impl SearchMetrics {
         }
     }
     
-    /// Record a search query
+    /// Record a search query (cache miss path)
     pub fn record_search(&self, duration: Duration, results_count: usize) {
         self.total_queries.fetch_add(1, Ordering::Relaxed);
         self.cache_misses.fetch_add(1, Ordering::Relaxed);
@@ -130,7 +130,7 @@ impl SearchMetrics {
             Ordering::Relaxed
         );
         
-        // Update Prometheus metrics
+        // Update Prometheus metrics - only once for cache miss
         CACHE_MISSES_TOTAL.inc();
         SEARCH_LATENCY.with_label_values(&["search"]).observe(duration.as_secs_f64());
     }
@@ -156,14 +156,20 @@ impl SearchMetrics {
         CACHE_SIZE.set(size as f64);
     }
     
-    /// Record AWS Titan request
+    /// Record AWS Titan request with PII redaction
     pub fn record_aws_titan_request(&self, duration: Duration, operation: &str) {
-        AWS_TITAN_REQUEST_LATENCY.with_label_values(&[operation]).observe(duration.as_secs_f64());
+        let safe_operation = crate::security::redaction::redact_pii(operation);
+        AWS_TITAN_REQUEST_LATENCY
+            .with_label_values(&[&safe_operation])
+            .observe(duration.as_secs_f64());
     }
     
-    /// Record AWS Titan error
+    /// Record AWS Titan error with PII redaction
     pub fn record_aws_titan_error(&self, error_type: &str) {
-        AWS_TITAN_ERRORS_TOTAL.with_label_values(&[error_type]).inc();
+        let safe_error = crate::security::redaction::redact_pii(error_type);
+        AWS_TITAN_ERRORS_TOTAL
+            .with_label_values(&[&safe_error])
+            .inc();
     }
     
     /// Update memory RSS
@@ -184,6 +190,15 @@ impl SearchMetrics {
     /// Record query error
     pub fn record_query_error(&self) {
         self.query_errors.fetch_add(1, Ordering::Relaxed);
+    }
+    
+    /// Record search error with PII redaction
+    pub fn record_error(&self, error_type: &str) {
+        self.query_errors.fetch_add(1, Ordering::Relaxed);
+        let safe_error = crate::security::redaction::redact_pii(error_type);
+        SEARCH_ERRORS_TOTAL
+            .with_label_values(&[&safe_error])
+            .inc();
     }
     
     /// Record index error

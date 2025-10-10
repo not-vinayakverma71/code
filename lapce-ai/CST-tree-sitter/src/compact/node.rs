@@ -135,7 +135,7 @@ impl<'tree> CompactNode<'tree> {
     
     /// Convert byte position to (row, column)
     fn byte_to_position(&self, byte_pos: usize) -> Position {
-        let _source = self.tree.source();
+        let source = self.tree.source();
         let mut row = 0;
         let mut col = 0;
         

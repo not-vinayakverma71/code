@@ -128,7 +128,7 @@ impl SegmentedBytecodeStream {
         let mut node_index = 0;
         
         let temp_dir = tempdir()?;
-        let _temp_path = temp_dir.path().join("temp.zst");
+        let temp_path = temp_dir.path().join("temp.zst");
         
         // Iterate over bytecode and split into segments
         // Simple segmentation: split by size
@@ -343,7 +343,7 @@ impl SegmentedBytecodeStream {
     }
     
     /// Migrate from older version
-    fn migrate_from_version(version: u32, _storage_dir: PathBuf) -> io::Result<Self> {
+    fn migrate_from_version(version: u32, storage_dir: PathBuf) -> io::Result<Self> {
         match version {
             0 => {
                 // Version 0 -> Version 1 migration
@@ -495,7 +495,7 @@ mod tests {
         let expected_crc = hasher.finalize();
         
         // Create segmented version
-        let _segmented = SegmentedBytecodeStream::from_bytecode_stream(
+        let segmented = SegmentedBytecodeStream::from_bytecode_stream(
             stream.clone(),
             dir.path().to_path_buf()
         ).unwrap();
@@ -519,7 +519,7 @@ mod tests {
         stream.bytes = vec![10, 20, 30, 40, 50];
         stream.node_count = 3;
         
-        let _segmented = SegmentedBytecodeStream::from_bytecode_stream(
+        let segmented = SegmentedBytecodeStream::from_bytecode_stream(
             stream,
             dir.path().to_path_buf()
         ).unwrap();
@@ -551,13 +551,13 @@ mod tests {
         let mut stream = BytecodeStream::new();
         
         // Add some data
-        for _i in 0..1000u64 {
+        for i in 0..1000u64 {
             stream.bytes.extend_from_slice(&i.to_le_bytes());
         }
         stream.node_count = 100;
         
         // Create segmented version
-        let _segmented = SegmentedBytecodeStream::from_bytecode_stream(
+        let segmented = SegmentedBytecodeStream::from_bytecode_stream(
             stream,
             dir.path().to_path_buf()
         ).unwrap();

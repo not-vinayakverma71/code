@@ -2,13 +2,11 @@
 // Routes IPC messages to appropriate tool implementations
 
 use std::sync::Arc;
-use std::collections::HashMap;
 use anyhow::Result as AnyhowResult;
-use async_trait::async_trait;
 use serde_json::Value;
 
-use crate::core::tools::{Tool, ToolContext, ToolOutput, ToolError, ToolRegistry};
-use crate::ipc::ipc_messages::{ToolExecutionStatus, ApprovalMessage};
+use crate::core::tools::{Tool, ToolContext, ToolRegistry};
+use crate::ipc::ipc_messages::ToolExecutionStatus;
 
 // Tool handler modules
 pub mod file;

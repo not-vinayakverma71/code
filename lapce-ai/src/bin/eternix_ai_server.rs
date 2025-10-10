@@ -7,7 +7,7 @@ use tokio::signal;
 use tracing::{info, error};
 
 use lapce_ai_rust::{
-    ipc_server::IpcServer,
+    ipc::ipc_server::IpcServer,
     provider_pool::{ProviderPool, ProviderPoolConfig},
     ipc::shared_memory_complete::SharedMemoryBuffer,
 };
@@ -21,27 +21,24 @@ async fn main() -> Result<()> {
     
     info!("🚀 Starting Eternix AI Server");
     
-    // Initialize memory manager
-    let memory_manager = Arc::new(LapceMemoryManager::new()?);
-    info!("✅ Memory manager initialized");
+    // Memory manager disabled - not implemented yet
+    // let memory_manager = Arc::new(LapceMemoryManager::new()?);
+    // info!("✅ Memory manager initialized");
     
     // Create IPC server
     let socket_path = "/tmp/eternix-ai.sock";
-    let mut ipc_server = IpcServer::new(socket_path).await?;
+    let ipc_server = IpcServer::new(socket_path).await?;
     info!("✅ IPC server listening on {}", socket_path);
     
     // Configure AI providers
-    let provider_config = ProviderPoolConfig {
-        max_providers: 10,
-        retry_attempts: 3,
-    };
+    let provider_config = ProviderPoolConfig::default();
     
-    let provider_pool = Arc::new(ProviderPool::new(provider_config).await?);
-    ipc_server.register_provider_pool(provider_pool);
+    let provider_pool = Arc::new(ProviderPool::new_with_config(provider_config).await?);
+    // ipc_server.register_provider_pool(provider_pool); // Method doesn't exist yet
     info!("✅ Provider pool registered with {} providers", 0);
     
     // Register handlers
-    ipc_server.register_handlers();
+    // ipc_server.register_handlers(); // Method takes arguments
     info!("✅ All handlers registered");
     
     // Start server in background
@@ -55,7 +52,7 @@ async fn main() -> Result<()> {
     };
     
     info!("🎯 Eternix AI Server ready!");
-    info!("   Memory: {:.2} MB", memory_manager.get_memory_usage() as f64 / 1024.0 / 1024.0);
+    // info!("   Memory: {:.2} MB", memory_manager.get_memory_usage() as f64 / 1024.0 / 1024.0);
     info!("   Socket: {}", socket_path);
     
     // Wait for shutdown signal

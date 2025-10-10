@@ -1,3 +1,4 @@
+#![cfg(any(target_os = "linux", target_os = "macos"))]
 /// Nuclear Test 2: Memory Destruction
 /// Exhaust all buffer pools simultaneously
 /// Target: Stay under 3MB always
@@ -6,7 +7,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
-use lapce_ai_rust::ipc::ipc_server::{IpcServer;
+use lapce_ai_rust::ipc::ipc_server::IpcServer;
 use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryStream;
 use bytes::Bytes;
 

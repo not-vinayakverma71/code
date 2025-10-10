@@ -235,8 +235,9 @@ pub mod production_system;
 #[cfg(feature = "polars")]
 mod polars_arrow_convertors;
 
-#[cfg(feature = "remote")]
-pub mod remote;
+// Remote module disabled due to compilation issues
+// #[cfg(feature = "remote")]
+// pub mod remote;
 
 use std::fmt::Display;
 

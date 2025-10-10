@@ -75,6 +75,9 @@ pub enum Error {
     },
     #[snafu(display("Arrow error: {source}"))]
     Arrow { source: ArrowError },
+    #[cfg(feature = "polars")]
+    #[snafu(display("Polars error: {source}"))]
+    PolarsError { source: polars::error::PolarsError },
     #[snafu(display("LanceDBError: not supported: {message}"))]
     NotSupported { message: String },
     #[snafu(whatever, display("{message}"))]

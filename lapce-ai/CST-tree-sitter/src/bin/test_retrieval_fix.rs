@@ -29,7 +29,7 @@ fn main() {
         
         // Parse based on extension
         let mut parser = Parser::new();
-        let _tree = match path.extension().and_then(|s| s.to_str()) {
+        let tree = match path.extension().and_then(|s| s.to_str()) {
             Some("rs") => {
                 parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
                 parser.parse(source, None).unwrap()
@@ -68,7 +68,7 @@ fn main() {
         let hash = (i + 1) as u64 * 1000;
         
         match cache.get(&path, hash) {
-            Ok(Some((_tree, source))) => {
+            Ok(Some((tree, source))) => {
                 // Verify we got data back
                 if source.len() == original_source.len() {
                     println!("✅ Retrieved: {} - Tree kind: {}", 

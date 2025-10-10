@@ -1,3 +1,4 @@
+#![cfg(any(target_os = "linux", target_os = "macos"))]
 /// Nuclear Test 3: Latency Torture
 /// 999 background connections + 1 test connection
 /// Target: <10μs latency in 99%+ of 10,000 messages under max load

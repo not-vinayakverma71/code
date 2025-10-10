@@ -318,7 +318,7 @@ impl AutoTuner {
         }
         
         // Get system info
-        let _cpu_count = num_cpus::get();
+        let cpu_count = num_cpus::get();
         let memory_mb = self.get_available_memory_mb();
         
         // Calculate memory budget based on target and constraints

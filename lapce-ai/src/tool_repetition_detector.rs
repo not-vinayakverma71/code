@@ -2,7 +2,7 @@
 // Detects repetitive tool usage patterns (independent of execution)
 
 use std::collections::{HashMap, VecDeque};
-use std::time::{Duration, SystemTime};
+use std::time::SystemTime;
 use serde::{Deserialize, Serialize};
 
 /// Configuration for repetition detection
@@ -53,9 +53,14 @@ pub struct ToolCallRecord {
 pub enum RepetitionResult {
     /// No repetition detected
     None,
+    NoRepetition, // Alias for compatibility
     
     /// Same tool called repeatedly
     SameTool {
+        tool_name: String,
+        count: usize,
+    },
+    SameToolRepeated { // Alias for compatibility
         tool_name: String,
         count: usize,
     },
@@ -65,11 +70,16 @@ pub enum RepetitionResult {
         tool_name: String,
         count: usize,
     },
+    IdenticalCall { // Alias for compatibility
+        tool_name: String,
+        count: usize,
+    },
     
     /// Cyclic pattern detected
     CyclicPattern {
         pattern: Vec<String>,
         cycle_count: usize,
+        pattern_length: usize, // Added field
     },
 }
 
@@ -210,8 +220,9 @@ impl ToolRepetitionDetector {
                 let cycle_count = self.pattern_buffer.len() / pattern_len;
                 if cycle_count >= 2 {
                     return Some(RepetitionResult::CyclicPattern {
-                        pattern,
+                        pattern: pattern.clone(),
                         cycle_count,
+                        pattern_length: pattern.len(),
                     });
                 }
             }

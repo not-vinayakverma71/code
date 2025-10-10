@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
 use parking_lot::RwLock;
 use std::collections::HashMap;
-use std::time::{Duration, Instant, SystemTime};
+use std::time::{Duration, SystemTime};
 use serde::{Deserialize, Serialize};
 
 /// Metrics for task orchestration
@@ -157,6 +157,11 @@ impl TaskOrchestratorMetrics {
     }
     
     // Tools
+    pub fn record_tool_success(&self, tool_name: &str) {
+        let mut invocations = self.tool_invocations.write();
+        *invocations.entry(tool_name.to_string()).or_insert(0) += 1;
+    }
+    
     pub fn record_tool_invocation(&self, tool_name: &str) {
         let mut invocations = self.tool_invocations.write();
         *invocations.entry(tool_name.to_string()).or_insert(0) += 1;

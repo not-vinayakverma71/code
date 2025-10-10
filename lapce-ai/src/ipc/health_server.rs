@@ -8,7 +8,15 @@ use bytes::Bytes;
 use serde_json::json;
 use tracing::info;
 
-use crate::connection_pool_manager::ConnectionStats;
+// Temporary ConnectionStats to fix compilation
+#[derive(Debug, Clone, Default)]
+pub struct ConnectionStats {
+    pub total_connections: u64,
+    pub active_connections: usize,
+    pub idle_connections: usize,
+    pub failed_connections: u64,
+    pub avg_response_time_ms: u64,
+}
 use crate::ipc::circuit_breaker::CircuitBreaker;
 use crate::ipc::ipc_server::IpcServerStats;
 use std::sync::atomic::{AtomicU64, Ordering};

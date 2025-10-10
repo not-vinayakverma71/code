@@ -15,7 +15,7 @@ use prometheus::{Encoder, TextEncoder, Counter, Gauge, Histogram, HistogramOpts}
 use tokio::sync::RwLock;
 use anyhow::Result;
 
-use crate::ipc_server::IpcServer;
+use crate::ipc::ipc_server::IpcServer;
 use crate::ipc_config::IpcConfig;
 
 /// Health check response

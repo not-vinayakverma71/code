@@ -66,7 +66,6 @@ export interface ExtensionMessage {
         | "listApiConfig"       // API configurations
         | "routerModels"        // OpenRouter models
         | "openAiModels"        // OpenAI models
-        | "ollamaModels"        // Ollama models
         | "lmStudioModels"      // LM Studio models
         | "vsCodeLmModels"      // VS Code LM models
         | "systemPrompt"        // System prompt update
@@ -194,7 +193,7 @@ export const cerebrasModels = {
         supportsPromptCache: false,
         inputPrice: 0.25,   // per 1M tokens
         outputPrice: 0.69,  // per 1M tokens
-        description: "OpenAI's GPT-OSS model with ~3000 tokens/s",
+        description: "OpenAI's GPT-5 model with ~3000 tokens/s",
     },
     "llama-4-scout-17b-16e-instruct": {
         maxTokens: 8192,

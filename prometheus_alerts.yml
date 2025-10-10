@@ -1,0 +1,232 @@
+# Prometheus Alert Rules for IPC System - IPC-018
+# Production-grade alerting for throughput, latency, pool health, and error budgets
+
+groups:
+  - name: ipc_performance
+    interval: 30s
+    rules:
+      # Message throughput alerts
+      - alert: IPCThroughputDegraded
+        expr: rate(ipc_messages_total[5m]) < 500000
+        for: 2m
+        labels:
+          severity: warning
+          component: ipc
+        annotations:
+          summary: "IPC throughput below 500K msg/s"
+          description: "IPC message throughput is {{ $value | humanize }} msg/s, below the 500K warning threshold"
+
+      - alert: IPCThroughputCritical
+        expr: rate(ipc_messages_total[5m]) < 100000
+        for: 1m
+        labels:
+          severity: critical
+          component: ipc
+        annotations:
+          summary: "IPC throughput critically low"
+          description: "IPC message throughput is {{ $value | humanize }} msg/s, below the 100K critical threshold"
+
+      # Latency alerts
+      - alert: IPCLatencyHigh
+        expr: histogram_quantile(0.99, rate(ipc_message_duration_seconds_bucket[5m])) > 0.00002
+        for: 2m
+        labels:
+          severity: warning
+          component: ipc
+        annotations:
+          summary: "IPC P99 latency above 20µs"
+          description: "IPC P99 latency is {{ $value | humanizeSeconds }}, above the 20µs warning threshold"
+
+      - alert: IPCLatencyCritical
+        expr: histogram_quantile(0.99, rate(ipc_message_duration_seconds_bucket[5m])) > 0.00005
+        for: 1m
+        labels:
+          severity: critical
+          component: ipc
+        annotations:
+          summary: "IPC P99 latency critically high"
+          description: "IPC P99 latency is {{ $value | humanizeSeconds }}, above the 50µs critical threshold"
+
+  - name: ipc_connection_pool
+    interval: 30s
+    rules:
+      # Connection pool health
+      - alert: ConnectionPoolUnhealthy
+        expr: (ipc_pool_unhealthy_connections / (ipc_pool_healthy_connections + ipc_pool_unhealthy_connections)) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          component: connection_pool
+        annotations:
+          summary: "More than 10% of connections unhealthy"
+          description: "{{ $value | humanizePercentage }} of connections are unhealthy in the pool"
+
+      - alert: ConnectionPoolExhausted
+        expr: ipc_pool_active_connections >= ipc_pool_total_connections * 0.95
+        for: 1m
+        labels:
+          severity: critical
+          component: connection_pool
+        annotations:
+          summary: "Connection pool near exhaustion"
+          description: "Connection pool is {{ $value | humanizePercentage }} utilized, near exhaustion"
+
+      # Connection failures
+      - alert: ConnectionFailureRateHigh
+        expr: rate(ipc_pool_failed_connections_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          component: connection_pool
+        annotations:
+          summary: "High connection failure rate"
+          description: "Connection failures occurring at {{ $value | humanize }} per second"
+
+      # TLS/WebSocket health
+      - alert: TLSHandshakeFailures
+        expr: rate(ipc_pool_tls_handshake_failures_total[5m]) > 1
+        for: 2m
+        labels:
+          severity: warning
+          component: tls
+        annotations:
+          summary: "TLS handshake failures detected"
+          description: "TLS handshakes failing at {{ $value | humanize }} per second"
+
+      - alert: WebSocketPingFailures
+        expr: rate(ipc_pool_websocket_ping_failures_total[5m]) > 1
+        for: 2m
+        labels:
+          severity: warning
+          component: websocket
+        annotations:
+          summary: "WebSocket ping failures detected"
+          description: "WebSocket pings failing at {{ $value | humanize }} per second"
+
+      # Pool scaling events
+      - alert: FrequentPoolScaling
+        expr: rate(ipc_pool_scale_up_events_total[10m]) + rate(ipc_pool_scale_down_events_total[10m]) > 1
+        for: 5m
+        labels:
+          severity: info
+          component: connection_pool
+        annotations:
+          summary: "Frequent pool scaling events"
+          description: "Connection pool scaling {{ $value | humanize }} times per minute, may indicate unstable load"
+
+  - name: ipc_error_budget
+    interval: 60s
+    rules:
+      # Error budget tracking (99.9% SLO = 0.1% error budget)
+      - alert: ErrorBudgetBurning
+        expr: |
+          (
+            sum(rate(ipc_errors_total[10m])) /
+            sum(rate(ipc_messages_total[10m]))
+          ) > 0.001
+        for: 5m
+        labels:
+          severity: warning
+          component: ipc
+          slo: "99.9%"
+        annotations:
+          summary: "Error budget burning (SLO: 99.9%)"
+          description: "Error rate is {{ $value | humanizePercentage }}, burning through error budget"
+
+      - alert: ErrorBudgetExhausted
+        expr: |
+          (
+            sum(rate(ipc_errors_total[10m])) /
+            sum(rate(ipc_messages_total[10m]))
+          ) > 0.01
+        for: 2m
+        labels:
+          severity: critical
+          component: ipc
+          slo: "99.9%"
+        annotations:
+          summary: "Error budget exhausted"
+          description: "Error rate is {{ $value | humanizePercentage }}, SLO violated"
+
+  - name: ipc_shared_memory
+    interval: 30s
+    rules:
+      # Shared memory health
+      - alert: SharedMemoryBufferFull
+        expr: ipc_shm_buffer_utilization > 0.9
+        for: 2m
+        labels:
+          severity: warning
+          component: shared_memory
+        annotations:
+          summary: "Shared memory buffer nearly full"
+          description: "Shared memory buffer is {{ $value | humanizePercentage }} full"
+
+      - alert: SharedMemoryCRCErrors
+        expr: rate(ipc_crc_errors_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: shared_memory
+        annotations:
+          summary: "CRC errors detected in shared memory"
+          description: "CRC validation failures at {{ $value | humanize }} per second, possible memory corruption"
+
+  - name: ipc_resource_usage
+    interval: 60s
+    rules:
+      # Memory usage alerts
+      - alert: IPCMemoryHigh
+        expr: ipc_memory_usage_bytes > 3000000000  # 3GB
+        for: 5m
+        labels:
+          severity: warning
+          component: ipc
+        annotations:
+          summary: "IPC memory usage above 3GB"
+          description: "IPC process using {{ $value | humanizeBytes }} of memory"
+
+      # CPU usage alerts
+      - alert: IPCCPUHigh
+        expr: rate(process_cpu_seconds_total{job="ipc"}[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          component: ipc
+        annotations:
+          summary: "IPC CPU usage above 80%"
+          description: "IPC process using {{ $value | humanizePercentage }} CPU"
+
+  - name: ipc_security
+    interval: 60s
+    rules:
+      # Security alerts
+      - alert: CertificateValidationFailures
+        expr: rate(ipc_pool_certificate_validation_failures_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: security
+        annotations:
+          summary: "Certificate validation failures"
+          description: "Certificate validation failing at {{ $value | humanize }} per second"
+
+      - alert: RateLimitViolations
+        expr: rate(ipc_rate_limit_violations_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          component: security
+        annotations:
+          summary: "High rate limit violations"
+          description: "Rate limit violations at {{ $value | humanize }} per second"
+
+      - alert: UnauthorizedAccess
+        expr: rate(ipc_auth_failures_total[5m]) > 1
+        for: 1m
+        labels:
+          severity: critical
+          component: security
+        annotations:
+          summary: "Unauthorized access attempts detected"
+          description: "Authentication failures at {{ $value | humanize }} per second"

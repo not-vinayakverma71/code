@@ -13,16 +13,9 @@ use tokio::sync::Mutex;
 use lapce_ai_rust::ai_providers::{
     core_trait::{AiProvider, ChatRequest, ChatMessage, StreamToken},
     gemini_exact::{GeminiProvider, GeminiConfig},
-    sse_decoder::{SseDecoder, JsonStreamParser},
-    streaming_integration::{process_response_with_pipeline, ProviderType},
 };
 
-use lapce_ai_rust::streaming_pipeline::{
-    StreamingPipeline, StreamPipelineBuilder,
-    StreamToken as PipelineToken,
-    ContentFilter, TokenAccumulator,
-    BackpressureConfig,
-};
+use lapce_ai_rust::streaming_pipeline::StreamPipelineBuilder;
 
 #[derive(Debug)]
 struct ValidationMetrics {

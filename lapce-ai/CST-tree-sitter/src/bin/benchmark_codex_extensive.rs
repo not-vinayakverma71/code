@@ -335,7 +335,7 @@ fn main() {
         results.total_bytes += content.len();
         
         // Parse file
-        if let Some((_language, lang_name)) = get_language(file_path) {
+        if let Some((language, lang_name)) = get_language(file_path) {
             // Track language
             *results.languages_found.entry(lang_name.to_string()).or_insert(0) += 1;
             

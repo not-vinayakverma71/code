@@ -195,7 +195,7 @@ impl MultiTierCache {
         let bytecode_size = bytecode.bytes.len();
         
         // Segment the bytecode
-        let _segmented = SegmentedBytecodeStream::from_bytecode_stream(
+        let segmented = SegmentedBytecodeStream::from_bytecode_stream(
             bytecode,
             self.segment_dir.clone()
         )?;
@@ -320,7 +320,7 @@ impl MultiTierCache {
         }
         
         // Check frozen tier
-        if let Ok((_source, _delta, _metadata)) = self.frozen_tier.thaw(&path_buf) {
+        if let Ok((source, _delta, _metadata)) = self.frozen_tier.thaw(&path_buf) {
             // Reconstruct entry from frozen data
             // For now, mark as accessed for future promotion
             self.update_metadata(&path_buf, now, 1);
@@ -509,7 +509,7 @@ impl MultiTierCache {
         if let Some(entry) = self.cold_tier.write().remove(&path) {
             // Serialize and freeze to disk
             let (source_bytes, bytecode_bytes) = self.serialize_entry(&entry)?;
-            let _source = Bytes::from(source_bytes);
+            let source = Bytes::from(source_bytes);
             self.frozen_tier.freeze(
                 path.clone(),
                 &source,
@@ -541,7 +541,7 @@ impl MultiTierCache {
     /// Serialize entry for frozen storage
     fn serialize_entry(&self, entry: &CacheEntry) -> Result<(Vec<u8>, Option<Vec<u8>>), Box<dyn std::error::Error>> {
         // Serialize source
-        let _source = entry.source.to_vec();
+        let source = entry.source.to_vec();
         
         // Serialize bytecode (simplified - would need proper serialization)
         let bytecode = vec![]; // Placeholder
@@ -621,10 +621,10 @@ mod tests {
         let cache = MultiTierCache::new(config).unwrap();
         
         // Create test tree
-        let _source = "fn main() { println!(\"Hello\"); }";
+        let source = "fn main() { println!(\"Hello\"); }";
         let mut parser = Parser::new();
         parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-        let _tree = parser.parse(source, None).unwrap();
+        let tree = parser.parse(source, None).unwrap();
         
         // Store in hot tier
         let path = PathBuf::from("test.rs");

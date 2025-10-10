@@ -162,7 +162,7 @@ impl GlobalInternPool {
     
     /// Get the ID for an already-interned string (without interning it)
     /// Returns None if the string has not been interned yet
-    pub fn get_id(&self, _s: &str) -> Option<SymbolId> {
+    pub fn get_id(&self, s: &str) -> Option<SymbolId> {
         if !self.enabled.load(Ordering::Relaxed) {
             return None;
         }
@@ -179,7 +179,7 @@ impl GlobalInternPool {
     }
     
     /// Resolve a symbol ID to its string
-    pub fn resolve(&self, _id: SymbolId) -> Option<String> {
+    pub fn resolve(&self, id: SymbolId) -> Option<String> {
         #[cfg(feature = "global-string-interning")]
         {
             // Use try_from_usize since it's safe
@@ -205,20 +205,18 @@ impl GlobalInternPool {
                 0.0
             };
             
-            InternStats {
+            return InternStats {
                 total_strings,
                 total_bytes,
                 hit_count: self.hit_count.load(Ordering::Relaxed),
                 miss_count: self.miss_count.load(Ordering::Relaxed),
                 cap_exceeded_count: self.cap_exceeded_count.load(Ordering::Relaxed),
                 avg_string_length: avg_length,
-            }
+            };
         }
         
-        #[cfg(not(feature = "global-interning"))]
-        {
-            InternStats::default()
-        }
+        #[cfg(not(feature = "global-string-interning"))]
+        InternStats::default()
     }
     
     /// Get the hit rate (0.0 to 1.0)
@@ -378,7 +376,7 @@ mod tests {
         let pool = Arc::new(pool);
         let mut handles = vec![];
         
-        for _i in 0..10 {
+        for i in 0..10 {
             let pool = pool.clone();
             let handle = thread::spawn(move || {
                 for j in 0..100 {

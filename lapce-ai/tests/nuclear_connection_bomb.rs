@@ -1,3 +1,4 @@
+#![cfg(any(target_os = "linux", target_os = "macos"))]
 /// Nuclear Test 1: Connection Bomb
 /// 1000 connections × 5000 messages = 5M messages total
 /// Target: >1M msg/sec sustained for 5 minutes

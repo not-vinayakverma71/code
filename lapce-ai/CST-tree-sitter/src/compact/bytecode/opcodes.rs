@@ -276,13 +276,13 @@ impl<'a> BytecodeReader<'a> {
         self.pos = pos.min(self.bytes.len());
     }
     
-    /// Get current position
-    pub fn position(&self) -> usize {
-        self.pos
-    }
-    
     /// Check if at end
     pub fn is_at_end(&self) -> bool {
         self.pos >= self.bytes.len()
+    }
+    
+    /// Get current position
+    pub fn position(&self) -> usize {
+        self.pos
     }
 }

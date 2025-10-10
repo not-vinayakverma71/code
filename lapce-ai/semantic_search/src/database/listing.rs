@@ -684,15 +684,37 @@ impl Database for ListingDatabase {
             .map(|d| d.arrow_schema())
             .unwrap_or_else(|| Arc::new(arrow_schema::Schema::empty()));
 
-        match NativeTable::create(
-            &table_uri,
-            &request.name,
-            request.data.unwrap_or(CreateTableData::Empty),
-            self.store_wrapper.clone(),
-            Some(write_params),
-            self.read_consistency_interval,
-        )
-        .await
+        let result = match request.data.unwrap_or(CreateTableData::Empty) {
+            CreateTableData::Empty => {
+                NativeTable::create_empty(
+                    &table_uri,
+                    &request.name,
+                    data_schema.clone(),
+                    self.store_wrapper.clone(),
+                    Some(write_params),
+                    self.read_consistency_interval,
+                )
+                .await
+            }
+            CreateTableData::Data(batches) => {
+                NativeTable::create(
+                    &table_uri,
+                    &request.name,
+                    batches,
+                    self.store_wrapper.clone(),
+                    Some(write_params),
+                    self.read_consistency_interval,
+                )
+                .await
+            }
+            CreateTableData::StreamingData(_stream) => {
+                return Err(Error::NotSupported {
+                    message: "Streaming data not yet supported for table creation".to_string(),
+                });
+            }
+        };
+        
+        match result
         {
             Ok(table) => Ok(Table::new(Arc::new(table))),
             Err(Error::TableAlreadyExists { .. }) => {

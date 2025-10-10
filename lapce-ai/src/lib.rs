@@ -43,7 +43,6 @@ pub mod ipc_config;
 pub mod lancedb_semantic_search;
 pub mod ipc;
 pub mod ipc_messages;
-pub mod ipc_server;
 pub mod ipc_server_complete;
 pub mod lapce_plugin;
 pub mod lapce_plugin_protocol;
@@ -59,10 +58,10 @@ pub mod model_params;
 pub mod multi_language_parser;
 pub mod nodejs_comparison;
 pub mod openai_format;
-pub mod anthropic_provider_handler;
-pub mod api_client_complete;
-pub mod api_provider_integration;
-pub mod orchestrator_integration;
+// pub mod anthropic_provider_handler; // Module file doesn't exist
+// pub mod api_client_complete; // Module file doesn't exist
+// pub mod api_provider_integration; // Has compilation issues
+// pub mod orchestrator_integration; // Has unresolved dependencies
 pub mod optimized_vector_search;
 pub mod production_hardening;
 pub mod provider_pool;
@@ -135,7 +134,7 @@ pub mod adaptive_scaler;
 // Public exports - commented out until modules are ready
 // pub use crate::ai_completion::*;
 // pub use crate::ai_providers::*;
-pub use crate::ipc_server::IpcServer;
+pub use crate::ipc::ipc_server::IpcServer;
 pub use crate::ipc_config::IpcConfig;
 pub use ipc_messages::{ClineMessage, ClineAsk, ClineAskResponse};
 pub use circuit_breaker::{CircuitBreaker, CircuitBreakerConfig};

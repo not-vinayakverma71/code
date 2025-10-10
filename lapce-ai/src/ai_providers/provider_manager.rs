@@ -22,6 +22,18 @@ pub struct ProvidersConfig {
     pub circuit_breaker_timeout: Duration,
 }
 
+impl Default for ProvidersConfig {
+    fn default() -> Self {
+        Self {
+            providers: HashMap::new(),
+            default_provider: "openai".to_string(),
+            health_check_interval: Duration::from_secs(30),
+            circuit_breaker_threshold: 5,
+            circuit_breaker_timeout: Duration::from_secs(60),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ProviderConfig {
     pub name: String,

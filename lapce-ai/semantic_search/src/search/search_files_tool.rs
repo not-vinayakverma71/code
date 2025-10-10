@@ -85,7 +85,7 @@ impl SearchFilesTool {
         }
         
         // Lines 39-44: Validate path parameter
-        let rel_dir_path = match rel_dir_path {
+        let _rel_dir_path = match rel_dir_path {
             Some(p) if !p.is_empty() => p,
             _ => {
                 *consecutive_mistake_count += 1;

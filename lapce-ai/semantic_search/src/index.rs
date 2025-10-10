@@ -19,6 +19,7 @@ pub mod scalar;
 pub mod vector;
 pub mod waiter;
 pub mod orchestrator;
+pub mod periodic_compaction;
 
 /// Supported index types.
 #[derive(Debug, Clone)]

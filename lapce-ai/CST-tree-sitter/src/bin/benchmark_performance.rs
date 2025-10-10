@@ -205,7 +205,7 @@ fn main() {
 fn prepare_test_data(count: usize) -> Vec<(PathBuf, u64, String)> {
     let mut data = Vec::new();
     
-    for _i in 0..count {
+    for i in 0..count {
         let name = format!("test_file_{}.rs", i);
         let path = PathBuf::from(&name);
         let hash = hash_string(&name);
@@ -218,7 +218,7 @@ fn prepare_test_data(count: usize) -> Vec<(PathBuf, u64, String)> {
 fn function_{}() {{
     let data = "{}";
     println!("Processing: {{}}", data);
-    for _i in 0..{} {{
+    for i in 0..{} {{
         process_item(i);
     }}
 }}
@@ -398,7 +398,7 @@ fn benchmark_tier_transitions(
     let start = Instant::now();
     
     // Force multiple tier management cycles
-    for _i in 0..10 {
+    for i in 0..10 {
         cache.manage_tiers().unwrap();
         thread::sleep(Duration::from_millis(100));
         

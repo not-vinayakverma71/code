@@ -20,15 +20,15 @@ fn main() {
     println!("1. STORING 10 FILES:");
     println!("{}", "-".repeat(40));
     
-    for _i in 0..10 {
+    for i in 0..10 {
         let filename = format!("test{}.rs", i);
-        let _source = format!("fn test{}() {{ println!(\"Test {}\"); }}", i, i);
+        let source = format!("fn test{}() {{ println!(\"Test {}\"); }}", i, i);
         let path = PathBuf::from(&filename);
         let hash = (i as u64 + 1) * 1000;
         
         let mut parser = Parser::new();
         parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-        let _tree = parser.parse(&source, None).unwrap();
+        let tree = parser.parse(&source, None).unwrap();
         
         cache.store(path, hash, tree, source.as_bytes())
             .expect("Failed to store");
@@ -75,7 +75,7 @@ fn main() {
     println!("\n5. WAITING FOR TIME-BASED DEMOTIONS:");
     println!("{}", "-".repeat(40));
     println!("Waiting 20 seconds for demotions to trigger...");
-    for _i in 0..20 {
+    for i in 0..20 {
         thread::sleep(Duration::from_secs(1));
         print!(".");
         if i % 10 == 9 {
@@ -103,7 +103,7 @@ fn main() {
     
     let test_path = PathBuf::from("test0.rs");
     match cache.get(&test_path, 1000) {
-        Ok(Some((_tree, source))) => {
+        Ok(Some((tree, source))) => {
             println!("✅ Retrieved test0.rs - {} bytes, tree kind: {}", 
                 source.len(), tree.root_node().kind());
         },

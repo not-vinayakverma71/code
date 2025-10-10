@@ -186,9 +186,9 @@ static REGISTRY: Lazy<LanguageRegistry> = Lazy::new(|| {
         extensions: &["lisp", "cl"],
         language: tree_sitter_commonlisp::LANGUAGE_COMMONLISP.into(),
     }));
-    // ObjC exports language() function
+    // ObjC exports LANGUAGE constant
     #[cfg(feature = "lang-objc")]
-    register(lang_fn!("objc", tree_sitter_objc, &["m"])); // Note: conflicts with MATLAB
+    register(lang_const!("objc", tree_sitter_objc, &["m"])); // Note: conflicts with MATLAB
     register(lang_const!("groovy", tree_sitter_groovy, &["groovy", "gradle"]));
     register(lang_const!("embedded_template", tree_sitter_embedded_template, &["erb", "ejs"]));
     
@@ -412,7 +412,7 @@ mod tests {
         assert!(languages.len() >= 28);
         
         // Check sorted
-        for _i in 1..languages.len() {
+        for i in 1..languages.len() {
             assert!(languages[i-1].name <= languages[i].name);
         }
     }

@@ -145,7 +145,7 @@ impl Phase4Cache {
         let bytecode_size = bytecode.bytes.len();
         
         // Step 2: Segment the bytecode
-        let _segmented = SegmentedBytecodeStream::from_bytecode_stream(
+        let segmented = SegmentedBytecodeStream::from_bytecode_stream(
             bytecode,
             self.segment_dir.clone()
         )?;
@@ -265,7 +265,7 @@ impl SyncPhase4Cache {
     pub fn get(
         &self,
         path: &Path,
-        _hash: u64,
+        hash: u64,
     ) -> Result<Option<(Tree, Bytes)>, Box<dyn std::error::Error>> {
         // Get returns Arc<SegmentedBytecodeStream>, not (Tree, Bytes)
         // For now, just check if exists
@@ -299,10 +299,10 @@ mod tests {
         let cache = Phase4Cache::new(config).unwrap();
         
         // Create a test tree
-        let _source = "fn main() { println!(\"Hello\"); }";
+        let source = "fn main() { println!(\"Hello\"); }";
         let mut parser = Parser::new();
         parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-        let _tree = parser.parse(source, None).unwrap();
+        let tree = parser.parse(source, None).unwrap();
         
         // Store
         let path = PathBuf::from("test.rs");

@@ -1,11 +1,8 @@
 // Complete GraphQL Server Implementation
-use async_graphql::{Context, EmptySubscription, Object, Result, Schema, SimpleObject};
-use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
+use async_graphql::{Context, EmptySubscription, Object, Schema, SimpleObject};
 use async_graphql_axum::GraphQL;
 use axum::{
     extract::Extension,
-    response::Html,
-    routing::get,
     Router,
 };
 use std::sync::Arc;

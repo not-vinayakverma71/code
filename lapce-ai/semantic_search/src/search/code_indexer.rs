@@ -172,8 +172,8 @@ impl CodeIndexer {
         chunks.push(ChunkMetadata {
             path: PathBuf::from(ast.metadata.source_file.as_ref().unwrap_or(&PathBuf::from(""))),
             content: ast.text.clone(),
-            start_line: ast.metadata.start_line as i32,
-            end_line: ast.metadata.end_line as i32,
+            start_line: ast.metadata.start_line as usize,
+            end_line: ast.metadata.end_line as usize,
             language: Some(ast.metadata.language.clone()),
             metadata: HashMap::new(),
         });

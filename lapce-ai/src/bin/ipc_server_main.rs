@@ -1,7 +1,6 @@
 /// IPC Server Main Entry Point with Health Monitoring
 use std::sync::Arc;
-use lapce_ai_rust::ipc::{IpcServer, IpcConfig};
-use lapce_ai_rust::ipc::health_server::HealthServer;
+use lapce_ai_rust::ipc::IpcServer;
 use tokio::signal;
 use tracing_subscriber;
 
@@ -48,7 +47,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("Received shutdown signal, stopping servers...");
     
     // Graceful shutdown
-    health_handle.abort();
+    // health_handle.abort(); // Health server is disabled
     ipc_handle.abort();
     
     Ok(())

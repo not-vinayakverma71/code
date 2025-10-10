@@ -1,4 +1,3 @@
-use lapce_ai_rust::ai_providers::provider_manager::ProviderManager;
 
 fn main() {
     println!("✅ lapce-ai library successfully loaded!");

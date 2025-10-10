@@ -10,6 +10,7 @@ pub struct TreeSitterBytecodeEncoder {
     stream: BytecodeStream,
     last_position: usize,
     node_count: usize,
+    kind_name_map: std::collections::HashMap<u16, usize>,
 }
 
 impl TreeSitterBytecodeEncoder {
@@ -19,6 +20,7 @@ impl TreeSitterBytecodeEncoder {
             stream: BytecodeStream::new(),
             last_position: 0,
             node_count: 0,
+            kind_name_map: std::collections::HashMap::new(),
         }
     }
     
@@ -74,11 +76,24 @@ impl TreeSitterBytecodeEncoder {
             self.stream.write_op(Opcode::Enter);
         }
         
-        // Write node kind ID
-        self.stream.write_varint(node.kind_id() as u64);
+        // Map kind to our string table
+        let kind_id = node.kind_id();
+        let kind_idx = if let Some(&idx) = self.kind_name_map.get(&kind_id) {
+            idx
+        } else {
+            // Add new kind to string table
+            let idx = self.stream.kind_names.len();
+            let kind_name = node.kind().to_string();
+            self.stream.kind_names.push(kind_name);
+            self.kind_name_map.insert(kind_id, idx);
+            idx
+        };
+        
+        // Write our mapped kind index
+        self.stream.write_varint(kind_idx as u64);
         
         // Pack flags
-        let _flags = NodeFlags {
+        let flags = NodeFlags {
             is_named: node.is_named(),
             is_missing: node.is_missing(),
             is_extra: node.is_extra(),
@@ -103,7 +118,7 @@ impl TreeSitterBytecodeEncoder {
         }
         
         // Write length for all nodes
-        let _length = node.end_byte() - node.start_byte();
+        let length = node.end_byte() - node.start_byte();
         self.stream.write_op(Opcode::Length);
         self.stream.write_varint(length as u64);
         
@@ -113,7 +128,7 @@ impl TreeSitterBytecodeEncoder {
         }
         
         // Encode children
-        for _i in 0..node.child_count() {
+        for i in 0..node.child_count() {
             if let Some(child) = node.child(i) {
                 self.encode_node(child, source);
             }
@@ -321,8 +336,8 @@ impl TreeSitterBytecodeDecoder {
                     enter_count += 1;
                     depth += 1;
                     // Read node data - kind_id is varint
-                    let _kind = self.read_varint().ok_or("Missing kind ID")?;
-                    let _flags = self.read_flags().ok_or("Missing flags")?;
+                    let kind = self.read_varint().ok_or("Missing kind ID")?;
+                    let flags = self.read_flags().ok_or("Missing flags")?;
                     
                     
                     // Check for optional position opcode
@@ -357,14 +372,14 @@ impl TreeSitterBytecodeDecoder {
                             len_op
                         ));
                     }
-                    let _length = self.read_varint().ok_or("Missing length")?;
+                    let length = self.read_varint().ok_or("Missing length")?;
                     
                 }
                 Opcode::Leaf => {
                     node_count += 1;
                     // Read leaf data
-                    let _kind = self.read_varint().ok_or("Missing kind ID")?;
-                    let _flags = self.read_flags().ok_or("Missing flags")?;
+                    let kind = self.read_varint().ok_or("Missing kind ID")?;
+                    let flags = self.read_flags().ok_or("Missing flags")?;
                     
                     // Check for optional position opcode
                     // Peek at next byte without consuming
@@ -398,7 +413,7 @@ impl TreeSitterBytecodeDecoder {
                             len_op
                         ));
                     }
-                    let _length = self.read_varint().ok_or("Missing length")?;
+                    let length = self.read_varint().ok_or("Missing length")?;
                 }
                 Opcode::Exit => {
                     exit_count += 1;
@@ -433,9 +448,9 @@ impl TreeSitterBytecodeDecoder {
                 }
                 Opcode::Text => {
                     // Text content opcode
-                    let _length = self.read_varint().ok_or("Missing text length")?;
+                    let length = self.read_varint().ok_or("Missing text length")?;
                     // Skip the text bytes
-                    let text_len = _length as usize;
+                    let text_len = length as usize;
                     if self.cursor + text_len > self.stream.bytes.len() {
                         return Err("Text extends beyond bytecode".to_string());
                     }
@@ -443,7 +458,7 @@ impl TreeSitterBytecodeDecoder {
                 }
                 Opcode::Children => {
                     // Children count opcode
-                    let _count = self.read_varint().ok_or("Missing children count")?;
+                    let count = self.read_varint().ok_or("Missing children count")?;
                 }
                 Opcode::Field => {
                     // Field opcode
@@ -536,10 +551,10 @@ mod tests {
     #[test]
     fn test_encode_decode_tree() {
         // Create a simple Rust tree
-        let _source = "fn main() {}";
+        let source = "fn main() {}";
         let mut parser = Parser::new();
         parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-        let _tree = parser.parse(source, None).unwrap();
+        let tree = parser.parse(source, None).unwrap();
         
         // Encode
         let mut encoder = TreeSitterBytecodeEncoder::new();
@@ -622,10 +637,10 @@ mod tests {
     #[test]
     fn test_position_encoding() {
         // Test with code that has varied positions
-        let _source = "fn test() {\n    let x = 42;\n}";
+        let source = "fn test() {\n    let x = 42;\n}";
         let mut parser = Parser::new();
         parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-        let _tree = parser.parse(source, None).unwrap();
+        let tree = parser.parse(source, None).unwrap();
         
         // Encode
         let mut encoder = TreeSitterBytecodeEncoder::new();
@@ -686,12 +701,12 @@ mod tests {
     
     #[test]
     fn test_empty_tree() {
-        let _source = "";
+        let source = "";
         let mut parser = Parser::new();
         parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
         
         // Parse empty source - this creates a tree with an ERROR node
-        let _tree = parser.parse(source, None).unwrap();
+        let tree = parser.parse(source, None).unwrap();
         
         // Should still encode without panicking
         let mut encoder = TreeSitterBytecodeEncoder::new();
@@ -706,10 +721,10 @@ mod tests {
     
     #[test]
     fn test_nested_structures() {
-        let _source = "struct Foo { fn bar() { if true { 42 } else { 0 } } }";
+        let source = "struct Foo { fn bar() { if true { 42 } else { 0 } } }";
         let mut parser = Parser::new();
         parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-        let _tree = parser.parse(source, None).unwrap();
+        let tree = parser.parse(source, None).unwrap();
         
         // Encode
         let mut encoder = TreeSitterBytecodeEncoder::new();
@@ -744,7 +759,7 @@ mod tests {
         for (name, source) in samples {
             let mut parser = Parser::new();
             parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-            let _tree = parser.parse(source, None).unwrap();
+            let tree = parser.parse(source, None).unwrap();
             
             // Check tree is valid - skip if it has errors
             if tree.root_node().has_error() {
@@ -800,10 +815,10 @@ mod tests {
     #[test]
     fn test_error_node_handling() {
         // Test with invalid syntax that creates error nodes
-        let _source = "fn main() { let x = ; }"; // Missing value
+        let source = "fn main() { let x = ; }"; // Missing value
         let mut parser = Parser::new();
         parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-        let _tree = parser.parse(source, None).unwrap();
+        let tree = parser.parse(source, None).unwrap();
         
         // Should still encode without panicking
         let mut encoder = TreeSitterBytecodeEncoder::new();
@@ -820,7 +835,7 @@ mod tests {
         while let Some(op) = decoder.read_op() {
             match op {
                 Opcode::Enter | Opcode::Leaf => {
-                    let _kind = decoder.read_varint();
+                    let kind = decoder.read_varint();
                     if let Some(flags) = decoder.read_flags() {
                         if flags.is_error {
                             found_error_flag = true;
@@ -866,7 +881,7 @@ mod tests {
         source.push_str("// Large test file\n\n");
         
         // Generate 100 functions
-        for _i in 0..100 {
+        for i in 0..100 {
             source.push_str(&format!("fn function_{}() {{\n", i));
             source.push_str(&format!("    let value = {};\n", i * 42));
             source.push_str(&format!("    println!(\"Value: {{}}\", value);\n"));
@@ -875,7 +890,7 @@ mod tests {
         
         let mut parser = Parser::new();
         parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-        let _tree = parser.parse(&source, None).unwrap();
+        let tree = parser.parse(&source, None).unwrap();
         
         // Encode
         let mut encoder = TreeSitterBytecodeEncoder::new();
@@ -894,10 +909,10 @@ mod tests {
     
     #[test]
     fn test_stable_ids_generated() {
-        let _source = "fn main() { let x = 42; }";
+        let source = "fn main() { let x = 42; }";
         let mut parser = Parser::new();
         parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-        let _tree = parser.parse(source, None).unwrap();
+        let tree = parser.parse(source, None).unwrap();
         
         // Encode tree
         let mut encoder = TreeSitterBytecodeEncoder::new();
@@ -925,10 +940,10 @@ mod tests {
     #[test]
     fn test_positions_preserved() {
         // Test that positions are correctly preserved
-        let _source = "fn a() {}\n\nfn b() {}\n\n\nfn c() {}";
+        let source = "fn a() {}\n\nfn b() {}\n\n\nfn c() {}";
         let mut parser = Parser::new();
         parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-        let _tree = parser.parse(source, None).unwrap();
+        let tree = parser.parse(source, None).unwrap();
         
         // Collect original positions
         let mut original_positions = Vec::new();
@@ -986,7 +1001,7 @@ mod tests {
 // Helper function for position test
 fn collect_positions(node: tree_sitter::Node, positions: &mut Vec<(usize, usize)>) {
     positions.push((node.start_byte(), node.end_byte()));
-    for _i in 0..node.child_count() {
+    for i in 0..node.child_count() {
         if let Some(child) = node.child(i) {
             collect_positions(child, positions);
         }

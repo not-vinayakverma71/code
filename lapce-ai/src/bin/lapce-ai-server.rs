@@ -52,15 +52,14 @@ async fn main() -> Result<()> {
     
     // Initialize logging
     let log_level = if args.debug { 
-        "debug,lapce_ai_rust=trace" 
+        "debug,lapce_ai_rust=trace".to_string()
     } else { 
         std::env::var("RUST_LOG")
-            .as_deref()
-            .unwrap_or("info")
+            .unwrap_or_else(|_| "info".to_string())
     };
     
     tracing_subscriber::fmt()
-        .with_env_filter(log_level)
+        .with_env_filter(&log_level)
         .with_target(true)
         .with_thread_ids(true)
         .with_file(true)
@@ -84,7 +83,8 @@ async fn main() -> Result<()> {
     if let Some(socket) = args.socket {
         config.ipc.socket_path = socket;
     }
-    if let Some(port) = args.metrics_port {
+    if args.metrics_port > 0 {
+        let port = args.metrics_port;
         config.monitoring.prometheus_port = port;
     }
     
@@ -96,11 +96,12 @@ async fn main() -> Result<()> {
     }
     
     // Initialize provider manager
-    let provider_manager = Arc::new(ProviderManager::new());
+    let providers_config = lapce_ai_rust::ai_providers::ProvidersConfig::default();
+    let provider_manager = Arc::new(ProviderManager::new(providers_config).await?);
     info!("Provider manager initialized");
     
     // Create and configure server
-    let server = IpcServer::new(config.clone());
+    let server = Arc::new(IpcServer::new(&config.ipc.socket_path).await?);
     info!("IPC server created on socket: {}", config.ipc.socket_path);
     info!("  Max connections: {}", config.ipc.max_connections);
     
@@ -118,24 +119,25 @@ async fn main() -> Result<()> {
     
     // Start server
     info!("Starting IPC server...");
-    match server.run().await {
+    let result = match server.serve().await {
         Ok(_) => {
             info!("Server shut down cleanly");
+            Ok(())
         }
         Err(e) => {
             error!("Server error: {}", e);
-            return Err(e);
+            Err(e.into())
         }
-    }
+    };
     
     #[cfg(target_os = "linux")]
     {
         if let Ok(true) = sd_notify::booted() {
-            sd_notify::notify(true, &[sd_notify::NotifyState::Stopping])?;
+            let _ = sd_notify::notify(true, &[sd_notify::NotifyState::Stopping]);
         }
     }
     
-    Ok(())
+    result
 }
 
 async fn load_provider_config(config_path: &str) -> Result<lapce_ai_rust::provider_pool::ProviderPoolConfig> {
@@ -147,16 +149,43 @@ async fn load_provider_config(config_path: &str) -> Result<lapce_ai_rust::provid
         
         let mut provider_config = lapce_ai_rust::provider_pool::ProviderPoolConfig::default();
         
+        // Extract all values from toml before using them
+        let fallback_enabled = toml.get("fallback_enabled")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(true);
+        
+        let fallback_order = toml.get("fallback_order")
+            .and_then(|v| v.as_array())
+            .map(|order| order.iter()
+                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                .collect())
+            .unwrap_or_else(Vec::new);
+        
+        let load_balance = toml.get("load_balance")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+        
+        let circuit_breaker_enabled = toml.get("circuit_breaker_enabled")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(true);
+        
+        let circuit_breaker_threshold = toml.get("circuit_breaker_threshold")
+            .and_then(|v| v.as_integer())
+            .unwrap_or(5) as u32;
+        
         // Parse providers array
         if let Some(providers) = toml.get("providers").and_then(|v| v.as_array()) {
             provider_config.providers.clear();
             
             for provider in providers {
                 if let Some(table) = provider.as_table() {
+                    let name = table.get("name")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("default")
+                        .to_string();
+                    
                     let provider_cfg = lapce_ai_rust::provider_pool::ProviderConfig {
-                        name: table.get("name")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or(""),
+                        name: Box::leak(name.into_boxed_str()),
                         enabled: table.get("enabled")
                             .and_then(|v| v.as_bool())
                             .unwrap_or(false),
@@ -185,30 +214,12 @@ async fn load_provider_config(config_path: &str) -> Result<lapce_ai_rust::provid
             }
         }
         
-        // Parse pool configuration
-        if let Some(toml) = toml.as_table() {
-            provider_config.fallback_enabled = toml.get("fallback_enabled")
-                .and_then(|v| v.as_bool())
-                .unwrap_or(true);
-            
-            if let Some(order) = toml.get("fallback_order").and_then(|v| v.as_array()) {
-                provider_config.fallback_order = order.iter()
-                    .filter_map(|v| v.as_str().map(|s| s.to_string()))
-                    .collect();
-            }
-            
-            provider_config.load_balance = toml.get("load_balance")
-                .and_then(|v| v.as_bool())
-                .unwrap_or(false);
-            
-            provider_config.circuit_breaker_enabled = toml.get("circuit_breaker_enabled")
-                .and_then(|v| v.as_bool())
-                .unwrap_or(true);
-            
-            provider_config.circuit_breaker_threshold = toml.get("circuit_breaker_threshold")
-                .and_then(|v| v.as_integer())
-                .unwrap_or(5) as u32;
-        }
+        // Apply the extracted values
+        provider_config.fallback_enabled = fallback_enabled;
+        provider_config.fallback_order = fallback_order;
+        provider_config.load_balance = load_balance;
+        provider_config.circuit_breaker_enabled = circuit_breaker_enabled;
+        provider_config.circuit_breaker_threshold = circuit_breaker_threshold;
         
         Ok(provider_config)
     } else {

@@ -168,20 +168,20 @@ impl BedrockEmbeddingFunction {
 
             let response = block_in_place(move || {
                 Handle::current().block_on(async move {
+                    let body_bytes = serde_json::to_vec(&request_body).map_err(|e| Error::Runtime {
+                        message: format!("Failed to serialize request: {}", e)
+                    })?;
+                    
                     client
                         .invoke_model()
                         .model_id(model_id)
-                        .body(aws_sdk_bedrockruntime::primitives::Blob::new(
-                            serde_json::to_vec(&request_body).map_err(|e| Error::Runtime {
-                                message: format!("Failed to serialize request: {}", e)
-                            })?,
-                        ))
+                        .body(aws_sdk_bedrockruntime::primitives::Blob::new(body_bytes))
                         .send()
                         .await
+                        .map_err(|e| Error::Runtime {
+                            message: format!("Failed to invoke model: {}", e)
+                        })
                 })
-            })
-            .map_err(|e| Error::Runtime {
-                message: format!("Failed to invoke model: {}", e)
             })?;
 
             let response_json: Value =

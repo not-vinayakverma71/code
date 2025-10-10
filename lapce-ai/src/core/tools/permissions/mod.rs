@@ -1,6 +1,7 @@
 // Permissions module for core tools
 
 pub mod rooignore;
+pub mod approval;
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};

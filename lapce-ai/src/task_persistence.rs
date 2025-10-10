@@ -1,11 +1,11 @@
 // Task Persistence - CHUNK-03: T09
 // Save/load task state and conversation history to disk
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::fs;
 use serde::{Deserialize, Serialize};
 use anyhow::{Result, Context};
-use tracing::{info, warn, error};
+use tracing::{info, warn};
 
 use crate::ipc_messages::ClineMessage;
 use crate::task_exact_translation::{ApiMessage, TaskMetadata, TodoItem};
@@ -287,12 +287,12 @@ pub fn task_to_persisted_state(task: &crate::task_exact_translation::Task) -> Pe
         todo_list: task.todo_list.clone(),
         consecutive_mistakes: task.get_consecutive_mistakes(),
         tool_mistakes: {
-            let mut map = std::collections::HashMap::new();
+            let map = std::collections::HashMap::new();
             // Would iterate through all known file paths, but we don't track them
             // This is a limitation - in real impl, we'd need to store the keys
             map
         },
-        tool_usage: task.get_all_tool_usage(),
+        tool_usage: task.get_all_tool_usage().usage_count,
         task_mode: None, // Would need async access
         saved_at: std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)

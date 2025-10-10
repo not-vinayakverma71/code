@@ -97,7 +97,7 @@ fn main() {
     for (i, (name, source, language)) in test_files.iter().enumerate() {
         let mut parser = Parser::new();
         parser.set_language(language).unwrap();
-        let _tree = parser.parse(source, None).unwrap();
+        let tree = parser.parse(source, None).unwrap();
         
         let path = PathBuf::from(name);
         let hash = (i + 1) as u64 * 1000;
@@ -117,7 +117,7 @@ fn main() {
         .template("[{elapsed_precise}] {bar:40.cyan/blue} {pos}/{len}")
         .unwrap());
     
-    for _i in 0..20 {
+    for i in 0..20 {
         pb.set_position(i + 1);
         
         // Frequently access main.rs (will stay hot)
@@ -200,7 +200,7 @@ fn main() {
     // Store through Phase 4 interface
     let mut parser = Parser::new();
     parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-    let _tree = parser.parse("fn test() {}", None).unwrap();
+    let tree = parser.parse("fn test() {}", None).unwrap();
     
     phase4_cache.store(
         PathBuf::from("test.rs"),

@@ -167,7 +167,7 @@ impl MmapSourceStorage {
     
     /// Clear all mappings
     pub fn clear(&self) {
-        let _count = self.mmaps.len();
+        let count = self.mmaps.len();
         self.mmaps.clear();
         self.stats.total_mapped.store(0, Ordering::Relaxed);
         self.stats.total_bytes_mapped.store(0, Ordering::Relaxed);
@@ -236,7 +236,7 @@ mod tests {
         let storage = MmapSourceStorage::new(dir.path().to_path_buf(), 10).unwrap();
         
         // Store source
-        let _source = b"Hello, memory-mapped world!";
+        let source = b"Hello, memory-mapped world!";
         let hash = 12345;
         
         let mmap = storage.store_source(hash, source).unwrap();
@@ -258,8 +258,8 @@ mod tests {
         let storage = MmapSourceStorage::new(dir.path().to_path_buf(), 3).unwrap();
         
         // Fill to capacity
-        for _i in 0..5 {
-            let _source = format!("Source {}", i);
+        for i in 0..5 {
+            let source = format!("Source {}", i);
             storage.store_source(i, source.as_bytes()).unwrap();
         }
         
@@ -274,7 +274,7 @@ mod tests {
         let dir = tempdir().unwrap();
         let storage = MmapSourceStorage::new(dir.path().to_path_buf(), 10).unwrap();
         
-        let _source = b"Hello, world!";
+        let source = b"Hello, world!";
         let hash = 99999;
         let mmap = storage.store_source(hash, source).unwrap();
         

@@ -10,7 +10,7 @@ use tree_sitter::Parser;
 fn main() {
     println!("=== CRASH RECOVERY TEST ===\n");
     
-    let _storage_dir = std::env::temp_dir().join("crash_recovery_test");
+    let storage_dir = std::env::temp_dir().join("crash_recovery_test");
     
     // Clean up any previous test data
     if storage_dir.exists() {
@@ -179,7 +179,7 @@ fn main() {
     let crash_count = 3;
     let mut current_cache = recovered_cache;
     
-    for _i in 1..=crash_count {
+    for i in 1..=crash_count {
         println!("\n  Crash simulation #{}", i);
         
         // Add more data

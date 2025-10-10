@@ -1,7 +1,6 @@
 // Day 10.3: Complete REST API Server with Axum
 use axum::{
-    extract::{Json, Path, Query, State},
-    http::StatusCode,
+    extract::{Json, Path, State},
     response::IntoResponse,
     routing::{get, post, delete},
     Router,

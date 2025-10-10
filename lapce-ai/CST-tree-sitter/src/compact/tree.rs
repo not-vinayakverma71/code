@@ -111,7 +111,7 @@ impl CompactTree {
         
         // Decode up to node_idx
         let mut value = 0;
-        for _i in 0..=node_idx {
+        for i in 0..=node_idx {
             value = decoder.decode().unwrap_or(0);
             if i == node_idx {
                 return value as usize;
@@ -133,7 +133,7 @@ impl CompactTree {
         use super::varint::VarInt;
         
         let mut pos = 0;
-        for _i in 0..=node_idx {
+        for i in 0..=node_idx {
             let (value, consumed) = VarInt::decode_u64(&self.len_bytes_encoded[pos..])
                 .unwrap_or((0, 1));
             pos += consumed;

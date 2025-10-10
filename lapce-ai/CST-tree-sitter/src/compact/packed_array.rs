@@ -333,7 +333,7 @@ mod tests {
     fn test_efficiency() {
         // 3-bit values in array of 100 elements
         let mut pa = PackedArray::new(3);
-        for _i in 0..100 {
+        for i in 0..100 {
             pa.push(i % 8);
         }
         

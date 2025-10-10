@@ -2104,7 +2104,7 @@ impl WindowTabData {
                 details,
             } => {
                 // Show approval dialog
-                use crate::alert::{AlertButton, AlertButtonType};
+                use crate::alert::AlertButton;
                 
                 let msg = format!(
                     "Tool '{}' wants to {}:\n\nTarget: {}\n\nDetails: {}\n\nAllow this operation?",
@@ -2120,8 +2120,7 @@ impl WindowTabData {
                     buttons: vec![
                         AlertButton {
                             text: "Allow".to_string(),
-                            button_type: AlertButtonType::Confirm,
-                            action: Box::new(move || {
+                            action: Rc::new(move || {
                                 internal_command.send(InternalCommand::HandleToolApprovalResponse {
                                     execution_id: execution_id_clone.clone(),
                                     approved: true,
@@ -2131,8 +2130,7 @@ impl WindowTabData {
                         },
                         AlertButton {
                             text: "Deny".to_string(),
-                            button_type: AlertButtonType::Cancel,
-                            action: Box::new(move || {
+                            action: Rc::new(move || {
                                 internal_command.send(InternalCommand::HandleToolApprovalResponse {
                                     execution_id: execution_id.clone(),
                                     approved: false,
@@ -2168,9 +2166,9 @@ impl WindowTabData {
                 let profile = TerminalProfile {
                     name: format!("Tool: {}", &execution_id[..8]),
                     command: Some(command),
-                    args: Some(args),
-                    cwd,
-                    env: None,
+                    arguments: Some(args),
+                    workdir: cwd.and_then(|p| url::Url::from_file_path(p).ok()),
+                    environment: None,
                 };
                 
                 self.common.internal_command.send(InternalCommand::NewTerminal {

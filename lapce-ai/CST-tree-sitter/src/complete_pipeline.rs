@@ -6,7 +6,7 @@ use std::fs;
 use std::sync::Arc;
 use parking_lot::RwLock;
 use bytes::Bytes;
-use tree_sitter::{Tree, Node};
+use tree_sitter::{Tree, Node, Parser};
 
 // Phase 1: Varint + Packing + Interning
 use crate::compact::varint::DeltaEncoder;
@@ -214,7 +214,7 @@ impl CompletePipeline {
         
         // Phase 4c: Segmented Bytecode
         if self.config.phase4c_segments && phase3_data.len() > 256 * 1024 {
-            let _segmented = self.apply_phase4c(&phase3_data, &mut stats)?;
+            let segmented = self.apply_phase4c(&phase3_data, &mut stats)?;
             storage_location = StorageLocation::Segmented;
         }
         
@@ -386,7 +386,7 @@ impl CompletePipeline {
         stream.node_count = 1000; // Estimate
         
         // Segment it
-        let _segmented = SegmentedBytecodeStream::from_bytecode_stream(
+        let segmented = SegmentedBytecodeStream::from_bytecode_stream(
             stream,
             self.segment_dir.clone(),
         )?;
@@ -401,7 +401,7 @@ impl CompletePipeline {
     // Helper methods
     fn count_nodes(&self, node: Node) -> usize {
         let mut count = 1;
-        for _i in 0..node.child_count() {
+        for i in 0..node.child_count() {
             if let Some(child) = node.child(i) {
                 count += self.count_nodes(child);
             }
@@ -411,7 +411,7 @@ impl CompletePipeline {
     
     fn extract_node_positions(&self, node: Node) -> Vec<usize> {
         let mut positions = vec![node.start_byte(), node.end_byte()];
-        for _i in 0..node.child_count() {
+        for i in 0..node.child_count() {
             if let Some(child) = node.child(i) {
                 positions.extend(self.extract_node_positions(child));
             }
@@ -499,10 +499,10 @@ mod tests {
         let pipeline = CompletePipeline::new(config).unwrap();
         
         // Parse a test tree
-        let _source = "fn main() { println!(\"Hello, world!\"); }";
+        let source = "fn main() { println!(\"Hello, world!\"); }";
         let mut parser = Parser::new();
         parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-        let _tree = parser.parse(source, None).unwrap();
+        let tree = parser.parse(source, None).unwrap();
         
         // Process through pipeline
         let result = pipeline.process_tree(

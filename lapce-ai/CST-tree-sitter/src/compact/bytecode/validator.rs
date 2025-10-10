@@ -100,7 +100,7 @@ impl BytecodeValidator {
         flat_nodes
     }
     
-    fn flatten_node(&self, _tree: &CompactTree, _node_idx: usize, _flat_nodes: &mut Vec<FlatNode>) {
+    fn flatten_node(&self, tree: &CompactTree, node_idx: usize, flat_nodes: &mut Vec<FlatNode>) {
         // TODO: Fix this - CompactTree doesn't have a nodes field
         return;
         /*
@@ -225,7 +225,7 @@ impl BytecodeValidator {
         };
         
         // Re-encode
-        let _encoder2 = BytecodeEncoder::new();
+        let encoder2 = BytecodeEncoder::new();
         // Note: We'd need to convert DecodedNode back to CompactTree for full round-trip
         // For now, just validate the decode worked
         

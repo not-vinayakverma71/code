@@ -49,8 +49,8 @@ impl IncrementalIndexer {
         chunks.push(ChunkMetadata {
             path: PathBuf::from(ast.metadata.source_file.as_ref().unwrap_or(&PathBuf::from(""))),
             content: ast.text.clone(),
-            start_line: ast.metadata.start_line as i32,
-            end_line: ast.metadata.end_line as i32,
+            start_line: ast.metadata.start_line as usize,
+            end_line: ast.metadata.end_line as usize,
             language: Some(ast.metadata.language.clone()),
             metadata: HashMap::new(),
         });
@@ -145,7 +145,7 @@ impl IncrementalIndexer {
     }
     
     /// Start monitoring for file changes - Lines 477-490 from doc
-    pub async fn start(&self, watch_path: PathBuf) -> Result<()> {
+    pub async fn start(self: Arc<Self>, watch_path: PathBuf) -> Result<()> {
         let mut shutdown_rx = self.shutdown_tx.subscribe();
         let change_buffer = self.change_buffer.clone();
         let search_engine = self.search_engine.clone();
@@ -153,34 +153,37 @@ impl IncrementalIndexer {
         
         // Clone what we need for the async block
         let shutdown_tx_clone = self.shutdown_tx.clone();
-        let indexer_clone = self.clone();
+        let indexer_clone = Arc::clone(&self);
         
         // Spawn processor task
-        let processor_handle = tokio::spawn(async move {
-            let mut shutdown_rx = shutdown_tx_clone.subscribe();
+        let processor_handle = {
+            let shutdown_tx_clone = shutdown_tx_clone.clone();
+            tokio::spawn(async move {
+                let mut shutdown_rx = shutdown_tx_clone.subscribe();
             
-            loop {
-                tokio::select! {
-                    _ = shutdown_rx.recv() => {
-                        log::info!("Shutting down processor");
-                        break;
-                    }
-                    _ = sleep(debounce) => {
-                        // Process buffered changes
-                        let changes = {
-                            let mut buffer = change_buffer.lock().await;
-                            std::mem::take(&mut *buffer)
-                        };
-                        
-                        for change in changes {
-                            if let Err(e) = indexer_clone.process_file_change(change.path, change.kind).await {
-                                log::error!("Failed to process change: {}", e);
+                loop {
+                    tokio::select! {
+                        _ = shutdown_rx.recv() => {
+                            log::info!("Shutting down processor");
+                            break;
+                        }
+                        _ = sleep(debounce) => {
+                            // Process buffered changes
+                            let changes = {
+                                let mut buffer = change_buffer.lock().await;
+                                std::mem::take(&mut *buffer)
+                            };
+                            
+                            for change in changes {
+                                if let Err(e) = indexer_clone.process_file_change(change.path, change.kind).await {
+                                    log::error!("Failed to process change: {}", e);
+                                }
                             }
                         }
                     }
                 }
-            }
-        });
+            })
+        };
         
         // Wait for processor to complete
         processor_handle.await

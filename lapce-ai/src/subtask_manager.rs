@@ -5,10 +5,10 @@ use std::sync::Arc;
 use std::collections::HashMap;
 use parking_lot::RwLock;
 use tokio::sync::Notify;
-use anyhow::{Result, bail};
+use anyhow::Result;
 use tracing::{info, warn, debug};
 
-use crate::task_exact_translation::{Task, TaskOptions, TaskStatus};
+use crate::task_exact_translation::{TaskOptions, TaskStatus};
 use crate::task_manager::TaskManager;
 use crate::events_exact_translation::{TaskEvent, global_event_bus};
 
@@ -34,14 +34,14 @@ impl SubtaskManager {
     }
     
     /// Spawn a child task from a parent
-    pub fn spawn_child(
+    pub async fn spawn_child(
         &self,
         parent_task_id: &str,
         child_options: TaskOptions,
         task_manager: &TaskManager,
     ) -> Result<String> {
         // Get parent task
-        let parent_task = task_manager.get_task(parent_task_id)
+        let parent_task = task_manager.get_task(parent_task_id).await
             .ok_or_else(|| anyhow::anyhow!("Parent task not found"))?;
         
         // Create child options with parent reference
@@ -51,7 +51,7 @@ impl SubtaskManager {
             .or(Some(parent_task.clone()));
         
         // Create child task
-        let child_id = task_manager.create_task(child_opts)?;
+        let child_id = task_manager.create_task(child_opts).await?;
         
         // Register relationship
         {

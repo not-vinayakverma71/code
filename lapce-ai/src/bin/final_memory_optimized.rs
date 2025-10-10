@@ -28,10 +28,10 @@ impl SharedMemoryBuffer {
         unsafe {
             let total_size = size + std::mem::size_of::<BufferHeader>();
             let ptr = libc::mmap(
-                ptr::null_mut(),
+                std::ptr::null_mut(),
                 total_size,
-                libc::PROT_READ | libc::PROT_WRITE,
-                libc::MAP_SHARED | libc::MAP_ANONYMOUS,
+                (libc::PROT_READ | libc::PROT_WRITE) as i32,
+                (libc::MAP_SHARED | libc::MAP_ANONYMOUS) as i32,
                 -1,
                 0,
             ) as *mut u8;

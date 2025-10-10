@@ -98,7 +98,19 @@ impl DatasetRef {
             }
             Self::TimeTravel { dataset, version } => {
                 let should_checkout = match &target_ref {
-                    refs::Ref::Version(target_ver) => version != target_ver,
+                    refs::Ref::Version(target_ver, _) => {
+                        // target_ver is Option<String>, need to parse it
+                        match target_ver {
+                            Some(ver_str) => {
+                                if let Ok(ver_num) = ver_str.parse::<u64>() {
+                                    *version != ver_num
+                                } else {
+                                    true // Can't parse, so checkout
+                                }
+                            }
+                            None => true, // No version specified, checkout
+                        }
+                    }
                     refs::Ref::Tag(_) => true, // Always checkout for tags
                 };
 

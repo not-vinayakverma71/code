@@ -34,16 +34,16 @@ fn main() {
     
     // Store a file
     let path = PathBuf::from("test.rs");
-    let _source = "fn test() { println!(\"test\"); }";
+    let source = "fn test() { println!(\"test\"); }";
     
     let mut parser = Parser::new();
     parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-    let _tree = parser.parse(source, None).unwrap();
+    let tree = parser.parse(source, None).unwrap();
     
     // Create bytecode
     let mut encoder = TreeSitterBytecodeEncoder::new();
     let bytecode = encoder.encode_tree(&tree, source.as_bytes());
-    let _segmented = SegmentedBytecodeStream::from_bytecode_stream(
+    let segmented = SegmentedBytecodeStream::from_bytecode_stream(
         bytecode,
         std::env::temp_dir().join("promotion_test_segments")
     ).unwrap();
@@ -73,7 +73,7 @@ fn main() {
     
     // Access the file 3 times to trigger promotion back to hot
     println!("\nAccessing file 3 times to trigger promotion...");
-    for _i in 1..=3 {
+    for i in 1..=3 {
         cache.get(&path).unwrap();
         println!("  Access #{}", i);
     }
@@ -110,7 +110,7 @@ fn main() {
     
     // Access twice for cold→warm promotion
     println!("\nAccessing file 2 times for cold→warm promotion...");
-    for _i in 1..=2 {
+    for i in 1..=2 {
         cache.get(&path).unwrap();
         println!("  Access #{}", i);
     }

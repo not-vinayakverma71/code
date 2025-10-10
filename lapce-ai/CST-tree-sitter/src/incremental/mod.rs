@@ -39,7 +39,7 @@ impl IncrementalParser {
     /// Parse source from scratch
     pub fn parse_full(&mut self, source: &[u8]) -> Option<Tree> {
         let start = Instant::now();
-        let _tree = self.parser.parse(source, None)?;
+        let tree = self.parser.parse(source, None)?;
         let elapsed = start.elapsed().as_micros() as u64;
         
         self.parse_times.push(elapsed);
@@ -203,7 +203,7 @@ mod tests {
         parser.parse_full(&source).unwrap();
         
         // Perform 100 micro-edits
-        for _i in 2..102 {
+        for i in 2..102 {
             let old_source = source.clone();
             let new_value = i.to_string();
             let old_value = (i - 1).to_string();
@@ -275,7 +275,7 @@ mod tests {
         
         // Large initial file
         let mut source = String::new();
-        for _i in 0..100 {
+        for i in 0..100 {
             source.push_str(&format!("fn function_{}() {{ let x = {}; }}\n", i, i));
         }
         
@@ -283,7 +283,7 @@ mod tests {
         parser.clear_stats(); // Clear initial parse time
         
         // Make 50 micro-edits
-        for _i in 0..50 {
+        for i in 0..50 {
             let old = format!("let x = {}", i);
             let new = format!("let x = {}", i + 1000);
             

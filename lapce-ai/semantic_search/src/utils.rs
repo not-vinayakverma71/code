@@ -233,11 +233,62 @@ impl TimeoutStream {
     fn timeout_error(timeout: &std::time::Duration) -> DataFusionError {
         DataFusionError::Execution(format!("Query timeout after {} ms", timeout.as_millis()))
     }
+    
+    pub fn schema(&self) -> Arc<arrow_schema::Schema> {
+        use crate::arrow::RecordBatchStream;
+        self.inner.schema()
+    }
 }
 
-impl RecordBatchStream for TimeoutStream {
-    fn schema(&self) -> Arc<datafusion_common::arrow::datatypes::Schema> {
+// Create a wrapper that adapts our TimeoutStream to datafusion's expectations
+pub struct DatafusionTimeoutStream {
+    inner: TimeoutStream,
+}
+
+impl DatafusionTimeoutStream {
+    pub fn new(inner: SendableRecordBatchStream, timeout: std::time::Duration) -> Self {
+        Self {
+            inner: TimeoutStream::new(inner, timeout),
+        }
+    }
+    
+    pub fn schema(&self) -> Arc<arrow_schema::Schema> {
+        use crate::arrow::RecordBatchStream;
         self.inner.schema()
+    }
+}
+
+impl Stream for DatafusionTimeoutStream {
+    type Item = std::result::Result<RecordBatch, DataFusionError>;
+
+    fn poll_next(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Option<Self::Item>> {
+        let inner = Pin::new(&mut self.inner);
+        inner.poll_next(cx).map(|opt| {
+            opt.map(|result| {
+                result.map_err(|e| DataFusionError::External(Box::new(e)))
+            })
+        })
+    }
+}
+
+impl datafusion_physical_plan::RecordBatchStream for DatafusionTimeoutStream {
+    fn schema(&self) -> Arc<datafusion_common::arrow::datatypes::Schema> {
+        // TimeoutStream wraps our arrow stream, need to convert schema
+        use crate::arrow::RecordBatchStream as ArrowRecordBatchStream;
+        let arrow_schema = self.inner.schema();
+        // Convert arrow_schema to datafusion schema
+        Arc::new(datafusion_common::arrow::datatypes::Schema::new(
+            arrow_schema.fields().iter().map(|f| {
+                datafusion_common::arrow::datatypes::Field::new(
+                    f.name(),
+                    crate::arrow::convert_arrow_type_to_datafusion(&f.data_type()),
+                    f.is_nullable(),
+                )
+            }).collect::<Vec<_>>()
+        ))
     }
 }
 
@@ -248,7 +299,7 @@ impl crate::arrow::RecordBatchStream for TimeoutStream {
 }
 
 impl Stream for TimeoutStream {
-    type Item = Result<RecordBatch>;
+    type Item = crate::error::Result<RecordBatch>;
 
     fn poll_next(
         mut self: std::pin::Pin<&mut Self>,
@@ -257,7 +308,7 @@ impl Stream for TimeoutStream {
         match &mut self.state {
             TimeoutState::NotStarted { timeout } => {
                 if timeout.is_zero() {
-                    return std::task::Poll::Ready(Some(Err(Error::Runtime { 
+                    return std::task::Poll::Ready(Some(Err(Error::Runtime {
                         message: format!("Query timeout after {} ms", timeout.as_millis())
                     })));
                 }
@@ -273,7 +324,7 @@ impl Stream for TimeoutStream {
                 match deadline.poll_unpin(cx) {
                     std::task::Poll::Ready(_) => {
                         self.state = TimeoutState::Completed;
-                        std::task::Poll::Ready(Some(Err(Error::Runtime { 
+                        std::task::Poll::Ready(Some(Err(Error::Runtime {
                             message: format!("Query timeout after {} ms", timeout_ms)
                         })))
                     }

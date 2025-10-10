@@ -46,7 +46,7 @@ fn convert_arrow_batch_to_df(batch: arrow_array::RecordBatch) -> datafusion_comm
                 convert_arrow_type_to_datafusion(&f.data_type()),
                 f.is_nullable(),
             )
-        }).collect()
+        }).collect::<Vec<_>>()
     ));
     
     // For now, just create an empty vector - proper conversion would require 
@@ -67,7 +67,7 @@ impl datafusion_common::arrow::array::RecordBatchReader for ArrowToDfReader {
                     convert_arrow_type_to_datafusion(&f.data_type()),
                     f.is_nullable(),
                 )
-            }).collect()
+            }).collect::<Vec<_>>()
         ))
     }
 }

@@ -1,20 +1,27 @@
 // Filesystem tools module - P0-4: FS tools batch 1
 
 pub mod read_file;
+pub mod read_file_v2;
 pub mod list_files;
 pub mod search_files;
 pub mod write_file;
+pub mod write_file_v2;
 pub mod edit_file;
 pub mod insert_content;
 pub mod search_and_replace;
+pub mod search_and_replace_v2;
+pub mod utils;
 
 pub use read_file::ReadFileTool;
+pub use read_file_v2::ReadFileToolV2;
 pub use list_files::ListFilesTool;
 pub use search_files::SearchFilesTool;
 pub use write_file::WriteFileTool;
+pub use write_file_v2::WriteFileToolV2;
 pub use edit_file::EditFileTool;
 pub use insert_content::InsertContentTool;
 pub use search_and_replace::SearchAndReplaceTool;
+pub use search_and_replace_v2::SearchAndReplaceToolV2;
 
 use std::path::{Path, PathBuf};
 use serde_json::Value;
@@ -30,35 +37,42 @@ pub fn extract_tool_data(parsed: &Value) -> &Value {
 }
 
 /// Check if a file is binary by examining first few bytes
+/// Delegates to utils for enhanced detection
 pub fn is_binary_file(path: &Path) -> bool {
-    use std::fs::File;
-    use std::io::Read;
-    
-    let mut file = match File::open(path) {
-        Ok(f) => f,
-        Err(_) => return false,
-    };
-    
-    let mut buffer = [0u8; 8192];
-    let bytes_read = match file.read(&mut buffer) {
-        Ok(n) => n,
-        Err(_) => return false,
-    };
-    
-    // Check for null bytes (common in binary files)
-    for &byte in &buffer[..bytes_read] {
-        if byte == 0 {
-            return true;
+    match utils::get_file_info(path) {
+        Ok(info) => info.is_binary,
+        Err(_) => {
+            // Fallback to simple detection
+            use std::fs::File;
+            use std::io::Read;
+            
+            let mut file = match File::open(path) {
+                Ok(f) => f,
+                Err(_) => return false,
+            };
+            
+            let mut buffer = [0u8; 8192];
+            let bytes_read = match file.read(&mut buffer) {
+                Ok(n) => n,
+                Err(_) => return false,
+            };
+            
+            // Check for null bytes (common in binary files)
+            for &byte in &buffer[..bytes_read] {
+                if byte == 0 {
+                    return true;
+                }
+            }
+            
+            // Check for high ratio of non-printable characters
+            let non_printable = buffer[..bytes_read]
+                .iter()
+                .filter(|&&b| b < 0x20 && b != b'\t' && b != b'\n' && b != b'\r')
+                .count();
+            
+            non_printable as f32 / bytes_read as f32 > 0.3
         }
     }
-    
-    // Check for high ratio of non-printable characters
-    let non_printable = buffer[..bytes_read]
-        .iter()
-        .filter(|&&b| b < 0x20 && b != b'\t' && b != b'\n' && b != b'\r')
-        .count();
-    
-    non_printable as f32 / bytes_read as f32 > 0.3
 }
 
 /// Check if file is an image by extension

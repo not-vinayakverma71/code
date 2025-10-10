@@ -1,20 +1,19 @@
 //! Fixed bytecode decoder that handles the ambiguity between opcodes and data
 
-use super::{SegmentedBytecodeStream, Opcode, NodeFlags};
+use super::{BytecodeStream, Opcode, NodeFlags};
 
-pub struct BytecodeDecoderV2 {
-    stream: SegmentedBytecodeStream,
+pub struct TreeSitterBytecodeDecoderV2 {
+    stream: BytecodeStream,
     cursor: usize,
 }
 
-impl BytecodeDecoderV2 {
-    pub fn new(stream: SegmentedBytecodeStream) -> Self {
+impl TreeSitterBytecodeDecoderV2 {
+    pub fn new(stream: BytecodeStream) -> Self {
         Self { stream, cursor: 0 }
     }
     
     /// Verify bytecode with proper state tracking
     pub fn verify(&mut self) -> Result<(), String> {
-        self.cursor = 0;
         let mut stack = Vec::new(); // Track Enter nodes that need Exit
         let mut node_count = 0;
         
@@ -34,14 +33,14 @@ impl BytecodeDecoderV2 {
                     node_count += 1;
                     
                     // Read Enter node data
-                    let _kind = self.read_varint().ok_or("Missing kind ID")?;
-                    let _flags = self.read_byte().ok_or("Missing flags")?;
+                    let kind = self.read_varint().ok_or("Missing kind ID")?;
+                    let flags = self.read_byte().ok_or("Missing flags")?;
                     self.skip_position_if_present();
                     // Length may be prefixed by Length opcode
                     if self.cursor < self.stream.bytes.len() && self.stream.bytes[self.cursor] == 0x12 {
                         self.cursor += 1; // consume Length opcode
                     }
-                    let _length = self.read_varint().ok_or("Missing length")?;
+                    let length = self.read_varint().ok_or("Missing length")?;
                     
                     // Push to stack - we expect an Exit later
                     stack.push(node_count);
@@ -51,14 +50,14 @@ impl BytecodeDecoderV2 {
                     node_count += 1;
                     
                     // Read Leaf node data
-                    let _kind = self.read_varint().ok_or("Missing kind ID")?;
-                    let _flags = self.read_byte().ok_or("Missing flags")?;
+                    let kind = self.read_varint().ok_or("Missing kind ID")?;
+                    let flags = self.read_byte().ok_or("Missing flags")?;
                     self.skip_position_if_present();
                     // Length may be prefixed by Length opcode
                     if self.cursor < self.stream.bytes.len() && self.stream.bytes[self.cursor] == 0x12 {
                         self.cursor += 1; // consume Length opcode
                     }
-                    let _length = self.read_varint().ok_or("Missing length")?;
+                    let length = self.read_varint().ok_or("Missing length")?;
                     
                     // Leaf nodes don't need Exit
                 }

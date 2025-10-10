@@ -11,6 +11,7 @@ pub mod ast;
 pub mod symbols;
 pub mod incremental;
 pub mod cst_api;
+pub mod native_parser_manager;
 
 use lazy_static::lazy_static;
 use prometheus::{Histogram, HistogramOpts, IntCounter, IntGauge, register_histogram, register_int_counter, register_int_gauge};
@@ -253,7 +254,7 @@ mod tests {
     #[test]
     fn test_parse() {
         let mut parser = TreeSitterIntegration::new();
-        let _tree = parser.parse_rust("fn main() {}");
+        let tree = parser.parse_rust("fn main() {}");
         assert!(tree.is_some());
     }
 }

@@ -3,12 +3,12 @@
 
 use std::sync::Arc;
 use std::path::PathBuf;
-use anyhow::{Result, Context};
+use anyhow::Result;
 use serde_json::{Value, json};
 use tracing::{info, debug, warn, error};
 
 use crate::task_exact_translation::{Task, AssistantMessageContent};
-use crate::core::tools::traits::{Tool, ToolContext, ToolOutput, ToolError};
+use crate::core::tools::traits::{Tool, ToolContext};
 use crate::core::tools::registry::ToolRegistry;
 use crate::tool_repetition_detector::{ToolRepetitionDetector, RepetitionResult};
 use crate::task_orchestrator_metrics::global_metrics;
@@ -69,7 +69,10 @@ impl ToolExecutor {
         // Diff tool
         registry.register(DiffTool)?;
         
-        info!("Registered {} tools", registry.count());
+        // Register expanded tools (10+ additional)
+        crate::core::tools::expanded_tools::register_expanded_tools(registry)?;
+        
+        info!("Registered {} tools", registry.list_tools().len());
         Ok(())
     }
     
@@ -80,24 +83,24 @@ impl ToolExecutor {
         content: &AssistantMessageContent,
     ) -> Result<ToolExecutionResult> {
         match content {
-            AssistantMessageContent::ToolUse { name, input, id } => {
-                info!("Executing tool: {} (id: {})", name, id);
+            AssistantMessageContent::ToolUse { name, input } => {
+                info!("Executing tool: {}", name);
                 
                 // Check for repetition
                 let params_json = serde_json::to_string(input)?;
                 let repetition = self.repetition_detector.record_call(name, &params_json);
                 
                 match repetition {
-                    RepetitionResult::NoRepetition => {
+                    RepetitionResult::None | RepetitionResult::NoRepetition => {
                         debug!("No repetition detected for {}", name);
                     }
-                    RepetitionResult::SameToolRepeated { count, .. } => {
+                    RepetitionResult::SameTool { count, .. } | RepetitionResult::SameToolRepeated { count, .. } => {
                         warn!("Tool {} repeated {} times", name, count);
-                        task.increment_tool_mistakes(name);
+                        task.increment_tool_mistakes();
                     }
-                    RepetitionResult::IdenticalCall { count, .. } => {
+                    RepetitionResult::IdenticalCalls { count, .. } | RepetitionResult::IdenticalCall { count, .. } => {
                         warn!("Identical call to {} detected ({} times)", name, count);
-                        task.increment_tool_mistakes(name);
+                        task.increment_tool_mistakes();
                         return Ok(ToolExecutionResult {
                             tool_name: name.clone(),
                             success: false,
@@ -107,7 +110,7 @@ impl ToolExecutor {
                     }
                     RepetitionResult::CyclicPattern { pattern_length, .. } => {
                         warn!("Cyclic pattern detected (length {})", pattern_length);
-                        task.increment_tool_mistakes(name);
+                        task.increment_tool_mistakes();
                     }
                 }
                 
@@ -132,7 +135,7 @@ impl ToolExecutor {
                     Err(e) => {
                         error!("Tool {} failed: {:?}", name, e);
                         global_metrics().record_tool_failure(name);
-                        task.increment_tool_mistakes(name);
+                        task.increment_tool_mistakes();
                         
                         Ok(ToolExecutionResult {
                             tool_name: name.clone(),
@@ -176,6 +179,7 @@ impl ToolExecutor {
             execution_id: uuid::Uuid::new_v4().to_string(),
             require_approval: false, // Task handles approval separately
             dry_run: false,
+            allow_local_network: false,
             metadata: std::collections::HashMap::new(),
             permissions: Default::default(),
             rooignore: None,

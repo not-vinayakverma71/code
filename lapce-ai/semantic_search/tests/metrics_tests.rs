@@ -1,7 +1,8 @@
 // Metrics Tests - SEM-008-B, SEM-010-C
 use lancedb::search::search_metrics::{
     SearchMetrics, export_metrics, CACHE_HITS_TOTAL, CACHE_MISSES_TOTAL,
-    CACHE_SIZE, SEARCH_LATENCY, AWS_TITAN_REQUEST_LATENCY,
+    CACHE_SIZE, SEARCH_LATENCY, AWS_TITAN_REQUEST_LATENCY, MEMORY_RSS_BYTES,
+    INDEX_OPERATIONS_TOTAL, INDEX_LATENCY, SEARCH_ERRORS_TOTAL,
 };
 use std::time::Duration;
 
@@ -125,4 +126,80 @@ fn test_metrics_reset() {
     assert_eq!(summary.total_queries, 0);
     assert_eq!(summary.files_indexed, 0);
     assert_eq!(summary.chunks_created, 0);
+}
+
+#[test]
+fn test_all_metrics_present_in_export() {
+    let metrics = SearchMetrics::new();
+    
+    // Perform various operations to populate metrics
+    metrics.record_cache_hit(Duration::from_millis(5));
+    metrics.record_cache_miss();
+    metrics.update_cache_size(50);
+    metrics.record_search(Duration::from_millis(100), 10);
+    metrics.record_aws_titan_request(Duration::from_millis(200), "embeddings");
+    metrics.record_aws_titan_error("throttling");
+    metrics.update_memory_rss(100 * 1024 * 1024);
+    
+    let exported = export_metrics();
+    
+    // Verify all key metrics are present
+    assert!(exported.contains("semantic_search_cache_hits_total"), "Cache hits metric missing");
+    assert!(exported.contains("semantic_search_cache_misses_total"), "Cache misses metric missing");
+    assert!(exported.contains("semantic_search_cache_size"), "Cache size metric missing");
+    assert!(exported.contains("semantic_search_latency_seconds"), "Search latency metric missing");
+    assert!(exported.contains("semantic_search_cache_hit_latency_seconds"), "Cache hit latency metric missing");
+    assert!(exported.contains("aws_titan_request_latency_seconds"), "AWS Titan latency metric missing");
+    assert!(exported.contains("aws_titan_errors_total"), "AWS Titan errors metric missing");
+    assert!(exported.contains("semantic_search_memory_rss_bytes"), "Memory RSS metric missing");
+    assert!(exported.contains("semantic_search_index_operations_total"), "Index operations metric missing");
+    assert!(exported.contains("semantic_search_index_latency_seconds"), "Index latency metric missing");
+    assert!(exported.contains("semantic_search_errors_total"), "Search errors metric missing");
+}
+
+#[test]
+fn test_prometheus_format_compliance() {
+    let metrics = SearchMetrics::new();
+    
+    // Trigger some metrics
+    metrics.record_search(Duration::from_millis(50), 5);
+    metrics.update_cache_size(100);
+    
+    let exported = export_metrics();
+    
+    // Verify Prometheus format
+    let lines: Vec<&str> = exported.lines().collect();
+    
+    for line in lines {
+        if line.starts_with("#") {
+            // Comment lines should be HELP or TYPE
+            assert!(
+                line.starts_with("# HELP") || line.starts_with("# TYPE"),
+                "Invalid comment line: {}",
+                line
+            );
+        } else if !line.is_empty() {
+            // Metric lines should have name and value
+            assert!(
+                line.contains(' ') || line.contains('\t'),
+                "Invalid metric line format: {}",
+                line
+            );
+        }
+    }
+}
+
+#[test]
+fn test_metric_labels() {
+    let metrics = SearchMetrics::new();
+    
+    // Record operations with labels
+    metrics.record_aws_titan_request(Duration::from_millis(100), "create_embeddings");
+    metrics.record_aws_titan_error("rate_limit");
+    
+    let exported = export_metrics();
+    
+    // Check for labeled metrics
+    assert!(exported.contains("operation=\"create_embeddings\""), "Operation label missing");
+    assert!(exported.contains("error_type=\"rate_limit\""), "Error type label missing");
 }

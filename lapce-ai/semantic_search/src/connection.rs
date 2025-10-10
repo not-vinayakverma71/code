@@ -27,11 +27,11 @@ use crate::embeddings::{
     EmbeddingDefinition, EmbeddingFunction, EmbeddingRegistry, DefaultMemoryRegistry, WithEmbeddings,
 };
 use crate::error::{Error, Result};
-#[cfg(feature = "remote")]
-use crate::remote::{
-    client::ClientConfig,
-    db::{OPT_REMOTE_API_KEY, OPT_REMOTE_HOST_OVERRIDE, OPT_REMOTE_REGION},
-};
+// #[cfg(feature = "remote")]
+// use crate::remote::{
+//     client::ClientConfig,
+//     db::{OPT_REMOTE_API_KEY, OPT_REMOTE_HOST_OVERRIDE, OPT_REMOTE_REGION},
+// };
 use crate::table::{TableDefinition, WriteOptions};
 use crate::Table;
 pub use lance_encoding::version::LanceFileVersion;
@@ -677,8 +677,8 @@ pub struct ConnectRequest {
     /// - `db://dbname` - LanceDB Cloud
     pub uri: String,
 
-    #[cfg(feature = "remote")]
-    pub client_config: ClientConfig,
+    // #[cfg(feature = "remote")]
+    // pub client_config: ClientConfig,
 
     /// Database/Catalog specific options
     pub options: HashMap<String, String>,
@@ -714,8 +714,8 @@ impl ConnectBuilder {
         Self {
             request: ConnectRequest {
                 uri: uri.to_string(),
-                #[cfg(feature = "remote")]
-                client_config: Default::default(),
+                // #[cfg(feature = "remote")]
+                // client_config: Default::default(),
                 read_consistency_interval: None,
                 options: HashMap::new(),
                 session: None,
@@ -732,13 +732,13 @@ impl ConnectBuilder {
     /// # Arguments
     ///
     /// * `api_key` - The API key to use for the connection
-    #[cfg(feature = "remote")]
-    pub fn api_key(mut self, api_key: &str) -> Self {
-        self.request
-            .options
-            .insert(OPT_REMOTE_API_KEY.to_string(), api_key.to_string());
-        self
-    }
+    // #[cfg(feature = "remote")]
+    // pub fn api_key(mut self, api_key: &str) -> Self {
+    //     self.request
+    //         .options
+    //         .insert(OPT_REMOTE_API_KEY.to_string(), api_key.to_string());
+    //     self
+    // }
 
     /// Set the LanceDB Cloud region.
     ///
@@ -748,13 +748,13 @@ impl ConnectBuilder {
     /// # Arguments
     ///
     /// * `region` - The region to use for the connection
-    #[cfg(feature = "remote")]
-    pub fn region(mut self, region: &str) -> Self {
-        self.request
-            .options
-            .insert(OPT_REMOTE_REGION.to_string(), region.to_string());
-        self
-    }
+    // #[cfg(feature = "remote")]
+    // pub fn region(mut self, region: &str) -> Self {
+    //     self.request
+    //         .options
+    //         .insert(OPT_REMOTE_REGION.to_string(), region.to_string());
+    //     self
+    // }
 
     /// Set the LanceDB Cloud host override.
     ///
@@ -764,14 +764,14 @@ impl ConnectBuilder {
     /// # Arguments
     ///
     /// * `host_override` - The host override to use for the connection
-    #[cfg(feature = "remote")]
-    pub fn host_override(mut self, host_override: &str) -> Self {
-        self.request.options.insert(
-            OPT_REMOTE_HOST_OVERRIDE.to_string(),
-            host_override.to_string(),
-        );
-        self
-    }
+    // #[cfg(feature = "remote")]
+    // pub fn host_override(mut self, host_override: &str) -> Self {
+    //     self.request.options.insert(
+    //         OPT_REMOTE_HOST_OVERRIDE.to_string(),
+    //         host_override.to_string(),
+    //     );
+    //     self
+    // }
 
     /// Set the database specific options
     ///
@@ -803,11 +803,11 @@ impl ConnectBuilder {
     ///      ..Default::default()
     ///    });
     /// ```
-    #[cfg(feature = "remote")]
-    pub fn client_config(mut self, config: ClientConfig) -> Self {
-        self.request.client_config = config;
-        self
-    }
+    // #[cfg(feature = "remote")]
+    // pub fn client_config(mut self, config: ClientConfig) -> Self {
+    //     self.request.client_config = config;
+    //     self
+    // }
 
     /// Provide a custom [`EmbeddingRegistry`] to use for this connection.
     pub fn embedding_registry(mut self, registry: Arc<dyn EmbeddingRegistry>) -> Self {
@@ -891,38 +891,7 @@ impl ConnectBuilder {
         self
     }
 
-    #[cfg(feature = "remote")]
-    fn execute_remote(self) -> Result<Connection> {
-        use crate::remote::db::RemoteDatabaseOptions;
-
-        let options = RemoteDatabaseOptions::parse_from_map(&self.request.options)?;
-
-        let region = options.region.ok_or_else(|| Error::InvalidInput {
-            message: "A region is required when connecting to LanceDb Cloud".to_string(),
-        })?;
-        let api_key = options.api_key.ok_or_else(|| Error::InvalidInput {
-            message: "An api_key is required when connecting to LanceDb Cloud".to_string(),
-        })?;
-
-        let storage_options = StorageOptions(options.storage_options.clone());
-        let internal = Arc::new(crate::remote::db::RemoteDatabase::try_new(
-            &self.request.uri,
-            &api_key,
-            &region,
-            options.host_override,
-            self.request.client_config,
-            storage_options.into(),
-        )?);
-        Ok(Connection {
-            internal,
-            uri: self.request.uri,
-            embedding_registry: self
-                .embedding_registry
-                .unwrap_or_else(|| Arc::new(DefaultMemoryRegistry::new())),
-        })
-    }
-
-    #[cfg(not(feature = "remote"))]
+    // Remote feature disabled
     fn execute_remote(self) -> Result<Connection> {
         Err(Error::Runtime {
             message: "cannot connect to LanceDb Cloud unless the 'remote' feature is enabled"
@@ -969,8 +938,8 @@ impl CatalogConnectBuilder {
         Self {
             request: ConnectRequest {
                 uri: uri.to_string(),
-                #[cfg(feature = "remote")]
-                client_config: Default::default(),
+                // #[cfg(feature = "remote")]
+                // client_config: Default::default(),
                 read_consistency_interval: None,
                 options: HashMap::new(),
                 session: None,

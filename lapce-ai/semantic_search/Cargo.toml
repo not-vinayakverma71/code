@@ -14,18 +14,18 @@ rust-version = "1.70"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 anyhow = "1.0"
-arrow = { version = "52", features = ["prettyprint", "ffi"] }
-arrow-arith = "52"
-arrow-array = "52"
-arrow-buffer = "52"
-arrow-cast = "52"
-arrow-data = "52"
-arrow-ipc = "52"
-arrow-json = "52"
-arrow-ord = "52"
-arrow-row = "52"
-arrow-schema = "52"
-arrow-select = "52"
+arrow = { version = "56", features = ["prettyprint", "ffi"] }
+arrow-arith = "56"
+arrow-array = "56"
+arrow-buffer = "56"
+arrow-cast = "56"
+arrow-data = "56"
+arrow-ipc = "56"
+arrow-json = "56"
+arrow-ord = "56"
+arrow-row = "56"
+arrow-schema = "56"
+arrow-select = "56"
 async-trait = "0.1"
 aws-config = "1.5"
 aws-sdk-bedrockruntime = "1.49"
@@ -35,23 +35,23 @@ regex = "1.10"
 uuid = { version = "1.6", features = ["v4"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
-datafusion-common = { version = "49.0", default-features = false }
-datafusion-execution = "49.0"
-datafusion-expr = "49.0"
-datafusion-physical-plan = "49.0"
-datafusion-catalog = "49.0"
-chrono = "0.4"
+datafusion-common = { version = "50.0", default-features = false }
+datafusion-execution = "50.0"
+datafusion-expr = "50.0"
+datafusion-physical-plan = "50.0"
+datafusion-catalog = "50.0"
+chrono = "0.4.31"
 object_store = "0.12.0"
 snafu = "0.8"
 half = { version = "2.6.0", default-features = false, features = ["num-traits", "use-intrinsics", "std"] }
-lance = { version = "=0.35.0", default-features = false, features = ["dynamodb"], tag = "v0.35.0-beta.4", git = "https://github.com/lancedb/lance.git" }
-lance-datafusion = { version = "=0.35.0", tag = "v0.35.0-beta.4", git = "https://github.com/lancedb/lance.git" }
-lance-io = { version = "=0.35.0", default-features = false, tag = "v0.35.0-beta.4", git = "https://github.com/lancedb/lance.git" }
-lance-index = { version = "=0.35.0", tag = "v0.35.0-beta.4", git = "https://github.com/lancedb/lance.git" }
-lance-table = { version = "=0.35.0", tag = "v0.35.0-beta.4", git = "https://github.com/lancedb/lance.git" }
-lance-linalg = { version = "=0.35.0", tag = "v0.35.0-beta.4", git = "https://github.com/lancedb/lance.git" }
-lance-testing = { version = "=0.35.0", tag = "v0.35.0-beta.4", git = "https://github.com/lancedb/lance.git" }
-lance-encoding = { version = "=0.35.0", tag = "v0.35.0-beta.4", git = "https://github.com/lancedb/lance.git" }
+lance = { version = "0.38.2", default-features = false, features = ["dynamodb"] }
+lance-datafusion = { version = "0.38.2" }
+lance-io = { version = "0.38.2", default-features = false }
+lance-index = { version = "0.38.2" }
+lance-table = { version = "0.38.2" }
+lance-linalg = { version = "0.38.2" }
+lance-testing = { version = "0.38.2" }
+lance-encoding = { version = "0.38.2" }
 moka = { version = "0.12", features = ["future"] }
 pin-project = "1.0.7"
 tokio = { version = "1.23", features = ["rt-multi-thread"] }
@@ -71,7 +71,7 @@ num-traits = "0.2"
 url = "2"
 
 # Memory optimization dependencies (Task 1)
-zstd = { version = "0.13", features = ["zstdmt"] }
+zstd = { version = "0.13.2", features = ["zstdmt"] }
 lz4 = "1.24"
 memmap2 = "0.9"
 bloom = "0.3"
@@ -133,7 +133,7 @@ dashmap = "6.1"
 hashlink = "0.8"
 
 # Full-text search
-tantivy = "0.21"
+tantivy = "0.22"
 
 # For demo binaries
 tempfile = "3.8"
@@ -143,12 +143,12 @@ name = "current_benchmark"
 harness = false
 
 [dev-dependencies]
-arrow = { version = "55", features = ["test_utils", "prettyprint"] }
+arrow = { version = "56", features = ["test_utils", "prettyprint"] }
 criterion = "0.5"
 fake = "2.9.2"
 hyper = { version = "1", features = ["server"] }
 itertools = "0.13"
-lance-test-macros = { git = "https://github.com/lancedb/lance.git", tag = "v0.35.0-beta.4" }
+lance-test-macros = { version = "0.38.2" }
 datafusion-comet-spark-expr = "0.4"
 proptest = "1.4.0"
 pyo3 = { version = "0.22", features = ["auto-initialize"] }
@@ -170,19 +170,22 @@ serde_json = "1.0"
 async-trait = "0.1.83"
 
 # Memory optimization dependencies (duplicates removed)
-datafusion = { version = "49.0", default-features = false }
+datafusion = { version = "50.0", default-features = false }
 http-body = "1"                                        # Matching reqwest
+http = "1.1"                                           # For remote client
 
 
 [features]
-default = ["aws", "gcs", "azure", "dynamodb", "oss"]
+# Default features
+default = ["remote"]
+remote = []
 aws = ["lance/aws", "lance-io/aws"]
 oss = ["lance/oss", "lance-io/oss"]
 gcs = ["lance/gcp", "lance-io/gcp"]
 azure = ["lance/azure", "lance-io/azure"]
 dynamodb = ["lance/dynamodb", "aws"]
-remote = ["dep:http", "dep:rand"]
-fp16kernels = ["lance-linalg/fp16kernels"]
+# fp16kernels removed - required modern compiler (Clang >= 14 or GCC >= 12 with AVX2)
+# Can be re-added if FP16 quantization is needed in the future
 s3-test = []
 bedrock = []
 openai = []

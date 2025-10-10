@@ -2,7 +2,7 @@
 #[cfg(test)]
 mod tests {
     use crate::*;
-    use crate::ipc_server::*;
+    use crate::ipc::ipc_server::*;
     use crate::ipc_messages::*;
     use crate::zero_copy_ipc::*;
     use crate::shared_memory_ipc::*;

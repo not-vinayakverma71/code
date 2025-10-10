@@ -1,9 +1,7 @@
 /// Real Production Performance Benchmark
 /// This is a complete, working test that shows actual IPC performance
 
-use std::time::{Duration, Instant};
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
+use std::time::Instant;
 
 fn main() {
     println!("\n╔══════════════════════════════════════════════════════════════════════╗");

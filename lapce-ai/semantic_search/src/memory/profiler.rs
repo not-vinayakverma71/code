@@ -5,6 +5,7 @@ use std::sync::{Arc, RwLock};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 use std::fmt;
+use std::fs;
 
 /// Global memory statistics
 pub struct MemoryStats {
@@ -292,11 +293,7 @@ impl MemoryDashboard {
         
         let data = self.update();
         
-        println!("\n╔══════════════════════════════════════════════════════════════════╗");
-        println!("║                      MEMORY DASHBOARD                             ║");
-        println!("╚══════════════════════════════════════════════════════════════════╝");
-        
-        println!("\n{}", data.report);
+        println!("\n{}", self);
         
         if data.steady_state_achieved {
             println!("\n✅ STEADY STATE ACHIEVED: < 3MB");
@@ -331,6 +328,30 @@ impl MemoryDashboard {
     }
 }
 
+impl fmt::Display for MemoryDashboard {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "\n╔══════════════════════════════════════════════════════════════════╗")?;
+        writeln!(f, "║                    MEMORY USAGE DASHBOARD                         ║")?;
+        writeln!(f, "╚══════════════════════════════════════════════════════════════════╝")?;
+        
+        let stats = self.profiler.get_memory_report();
+        
+        writeln!(f, "\n📊 Current Memory Usage:")?;
+        writeln!(f, "  • Current: {} MB", stats.current_usage_mb)?;
+        writeln!(f, "  • Peak: {} MB", stats.peak_usage_mb)?;
+        writeln!(f, "  • Total Allocated: {} MB", stats.total_allocated_mb)?;
+        writeln!(f, "  • Total Freed: {} MB", stats.total_freed_mb)?;
+        
+        writeln!(f, "\n📈 Allocation Statistics:")?;
+        writeln!(f, "  • Allocations: {}", stats.allocation_count)?;
+        writeln!(f, "  • Deallocations: {}", stats.deallocation_count)?;
+        writeln!(f, "  • Active Allocations: {}", 
+            stats.allocation_count.saturating_sub(stats.deallocation_count))?;
+        
+        Ok(())
+    }
+}
+
 #[derive(Debug)]
 pub struct DashboardData {
     pub report: MemoryReport,
@@ -347,4 +368,31 @@ pub fn get_memory_stats() -> &'static MemoryStats {
 /// Check if steady state target is met
 pub fn is_steady_state() -> bool {
     MEMORY_STATS.get_current_mb() < 3.0
+}
+
+/// Get current RSS memory in bytes from /proc/self/status
+pub fn get_memory_rss_bytes() -> Option<usize> {
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(status) = fs::read_to_string("/proc/self/status") {
+            for line in status.lines() {
+                if line.starts_with("VmRSS:") {
+                    let parts: Vec<&str> = line.split_whitespace().collect();
+                    if parts.len() >= 2 {
+                        if let Ok(kb) = parts[1].parse::<usize>() {
+                            return Some(kb * 1024); // Convert KB to bytes
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    #[cfg(not(target_os = "linux"))]
+    {
+        // For non-Linux systems, return None or implement platform-specific logic
+        None
+    }
+    
+    None
 }

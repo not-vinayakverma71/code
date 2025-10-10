@@ -1,11 +1,12 @@
 // Periodic Index Compaction - SEM-009-B
 use crate::error::Result;
 use crate::search::semantic_search_engine::SemanticSearchEngine;
+use crate::search::search_metrics::INDEX_OPERATIONS_TOTAL;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::sync::Semaphore;
 use tokio::time::interval;
-use tracing::{info, warn, instrument};
+use tracing::{info, warn, error, instrument};
 
 /// Periodic index compaction service
 pub struct IndexCompactionService {
@@ -32,6 +33,7 @@ impl IndexCompactionService {
     /// Start periodic compaction
     #[instrument(skip(self))]
     pub async fn start(self: Arc<Self>) {
+        info!("Starting periodic index compaction service (interval: {}s)", self.interval_secs);
         let mut ticker = interval(Duration::from_secs(self.interval_secs));
         
         loop {
@@ -42,15 +44,24 @@ impl IndexCompactionService {
                 Ok(permit) => permit,
                 Err(_) => {
                     warn!("Skipping compaction - previous compaction still running");
+                    INDEX_OPERATIONS_TOTAL.with_label_values(&["compaction_skipped"]).inc();
                     continue;
                 }
             };
             
             info!("Starting periodic index compaction");
+            let start = Instant::now();
             
             match self.engine.optimize_index().await {
-                Ok(()) => info!("Index compaction completed successfully"),
-                Err(e) => warn!("Index compaction failed: {}", e),
+                Ok(()) => {
+                    let duration = start.elapsed();
+                    info!("Index compaction completed successfully in {:?}", duration);
+                    INDEX_OPERATIONS_TOTAL.with_label_values(&["compaction_success"]).inc();
+                }
+                Err(e) => {
+                    error!("Index compaction failed: {}", e);
+                    INDEX_OPERATIONS_TOTAL.with_label_values(&["compaction_error"]).inc();
+                }
             }
             
             drop(permit);
@@ -59,8 +70,23 @@ impl IndexCompactionService {
     
     /// Trigger manual compaction
     pub async fn compact_now(&self) -> Result<()> {
-        let _permit = self.backpressure.acquire().await?;
-        self.engine.optimize_index().await
+        let _permit = self.backpressure.acquire().await
+            .map_err(|e| crate::error::Error::Runtime {
+                message: format!("Failed to acquire compaction semaphore: {}", e)
+            })?;
+        
+        let start = Instant::now();
+        let result = self.engine.optimize_index().await;
+        
+        if result.is_ok() {
+            let duration = start.elapsed();
+            info!("Manual compaction completed in {:?}", duration);
+            INDEX_OPERATIONS_TOTAL.with_label_values(&["manual_compaction_success"]).inc();
+        } else {
+            INDEX_OPERATIONS_TOTAL.with_label_values(&["manual_compaction_error"]).inc();
+        }
+        
+        result
     }
 }
 

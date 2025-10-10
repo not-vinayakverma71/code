@@ -16,6 +16,10 @@ use winapi::um::winnt::{HANDLE, PAGE_READWRITE};
 use winapi::shared::minwindef::DWORD;
 #[cfg(target_os = "windows")]
 use std::os::windows::ffi::OsStrExt;
+#[cfg(target_os = "windows")]
+use std::sync::atomic::Ordering;
+#[cfg(target_os = "windows")]
+use std::{ptr, ffi::OsStr};
 
 /// Header structure for shared memory buffer
 #[repr(C)]

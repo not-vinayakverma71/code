@@ -1,9 +1,9 @@
 //! Simple bytecode verifier that handles ambiguity
 
-use super::{SegmentedBytecodeStream, Opcode};
+use super::{BytecodeStream, Opcode};
 
 /// Simple verifier that just checks basic structure
-pub fn verify_simple(stream: &SegmentedBytecodeStream) -> Result<(), String> {
+pub fn verify_simple(stream: &BytecodeStream) -> Result<(), String> {
     if stream.bytes.is_empty() {
         return Err("Empty bytecode".to_string());
     }

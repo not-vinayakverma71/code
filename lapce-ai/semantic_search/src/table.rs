@@ -1395,11 +1395,11 @@ impl Table {
     }
 }
 
-pub struct NativeTags {
-    inner: LanceTags,
+pub struct NativeTags<'a> {
+    inner: LanceTags<'a>,
 }
 #[async_trait]
-impl Tags for NativeTags {
+impl<'a> Tags for NativeTags<'a> {
     async fn list(&self) -> Result<HashMap<String, TagContents>> {
         Ok(self.inner.list().await?)
     }
@@ -1611,7 +1611,7 @@ impl NativeTable {
         Self::create(
             uri,
             name,
-            batches,
+            Box::new(batches),
             write_store_wrapper,
             params,
             read_consistency_interval,
@@ -2292,10 +2292,9 @@ impl BaseTable for NativeTable {
             let top_k = query.base.limit.unwrap_or(DEFAULT_TOP_K) + query.base.offset.unwrap_or(0);
             if is_binary {
                 let query_vector = arrow::compute::cast(&query_vector, &DataType::UInt8)?;
-                let query_vector = query_vector.as_primitive::<UInt8Type>();
-                scanner.nearest(&column, query_vector, top_k)?;
+                scanner.nearest(&column, &query_vector, top_k)?;
             } else {
-                scanner.nearest(&column, query_vector.as_ref(), top_k)?;
+                scanner.nearest(&column, &query_vector, top_k)?;
             }
             scanner.minimum_nprobes(query.minimum_nprobes);
             if let Some(maximum_nprobes) = query.maximum_nprobes {
@@ -2462,10 +2461,52 @@ impl BaseTable for NativeTable {
     }
 
     async fn tags(&self) -> Result<Box<dyn Tags + '_>> {
-        let dataset = self.dataset.get().await?;
+        // Store dataset in self to avoid lifetime issues
+        let dataset_guard = self.dataset.get().await?;
+        let dataset_arc = dataset_guard.clone();
+        
+        // Create a new struct that owns the tags data
+        struct OwnedNativeTags {
+            dataset: Arc<Dataset>,
+        }
+        
+        #[async_trait]
+        impl Tags for OwnedNativeTags {
+            async fn list(&self) -> Result<HashMap<String, TagContents>> {
+                Ok(self.dataset.tags().list().await?)
+            }
 
-        Ok(Box::new(NativeTags {
-            inner: dataset.tags.clone(),
+            async fn get_version(&self, tag: &str) -> Result<u64> {
+                Ok(self.dataset.tags().get_version(tag).await?)
+            }
+
+            async fn create(&mut self, tag: &str, version: u64) -> Result<()> {
+                // Tags operations on Dataset are immutable, need mutable reference
+                // This is a limitation of the current API
+                Err(Error::NotSupported {
+                    message: "Creating tags requires mutable dataset access".to_string(),
+                })
+            }
+
+            async fn delete(&mut self, tag: &str) -> Result<()> {
+                // Tags operations on Dataset are immutable, need mutable reference  
+                // This is a limitation of the current API
+                Err(Error::NotSupported {
+                    message: "Deleting tags requires mutable dataset access".to_string(),
+                })
+            }
+            
+            async fn update(&mut self, tag: &str, version: u64) -> Result<()> {
+                // Tags operations on Dataset are immutable, need mutable reference
+                // This is a limitation of the current API
+                Err(Error::NotSupported {
+                    message: "Updating tags requires mutable dataset access".to_string(),
+                })
+            }
+        }
+
+        Ok(Box::new(OwnedNativeTags {
+            dataset: Arc::new(dataset_arc),
         }))
     }
 

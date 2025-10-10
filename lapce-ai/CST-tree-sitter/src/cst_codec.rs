@@ -76,7 +76,7 @@ fn serialize_node_recursive(node: Node, output: &mut Vec<u8>) -> Result<()> {
     output.extend_from_slice(&child_count.to_le_bytes());
     
     // Serialize children
-    for _i in 0..child_count {
+    for i in 0..child_count {
         if let Some(child) = node.child(i) {
             serialize_node_recursive(child, output)?;
         } else {
@@ -121,7 +121,7 @@ pub fn deserialize_tree(data: &[u8]) -> Result<(Tree, Bytes)> {
     if cursor + source_len_usize > data.len() {
         return Err(CodecError::new("Invalid data: source truncated"));
     }
-    let _source = &data[cursor..cursor + source_len_usize];
+    let source = &data[cursor..cursor + source_len_usize];
     cursor += source_len_usize;
     
     // For now, we can't reconstruct the tree directly from serialized data

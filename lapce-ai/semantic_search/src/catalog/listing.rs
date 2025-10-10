@@ -218,8 +218,8 @@ impl Catalog for ListingCatalog {
 
         let mut connect_request = ConnectRequest {
             uri: db_uri,
-            #[cfg(feature = "remote")]
-            client_config: Default::default(),
+            // #[cfg(feature = "remote")]
+            // client_config: Default::default(),
             read_consistency_interval: None,
             options: Default::default(),
             session: None,
@@ -246,8 +246,8 @@ impl Catalog for ListingCatalog {
 
         let mut connect_request = ConnectRequest {
             uri: db_path.to_string(),
-            #[cfg(feature = "remote")]
-            client_config: Default::default(),
+            // #[cfg(feature = "remote")]
+            // client_config: Default::default(),
             read_consistency_interval: None,
             options: Default::default(),
             session: None,
@@ -316,8 +316,8 @@ mod tests {
 
         let request = ConnectRequest {
             uri: uri.clone(),
-            #[cfg(feature = "remote")]
-            client_config: Default::default(),
+            // #[cfg(feature = "remote")]
+            // client_config: Default::default(),
             options: Default::default(),
             read_consistency_interval: None,
             session: None,
@@ -580,8 +580,8 @@ mod tests {
 
         let request = ConnectRequest {
             uri: path.to_string(),
-            #[cfg(feature = "remote")]
-            client_config: Default::default(),
+            // #[cfg(feature = "remote")]
+            // client_config: Default::default(),
             options: Default::default(),
             read_consistency_interval: None,
             session: None,
@@ -600,8 +600,8 @@ mod tests {
 
         let request = ConnectRequest {
             uri: uri.clone(),
-            #[cfg(feature = "remote")]
-            client_config: Default::default(),
+            // #[cfg(feature = "remote")]
+            // client_config: Default::default(),
             options: Default::default(),
             read_consistency_interval: None,
             session: None,
@@ -617,8 +617,8 @@ mod tests {
         let invalid_uri = "invalid:///path";
         let request = ConnectRequest {
             uri: invalid_uri.to_string(),
-            #[cfg(feature = "remote")]
-            client_config: Default::default(),
+            // #[cfg(feature = "remote")]
+            // client_config: Default::default(),
             options: Default::default(),
             read_consistency_interval: None,
             session: None,

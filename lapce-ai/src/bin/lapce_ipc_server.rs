@@ -38,10 +38,7 @@ async fn main() -> Result<()> {
     info!("Configuration loaded from: {}", config_path);
     
     // Initialize provider pool
-    let provider_config = ProviderPoolConfig {
-        max_providers: 10,
-        retry_attempts: 3,
-    };
+    let provider_config = ProviderPoolConfig::default();
     
     let provider_pool = Arc::new(ProviderPool::new());
     info!("Provider pool initialized with {} providers", 
@@ -60,7 +57,7 @@ async fn main() -> Result<()> {
     // Setup auto-reconnection if enabled
     let reconnection_manager = if config.server.enable_auto_reconnect {
         let manager = Arc::new(AutoReconnectionManager::new(
-            ReconnectionStrategy::FixedInterval(std::time::Duration::from_secs(5))
+            ReconnectionStrategy::Fixed { delay_ms: 5000 }
         ));
         
         // Start reconnection manager
@@ -174,7 +171,7 @@ fn init_logging() -> Result<()> {
 async fn start_metrics_server(
     port: u16,
     endpoint: String,
-    metrics: Arc<lapce_ai_rust::ipc_server::Metrics>,
+    metrics: Arc<lapce_ai_rust::ipc::ipc_server::Metrics>,
 ) -> Result<()> {
     use warp::Filter;
     

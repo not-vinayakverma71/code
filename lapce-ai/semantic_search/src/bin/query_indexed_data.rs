@@ -7,9 +7,11 @@ use std::sync::Arc;
 use std::time::Instant;
 use std::fs;
 use std::path::Path;
+use std::process;
+use anyhow::{Context, Result};
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
     println!("\n╔══════════════════════════════════════════════════════════════════╗");
     println!("║      QUERYING INDEXED DATA USING OUR SEMANTIC SEARCH SYSTEM       ║");
     println!("╚══════════════════════════════════════════════════════════════════╝\n");
@@ -32,7 +34,9 @@ async fn main() {
             for entry in entries.flatten() {
                 let path = entry.path();
                 if path.is_dir() {
-                    let name = path.file_name().unwrap().to_str().unwrap();
+                    let name = path.file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("");
                     if name.starts_with("tmp") || name.contains("lance") || name.contains("test") {
                         // Check if it's a valid LanceDB
                         let table_path = path.join("code_embeddings.lance");
@@ -60,7 +64,7 @@ async fn main() {
         found_db = Some(std::env::temp_dir().join("semantic_search_test"));
     }
     
-    let db_path = found_db.unwrap();
+    let db_path = found_db.context("No database path found")?;
     
     println!("\n📊 Phase 2: Memory Analysis");
     println!("═══════════════════════════════════════");
@@ -69,15 +73,25 @@ async fn main() {
     println!("  Memory before loading: {:.2} MB", mem_start);
     
     // Connect to database using OUR system
-    let conn = Arc::new(connect(db_path.to_str().unwrap()).execute().await.unwrap());
+    let db_path_str = db_path.to_str()
+        .context("Invalid database path")?;
+    let conn = Arc::new(
+        connect(db_path_str)
+            .execute()
+            .await
+            .context("Failed to connect to database")?
+    );
     
     // Initialize OUR embedder (AWS Titan)
-    let embedder: Arc<dyn IEmbedder> = Arc::new(AwsTitanProduction::new_from_config()
-        .await.expect("Failed to create AWS Titan"));
+    let embedder: Arc<dyn IEmbedder> = Arc::new(
+        AwsTitanProduction::new_from_config()
+            .await
+            .context("Failed to create AWS Titan embedder - check AWS credentials")?
+    );
     
     // Initialize OUR search engine with OUR config
     let search_config = SearchConfig {
-        db_path: db_path.to_str().unwrap().to_string(),
+        db_path: db_path_str.to_string(),
         cache_size: 1000,
         cache_ttl: 600,
         batch_size: 10,
@@ -88,23 +102,32 @@ async fn main() {
         optimal_batch_size: Some(10),
     };
     
-    let search_engine = Arc::new(SemanticSearchEngine::new(
-        search_config.clone(),
-        embedder.clone()
-    ).await.unwrap());
+    let search_engine = Arc::new(
+        SemanticSearchEngine::new(search_config.clone(), embedder.clone())
+            .await
+            .context("Failed to initialize search engine")?
+    );
     
     let mem_after_load = get_memory_mb();
     println!("  Memory after loading system: {:.2} MB", mem_after_load);
     println!("  Memory used by system: {:.2} MB", mem_after_load - mem_start);
     
     // Check if table exists
-    let tables = conn.table_names().execute().await.unwrap();
+    let tables = conn.table_names()
+        .execute()
+        .await
+        .context("Failed to list tables")?;
     println!("\n  Available tables: {:?}", tables);
     
     if tables.contains(&"code_embeddings".to_string()) {
         // Get table info
-        let table = conn.open_table("code_embeddings").execute().await.unwrap();
-        let count = table.count_rows(None).await.unwrap();
+        let table = conn.open_table("code_embeddings")
+            .execute()
+            .await
+            .context("Failed to open code_embeddings table")?;
+        let count = table.count_rows(None)
+            .await
+            .context("Failed to count rows")?;
         println!("  ✅ Found {} indexed documents", count);
         
         // Calculate embeddings memory
@@ -212,6 +235,8 @@ async fn main() {
     } else {
         println!("  ❌ No indexed data found. Please run indexing first.");
     }
+    
+    Ok(())
 }
 
 fn get_memory_mb() -> f64 {

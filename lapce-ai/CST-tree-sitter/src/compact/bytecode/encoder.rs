@@ -96,7 +96,7 @@ impl BytecodeEncoder {
     }
     
     /// Encode a node and its subtree
-    fn encode_node(&mut self, _tree: &CompactTree, _node_idx: usize) {
+    fn encode_node(&mut self, tree: &CompactTree, node_idx: usize) {
         // TODO: Fix this - CompactTree doesn't have a nodes field
         // Need to use tree's actual API
         return;
@@ -112,7 +112,7 @@ impl BytecodeEncoder {
         
         // Get node info
         let kind_id = self.kind_map[&node.kind_name];
-        let _flags = NodeFlags {
+        let flags = NodeFlags {
             is_named: node.is_named,
             is_missing: node.is_missing,
             is_extra: node.is_extra,
@@ -223,7 +223,7 @@ mod tests {
     
     #[test]
     fn test_node_flags_roundtrip() {
-        let _flags = NodeFlags {
+        let flags = NodeFlags {
             is_named: true,
             is_missing: false,
             is_extra: true,

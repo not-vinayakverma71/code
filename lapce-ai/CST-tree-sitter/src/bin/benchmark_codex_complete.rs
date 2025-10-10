@@ -242,7 +242,7 @@ fn main() {
     }
     
     pb.finish_with_message("Complete");
-    let _parse_time = start.elapsed();
+    let parse_time = start.elapsed();
     
     // Final tier management
     let _ = cache.manage_tiers();

@@ -1,9 +1,10 @@
-# Deployment Runbook - SEM-014-B
+# Deployment Runbook
 
 ## Prerequisites
 
-- AWS Account with Bedrock access
-- Rust 1.70+ installed
+- AWS credentials configured
+- Rust 1.75+ installed
+- Docker (optional)
 - 2GB+ available RAM
 - SSD storage recommended
 

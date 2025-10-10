@@ -83,7 +83,7 @@ impl SymbolExtractor {
         symbols: &mut Vec<Symbol>,
         parent_class: Option<&str>,
     ) {
-        let _kind = map_kind(&self.language, node.kind());
+        let kind = map_kind(&self.language, node.kind());
         
         // Check if this node represents a symbol
         let symbol = match kind {
@@ -121,7 +121,7 @@ impl SymbolExtractor {
         // Add symbol if extracted
         if let Some(mut sym) = symbol {
             // Recursively extract child symbols
-            for _i in 0..node.child_count() {
+            for i in 0..node.child_count() {
                 if let Some(child) = node.child(i) {
                     self.extract_node_symbols(
                         child, 
@@ -134,7 +134,7 @@ impl SymbolExtractor {
             symbols.push(sym);
         } else {
             // Continue traversing even if current node isn't a symbol
-            for _i in 0..node.child_count() {
+            for i in 0..node.child_count() {
                 if let Some(child) = node.child(i) {
                     self.extract_node_symbols(
                         child,
@@ -275,7 +275,7 @@ impl SymbolExtractor {
     fn extract_doc_comment(&self, node: Node, source: &[u8]) -> Option<String> {
         // Look for preceding comment node
         if let Some(prev) = node.prev_sibling() {
-            let _kind = map_kind(&self.language, prev.kind());
+            let kind = map_kind(&self.language, prev.kind());
             if matches!(kind, CanonicalKind::DocComment | CanonicalKind::BlockComment) {
                 return prev.utf8_text(source).ok().map(|s| s.to_string());
             }
@@ -288,7 +288,7 @@ impl SymbolExtractor {
     }
     
     fn find_child_by_kind<'a>(&self, node: Node<'a>, kind: &str) -> Option<Node<'a>> {
-        for _i in 0..node.child_count() {
+        for i in 0..node.child_count() {
             if let Some(child) = node.child(i) {
                 if child.kind() == kind {
                     return Some(child);
@@ -325,7 +325,7 @@ mod tests {
     
     #[test]
     fn test_extract_rust_symbols() {
-        let _source = r#"
+        let source = r#"
 /// Documentation for MyStruct
 struct MyStruct {
     field: i32,
@@ -350,7 +350,7 @@ fn standalone_function() {
         
         let mut parser = Parser::new();
         parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-        let _tree = parser.parse(source, None).unwrap();
+        let tree = parser.parse(source, None).unwrap();
         
         let mut extractor = SymbolExtractor::new("rust");
         let symbols = extractor.extract(&tree, source.as_bytes());
@@ -372,7 +372,7 @@ fn standalone_function() {
     
     #[test]
     fn test_extract_python_symbols() {
-        let _source = r#"
+        let source = r#"
 class MyClass:
     """A sample class"""
     
@@ -389,7 +389,7 @@ def standalone_function():
         
         let mut parser = Parser::new();
         parser.set_language(&tree_sitter_python::LANGUAGE.into()).unwrap();
-        let _tree = parser.parse(source, None).unwrap();
+        let tree = parser.parse(source, None).unwrap();
         
         let mut extractor = SymbolExtractor::new("python");
         let symbols = extractor.extract(&tree, source.as_bytes());
@@ -408,13 +408,13 @@ def standalone_function():
     fn test_performance_target() {
         // Generate a 1K line source file
         let mut source = String::new();
-        for _i in 0..100 {
+        for i in 0..100 {
             source.push_str(&format!("fn function_{}() {{ let x = {}; }}\n", i, i));
         }
         
         let mut parser = Parser::new();
         parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
-        let _tree = parser.parse(&source, None).unwrap();
+        let tree = parser.parse(&source, None).unwrap();
         
         let mut extractor = SymbolExtractor::new("rust");
         

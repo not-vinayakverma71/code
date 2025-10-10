@@ -249,8 +249,8 @@ impl FrozenTier {
             return Err("Frozen data corrupted".to_string());
         }
         
-        let _tree_data = decompressed[8..8 + tree_len].to_vec();
-        let _source = Bytes::from(decompressed[8 + tree_len..].to_vec());
+        let tree_data = decompressed[8..8 + tree_len].to_vec();
+        let source = Bytes::from(decompressed[8 + tree_len..].to_vec());
         
         // Update access time
         self.index.get_mut(path).map(|mut entry| {
@@ -388,8 +388,8 @@ mod tests {
         let frozen = FrozenTier::new(dir.path().to_path_buf(), 0.1).unwrap();
         
         let path = PathBuf::from("test.rs");
-        let _source = Bytes::from("fn main() { println!(\"Hello\"); }");
-        let _tree_data = vec![1, 2, 3, 4, 5];
+        let source = Bytes::from("fn main() { println!(\"Hello\"); }");
+        let tree_data = vec![1, 2, 3, 4, 5];
         
         // Freeze
         frozen.freeze(path.clone(), &source, None, tree_data.clone()).unwrap();
@@ -413,8 +413,8 @@ mod tests {
         
         // Freeze highly compressible data
         let path = PathBuf::from("repetitive.txt");
-        let _source = Bytes::from("a".repeat(10000));
-        let _tree_data = vec![0; 1000];
+        let source = Bytes::from("a".repeat(10000));
+        let tree_data = vec![0; 1000];
         
         frozen.freeze(path.clone(), &source, None, tree_data).unwrap();
         

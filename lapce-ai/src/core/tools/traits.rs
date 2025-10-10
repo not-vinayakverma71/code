@@ -14,7 +14,7 @@ use async_trait::async_trait;
 use std::time::Instant;
 
 /// Tool permissions
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolPermissions {
     pub read: bool,
     pub write: bool,
@@ -59,6 +59,9 @@ pub struct ToolContext {
     
     /// Dry-run mode (simulate without actual changes)
     pub dry_run: bool,
+    
+    /// Allow access to local network
+    pub allow_local_network: bool,
     
     /// Additional context data
     pub metadata: HashMap<String, Value>,
@@ -109,6 +112,7 @@ impl ToolContext {
             execution_id,
             require_approval: true,
             dry_run: false,
+            allow_local_network: false,
             metadata: HashMap::new(),
             permissions: ToolPermissions::default(),
             rooignore: Some(rooignore),
@@ -167,6 +171,7 @@ impl ToolContext {
             execution_id,
             require_approval: true,
             dry_run: false,
+            allow_local_network: false,
             metadata: HashMap::new(),
             permissions: ToolPermissions::default(),
             rooignore: Some(rooignore),
@@ -350,7 +355,7 @@ impl ToolOutput {
 }
 
 /// Custom error type for tools
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, serde::Serialize, serde::Deserialize)]
 pub enum ToolError {
     #[error("Tool not found: {0}")]
     NotFound(String),
@@ -370,6 +375,12 @@ pub enum ToolError {
     #[error("Invalid arguments: {0}")]
     InvalidArgs(String),
     
+    #[error("Invalid input: {0}")]
+    InvalidInput(String),
+    
+    #[error("Security violation: {0}")]
+    SecurityViolation(String),
+    
     #[error("Execution failed: {0}")]
     ExecutionFailed(String),
     
@@ -377,6 +388,7 @@ pub enum ToolError {
     Timeout(String),
     
     #[error("IO error: {0}")]
+    #[serde(skip)]
     Io(#[from] std::io::Error),
     
     #[error("Other error: {0}")]

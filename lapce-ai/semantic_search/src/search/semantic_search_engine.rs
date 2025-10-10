@@ -53,6 +53,7 @@ impl Default for SearchConfig {
 }
 
 /// Main semantic search engine - Lines 38-54 from doc
+#[derive(Clone)]
 pub struct SemanticSearchEngine {
     // LanceDB connection
     connection: Arc<Connection>,
@@ -79,18 +80,20 @@ pub struct SemanticSearchEngine {
 }
 
 impl SemanticSearchEngine {
-    /// Initialize engine - Lines 62-89 from doc
+    /// Create new search engine - Lines 81-115 from doc
     pub async fn new(
         config: SearchConfig,
         embedder: Arc<dyn IEmbedder>,
     ) -> Result<Self> {
-        // Initialize LanceDB connection  
-        let connection = crate::connect(&config.db_path)
-            .execute()
-            .await
-            .map_err(|e| Error::Runtime {
+        // Connect to LanceDB
+        let conn = Arc::new(
+            crate::connect(&config.db_path)
+                .execute()
+                .await
+                .map_err(|e| Error::Runtime {
                 message: format!("Failed to connect to LanceDB: {}", e)
-            })?;
+            })?
+        );
             
         // Setup query cache
         let query_cache = Arc::new(ImprovedQueryCache::new(
@@ -102,14 +105,29 @@ impl SemanticSearchEngine {
         let memory_profiler = Arc::new(MemoryProfiler::new());
         let memory_dashboard = Arc::new(RwLock::new(MemoryDashboard::new(memory_profiler.clone())));
         
+        // Create metrics
+        let metrics = Arc::new(SearchMetrics::new());
+        
+        // Start memory RSS updater task
+        let metrics_clone = metrics.clone();
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(10));
+            loop {
+                interval.tick().await;
+                if let Some(rss_bytes) = crate::memory::profiler::get_memory_rss_bytes() {
+                    metrics_clone.update_memory_rss(rss_bytes);
+                }
+            }
+        });
+        
         let engine = Self {
-            connection: Arc::new(connection),
+            connection: conn,
             embedder,
             code_table: Arc::new(RwLock::new(None)),
             doc_table: Arc::new(RwLock::new(None)),
             query_cache,
             config: config.clone(),
-            metrics: Arc::new(SearchMetrics::new()),
+            metrics,
             memory_profiler,
             memory_dashboard,
         };
@@ -119,6 +137,23 @@ impl SemanticSearchEngine {
         
         // Create or refresh vector indices
         engine.ensure_vector_indices().await?;
+        
+        // Start periodic compaction service if enabled
+        let compaction_enabled = std::env::var("INDEX_COMPACTION_ENABLED")
+            .ok()
+            .map(|s| s.to_lowercase() == "true")
+            .unwrap_or(true); // Default: enabled
+        
+        if compaction_enabled {
+            log::info!("Starting periodic index compaction service");
+            let engine_arc = Arc::new(engine.clone());
+            let compaction_service = Arc::new(
+                crate::index::periodic_compaction::IndexCompactionService::new(engine_arc.clone())
+            );
+            tokio::spawn(async move {
+                compaction_service.start().await;
+            });
+        }
         
         Ok(engine)
     }
@@ -306,7 +341,8 @@ impl SemanticSearchEngine {
         Ok(())
     }
     
-    /// Optimize index for better performance - Lines 213 from doc
+    /// Optimize index for better performance
+    #[tracing::instrument(skip(self), fields(correlation_id = %crate::tracing::correlation::CorrelationId::new()))]
     pub async fn optimize_index(&self) -> Result<()> {
         let code_table_guard = self.code_table.read().await;
         if let Some(table) = code_table_guard.as_ref() {
@@ -455,12 +491,15 @@ impl SemanticSearchEngine {
     }
     
     /// Main search method - Lines 295-341 from doc
+    #[tracing::instrument(skip(self), fields(correlation_id = %crate::tracing::correlation::CorrelationId::new()))]
     pub async fn search(
         &self,
         query: &str,
         limit: usize,
         filters: Option<SearchFilters>,
     ) -> Result<Vec<SearchResult>> {
+        let correlation_id = crate::tracing::correlation::CorrelationId::new();
+        let _span = tracing::info_span!("search", correlation_id = %correlation_id);
         let start = Instant::now();
         
         // Check cache with filter-aware key
@@ -472,14 +511,22 @@ impl SemanticSearchEngine {
         let cache_start = std::time::Instant::now();
         if let Some(cached) = self.query_cache.get(&cache_key).await {
             self.metrics.record_cache_hit(cache_start.elapsed());
+            
+            // Update cache size metric on hit
+            let cache_stats = self.query_cache.get_stats().await;
+            self.metrics.update_cache_size(cache_stats.size);
+            
             return Ok(cached);
         }
         
-        // Generate query embedding
-        let embeddings = self.embedder.create_embeddings(vec![query.to_string()], None).await
-            .map_err(|_| Error::Runtime {
-                message: "Failed to generate query embedding".to_string()
-            })?;
+        // Generate query embedding with correlation ID in span
+        let embeddings = {
+            let _embed_span = tracing::info_span!("create_embeddings", correlation_id = %correlation_id);
+            self.embedder.create_embeddings(vec![query.to_string()], None).await
+                .map_err(|_| Error::Runtime {
+                    message: "Failed to generate query embedding".to_string()
+                })?
+        };
         
         let query_embedding = embeddings.embeddings.into_iter().next()
             .ok_or_else(|| Error::Runtime {
@@ -522,12 +569,14 @@ impl SemanticSearchEngine {
             
             // Cache the results with filter-aware key
             self.query_cache.put(cache_key, search_results.clone()).await;
+            
+            // Update cache size metric
+            let cache_stats = self.query_cache.get_stats().await;
+            self.metrics.update_cache_size(cache_stats.size);
         
-            // Record metrics
+            // Record metrics - record_search already handles CACHE_MISSES_TOTAL and SEARCH_LATENCY
             let duration = start.elapsed();
             self.metrics.record_search(duration, search_results.len());
-            SEARCH_LATENCY.with_label_values(&["search"]).observe(duration.as_secs_f64());
-            CACHE_MISSES_TOTAL.inc();
             
             Ok(search_results)
         } else {
@@ -538,6 +587,7 @@ impl SemanticSearchEngine {
     }
     
     /// Batch insert for indexing - Lines 247-286 from doc
+    #[tracing::instrument(skip(self, embeddings, metadata), fields(correlation_id = %crate::tracing::correlation::CorrelationId::new()))]
     pub async fn batch_insert(
         &self,
         embeddings: Vec<Vec<f32>>,
@@ -665,12 +715,19 @@ impl SemanticSearchEngine {
             // Drop the table guard before calling ensure_vector_indices
             drop(code_table_guard);
             
-            // Optimize table after large batch (>1000 chunks)
-            if metadata.len() > 1000 {
+            // Optimize table after batch insert based on configurable threshold
+            // Default: optimize after batches > 100 chunks for better incremental performance
+            let optimization_threshold = std::env::var("INDEX_OPTIMIZATION_THRESHOLD")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(100);
+            
+            if metadata.len() > optimization_threshold {
+                log::info!("Optimizing index after batch insert of {} chunks", metadata.len());
                 self.optimize_index().await?;
             }
             
-            // Refresh index after batch insert
+            // Always ensure vector indices are up to date after batch insert
             self.ensure_vector_indices().await?;
             
             Ok(IndexStats {
