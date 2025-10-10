@@ -14,18 +14,18 @@ rust-version = "1.70"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 anyhow = "1.0"
-arrow = { version = "53", features = ["prettyprint", "ffi"] }
-arrow-arith = "53"
-arrow-array = "53"
-arrow-buffer = "53"
-arrow-cast = "53"
-arrow-data = "53"
-arrow-ipc = "53"
-arrow-json = "53"
-arrow-ord = "53"
-arrow-row = "53"
-arrow-schema = "53"
-arrow-select = "53"
+arrow = { version = "56", features = ["prettyprint", "ffi"] }
+arrow-arith = "56"
+arrow-array = "56"
+arrow-buffer = "56"
+arrow-cast = "56"
+arrow-data = "56"
+arrow-ipc = "56"
+arrow-json = "56"
+arrow-ord = "56"
+arrow-row = "56"
+arrow-schema = "56"
+arrow-select = "56"
 async-trait = "0.1"
 aws-config = "1.5"
 aws-sdk-bedrockruntime = "1.49"
@@ -146,7 +146,7 @@ name = "current_benchmark"
 harness = false
 
 [dev-dependencies]
-arrow = { version = "53", features = ["test_utils", "prettyprint"] }
+arrow = { version = "56", features = ["test_utils", "prettyprint"] }
 criterion = "0.5"
 fake = "2.9.2"
 hyper = { version = "1", features = ["server"] }

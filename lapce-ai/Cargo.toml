@@ -126,10 +126,10 @@ sea-orm-migration = "1.1"
 sled = "0.34"
 
 # Arrow & Data
-arrow = "53"
-arrow-array = "53"
-arrow-schema = "53"
-arrow-cast = "53"
+arrow = "56"
+arrow-array = "56"
+arrow-schema = "56"
+arrow-cast = "56"
 
 # AI & ML
 tokenizers = "0.21"
