@@ -25,6 +25,17 @@ jobs:
         with:
           toolchain: stable
 
+      - name: Install protobuf compiler
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            sudo apt-get update && sudo apt-get install -y protobuf-compiler
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            brew install protobuf
+          elif [ "$RUNNER_OS" == "Windows" ]; then
+            choco install protoc
+          fi
+        shell: bash
+
       - name: Run cross-OS success criteria tests
         working-directory: lapce-ai
         run: |
