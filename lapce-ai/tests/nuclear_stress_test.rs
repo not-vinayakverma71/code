@@ -188,7 +188,7 @@ async fn nuclear_level_4_memory_leak() {
         
         let server = tokio::spawn(async move {
             for _ in 0..connections_per_iteration {
-                if let Ok((stream, _)) = timeout(Duration::from_millis(1), listener.accept()).await.unwrap_or(Ok(())) {
+                if let Ok(Ok((stream, _))) = timeout(Duration::from_millis(1), listener.accept()).await {
                     drop(stream); // Immediate cleanup
                 }
             }

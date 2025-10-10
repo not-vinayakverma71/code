@@ -200,7 +200,7 @@ impl IpcTransport for WindowsSharedMemoryTransport {
 /// macOS shared memory transport wrapper
 #[cfg(target_os = "macos")]
 pub struct MacSharedMemoryTransport {
-    mem: crate::macos_shared_memory::MacSharedMemory,
+    mem: crate::ipc::macos_shared_memory::MacOSSharedMemory,
 }
 
 #[cfg(target_os = "macos")]
@@ -250,7 +250,7 @@ impl CrossPlatformIpc {
             #[cfg(target_os = "macos")]
             {
                 // Try native macOS shm_open first
-                match crate::macos_shared_memory::MacSharedMemory::create(name, size) {
+                match crate::ipc::macos_shared_memory::MacOSSharedMemory::create(name, size) {
                     Ok(mut mem) => {
                         println!("✅ Using macOS shm_open (1-3M msg/sec)");
                         Box::new(MacSharedMemoryTransport { mem })
