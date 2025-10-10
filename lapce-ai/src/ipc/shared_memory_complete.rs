@@ -51,6 +51,10 @@ impl SharedMemoryBuffer {
             format!("/{}", without_leading.replace('/', "_"))
         };
         
+        eprintln!("[SHM DEBUG] Original path: '{}'", path);
+        eprintln!("[SHM DEBUG] Namespaced path: '{}'", namespaced_path);
+        eprintln!("[SHM DEBUG] Final shm_name_str (len={}): '{}'", shm_name_str.len(), shm_name_str);
+        
         // macOS has a 31-character limit (PSHMNAMLEN) for shm_open names
         #[cfg(target_os = "macos")]
         if shm_name_str.len() > 31 {
