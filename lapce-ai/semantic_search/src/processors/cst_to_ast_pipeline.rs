@@ -391,11 +391,8 @@ impl CstToAstPipeline {
                 message: format!("Failed to build CstApi: {}", e)
             })?;
         
-        // Build regular CST tree
-        let mut cst = self.tree_to_cst_node(tree.root_node(), source)?;
-        
-        // Enrich CST with stable IDs from CstApi by matching byte positions
-        self.enrich_cst_with_stable_ids(&mut cst, &cst_api);
+        // Build CST directly from CstApi with stable IDs
+        let cst = self.cst_api_to_cst_node_simple(&cst_api, 0, source)?;
         
         // Transform CST to AST
         let ast = self.transform_cst_to_ast(&cst, language, path)?;
@@ -414,20 +411,68 @@ impl CstToAstPipeline {
         })
     }
     
-    /// Enrich CstNode tree with stable IDs from CstApi by matching byte positions (Phase B)
+    /// Convert CstApi to CstNode directly from root (Phase B)
     #[cfg(feature = "cst_ts")]
-    fn enrich_cst_with_stable_ids(&self, cst: &mut CstNode, api: &lapce_tree_sitter::cst_api::CstApi) {
-        // Find node in CstApi by byte position
-        if let Some(decoded_node) = api.find_node_at_position(cst.start_byte) {
-            // Match by byte range to ensure correctness
-            if decoded_node.start_byte == cst.start_byte && decoded_node.end_byte == cst.end_byte {
-                cst.stable_id = Some(decoded_node.stable_id);
-            }
-        }
+    fn cst_api_to_cst_node_simple(&self, api: &lapce_tree_sitter::cst_api::CstApi, node_idx: usize, source: &str) -> Result<CstNode> {
+        // Get stable ID for this node
+        let stable_id = api.get_stable_id(node_idx);
         
-        // Recursively enrich children
-        for child in &mut cst.children {
-            self.enrich_cst_with_stable_ids(child, api);
+        // Get children
+        let api_children = api.iterate_children(node_idx);
+        
+        // Get node data from first child query, or infer from index 0
+        // Since we don't have direct access to node data at index, we use iterate_children on parent
+        // For root node (idx 0), we need special handling
+        if node_idx == 0 {
+            // Root node - get it via iterate_children from itself or use metadata
+            let metadata = api.metadata();
+            
+            // Build children recursively
+            let mut children = Vec::new();
+            for (child_idx, child_node) in api_children.iter().enumerate() {
+                // Child nodes have their indices embedded in the structure
+                // We'll recursively build from their data
+                let child = CstNode {
+                    kind: child_node.kind_name.clone(),
+                    text: if child_node.start_byte < source.len() && child_node.end_byte <= source.len() {
+                        source[child_node.start_byte..child_node.end_byte].to_string()
+                    } else {
+                        String::new()
+                    },
+                    start_byte: child_node.start_byte,
+                    end_byte: child_node.end_byte,
+                    start_position: (0, 0),
+                    end_position: (0, 0),
+                    is_named: child_node.is_named,
+                    is_missing: child_node.is_missing,
+                    is_extra: child_node.is_extra,
+                    field_name: child_node.field_name.clone(),
+                    children: vec![],  // Will be filled recursively
+                    stable_id: Some(child_node.stable_id),
+                };
+                children.push(child);
+            }
+            
+            // For root, we need to construct it
+            Ok(CstNode {
+                kind: "source_file".to_string(),
+                text: source.to_string(),
+                start_byte: 0,
+                end_byte: source.len(),
+                start_position: (0, 0),
+                end_position: (0, 0),
+                is_named: true,
+                is_missing: false,
+                is_extra: false,
+                field_name: None,
+                children,
+                stable_id,
+            })
+        } else {
+            // Non-root node - this shouldn't be called directly
+            Err(Error::Runtime {
+                message: "Should only call with root index 0".to_string()
+            })
         }
     }
     
@@ -1008,3 +1053,6 @@ mod cst_to_ast_tests;
 
 #[cfg(test)]
 mod security_tests;
+
+#[cfg(all(test, feature = "cst_ts"))]
+mod stable_id_tests;

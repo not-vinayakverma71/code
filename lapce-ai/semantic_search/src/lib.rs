@@ -214,6 +214,7 @@ pub mod utils;
 pub mod types;
 pub mod incremental;
 pub mod database;
+pub mod indexing;
 
 // Storage modules with submodules
 pub mod storage {

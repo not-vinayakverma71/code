@@ -72,19 +72,19 @@ impl LapceTreeSitterBridge {
         let lang = self.detect_language(path)?;
         let mut parser = Parser::new();
         
-        let language = match lang.as_str() {
-            "rust" => Ok(tree_sitter_rust::LANGUAGE),
-            "javascript" => Ok(tree_sitter_javascript::LANGUAGE),
-            "typescript" => Ok(tree_sitter_typescript::LANGUAGE_TYPESCRIPT),
-            "python" => Ok(tree_sitter_python::LANGUAGE),
-            "go" => Ok(tree_sitter_go::LANGUAGE),
-            "java" => Ok(tree_sitter_java::LANGUAGE),
+        let language: tree_sitter::Language = match lang.as_str() {
+            "rust" => tree_sitter_rust::LANGUAGE.into(),
+            "javascript" => tree_sitter_javascript::LANGUAGE.into(),
+            "typescript" => tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
+            "python" => tree_sitter_python::LANGUAGE.into(),
+            "go" => tree_sitter_go::LANGUAGE.into(),
+            "java" => tree_sitter_java::LANGUAGE.into(),
             _ => return Err(Error::Runtime {
                 message: format!("Unsupported language: {}", lang)
             })
-        }?;
+        };
         
-        parser.set_language(language)
+        parser.set_language(&language)
             .map_err(|e| Error::Runtime {
                 message: format!("Failed to set language: {}", e)
             })?;

@@ -1,8 +1,8 @@
+#![cfg(unix)]
+
 /// FINAL MEMORY-OPTIMIZED TEST - Async tasks instead of threads
 /// This achieves <3MB memory by avoiding 1000 thread stacks
 /// UNIX ONLY: Uses mmap/munmap syscalls
-
-#![cfg(unix)]
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, AtomicBool, AtomicUsize, Ordering};
