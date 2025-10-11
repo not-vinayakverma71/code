@@ -14,7 +14,10 @@ use bytes::{Bytes, BytesMut};
 use dashmap::DashMap;
 
 use crate::ipc_messages::MessageType;
+#[cfg(unix)]
 use crate::ipc::shared_memory_complete::{SharedMemoryListener, SharedMemoryStream};
+#[cfg(windows)]
+use crate::ipc::windows_shared_memory::{SharedMemoryListener, SharedMemoryStream};
 use crate::auto_reconnection::{AutoReconnectionManager, ReconnectionStrategy};
 
 use serde::{Deserialize, Serialize};

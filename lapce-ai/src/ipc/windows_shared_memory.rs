@@ -14,7 +14,7 @@ use tokio::task::JoinHandle;
 // Windows-specific imports
 use windows_sys::Win32::Foundation::*;
 use windows_sys::Win32::System::Memory::*;
-use windows_sys::Win32::System::Threading::{GetCurrentProcessId, ProcessIdToSessionId};
+use windows_sys::Win32::System::Threading::GetCurrentProcessId;
 use windows_sys::Win32::System::SystemInformation::*;
 use windows_sys::Win32::Security::*;
 
@@ -47,14 +47,10 @@ unsafe impl Sync for SharedMemoryBuffer {}
 impl SharedMemoryBuffer {
     /// Sanitize name for Windows object namespace
     fn sanitize_name(path: &str) -> String {
-        // Get process ID and session ID for uniqueness
+        // Get process ID for namespace isolation
         let process_id = unsafe { GetCurrentProcessId() };
-        let mut session_id: u32 = 0;
-        unsafe {
-            let mut _session_id = 0u32;
-            ProcessIdToSessionId(process_id, &mut _session_id);
-            session_id = _session_id;
-        }
+        // Use process ID as session identifier (Windows will handle session isolation)
+        let session_id = process_id;
         
         // Generate random suffix for collision avoidance
         use std::collections::hash_map::RandomState;
@@ -117,19 +113,18 @@ impl SharedMemoryBuffer {
                 wide_name.as_ptr(),
             );
             
-            if mapping_handle == 0 {
-                let err = std::io::Error::last_os_error();
-                bail!("CreateFileMappingW failed for '{}': {}", object_name, err);
+            if mapping_handle.is_null() {
+                bail!("Failed to create file mapping: {}", object_name);
             }
             
-            // Map view of file into process memory
+            // Map view of file into process address space
             let ptr = MapViewOfFile(
                 mapping_handle,
                 FILE_MAP_ALL_ACCESS,
                 0,
                 0,
                 total_size,
-            ) as *mut u8;
+            ).Value as *mut u8;
             
             if ptr.is_null() {
                 CloseHandle(mapping_handle);
@@ -169,7 +164,7 @@ impl SharedMemoryBuffer {
                 wide_name.as_ptr(),
             );
             
-            if mapping_handle == 0 {
+            if mapping_handle.is_null() {
                 let err = std::io::Error::last_os_error();
                 bail!("OpenFileMappingW failed for '{}': {}", object_name, err);
             }
@@ -181,7 +176,7 @@ impl SharedMemoryBuffer {
                 0,
                 0,
                 total_size,
-            ) as *mut u8;
+            ).Value as *mut u8;
             
             if ptr.is_null() {
                 CloseHandle(mapping_handle);
@@ -299,9 +294,10 @@ impl Drop for SharedMemoryBuffer {
         unsafe {
             if !self.ptr.is_null() {
                 // Unmap the view
-                UnmapViewOfFile(self.ptr as *const _);
+                let view_addr = MEMORY_MAPPED_VIEW_ADDRESS { Value: self.ptr as *const _ };
+                UnmapViewOfFile(view_addr);
             }
-            if self.mapping_handle != 0 {
+            if !self.mapping_handle.is_null() {
                 // Close the mapping handle
                 CloseHandle(self.mapping_handle);
             }
@@ -313,7 +309,7 @@ impl Drop for SharedMemoryBuffer {
 pub struct SharedMemoryListener {
     control_path: String,
     control_buffer: Arc<RwLock<SharedMemoryBuffer>>,
-    accept_rx: mpsc::UnboundedReceiver<AcceptRequest>,
+    accept_rx: Arc<tokio::sync::Mutex<mpsc::UnboundedReceiver<AcceptRequest>>>,
     _control_task: JoinHandle<()>,
     is_owner: bool,
 }
@@ -339,7 +335,7 @@ impl SharedMemoryListener {
         Ok(Self {
             control_path,
             control_buffer,
-            accept_rx,
+            accept_rx: Arc::new(tokio::sync::Mutex::new(accept_rx)),
             _control_task,
             is_owner: true,
         })
@@ -379,7 +375,8 @@ impl SharedMemoryListener {
     }
     
     pub async fn accept(&self) -> Result<(SharedMemoryStream, std::net::SocketAddr)> {
-        let req = self.accept_rx.recv().await
+        let mut rx = self.accept_rx.lock().await;
+        let req = rx.recv().await
             .ok_or_else(|| anyhow::anyhow!("Control channel closed"))?;
         
         let base_path = self.control_path.trim_end_matches("_control");
