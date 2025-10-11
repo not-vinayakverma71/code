@@ -37,10 +37,10 @@ async fn nuclear_memory_destruction() {
     let server = Arc::new(IpcServer::new(socket_path).await.unwrap());
     
     // Register handlers for different sizes
-    // Use MessageType::Custom for all handlers since we're testing memory, not message types
+    // Use MessageType::CompletionRequest for all handlers since we're testing memory, not message types
     for (_idx, &size) in BUFFER_SIZES.iter().enumerate() {
         let handler_size = size;
-        server.register_handler(MessageType::Custom, move |data| async move {
+        server.register_handler(MessageType::CompletionRequest, move |data| async move {
             // Allocate temporary buffer to stress memory
             let mut buffer = vec![0u8; handler_size];
             buffer[0] = data[0]; // Touch memory
