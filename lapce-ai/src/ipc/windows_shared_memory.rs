@@ -14,7 +14,7 @@ use tokio::task::JoinHandle;
 // Windows-specific imports
 use windows_sys::Win32::Foundation::*;
 use windows_sys::Win32::System::Memory::*;
-use windows_sys::Win32::System::Threading::*;
+use windows_sys::Win32::System::Threading::{GetCurrentProcessId, ProcessIdToSessionId};
 use windows_sys::Win32::System::SystemInformation::*;
 use windows_sys::Win32::Security::*;
 
@@ -469,5 +469,53 @@ impl SharedMemoryStream {
     
     pub async fn recv(&self) -> Result<Option<Vec<u8>>> {
         Ok(self.recv_buffer.write().read())
+    }
+}
+
+// Implement AsyncRead for SharedMemoryStream
+impl tokio::io::AsyncRead for SharedMemoryStream {
+    fn poll_read(
+        self: std::pin::Pin<&mut Self>,
+        _cx: &mut std::task::Context<'_>,
+        buf: &mut tokio::io::ReadBuf<'_>,
+    ) -> std::task::Poll<std::io::Result<()>> {
+        if let Some(data) = self.recv_buffer.write().read() {
+            let to_copy = std::cmp::min(data.len(), buf.remaining());
+            buf.put_slice(&data[..to_copy]);
+            std::task::Poll::Ready(Ok(()))
+        } else {
+            std::task::Poll::Pending
+        }
+    }
+}
+
+// Implement AsyncWrite for SharedMemoryStream
+impl tokio::io::AsyncWrite for SharedMemoryStream {
+    fn poll_write(
+        self: std::pin::Pin<&mut Self>,
+        _cx: &mut std::task::Context<'_>,
+        buf: &[u8],
+    ) -> std::task::Poll<std::io::Result<usize>> {
+        match self.send_buffer.write().write(buf) {
+            Ok(_) => std::task::Poll::Ready(Ok(buf.len())),
+            Err(e) => std::task::Poll::Ready(Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                e.to_string(),
+            ))),
+        }
+    }
+
+    fn poll_flush(
+        self: std::pin::Pin<&mut Self>,
+        _cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<std::io::Result<()>> {
+        std::task::Poll::Ready(Ok(()))
+    }
+
+    fn poll_shutdown(
+        self: std::pin::Pin<&mut Self>,
+        _cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<std::io::Result<()>> {
+        std::task::Poll::Ready(Ok(()))
     }
 }

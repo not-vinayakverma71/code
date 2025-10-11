@@ -152,7 +152,7 @@ fake = "2.9.2"
 hyper = { version = "1", features = ["server"] }
 itertools = "0.13"
 lance-test-macros = { version = "0.38.2" }
-datafusion-comet-spark-expr = "0.4"
+datafusion-comet-spark-expr = "0.10"
 proptest = "1.4.0"
 pyo3 = { version = "0.22", features = ["auto-initialize"] }
 rand = "0.8.5"

@@ -186,7 +186,7 @@ impl IpcTransport for TcpTransport {
 /// Windows shared memory transport wrapper
 #[cfg(windows)]
 pub struct WindowsSharedMemoryTransport {
-    mem: crate::ipc::windows_shared_memory::WindowsSharedMemory,
+    mem: crate::ipc::SharedMemoryBuffer,
 }
 
 #[cfg(windows)]
@@ -284,8 +284,8 @@ impl CrossPlatformIpc {
             #[cfg(windows)]
             {
                 // Try native Windows shared memory first
-                match crate::ipc::windows_shared_memory::WindowsSharedMemory::create(name, size) {
-                    Ok(mut mem) => {
+                match crate::ipc::SharedMemoryBuffer::create(name, size) {
+                    Ok(mem) => {
                         println!("✅ Using Windows CreateFileMapping (2-5M msg/sec)");
                         Box::new(WindowsSharedMemoryTransport { mem })
                     }

@@ -51,14 +51,14 @@ impl IpcTransport for SharedMemoryTransport {
 /// Windows: Shared Memory implementation using Windows API
 #[cfg(windows)]
 pub struct WindowsSharedMemoryTransport {
-    mem: crate::ipc::windows_shared_memory::WindowsSharedMemory,
+    mem: crate::ipc::SharedMemoryBuffer,
 }
 
 #[cfg(windows)]
 impl WindowsSharedMemoryTransport {
     pub fn new(name: &str, size: usize) -> Result<Self> {
         Ok(Self {
-            mem: crate::ipc::windows_shared_memory::WindowsSharedMemory::create(name, size)?
+            mem: crate::ipc::SharedMemoryBuffer::create(name, size)?
         })
     }
 }

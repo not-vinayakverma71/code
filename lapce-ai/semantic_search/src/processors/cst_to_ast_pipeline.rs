@@ -514,6 +514,9 @@ fn transform_rust_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Result<
     };
     
     // Extract identifier if present
+    #[cfg(feature = "cst_ts")]
+    let identifier = extract_identifier_canonical(cst, "rust");
+    #[cfg(not(feature = "cst_ts"))]
     let identifier = extract_identifier(cst);
     
     // Process children
@@ -524,11 +527,17 @@ fn transform_rust_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Result<
         }
     }
     
+    // Extract value for literals
+    #[cfg(feature = "cst_ts")]
+    let value = extract_value_canonical(cst, "rust");
+    #[cfg(not(feature = "cst_ts"))]
+    let value = if cst.children.is_empty() { Some(cst.text.clone()) } else { None };
+    
     Ok(AstNode {
         node_type,
         text: cst.text.clone(),
         identifier,
-        value: if cst.children.is_empty() { Some(cst.text.clone()) } else { None },
+        value,
         metadata: NodeMetadata {
             start_line: cst.start_position.0,
             end_line: cst.end_position.0,
@@ -576,6 +585,9 @@ fn transform_js_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Result<As
         _ => AstNodeType::Unknown,
     };
     
+    #[cfg(feature = "cst_ts")]
+    let identifier = extract_identifier_canonical(cst, "javascript");
+    #[cfg(not(feature = "cst_ts"))]
     let identifier = extract_identifier(cst);
     
     let mut ast_children = Vec::new();
@@ -585,11 +597,16 @@ fn transform_js_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Result<As
         }
     }
     
+    #[cfg(feature = "cst_ts")]
+    let value = extract_value_canonical(cst, "javascript");
+    #[cfg(not(feature = "cst_ts"))]
+    let value = if cst.children.is_empty() { Some(cst.text.clone()) } else { None };
+    
     Ok(AstNode {
         node_type,
         text: cst.text.clone(),
         identifier,
-        value: if cst.children.is_empty() { Some(cst.text.clone()) } else { None },
+        value,
         metadata: NodeMetadata {
             start_line: cst.start_position.0,
             end_line: cst.end_position.0,
@@ -645,6 +662,9 @@ fn transform_python_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Resul
         _ => AstNodeType::Unknown,
     };
     
+    #[cfg(feature = "cst_ts")]
+    let identifier = extract_identifier_canonical(cst, "python");
+    #[cfg(not(feature = "cst_ts"))]
     let identifier = extract_identifier(cst);
     
     let mut ast_children = Vec::new();
@@ -654,11 +674,16 @@ fn transform_python_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Resul
         }
     }
     
+    #[cfg(feature = "cst_ts")]
+    let value = extract_value_canonical(cst, "python");
+    #[cfg(not(feature = "cst_ts"))]
+    let value = if cst.children.is_empty() { Some(cst.text.clone()) } else { None };
+    
     Ok(AstNode {
         node_type,
         text: cst.text.clone(),
         identifier,
-        value: if cst.children.is_empty() { Some(cst.text.clone()) } else { None },
+        value,
         metadata: NodeMetadata {
             start_line: cst.start_position.0,
             end_line: cst.end_position.0,
@@ -704,6 +729,9 @@ fn transform_go_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Result<As
         _ => AstNodeType::Unknown,
     };
     
+    #[cfg(feature = "cst_ts")]
+    let identifier = extract_identifier_canonical(cst, "go");
+    #[cfg(not(feature = "cst_ts"))]
     let identifier = extract_identifier(cst);
     
     let mut ast_children = Vec::new();
@@ -713,11 +741,16 @@ fn transform_go_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Result<As
         }
     }
     
+    #[cfg(feature = "cst_ts")]
+    let value = extract_value_canonical(cst, "go");
+    #[cfg(not(feature = "cst_ts"))]
+    let value = if cst.children.is_empty() { Some(cst.text.clone()) } else { None };
+    
     Ok(AstNode {
         node_type,
         text: cst.text.clone(),
         identifier,
-        value: if cst.children.is_empty() { Some(cst.text.clone()) } else { None },
+        value,
         metadata: NodeMetadata {
             start_line: cst.start_position.0,
             end_line: cst.end_position.0,
@@ -765,6 +798,9 @@ fn transform_java_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Result<
         _ => AstNodeType::Unknown,
     };
     
+    #[cfg(feature = "cst_ts")]
+    let identifier = extract_identifier_canonical(cst, "java");
+    #[cfg(not(feature = "cst_ts"))]
     let identifier = extract_identifier(cst);
     
     let mut ast_children = Vec::new();
@@ -774,11 +810,16 @@ fn transform_java_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Result<
         }
     }
     
+    #[cfg(feature = "cst_ts")]
+    let value = extract_value_canonical(cst, "java");
+    #[cfg(not(feature = "cst_ts"))]
+    let value = if cst.children.is_empty() { Some(cst.text.clone()) } else { None };
+    
     Ok(AstNode {
         node_type,
         text: cst.text.clone(),
         identifier,
-        value: if cst.children.is_empty() { Some(cst.text.clone()) } else { None },
+        value,
         metadata: NodeMetadata {
             start_line: cst.start_position.0,
             end_line: cst.end_position.0,
@@ -810,6 +851,47 @@ fn extract_identifier(cst: &CstNode) -> Option<String> {
     None
 }
 
+/// Extract identifier with canonical field mapping support
+#[cfg(feature = "cst_ts")]
+fn extract_identifier_canonical(cst: &CstNode, language: &str) -> Option<String> {
+    // First try canonical field mapping for "name" field
+    for child in &cst.children {
+        if let Some(field) = &child.field_name {
+            let canonical_field = get_canonical_field(language, field);
+            if canonical_field == "name" && (child.kind == "identifier" || child.kind == "type_identifier") {
+                return Some(child.text.clone());
+            }
+        }
+    }
+    // Fallback to regular identifier extraction
+    extract_identifier(cst)
+}
+
+/// Extract literal value with canonical support
+#[cfg(feature = "cst_ts")]
+fn extract_value_canonical(cst: &CstNode, language: &str) -> Option<String> {
+    // Check if this is a literal node
+    let canonical = map_kind(language, &cst.kind);
+    match canonical {
+        CanonicalKind::StringLiteral | 
+        CanonicalKind::NumberLiteral | 
+        CanonicalKind::BooleanLiteral | 
+        CanonicalKind::NullLiteral => Some(cst.text.clone()),
+        _ => {
+            // Look for value field in children
+            for child in &cst.children {
+                if let Some(field) = &child.field_name {
+                    let canonical_field = get_canonical_field(language, field);
+                    if canonical_field == "value" {
+                        return Some(child.text.clone());
+                    }
+                }
+            }
+            None
+        }
+    }
+}
+
 fn calculate_complexity(cst: &CstNode) -> usize {
     let mut complexity = 1;
     
@@ -829,3 +911,6 @@ fn calculate_complexity(cst: &CstNode) -> usize {
     
     complexity
 }
+
+#[cfg(test)]
+mod cst_to_ast_tests;
