@@ -6,6 +6,7 @@ use crate::error::{Error, Result};
 use crate::processors::parser::CodeParser;
 use crate::processors::cst_to_ast_pipeline::{CstToAstPipeline, PipelineOutput};
 use crate::search::semantic_search_engine::{SemanticSearchEngine, ChunkMetadata, IndexStats};
+use crate::indexing::{CachedEmbedder, EmbeddingModel};
 use std::collections::{VecDeque, HashMap};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -21,6 +22,8 @@ pub struct CodeIndexer {
     batch_size: usize,
     index_queue: Arc<Mutex<VecDeque<IndexTask>>>,
     use_cst: bool,
+    #[cfg(feature = "cst_ts")]
+    cached_embedder: Option<Arc<CachedEmbedder>>,
 }
 
 #[derive(Debug, Clone)]
@@ -46,7 +49,16 @@ impl CodeIndexer {
             batch_size: 100,
             index_queue: Arc::new(Mutex::new(VecDeque::new())),
             use_cst: true, // Enable CST by default
+            #[cfg(feature = "cst_ts")]
+            cached_embedder: None,
         }
+    }
+    
+    /// Enable incremental indexing with cached embeddings (CST-B05)
+    #[cfg(feature = "cst_ts")]
+    pub fn with_cached_embedder(mut self, embedder: Arc<CachedEmbedder>) -> Self {
+        self.cached_embedder = Some(embedder);
+        self
     }
     
     /// Set batch size for processing
@@ -156,12 +168,49 @@ impl CodeIndexer {
         }
     }
     
-    /// Parse file with CST pipeline - SEM-004
+    /// Parse file with CST pipeline - SEM-004 with incremental support (CST-B05)
     async fn parse_file_with_cst(&self, path: &Path) -> Result<Vec<ChunkMetadata>> {
         let output = self.cst_pipeline.process_file(path).await?;
         
-        // Extract semantic chunks from AST
+        // Check if we can use incremental indexing
+        #[cfg(feature = "cst_ts")]
+        if let Some(ref cached_embedder) = self.cached_embedder {
+            // Use incremental change detection
+            let path_buf = path.to_path_buf();
+            let (cached_embeddings, changeset) = cached_embedder
+                .embed_file_incremental(&output.cst, &path_buf)?;
+            
+            log::debug!(
+                "Incremental indexing for {}: {} unchanged, {} modified, {} added, {} deleted",
+                path.display(),
+                changeset.unchanged.len(),
+                changeset.modified.len(),
+                changeset.added.len(),
+                changeset.deleted.len()
+            );
+            
+            // If significant changes, extract chunks with cached embeddings
+            if changeset.has_changes() {
+                return self.extract_chunks_with_cache(&output.ast, cached_embeddings);
+            }
+        }
+        
+        // Fallback to full extraction
         self.extract_chunks_from_ast(&output.ast)
+    }
+    
+    /// Extract chunks with cached embeddings (CST-B05)
+    #[cfg(feature = "cst_ts")]
+    fn extract_chunks_with_cache(
+        &self,
+        ast: &crate::processors::cst_to_ast_pipeline::AstNode,
+        cached_embeddings: Vec<(u64, Vec<f32>)>,
+    ) -> Result<Vec<ChunkMetadata>> {
+        // For now, use standard extraction
+        // In production, would map stable IDs to chunks and attach cached embeddings
+        // This is a placeholder - full implementation requires embedding storage refactoring
+        log::debug!("Using {} cached embeddings", cached_embeddings.len());
+        self.extract_chunks_from_ast(ast)
     }
     
     /// Extract chunks from AST

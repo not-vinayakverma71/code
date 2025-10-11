@@ -31,10 +31,15 @@ nuclear-tests = []
 name = "cli_tools"
 path = "src/bin/cli.rs"
 
-
 [[bin]]
 name = "lapce-ai-cli"
 path = "src/bin/lapce-ai-cli.rs"
+
+# Unix-only binary (uses mmap/munmap syscalls)
+[[bin]]
+name = "final_memory_optimized"
+path = "src/bin/final_memory_optimized.rs"
+required-features = []  # Will be excluded on Windows due to #![cfg(unix)]
 
 [[bench]]
 name = "benchmarks"

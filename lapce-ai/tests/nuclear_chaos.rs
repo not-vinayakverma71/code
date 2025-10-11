@@ -8,7 +8,7 @@ use std::sync::atomic::{AtomicU64, AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 use tokio::time::{sleep, timeout};
 use lapce_ai_rust::{IpcServer, IpcConfig};
-use lapce_ai_rust::ipc_messages::MessageType;
+use lapce_ai_rust::ipc::binary_codec::MessageType;
 use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryStream;
 use bytes::Bytes;
 use rand::Rng;
