@@ -23,7 +23,9 @@
 └─────────────────────┼──────────────────────────────────┘
                       │
                  IPC BOUNDARY
-                 (Shared Memory)
+                 (Shared Memory - Cross-Platform)
+                 Unix: POSIX shm_open/mmap
+                 Windows: CreateFileMappingW/MapViewOfFile
                       │
 ┌─────────────────────▼───────────────────────────────────┐
 │              LAPCE-AI-RUST ENGINE                       │
