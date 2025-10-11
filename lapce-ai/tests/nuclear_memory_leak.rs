@@ -24,8 +24,6 @@ const MIN_CONNECTIONS: usize = 100;
 #[cfg(not(debug_assertions))]
 const MAX_CONNECTIONS: usize = 500;
 
-const MESSAGES_PER_CYCLE: usize = 1000;
-
 #[tokio::test(flavor = "multi_thread")]
 async fn nuclear_memory_leak() {
     println!("\n🔍 NUCLEAR TEST 4: MEMORY LEAK DETECTION");
@@ -188,7 +186,7 @@ fn drop_and_measure_memory() -> f64 {
     drop(vec![0u8; 1_000_000]); // Allocate and drop to trigger cleanup
     std::thread::sleep(Duration::from_millis(100));
     
-    use sysinfo::{System, Pid};
+    use sysinfo::System;
     
     let mut sys = System::new();
     sys.refresh_all();

@@ -1,0 +1,1461 @@
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-markdown/Cargo.toml
+workspace: /home/verma/lapce/lapce-ai/CST-tree-sitter/Cargo.toml
+    Blocking waiting for file lock on package cache
+warning: lapce-tree-sitter@0.1.0: In file included from external-grammars/tree-sitter-yaml/src/parser.c:3:
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-yaml/src/parser.c: In function 'ts_lex':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-yaml/src/tree_sitter/parser.h:187:11: warning: variable 'lookahead' set but not used [-Wunused-but-set-variable]
+warning: lapce-tree-sitter@0.1.0:   187 |   int32_t lookahead;            \
+warning: lapce-tree-sitter@0.1.0:       |           ^~~~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-yaml/src/parser.c:3823:3: note: in expansion of macro 'START_LEXER'
+warning: lapce-tree-sitter@0.1.0:  3823 |   START_LEXER();
+warning: lapce-tree-sitter@0.1.0:       |   ^~~~~~~~~~~
+warning: lapce-tree-sitter@0.1.0: In file included from external-grammars/tree-sitter-yaml/src/scanner.c:1:
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-yaml/src/scanner.c: In function 'pop_ind':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-yaml/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: lapce-tree-sitter@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: lapce-tree-sitter@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-yaml/src/scanner.c:267:5: note: in expansion of macro 'array_pop'
+warning: lapce-tree-sitter@0.1.0:   267 |     array_pop(&scanner->ind_len_stk);
+warning: lapce-tree-sitter@0.1.0:       |     ^~~~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-yaml/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: lapce-tree-sitter@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: lapce-tree-sitter@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-yaml/src/scanner.c:268:5: note: in expansion of macro 'array_pop'
+warning: lapce-tree-sitter@0.1.0:   268 |     array_pop(&scanner->ind_typ_stk);
+warning: lapce-tree-sitter@0.1.0:       |     ^~~~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-yaml/src/scanner.c: In function 'scn_pln_cnt':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-yaml/src/scanner.c:782:10: warning: variable 'is_cur_wsp' set but not used [-Wunused-but-set-variable]
+warning: lapce-tree-sitter@0.1.0:   782 |     bool is_cur_wsp = is_wsp(scanner->cur_chr);
+warning: lapce-tree-sitter@0.1.0:       |          ^~~~~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-yaml/src/scanner.c: In function 'scn_dir_tag_pfx':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-yaml/src/scanner.c:469:17: warning: this statement may fall through [-Wimplicit-fallthrough=]
+warning: lapce-tree-sitter@0.1.0:   469 |                 mrk_end(scanner, lexer);
+warning: lapce-tree-sitter@0.1.0:       |                 ^~~~~~~~~~~~~~~~~~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-yaml/src/scanner.c:470:13: note: here
+warning: lapce-tree-sitter@0.1.0:   470 |             case SCN_FAIL:
+warning: lapce-tree-sitter@0.1.0:       |             ^~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-yaml/src/scanner.c: In function 'scn_tag':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-yaml/src/scanner.c:507:24: warning: this statement may fall through [-Wimplicit-fallthrough=]
+warning: lapce-tree-sitter@0.1.0:   507 |                     if (lexer->lookahead == '>') {
+warning: lapce-tree-sitter@0.1.0:       |                        ^
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-yaml/src/scanner.c:512:17: note: here
+warning: lapce-tree-sitter@0.1.0:   512 |                 case SCN_FAIL:
+warning: lapce-tree-sitter@0.1.0:       |                 ^~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-yaml/src/scanner.c:525:21: warning: this statement may fall through [-Wimplicit-fallthrough=]
+warning: lapce-tree-sitter@0.1.0:   525 |                     mrk_end(scanner, lexer);
+warning: lapce-tree-sitter@0.1.0:       |                     ^~~~~~~~~~~~~~~~~~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-yaml/src/scanner.c:526:17: note: here
+warning: lapce-tree-sitter@0.1.0:   526 |                 case SCN_FAIL:
+warning: lapce-tree-sitter@0.1.0:       |                 ^~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-perl/src/scanner.c:18:1: warning: multi-line comment [-Wcomment]
+warning: lapce-tree-sitter@0.1.0:    18 | // #define STRING_RESIZE(vec, _cap)                                         \
+warning: lapce-tree-sitter@0.1.0:       | ^
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-perl/src/scanner.c:26:1: warning: multi-line comment [-Wcomment]
+warning: lapce-tree-sitter@0.1.0:    26 | // #define STRING_GROW(vec, _cap)    \
+warning: lapce-tree-sitter@0.1.0:       | ^
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-perl/src/scanner.c:31:1: warning: multi-line comment [-Wcomment]
+warning: lapce-tree-sitter@0.1.0:    31 | // #define STRING_PUSH(vec, el)                      \
+warning: lapce-tree-sitter@0.1.0:       | ^
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-perl/src/scanner.c:37:1: warning: multi-line comment [-Wcomment]
+warning: lapce-tree-sitter@0.1.0:    37 | // #define STRING_FREE(vec)  \
+warning: lapce-tree-sitter@0.1.0:       | ^
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-perl/src/scanner.c:42:1: warning: multi-line comment [-Wcomment]
+warning: lapce-tree-sitter@0.1.0:    42 | // #define STRING_CLEAR(vec)                            \
+warning: lapce-tree-sitter@0.1.0:       | ^
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-perl/src/scanner.c: In function 'serialize':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-perl/src/scanner.c:1171:36: warning: unused parameter 'scanner' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:  1171 | static unsigned serialize(Scanner *scanner, char *buffer) {
+warning: lapce-tree-sitter@0.1.0:       |                           ~~~~~~~~~^~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-perl/src/scanner.c:1171:51: warning: unused parameter 'buffer' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:  1171 | static unsigned serialize(Scanner *scanner, char *buffer) {
+warning: lapce-tree-sitter@0.1.0:       |                                             ~~~~~~^~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-perl/src/scanner.c: In function 'deserialize':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-perl/src/scanner.c:1189:34: warning: unused parameter 'scanner' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:  1189 | static void deserialize(Scanner *scanner, const char *buffer, unsigned length) {
+warning: lapce-tree-sitter@0.1.0:       |                         ~~~~~~~~~^~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-perl/src/scanner.c:1189:55: warning: unused parameter 'buffer' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:  1189 | static void deserialize(Scanner *scanner, const char *buffer, unsigned length) {
+warning: lapce-tree-sitter@0.1.0:       |                                           ~~~~~~~~~~~~^~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-perl/src/scanner.c:1189:72: warning: unused parameter 'length' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:  1189 | static void deserialize(Scanner *scanner, const char *buffer, unsigned length) {
+warning: lapce-tree-sitter@0.1.0:       |                                                               ~~~~~~~~~^~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-perl/src/scanner.c: In function 'scan':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-perl/src/scanner.c:1064:14: warning: this statement may fall through [-Wimplicit-fallthrough=]
+warning: lapce-tree-sitter@0.1.0:  1064 |           if (peek(scanner->heredoc.heredoc_allows_interpolation).boolean) {
+warning: lapce-tree-sitter@0.1.0:       |              ^
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-perl/src/scanner.c:1069:9: note: here
+warning: lapce-tree-sitter@0.1.0:  1069 |         case '$': {
+warning: lapce-tree-sitter@0.1.0:       |         ^~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-perl/src/scanner.c:1070:14: warning: this statement may fall through [-Wimplicit-fallthrough=]
+warning: lapce-tree-sitter@0.1.0:  1070 |           if (peek(scanner->heredoc.heredoc_allows_interpolation).boolean) {
+warning: lapce-tree-sitter@0.1.0:       |              ^
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-perl/src/scanner.c:1075:9: note: here
+warning: lapce-tree-sitter@0.1.0:  1075 |         case '\n': {
+warning: lapce-tree-sitter@0.1.0:       |         ^~~~
+warning: lapce-tree-sitter@0.1.0: At top level:
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-perl/src/scanner.c:1181:13: warning: 'reset' defined but not used [-Wunused-function]
+warning: lapce-tree-sitter@0.1.0:  1181 | static void reset (Scanner *scanner) {
+warning: lapce-tree-sitter@0.1.0:       |             ^~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-perl/src/scanner.c: In function 'dequeue':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-perl/src/scanner.c:173:16: warning: 'empty_data' may be used uninitialized [-Wmaybe-uninitialized]
+warning: lapce-tree-sitter@0.1.0:   173 |         return empty_data;
+warning: lapce-tree-sitter@0.1.0:       |                ^~~~~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-perl/src/scanner.c:172:14: note: 'empty_data' declared here
+warning: lapce-tree-sitter@0.1.0:   172 |         Data empty_data;
+warning: lapce-tree-sitter@0.1.0:       |              ^~~~~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-perl/src/scanner.c: In function 'peek':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-perl/src/scanner.c:189:16: warning: 'empty_data' may be used uninitialized [-Wmaybe-uninitialized]
+warning: lapce-tree-sitter@0.1.0:   189 |         return empty_data;
+warning: lapce-tree-sitter@0.1.0:       |                ^~~~~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-perl/src/scanner.c:188:14: note: 'empty_data' declared here
+warning: lapce-tree-sitter@0.1.0:   188 |         Data empty_data;
+warning: lapce-tree-sitter@0.1.0:       |              ^~~~~~~~~~
+warning: lapce-tree-sitter@0.1.0: In file included from external-grammars/tree-sitter-tcl/src/parser.c:1:
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-tcl/src/parser.c: In function 'ts_lex_keywords':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-tcl/src/tree_sitter/parser.h:136:8: warning: variable 'eof' set but not used [-Wunused-but-set-variable]
+warning: lapce-tree-sitter@0.1.0:   136 |   bool eof = false;             \
+warning: lapce-tree-sitter@0.1.0:       |        ^~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-tcl/src/parser.c:3219:3: note: in expansion of macro 'START_LEXER'
+warning: lapce-tree-sitter@0.1.0:  3219 |   START_LEXER();
+warning: lapce-tree-sitter@0.1.0:       |   ^~~~~~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-tcl/src/scanner.c: In function 'tree_sitter_tcl_external_scanner_scan':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-tcl/src/scanner.c:13:50: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    13 | bool tree_sitter_tcl_external_scanner_scan(void *payload, TSLexer *lexer,
+warning: lapce-tree-sitter@0.1.0:       |                                            ~~~~~~^~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-tcl/src/scanner.c: In function 'tree_sitter_tcl_external_scanner_serialize':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-tcl/src/scanner.c:35:59: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    35 | unsigned tree_sitter_tcl_external_scanner_serialize(void *payload, char *state) {
+warning: lapce-tree-sitter@0.1.0:       |                                                     ~~~~~~^~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-tcl/src/scanner.c:35:74: warning: unused parameter 'state' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    35 | unsigned tree_sitter_tcl_external_scanner_serialize(void *payload, char *state) {
+warning: lapce-tree-sitter@0.1.0:       |                                                                    ~~~~~~^~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-tcl/src/scanner.c: In function 'tree_sitter_tcl_external_scanner_deserialize':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-tcl/src/scanner.c:39:57: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    39 | void tree_sitter_tcl_external_scanner_deserialize(void *payload, const char *state, unsigned length){ }
+warning: lapce-tree-sitter@0.1.0:       |                                                   ~~~~~~^~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-tcl/src/scanner.c:39:78: warning: unused parameter 'state' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    39 | void tree_sitter_tcl_external_scanner_deserialize(void *payload, const char *state, unsigned length){ }
+warning: lapce-tree-sitter@0.1.0:       |                                                                  ~~~~~~~~~~~~^~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-tcl/src/scanner.c:39:94: warning: unused parameter 'length' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    39 | void tree_sitter_tcl_external_scanner_deserialize(void *payload, const char *state, unsigned length){ }
+warning: lapce-tree-sitter@0.1.0:       |                                                                                     ~~~~~~~~~^~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-tcl/src/scanner.c: In function 'tree_sitter_tcl_external_scanner_destroy':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-tcl/src/scanner.c:41:53: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    41 | void tree_sitter_tcl_external_scanner_destroy(void *payload) {}
+warning: lapce-tree-sitter@0.1.0:       |                                               ~~~~~~^~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-racket/src/scanner.c: In function 'tree_sitter_racket_external_scanner_serialize':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-racket/src/scanner.c:138:62: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:   138 | unsigned tree_sitter_racket_external_scanner_serialize(void *payload,
+warning: lapce-tree-sitter@0.1.0:       |                                                        ~~~~~~^~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-racket/src/scanner.c:139:62: warning: unused parameter 'buffer' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:   139 |                                                        char *buffer) {
+warning: lapce-tree-sitter@0.1.0:       |                                                        ~~~~~~^~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-racket/src/scanner.c: In function 'tree_sitter_racket_external_scanner_deserialize':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-racket/src/scanner.c:143:60: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:   143 | void tree_sitter_racket_external_scanner_deserialize(void *payload,
+warning: lapce-tree-sitter@0.1.0:       |                                                      ~~~~~~^~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-racket/src/scanner.c:144:66: warning: unused parameter 'buffer' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:   144 |                                                      const char *buffer,
+warning: lapce-tree-sitter@0.1.0:       |                                                      ~~~~~~~~~~~~^~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-racket/src/scanner.c:145:63: warning: unused parameter 'length' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:   145 |                                                      unsigned length) {
+warning: lapce-tree-sitter@0.1.0:       |                                                      ~~~~~~~~~^~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-racket/src/scanner.c: In function 'tree_sitter_racket_external_scanner_scan':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-racket/src/scanner.c:148:53: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:   148 | bool tree_sitter_racket_external_scanner_scan(void *payload,
+warning: lapce-tree-sitter@0.1.0:       |                                               ~~~~~~^~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-racket/src/scanner.c: In function 'tree_sitter_racket_external_scanner_destroy':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-racket/src/scanner.c:154:56: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:   154 | void tree_sitter_racket_external_scanner_destroy(void *payload) {
+warning: lapce-tree-sitter@0.1.0:       |                                                  ~~~~~~^~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-matlab/src/scanner.c: In function 'scan_command':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-matlab/src/scanner.c:315:27: warning: comparison of integer expressions of different signedness: 'int' and 'long unsigned int' [-Wsign-compare]
+warning: lapce-tree-sitter@0.1.0:   315 |         for (int i = 0; i < sizeof(allowed_commands) / sizeof(allowed_commands[0]); i++) {
+warning: lapce-tree-sitter@0.1.0:       |                           ^
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-matlab/src/scanner.c:320:27: warning: comparison of integer expressions of different signedness: 'int' and 'size_t' {aka 'long unsigned int'} [-Wsign-compare]
+warning: lapce-tree-sitter@0.1.0:   320 |         for (int i = 0; i < keywords_size; i++) {
+warning: lapce-tree-sitter@0.1.0:       |                           ^
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-svelte/src/scanner.c:448: warning: ignoring '#pragma clang diagnostic' [-Wunknown-pragmas]
+warning: lapce-tree-sitter@0.1.0:   448 | #pragma clang diagnostic push
+warning: lapce-tree-sitter@0.1.0:       |
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-svelte/src/scanner.c:449: warning: ignoring '#pragma clang diagnostic' [-Wunknown-pragmas]
+warning: lapce-tree-sitter@0.1.0:   449 | #pragma clang diagnostic ignored "-Wunused-parameter"
+warning: lapce-tree-sitter@0.1.0:       |
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-svelte/src/scanner.c: In function 'deleter':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-svelte/src/scanner.c:451:20: warning: unused parameter 'tag' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:   451 | void deleter(void *tag, za_Allocator *A) {}
+warning: lapce-tree-sitter@0.1.0:       |              ~~~~~~^~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-svelte/src/scanner.c:451:39: warning: unused parameter 'A' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:   451 | void deleter(void *tag, za_Allocator *A) {}
+warning: lapce-tree-sitter@0.1.0:       |                         ~~~~~~~~~~~~~~^
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-svelte/src/scanner.c: At top level:
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-svelte/src/scanner.c:454: warning: ignoring '#pragma clang diagnostic' [-Wunknown-pragmas]
+warning: lapce-tree-sitter@0.1.0:   454 | #pragma clang diagnostic pop
+warning: lapce-tree-sitter@0.1.0:       |
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-svelte/src/scanner.c: In function 'scan_comment':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-svelte/src/scanner.c:115:10: warning: this statement may fall through [-Wimplicit-fallthrough=]
+warning: lapce-tree-sitter@0.1.0:   115 |       if (dashes >= 2) {
+warning: lapce-tree-sitter@0.1.0:       |          ^
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-svelte/src/scanner.c:121:5: note: here
+warning: lapce-tree-sitter@0.1.0:   121 |     default:
+warning: lapce-tree-sitter@0.1.0:       |     ^~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-dart/src/scanner.c: In function 'tree_sitter_dart_external_scanner_destroy':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-dart/src/scanner.c:15:54: warning: unused parameter 'p' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    15 | void tree_sitter_dart_external_scanner_destroy(void *p) {}
+warning: lapce-tree-sitter@0.1.0:       |                                                ~~~~~~^
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-dart/src/scanner.c: In function 'tree_sitter_dart_external_scanner_reset':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-dart/src/scanner.c:16:52: warning: unused parameter 'p' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    16 | void tree_sitter_dart_external_scanner_reset(void *p) {}
+warning: lapce-tree-sitter@0.1.0:       |                                              ~~~~~~^
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-dart/src/scanner.c: In function 'tree_sitter_dart_external_scanner_serialize':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-dart/src/scanner.c:17:60: warning: unused parameter 'p' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    17 | unsigned tree_sitter_dart_external_scanner_serialize(void *p, char *buffer) { return 0; }
+warning: lapce-tree-sitter@0.1.0:       |                                                      ~~~~~~^
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-dart/src/scanner.c:17:69: warning: unused parameter 'buffer' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    17 | unsigned tree_sitter_dart_external_scanner_serialize(void *p, char *buffer) { return 0; }
+warning: lapce-tree-sitter@0.1.0:       |                                                               ~~~~~~^~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-dart/src/scanner.c: In function 'tree_sitter_dart_external_scanner_deserialize':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-dart/src/scanner.c:18:58: warning: unused parameter 'p' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    18 | void tree_sitter_dart_external_scanner_deserialize(void *p, const char *b, unsigned n) {}
+warning: lapce-tree-sitter@0.1.0:       |                                                    ~~~~~~^
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-dart/src/scanner.c:18:73: warning: unused parameter 'b' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    18 | void tree_sitter_dart_external_scanner_deserialize(void *p, const char *b, unsigned n) {}
+warning: lapce-tree-sitter@0.1.0:       |                                                             ~~~~~~~~~~~~^
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-dart/src/scanner.c:18:85: warning: unused parameter 'n' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    18 | void tree_sitter_dart_external_scanner_deserialize(void *p, const char *b, unsigned n) {}
+warning: lapce-tree-sitter@0.1.0:       |                                                                            ~~~~~~~~~^
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-dart/src/scanner.c: In function 'tree_sitter_dart_external_scanner_scan':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-dart/src/scanner.c:114:51: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:   114 | bool tree_sitter_dart_external_scanner_scan(void *payload, TSLexer *lexer,
+warning: lapce-tree-sitter@0.1.0:       |                                             ~~~~~~^~~~~~~
+warning: lapce-tree-sitter@0.1.0: At top level:
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-dart/src/scanner.c:21:13: warning: 'skip' defined but not used [-Wunused-function]
+warning: lapce-tree-sitter@0.1.0:    21 | static void skip(TSLexer *lexer) { lexer->advance(lexer, true); }
+warning: lapce-tree-sitter@0.1.0:       |             ^~~~
+warning: lapce-tree-sitter@0.1.0: In file included from external-grammars/tree-sitter-haskell/src/scanner.c:63:
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-haskell/src/scanner.c: In function 'pop':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-haskell/src/tree_sitter/array.h:106:42: warning: value computed is not used [-Wunused-value]
+warning: lapce-tree-sitter@0.1.0:   106 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: lapce-tree-sitter@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-haskell/src/scanner.c:971:9: note: in expansion of macro 'array_pop'
+warning: lapce-tree-sitter@0.1.0:   971 |         array_pop(&env->state->contexts);
+warning: lapce-tree-sitter@0.1.0:       |         ^~~~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-gleam/src/scanner.c: In function 'tree_sitter_gleam_external_scanner_destroy':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-gleam/src/scanner.c:9:56: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:     9 | void tree_sitter_gleam_external_scanner_destroy(void * payload) {}
+warning: lapce-tree-sitter@0.1.0:       |                                                 ~~~~~~~^~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-gleam/src/scanner.c: In function 'tree_sitter_gleam_external_scanner_serialize':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-gleam/src/scanner.c:10:62: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    10 | unsigned tree_sitter_gleam_external_scanner_serialize(void * payload, char * buffer) {return 0;}
+warning: lapce-tree-sitter@0.1.0:       |                                                       ~~~~~~~^~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-gleam/src/scanner.c:10:78: warning: unused parameter 'buffer' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    10 | unsigned tree_sitter_gleam_external_scanner_serialize(void * payload, char * buffer) {return 0;}
+warning: lapce-tree-sitter@0.1.0:       |                                                                       ~~~~~~~^~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-gleam/src/scanner.c: In function 'tree_sitter_gleam_external_scanner_deserialize':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-gleam/src/scanner.c:11:60: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    11 | void tree_sitter_gleam_external_scanner_deserialize(void * payload, const char * buffer, unsigned length) {}
+warning: lapce-tree-sitter@0.1.0:       |                                                     ~~~~~~~^~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-gleam/src/scanner.c:11:82: warning: unused parameter 'buffer' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    11 | void tree_sitter_gleam_external_scanner_deserialize(void * payload, const char * buffer, unsigned length) {}
+warning: lapce-tree-sitter@0.1.0:       |                                                                     ~~~~~~~~~~~~~^~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-gleam/src/scanner.c:11:99: warning: unused parameter 'length' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    11 | void tree_sitter_gleam_external_scanner_deserialize(void * payload, const char * buffer, unsigned length) {}
+warning: lapce-tree-sitter@0.1.0:       |                                                                                          ~~~~~~~~~^~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-gleam/src/scanner.c: In function 'tree_sitter_gleam_external_scanner_scan':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-gleam/src/scanner.c:13:53: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    13 | bool tree_sitter_gleam_external_scanner_scan(void * payload, TSLexer *lexer, const bool * valid_symbols) {
+warning: lapce-tree-sitter@0.1.0:       |                                              ~~~~~~~^~~~~~~
+warning: lapce-tree-sitter@0.1.0: In file included from external-grammars/tree-sitter-wgsl/src/parser.c:1:
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-wgsl/src/parser.c: In function 'ts_lex_keywords':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-wgsl/src/tree_sitter/parser.h:136:8: warning: variable 'eof' set but not used [-Wunused-but-set-variable]
+warning: lapce-tree-sitter@0.1.0:   136 |   bool eof = false;             \
+warning: lapce-tree-sitter@0.1.0:       |        ^~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-wgsl/src/parser.c:2557:3: note: in expansion of macro 'START_LEXER'
+warning: lapce-tree-sitter@0.1.0:  2557 |   START_LEXER();
+warning: lapce-tree-sitter@0.1.0:       |   ^~~~~~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-wgsl/src/scanner.c: In function 'tree_sitter_wgsl_external_scanner_destroy':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-wgsl/src/scanner.c:11:54: warning: unused parameter 'p' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    11 | void tree_sitter_wgsl_external_scanner_destroy(void *p) {}
+warning: lapce-tree-sitter@0.1.0:       |                                                ~~~~~~^
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-wgsl/src/scanner.c: In function 'tree_sitter_wgsl_external_scanner_reset':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-wgsl/src/scanner.c:12:52: warning: unused parameter 'p' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    12 | void tree_sitter_wgsl_external_scanner_reset(void *p) {}
+warning: lapce-tree-sitter@0.1.0:       |                                              ~~~~~~^
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-wgsl/src/scanner.c: In function 'tree_sitter_wgsl_external_scanner_serialize':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-wgsl/src/scanner.c:13:64: warning: unused parameter 'p' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    13 | unsigned int tree_sitter_wgsl_external_scanner_serialize(void *p, char *buffer) {
+warning: lapce-tree-sitter@0.1.0:       |                                                          ~~~~~~^
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-wgsl/src/scanner.c:13:73: warning: unused parameter 'buffer' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    13 | unsigned int tree_sitter_wgsl_external_scanner_serialize(void *p, char *buffer) {
+warning: lapce-tree-sitter@0.1.0:       |                                                                   ~~~~~~^~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-wgsl/src/scanner.c: In function 'tree_sitter_wgsl_external_scanner_deserialize':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-wgsl/src/scanner.c:16:58: warning: unused parameter 'p' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    16 | void tree_sitter_wgsl_external_scanner_deserialize(void *p, const char *b, unsigned n) {}
+warning: lapce-tree-sitter@0.1.0:       |                                                    ~~~~~~^
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-wgsl/src/scanner.c:16:73: warning: unused parameter 'b' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    16 | void tree_sitter_wgsl_external_scanner_deserialize(void *p, const char *b, unsigned n) {}
+warning: lapce-tree-sitter@0.1.0:       |                                                             ~~~~~~~~~~~~^
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-wgsl/src/scanner.c:16:85: warning: unused parameter 'n' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    16 | void tree_sitter_wgsl_external_scanner_deserialize(void *p, const char *b, unsigned n) {}
+warning: lapce-tree-sitter@0.1.0:       |                                                                            ~~~~~~~~~^
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-wgsl/src/scanner.c: In function 'tree_sitter_wgsl_external_scanner_scan':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-wgsl/src/scanner.c:28:15: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    28 |         void *payload,
+warning: lapce-tree-sitter@0.1.0:       |         ~~~~~~^~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-wgsl/src/scanner.c:30:21: warning: unused parameter 'valid_symbols' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    30 |         const bool *valid_symbols
+warning: lapce-tree-sitter@0.1.0:       |         ~~~~~~~~~~~~^~~~~~~~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-julia/src/scanner.c: In function 'tree_sitter_julia_external_scanner_destroy':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-julia/src/scanner.c:36:55: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    36 | void tree_sitter_julia_external_scanner_destroy(void *payload) {}
+warning: lapce-tree-sitter@0.1.0:       |                                                 ~~~~~~^~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-julia/src/scanner.c: In function 'tree_sitter_julia_external_scanner_serialize':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-julia/src/scanner.c:38:61: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    38 | unsigned tree_sitter_julia_external_scanner_serialize(void *payload, char *buffer) { return 0; }
+warning: lapce-tree-sitter@0.1.0:       |                                                       ~~~~~~^~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-julia/src/scanner.c:38:76: warning: unused parameter 'buffer' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    38 | unsigned tree_sitter_julia_external_scanner_serialize(void *payload, char *buffer) { return 0; }
+warning: lapce-tree-sitter@0.1.0:       |                                                                      ~~~~~~^~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-julia/src/scanner.c: In function 'tree_sitter_julia_external_scanner_deserialize':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-julia/src/scanner.c:40:59: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    40 | void tree_sitter_julia_external_scanner_deserialize(void *payload, const char *buffer, unsigned size) {}
+warning: lapce-tree-sitter@0.1.0:       |                                                     ~~~~~~^~~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-julia/src/scanner.c:40:80: warning: unused parameter 'buffer' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    40 | void tree_sitter_julia_external_scanner_deserialize(void *payload, const char *buffer, unsigned size) {}
+warning: lapce-tree-sitter@0.1.0:       |                                                                    ~~~~~~~~~~~~^~~~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-julia/src/scanner.c:40:97: warning: unused parameter 'size' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:    40 | void tree_sitter_julia_external_scanner_deserialize(void *payload, const char *buffer, unsigned size) {}
+warning: lapce-tree-sitter@0.1.0:       |                                                                                        ~~~~~~~~~^~~~
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-julia/src/scanner.c: In function 'tree_sitter_julia_external_scanner_scan':
+warning: lapce-tree-sitter@0.1.0: external-grammars/tree-sitter-julia/src/scanner.c:129:52: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: lapce-tree-sitter@0.1.0:   129 | bool tree_sitter_julia_external_scanner_scan(void *payload, TSLexer *lexer, const bool *valid_symbols) {
+warning: lapce-tree-sitter@0.1.0:       |                                              ~~~~~~^~~~~~~
+warning: unused imports: `Language` and `Tree`
+ --> src/native_parser_manager.rs:8:27
+  |
+8 | ...:{Parser, Tree, Language};
+  |              ^^^^  ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `NodeFlags`
+ --> src/compact/bytecode/tree_sitter_decoder_v2.rs:3:37
+  |
+3 | ...am, Opcode, NodeFlags};
+  |                ^^^^^^^^^
+
+warning: unused import: `Opcode`
+ --> src/compact/bytecode/simple_verifier.rs:3:29
+  |
+3 | use super::{BytecodeStream, Opcode};
+  |                             ^^^^^^
+
+warning: unused import: `Parser`
+ --> src/complete_pipeline.rs:9:31
+  |
+9 | use tree_sitter::{Tree, Node, Parser};
+  |                               ^^^^^^
+
+warning: unused variable: `extractor`
+   --> src/native_parser_manager.rs:166:17
+    |
+166 | ... let mut extractor = SymbolExtra...
+    |             ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_extractor`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: variable does not need to be mutable
+   --> src/native_parser_manager.rs:166:13
+    |
+166 | ...   let mut extractor = SymbolExt...
+    |           ----^^^^^^^^^
+    |           |
+    |           help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+warning: unused variable: `tree_data`
+   --> src/dynamic_compressed_cache.rs:337:39
+    |
+337 | ...a_entry, tree_data) = self.froze...
+    |             ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_tree_data`
+
+warning: unused variable: `tree`
+   --> src/dynamic_compressed_cache.rs:399:47
+    |
+399 | ...: PathBuf, tree: Tree, source: B...
+    |               ^^^^ help: if this is intentional, prefix it with an underscore: `_tree`
+
+warning: unused variable: `parse_time`
+   --> src/dynamic_compressed_cache.rs:399:85
+    |
+399 | ...sh: u64, parse_time: f64) {
+    |             ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_parse_time`
+
+warning: unused import: `Read`
+ --> src/compact/bytecode/segmented_fixed.rs:7:21
+  |
+7 | use std::io::{self, Read};
+  |                     ^^^^
+
+warning: variable does not need to be mutable
+  --> src/ast/delta.rs:74:9
+   |
+74 |     let mut byte_deltas = Vec::new();
+   |         ----^^^^^^^^^^^
+   |         |
+   |         help: remove this `mut`
+
+warning: unused variable: `tree`
+  --> src/compact/bytecode/encoder.rs:79:9
+   |
+79 |         tree: &CompactTree,
+   |         ^^^^ help: if this is intentional, prefix it with an underscore: `_tree`
+
+warning: unused variable: `node_idx`
+  --> src/compact/bytecode/encoder.rs:80:9
+   |
+80 |         node_idx: usize,
+   |         ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_node_idx`
+
+warning: unused variable: `kind_set`
+  --> src/compact/bytecode/encoder.rs:81:9
+   |
+81 |         kind_set: &mut std::collecti...
+   |         ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_kind_set`
+
+warning: unused variable: `field_set`
+  --> src/compact/bytecode/encoder.rs:82:9
+   |
+82 |         field_set: &mut std::collect...
+   |         ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_field_set`
+
+warning: unused variable: `tree`
+  --> src/compact/bytecode/encoder.rs:99:31
+   |
+99 | ...&mut self, tree: &CompactTree, no...
+   |               ^^^^ help: if this is intentional, prefix it with an underscore: `_tree`
+
+warning: unused variable: `node_idx`
+  --> src/compact/bytecode/encoder.rs:99:51
+   |
+99 | ...actTree, node_idx: usize) {
+   |             ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_node_idx`
+
+warning: unused variable: `tree`
+   --> src/compact/bytecode/validator.rs:103:28
+    |
+103 | ...ode(&self, tree: &CompactTree, n...
+    |               ^^^^ help: if this is intentional, prefix it with an underscore: `_tree`
+
+warning: unused variable: `node_idx`
+   --> src/compact/bytecode/validator.rs:103:48
+    |
+103 | ...actTree, node_idx: usize, flat_n...
+    |             ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_node_idx`
+
+warning: unused variable: `flat_nodes`
+   --> src/compact/bytecode/validator.rs:103:65
+    |
+103 | ...: usize, flat_nodes: &mut Vec<Fl...
+    |             ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_flat_nodes`
+
+warning: unused variable: `encoder2`
+   --> src/compact/bytecode/validator.rs:228:13
+    |
+228 |         let encoder2 = BytecodeEnco...
+    |             ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_encoder2`
+
+warning: unused variable: `kind`
+   --> src/compact/bytecode/tree_sitter_encoder.rs:339:25
+    |
+339 | ...       let kind = self.read_vari...
+    |               ^^^^ help: if this is intentional, prefix it with an underscore: `_kind`
+
+warning: unused variable: `flags`
+   --> src/compact/bytecode/tree_sitter_encoder.rs:340:25
+    |
+340 | ...       let flags = self.read_fla...
+    |               ^^^^^ help: if this is intentional, prefix it with an underscore: `_flags`
+
+warning: unused variable: `length`
+   --> src/compact/bytecode/tree_sitter_encoder.rs:375:25
+    |
+375 | ...       let length = self.read_va...
+    |               ^^^^^^ help: if this is intentional, prefix it with an underscore: `_length`
+
+warning: unused variable: `kind`
+   --> src/compact/bytecode/tree_sitter_encoder.rs:381:25
+    |
+381 | ...       let kind = self.read_vari...
+    |               ^^^^ help: if this is intentional, prefix it with an underscore: `_kind`
+
+warning: unused variable: `flags`
+   --> src/compact/bytecode/tree_sitter_encoder.rs:382:25
+    |
+382 | ...       let flags = self.read_fla...
+    |               ^^^^^ help: if this is intentional, prefix it with an underscore: `_flags`
+
+warning: unused variable: `length`
+   --> src/compact/bytecode/tree_sitter_encoder.rs:416:25
+    |
+416 | ...       let length = self.read_va...
+    |               ^^^^^^ help: if this is intentional, prefix it with an underscore: `_length`
+
+warning: unused variable: `count`
+   --> src/compact/bytecode/tree_sitter_encoder.rs:461:25
+    |
+461 | ...       let count = self.read_var...
+    |               ^^^^^ help: if this is intentional, prefix it with an underscore: `_count`
+
+warning: unused variable: `kind`
+  --> src/compact/bytecode/tree_sitter_decoder_v2.rs:36:25
+   |
+36 | ...       let kind = self.read_varin...
+   |               ^^^^ help: if this is intentional, prefix it with an underscore: `_kind`
+
+warning: unused variable: `flags`
+  --> src/compact/bytecode/tree_sitter_decoder_v2.rs:37:25
+   |
+37 | ...       let flags = self.read_byte...
+   |               ^^^^^ help: if this is intentional, prefix it with an underscore: `_flags`
+
+warning: unused variable: `length`
+  --> src/compact/bytecode/tree_sitter_decoder_v2.rs:43:25
+   |
+43 | ...       let length = self.read_var...
+   |               ^^^^^^ help: if this is intentional, prefix it with an underscore: `_length`
+
+warning: unused variable: `kind`
+  --> src/compact/bytecode/tree_sitter_decoder_v2.rs:53:25
+   |
+53 | ...       let kind = self.read_varin...
+   |               ^^^^ help: if this is intentional, prefix it with an underscore: `_kind`
+
+warning: unused variable: `flags`
+  --> src/compact/bytecode/tree_sitter_decoder_v2.rs:54:25
+   |
+54 | ...       let flags = self.read_byte...
+   |               ^^^^^ help: if this is intentional, prefix it with an underscore: `_flags`
+
+warning: unused variable: `length`
+  --> src/compact/bytecode/tree_sitter_decoder_v2.rs:60:25
+   |
+60 | ...       let length = self.read_var...
+   |               ^^^^^^ help: if this is intentional, prefix it with an underscore: `_length`
+
+warning: unused variable: `temp_path`
+   --> src/compact/bytecode/segmented_fixed.rs:131:13
+    |
+131 |         let temp_path = temp_dir.pa...
+    |             ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_temp_path`
+
+warning: unused variable: `storage_dir`
+   --> src/compact/bytecode/segmented_fixed.rs:346:43
+    |
+346 | ...on: u32, storage_dir: PathBuf) -...
+    |             ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_storage_dir`
+
+warning: unused variable: `exit_count`
+  --> src/compact/bytecode/simple_verifier.rs:19:9
+   |
+19 |     let exit_count = stream.bytes.it...
+   |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_exit_count`
+
+warning: variable `node_index` is assigned to, but never used
+ --> src/compact/bytecode/jump_table_builder.rs:9:13
+  |
+9 |     let mut node_index = 0;
+  |             ^^^^^^^^^^
+  |
+  = note: consider using `_node_index` instead
+
+warning: unused variable: `i`
+   --> src/compact/varint.rs:229:13
+    |
+229 |         for i in 0..block_idx {
+    |             ^ help: if this is intentional, prefix it with an underscore: `_i`
+
+warning: value assigned to `value` is never read
+   --> src/compact/tree.rs:113:17
+    |
+113 |         let mut value = 0;
+    |                 ^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+    = note: `#[warn(unused_assignments)]` on by default
+
+warning: unused variable: `s`
+   --> src/compact/interning.rs:165:26
+    |
+165 | ...et_id(&self, s: &str) -> Option<...
+    |                 ^ help: if this is intentional, prefix it with an underscore: `_s`
+
+warning: unused variable: `id`
+   --> src/compact/interning.rs:182:27
+    |
+182 | ...lve(&self, id: SymbolId) -> Opti...
+    |               ^^ help: if this is intentional, prefix it with an underscore: `_id`
+
+warning: unused variable: `count`
+   --> src/cache/mmap_source.rs:170:13
+    |
+170 |         let count = self.mmaps.len();
+    |             ^^^^^ help: if this is intentional, prefix it with an underscore: `_count`
+
+warning: unused variable: `source`
+   --> src/multi_tier_cache.rs:323:20
+    |
+323 | ...if let Ok((source, _delta, _meta...
+    |               ^^^^^^ help: if this is intentional, prefix it with an underscore: `_source`
+
+warning: unused variable: `segmented`
+   --> src/complete_pipeline.rs:217:17
+    |
+217 | ...     let segmented = self.apply_...
+    |             ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_segmented`
+
+warning: unused variable: `source`
+   --> src/cst_codec.rs:124:9
+    |
+124 |     let source = &data[cursor..curs...
+    |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_source`
+
+warning: value assigned to `cursor` is never read
+   --> src/cst_codec.rs:125:5
+    |
+125 |     cursor += source_len_usize;
+    |     ^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+
+warning: unused variable: `hash`
+   --> src/phase4_cache.rs:268:9
+    |
+268 |         hash: u64,
+    |         ^^^^ help: if this is intentional, prefix it with an underscore: `_hash`
+
+warning: unused variable: `bytecode_stream`
+   --> src/phase4_cache_fixed.rs:188:35
+    |
+188 | ... Some((bytecode_stream, source))...
+    |           ^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_bytecode_stream`
+
+warning: unused variable: `hash`
+   --> src/phase4_cache_fixed.rs:178:9
+    |
+178 |         hash: u64,
+    |         ^^^^ help: if this is intentional, prefix it with an underscore: `_hash`
+
+warning: unused variable: `source`
+   --> src/phase4_cache_fixed.rs:319:52
+    |
+319 | ...de_stream, source)) = self.multi...
+    |               ^^^^^^ help: if this is intentional, prefix it with an underscore: `_source`
+
+warning: unused variable: `arc`
+   --> src/phase4_cache_fixed.rs:325:21
+    |
+325 |                 Err(arc) => {
+    |                     ^^^ help: if this is intentional, prefix it with an underscore: `_arc`
+
+warning: unused variable: `hash`
+   --> src/phase4_cache_fixed.rs:309:9
+    |
+309 |         hash: u64,
+    |         ^^^^ help: if this is intentional, prefix it with an underscore: `_hash`
+
+warning: unused variable: `cpu_count`
+   --> src/performance_config.rs:321:13
+    |
+321 |         let cpu_count = num_cpus::g...
+    |             ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_cpu_count`
+
+warning: field `language` is never read
+  --> src/incremental/mod.rs:10:5
+   |
+ 8 | pub struct IncrementalParser {
+   |            ----------------- field in this struct
+ 9 |     parser: Parser,
+10 |     language: String,
+   |     ^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: fields `last_position`, `last_kind`, `node_stack`, and `checkpoint_interval` are never read
+  --> src/compact/bytecode/encoder.rs:12:5
+   |
+ 8 | pub struct BytecodeEncoder {
+   |            --------------- fields in this struct
+...
+12 |     last_position: usize,
+   |     ^^^^^^^^^^^^^
+13 |     last_kind: Option<u16>,
+   |     ^^^^^^^^^
+14 |     node_stack: Vec<usize>,
+   |     ^^^^^^^^^^
+15 |     checkpoint_interval: usize,
+   |     ^^^^^^^^^^^^^^^^^^^
+
+warning: methods `encode_leaf` and `encode_enter` are never used
+   --> src/compact/bytecode/encoder.rs:164:8
+    |
+ 18 | impl BytecodeEncoder {
+    | -------------------- methods in this implementation
+...
+164 |     fn encode_leaf(&mut self, kind_...
+    |        ^^^^^^^^^^^
+...
+179 |     fn encode_enter(&mut self, kind...
+    |        ^^^^^^^^^^^^
+
+warning: function `run_validation_suite` is never used
+   --> src/compact/bytecode/validator.rs:285:8
+    |
+285 | pub fn run_validation_suite(tree: &...
+    |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: field `source` is never read
+   --> src/compact/bytecode/tree_sitter_encoder.rs:151:5
+    |
+148 | pub struct TreeSitterBytecodeDecoder {
+    |            ------------------------- field in this struct
+...
+151 |     source: Vec<u8>,
+    |     ^^^^^^
+
+warning: methods `read_position_if_present`, `skip_to_node`, and `skip_node_contents` are never used
+   --> src/compact/bytecode/tree_sitter_encoder.rs:196:8
+    |
+154 | impl TreeSitterBytecodeDecoder {
+    | ------------------------------ methods in this implementation
+...
+196 |     fn read_position_if_present(&mu...
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^
+...
+251 |     fn skip_to_node(&mut self, n: u...
+    |        ^^^^^^^^^^^^
+...
+270 |     fn skip_node_contents(&mut self) {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: function `write_varint_to_vec` is never used
+   --> src/compact/bytecode/tree_sitter_encoder.rs:514:4
+    |
+514 | fn write_varint_to_vec(vec: &mut Ve...
+    |    ^^^^^^^^^^^^^^^^^^^
+
+warning: function `collect_positions` is never used
+    --> src/compact/bytecode/tree_sitter_encoder.rs:1002:4
+     |
+1002 | fn collect_positions(node: tree_si...
+     |    ^^^^^^^^^^^^^^^^^
+
+warning: struct `TreeSitterBytecodeDecoderV2` is never constructed
+ --> src/compact/bytecode/tree_sitter_decoder_v2.rs:5:12
+  |
+5 | pub struct TreeSitterBytecodeDecoderV2 {
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: associated items `new`, `verify`, `read_byte`, `read_varint`, and `skip_position_if_present` are never used
+   --> src/compact/bytecode/tree_sitter_decoder_v2.rs:11:12
+    |
+ 10 | impl TreeSitterBytecodeDecoderV2 {
+    | -------------------------------- associated items in this implementation
+ 11 |     pub fn new(stream: BytecodeStre...
+    |            ^^^
+...
+ 16 |     pub fn verify(&mut self) -> Res...
+    |            ^^^^^^
+...
+116 |     fn read_byte(&mut self) -> Opti...
+    |        ^^^^^^^^^
+...
+125 |     fn read_varint(&mut self) -> Op...
+    |        ^^^^^^^^^^^
+...
+141 |     fn skip_position_if_present(&mu...
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `verify_simple` is never used
+ --> src/compact/bytecode/simple_verifier.rs:6:8
+  |
+6 | pub fn verify_simple(stream: &Bytecod...
+  |        ^^^^^^^^^^^^^
+
+warning: field `position_index` is never read
+  --> src/compact/tree.rs:28:16
+   |
+11 | ...ruct CompactTree {
+   |         ----------- field in this struct
+...
+28 | ...b(crate) position_index: PrefixSu...
+   |             ^^^^^^^^^^^^^^
+   |
+   = note: `CompactTree` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: method `node_index` is never used
+   --> src/compact/tree.rs:102:19
+    |
+ 41 | impl CompactTree {
+    | ---------------- method in this implementation
+...
+102 |     pub(crate) fn node_index(&self,...
+    |                   ^^^^^^^^^^
+
+warning: field `tree` is never read
+   --> src/compact/node.rs:187:5
+    |
+186 | pub struct ChildIterator<'tree> {
+    |            ------------- field in this struct
+187 |     tree: &'tree CompactTree,
+    |     ^^^^
+
+warning: function `hash_string` is never used
+   --> src/compact/interning.rs:287:4
+    |
+287 | fn hash_string(s: &str) -> u64 {
+    |    ^^^^^^^^^^^
+
+warning: constant `DELTA_FORMAT_VERSION` is never used
+  --> src/cache/delta_codec.rs:17:7
+   |
+17 | const DELTA_FORMAT_VERSION: u16 = 1;
+   |       ^^^^^^^^^^^^^^^^^^^^
+
+warning: fields `path`, `hash`, and `created_at` are never read
+  --> src/multi_tier_cache.rs:24:5
+   |
+23 | struct EntryMetadata {
+   |        ------------- fields in this struct
+24 |     path: PathBuf,
+   |     ^^^^
+25 |     hash: u64,
+   |     ^^^^
+...
+30 |     created_at: Instant,
+   |     ^^^^^^^^^^
+   |
+   = note: `EntryMetadata` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `varint_encoder` and `chunk_store` are never read
+   --> src/complete_pipeline.rs:112:5
+    |
+108 | pub struct CompletePipeline {
+    |            ---------------- fields in this struct
+...
+112 |     varint_encoder: Arc<DeltaEncoder>,
+    |     ^^^^^^^^^^^^^^
+...
+116 |     chunk_store: Arc<ChunkStore>,
+    |     ^^^^^^^^^^^
+
+warning: field `chunk_store` is never read
+  --> src/dynamic_compressed_cache.rs:46:5
+   |
+18 | pub struct DynamicCompressedCache {
+   |            ---------------------- field in this struct
+...
+46 |     chunk_store: Arc<ChunkStore>,
+   |     ^^^^^^^^^^^
+
+warning: fields `frozen_tier` and `parsers` are never read
+  --> src/phase4_cache.rs:80:5
+   |
+69 | pub struct Phase4Cache {
+   |            ----------- fields in this struct
+...
+80 |     frozen_tier: Arc<FrozenTier>,
+   |     ^^^^^^^^^^^
+...
+89 |     parsers: Arc<RwLock<HashMap<Stri...
+   |     ^^^^^^^
+
+warning: field `runtime` is never read
+   --> src/phase4_cache.rs:238:5
+    |
+236 | pub struct SyncPhase4Cache {
+    |            --------------- field in this struct
+237 |     cache: Phase4Cache,
+238 |     runtime: tokio::runtime::Runtime,
+    |     ^^^^^^^
+
+warning: fields `parser_pool` and `parsers` are never read
+  --> src/phase4_cache_fixed.rs:83:5
+   |
+75 | pub struct Phase4Cache {
+   |            ----------- fields in this struct
+...
+83 |     parser_pool: Arc<ParserPool>,
+   |     ^^^^^^^^^^^
+...
+86 |     parsers: Arc<RwLock<HashMap<Stri...
+   |     ^^^^^^^
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> src/compact/bytecode/segmented_fixed.rs:390:22
+    |
+390 | ...or(&self, node_index: usize) -> io::Result<SegmentedNavigator> {
+    |       ^^^^^ the lifetime is elided here       ------------------ the same lifetime is hidden here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+    = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+    |
+390 |     pub fn navigator(&self, node_index: usize) -> io::Result<SegmentedNavigator<'_>> {
+    |                                                                                ++++
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+  --> src/compact/tree.rs:80:17
+   |
+80 |     pub fn root(&self) -> CompactNode {
+   |                 ^^^^^     ----------- the same lifetime is hidden here
+   |                 |
+   |                 the lifetime is elided here
+   |
+   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+help: use `'_` for type paths
+   |
+80 |     pub fn root(&self) -> CompactNode<'_> {
+   |                                      ++++
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+  --> src/compact/tree.rs:85:20
+   |
+85 | ...at(&self, index: usize) -> Option<CompactNode> {
+   |       ^^^^^                          ----------- the same lifetime is hidden here
+   |       |
+   |       the lifetime is elided here
+   |
+   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+help: use `'_` for type paths
+   |
+85 |     pub fn node_at(&self, index: usize) -> Option<CompactNode<'_>> {
+   |                                                              ++++
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> src/compact/packed_array.rs:203:17
+    |
+203 | ...er(&self) -> PackedArrayIter {
+    |       ^^^^^     --------------- the same lifetime is hidden here
+    |       |
+    |       the lifetime is elided here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+help: use `'_` for type paths
+    |
+203 |     pub fn iter(&self) -> PackedArrayIter<'_> {
+    |                                          ++++
+
+warning: `lapce-tree-sitter` (lib) generated 80 warnings (run `cargo fix --lib -p lapce-tree-sitter` to apply 6 suggestions)
+   Compiling tree-sitter-gradle v0.0.1 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-gradle)
+   Compiling tree-sitter-xml v0.7.0 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-xml)
+   Compiling tree-sitter-elm v5.8.0 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-elm)
+   Compiling tree-sitter-matlab v1.2.0 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-matlab)
+   Compiling tree-sitter-yaml v0.7.1 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-yaml)
+   Compiling tree-sitter-fsharp v0.1.0 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-fsharp)
+   Compiling tree-sitter-cobol v0.1.0 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-cobol)
+   Compiling tree-sitter-graphql v0.0.1 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-graphql)
+   Compiling tree-sitter-dart v0.0.1 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-dart)
+   Compiling tree-sitter-perl v0.0.1 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-perl)
+   Compiling tree-sitter-fortran v0.5.1 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-fortran)
+   Compiling tree-sitter-solidity v1.2.13 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-solidity)
+   Compiling tree-sitter-scheme v0.24.7 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-scheme)
+   Compiling tree-sitter-javascript v0.20.1 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-javascript)
+   Compiling tree-sitter-dockerfile v0.2.0 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-dockerfile)
+   Compiling tree-sitter-gleam v1.0.0 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-gleam)
+   Compiling tree-sitter-crystal v0.0.1 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-crystal)
+   Compiling tree-sitter-vim v0.7.0 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-vim)
+   Compiling tree-sitter-hcl v1.2.0 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-hcl)
+   Compiling tree-sitter-kotlin v0.3.9 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-kotlin)
+   Compiling tree-sitter-clojure v0.0.11 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-clojure)
+   Compiling tree-sitter-typescript v0.23.2 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-typescript)
+   Compiling tree-sitter-nim v0.6.2 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-nim)
+   Compiling tree-sitter-prolog v0.0.1 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-prolog)
+   Compiling tree-sitter-racket v0.24.7 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-racket)
+   Compiling tree-sitter-fennel v0.0.1 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-fennel)
+   Compiling tree-sitter-systemverilog v0.1.0 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-systemverilog)
+   Compiling tree-sitter-md v0.5.1 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-markdown)
+   Compiling tree-sitter-zig v0.0.1 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-zig)
+   Compiling tree-sitter-toml v0.1.0 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-toml)
+   Compiling tree-sitter-ada v0.1.0 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-ada)
+   Compiling tree-sitter-r v1.2.0 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-r)
+   Compiling tree-sitter-svelte v0.10.2 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-svelte)
+   Compiling tree-sitter-haskell v0.23.1 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-haskell)
+   Compiling tree-sitter-vhdl v1.3.1 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-vhdl)
+   Compiling tree-sitter-sql v0.3.8 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-sql)
+   Compiling tree-sitter-abap v0.0.1 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-abap)
+   Compiling tree-sitter-julia v0.23.1 (/home/verma/lapce/lapce-ai/CST-tree-sitter/external-grammars/tree-sitter-julia)
+warning: unused import: `PathBuf`
+ --> external-grammars/tree-sitter-toml/bindings/rust/build.rs:1:23
+  |
+1 | use std::path::{Path, PathBuf};
+  |                       ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: `tree-sitter-toml` (build script) generated 1 warning
+warning: tree-sitter-svelte@0.10.2: src/scanner.c:448: warning: ignoring '#pragma clang diagnostic' [-Wunknown-pragmas]
+warning: tree-sitter-svelte@0.10.2:   448 | #pragma clang diagnostic push
+warning: tree-sitter-svelte@0.10.2:       |
+warning: tree-sitter-svelte@0.10.2: src/scanner.c:449: warning: ignoring '#pragma clang diagnostic' [-Wunknown-pragmas]
+warning: tree-sitter-svelte@0.10.2:   449 | #pragma clang diagnostic ignored "-Wunused-parameter"
+warning: tree-sitter-svelte@0.10.2:       |
+warning: tree-sitter-svelte@0.10.2: src/scanner.c: In function 'deleter':
+warning: tree-sitter-svelte@0.10.2: src/scanner.c:451:20: warning: unused parameter 'tag' [-Wunused-parameter]
+warning: tree-sitter-svelte@0.10.2:   451 | void deleter(void *tag, za_Allocator *A) {}
+warning: tree-sitter-svelte@0.10.2:       |              ~~~~~~^~~
+warning: tree-sitter-svelte@0.10.2: src/scanner.c:451:39: warning: unused parameter 'A' [-Wunused-parameter]
+warning: tree-sitter-svelte@0.10.2:   451 | void deleter(void *tag, za_Allocator *A) {}
+warning: tree-sitter-svelte@0.10.2:       |                         ~~~~~~~~~~~~~~^
+warning: tree-sitter-svelte@0.10.2: src/scanner.c: At top level:
+warning: tree-sitter-svelte@0.10.2: src/scanner.c:454: warning: ignoring '#pragma clang diagnostic' [-Wunknown-pragmas]
+warning: tree-sitter-svelte@0.10.2:   454 | #pragma clang diagnostic pop
+warning: tree-sitter-svelte@0.10.2:       |
+warning: tree-sitter-svelte@0.10.2: src/scanner.c: In function 'scan_comment':
+warning: tree-sitter-svelte@0.10.2: src/scanner.c:115:10: warning: this statement may fall through [-Wimplicit-fallthrough=]
+warning: tree-sitter-svelte@0.10.2:   115 |       if (dashes >= 2) {
+warning: tree-sitter-svelte@0.10.2:       |          ^
+warning: tree-sitter-svelte@0.10.2: src/scanner.c:121:5: note: here
+warning: tree-sitter-svelte@0.10.2:   121 |     default:
+warning: tree-sitter-svelte@0.10.2:       |     ^~~~~~~
+warning: tree-sitter-racket@0.24.7: src/scanner.c: In function 'tree_sitter_racket_external_scanner_serialize':
+warning: tree-sitter-racket@0.24.7: src/scanner.c:138:62: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: tree-sitter-racket@0.24.7:   138 | unsigned tree_sitter_racket_external_scanner_serialize(void *payload,
+warning: tree-sitter-racket@0.24.7:       |                                                        ~~~~~~^~~~~~~
+warning: tree-sitter-racket@0.24.7: src/scanner.c:139:62: warning: unused parameter 'buffer' [-Wunused-parameter]
+warning: tree-sitter-racket@0.24.7:   139 |                                                        char *buffer) {
+warning: tree-sitter-racket@0.24.7:       |                                                        ~~~~~~^~~~~~
+warning: tree-sitter-racket@0.24.7: src/scanner.c: In function 'tree_sitter_racket_external_scanner_deserialize':
+warning: tree-sitter-racket@0.24.7: src/scanner.c:143:60: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: tree-sitter-racket@0.24.7:   143 | void tree_sitter_racket_external_scanner_deserialize(void *payload,
+warning: tree-sitter-racket@0.24.7:       |                                                      ~~~~~~^~~~~~~
+warning: tree-sitter-racket@0.24.7: src/scanner.c:144:66: warning: unused parameter 'buffer' [-Wunused-parameter]
+warning: tree-sitter-racket@0.24.7:   144 |                                                      const char *buffer,
+warning: tree-sitter-racket@0.24.7:       |                                                      ~~~~~~~~~~~~^~~~~~
+warning: tree-sitter-racket@0.24.7: src/scanner.c:145:63: warning: unused parameter 'length' [-Wunused-parameter]
+warning: tree-sitter-racket@0.24.7:   145 |                                                      unsigned length) {
+warning: tree-sitter-racket@0.24.7:       |                                                      ~~~~~~~~~^~~~~~
+warning: tree-sitter-racket@0.24.7: src/scanner.c: In function 'tree_sitter_racket_external_scanner_scan':
+warning: tree-sitter-racket@0.24.7: src/scanner.c:148:53: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: tree-sitter-racket@0.24.7:   148 | bool tree_sitter_racket_external_scanner_scan(void *payload,
+warning: tree-sitter-racket@0.24.7:       |                                               ~~~~~~^~~~~~~
+warning: tree-sitter-racket@0.24.7: src/scanner.c: In function 'tree_sitter_racket_external_scanner_destroy':
+warning: tree-sitter-racket@0.24.7: src/scanner.c:154:56: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: tree-sitter-racket@0.24.7:   154 | void tree_sitter_racket_external_scanner_destroy(void *payload) {
+warning: tree-sitter-racket@0.24.7:       |                                                  ~~~~~~^~~~~~~
+warning: tree-sitter-sql@0.3.8: In file included from src/parser.c:1:
+warning: tree-sitter-sql@0.3.8: src/parser.c: In function 'ts_lex_keywords':
+warning: tree-sitter-sql@0.3.8: src/tree_sitter/parser.h:136:8: warning: variable 'eof' set but not used [-Wunused-but-set-variable]
+warning: tree-sitter-sql@0.3.8:   136 |   bool eof = false;             \
+warning: tree-sitter-sql@0.3.8:       |        ^~~
+warning: tree-sitter-sql@0.3.8: src/parser.c:24776:3: note: in expansion of macro 'START_LEXER'
+warning: tree-sitter-sql@0.3.8: 24776 |   START_LEXER();
+warning: tree-sitter-sql@0.3.8:       |   ^~~~~~~~~~~
+warning: tree-sitter-sql@0.3.8: src/scanner.c: In function 'add_char':
+warning: tree-sitter-sql@0.3.8: src/scanner.c:40:17: warning: comparison of integer expressions of different signedness: 'int' and 'size_t' {aka 'long unsigned int'} [-Wsign-compare]
+warning: tree-sitter-sql@0.3.8:    40 |   if (index + 1 >= *text_size) {
+warning: tree-sitter-sql@0.3.8:       |                 ^~
+warning: tree-sitter-gleam@1.0.0: src/scanner.c: In function 'tree_sitter_gleam_external_scanner_destroy':
+warning: tree-sitter-gleam@1.0.0: src/scanner.c:9:56: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: tree-sitter-gleam@1.0.0:     9 | void tree_sitter_gleam_external_scanner_destroy(void * payload) {}
+warning: tree-sitter-gleam@1.0.0:       |                                                 ~~~~~~~^~~~~~~
+warning: tree-sitter-gleam@1.0.0: src/scanner.c: In function 'tree_sitter_gleam_external_scanner_serialize':
+warning: tree-sitter-gleam@1.0.0: src/scanner.c:10:62: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: tree-sitter-gleam@1.0.0:    10 | unsigned tree_sitter_gleam_external_scanner_serialize(void * payload, char * buffer) {return 0;}
+warning: tree-sitter-gleam@1.0.0:       |                                                       ~~~~~~~^~~~~~~
+warning: tree-sitter-gleam@1.0.0: src/scanner.c:10:78: warning: unused parameter 'buffer' [-Wunused-parameter]
+warning: tree-sitter-gleam@1.0.0:    10 | unsigned tree_sitter_gleam_external_scanner_serialize(void * payload, char * buffer) {return 0;}
+warning: tree-sitter-gleam@1.0.0:       |                                                                       ~~~~~~~^~~~~~
+warning: tree-sitter-gleam@1.0.0: src/scanner.c: In function 'tree_sitter_gleam_external_scanner_deserialize':
+warning: tree-sitter-gleam@1.0.0: src/scanner.c:11:60: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: tree-sitter-gleam@1.0.0:    11 | void tree_sitter_gleam_external_scanner_deserialize(void * payload, const char * buffer, unsigned length) {}
+warning: tree-sitter-gleam@1.0.0:       |                                                     ~~~~~~~^~~~~~~
+warning: tree-sitter-gleam@1.0.0: src/scanner.c:11:82: warning: unused parameter 'buffer' [-Wunused-parameter]
+warning: tree-sitter-gleam@1.0.0:    11 | void tree_sitter_gleam_external_scanner_deserialize(void * payload, const char * buffer, unsigned length) {}
+warning: tree-sitter-gleam@1.0.0:       |                                                                     ~~~~~~~~~~~~~^~~~~~
+warning: tree-sitter-gleam@1.0.0: src/scanner.c:11:99: warning: unused parameter 'length' [-Wunused-parameter]
+warning: tree-sitter-gleam@1.0.0:    11 | void tree_sitter_gleam_external_scanner_deserialize(void * payload, const char * buffer, unsigned length) {}
+warning: tree-sitter-gleam@1.0.0:       |                                                                                          ~~~~~~~~~^~~~~~
+warning: tree-sitter-gleam@1.0.0: src/scanner.c: In function 'tree_sitter_gleam_external_scanner_scan':
+warning: tree-sitter-gleam@1.0.0: src/scanner.c:13:53: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: tree-sitter-gleam@1.0.0:    13 | bool tree_sitter_gleam_external_scanner_scan(void * payload, TSLexer *lexer, const bool * valid_symbols) {
+warning: tree-sitter-gleam@1.0.0:       |                                              ~~~~~~~^~~~~~~
+warning: tree-sitter-elm@5.8.0: In file included from src/parser.c:1:
+warning: tree-sitter-elm@5.8.0: src/parser.c: In function 'ts_lex_keywords':
+warning: tree-sitter-elm@5.8.0: src/tree_sitter/parser.h:136:8: warning: variable 'eof' set but not used [-Wunused-but-set-variable]
+warning: tree-sitter-elm@5.8.0:   136 |   bool eof = false;             \
+warning: tree-sitter-elm@5.8.0:       |        ^~~
+warning: tree-sitter-elm@5.8.0: src/parser.c:7892:3: note: in expansion of macro 'START_LEXER'
+warning: tree-sitter-elm@5.8.0:  7892 |   START_LEXER();
+warning: tree-sitter-elm@5.8.0:       |   ^~~~~~~~~~~
+warning: tree-sitter-elm@5.8.0: src/scanner.c: In function 'tree_sitter_elm_external_scanner_serialize':
+warning: tree-sitter-elm@5.8.0: src/scanner.c:440:17: warning: comparison of integer expressions of different signedness: 'int' and 'uint32_t' {aka 'unsigned int'} [-Wsign-compare]
+warning: tree-sitter-elm@5.8.0:   440 |     for (; iter != scanner->indents.len &&
+warning: tree-sitter-elm@5.8.0:       |                 ^~
+warning: tree-sitter-vim@0.7.0: In file included from src/scanner.c:6:
+warning: tree-sitter-vim@0.7.0: src/scanner.c: In function 'tree_sitter_vim_external_scanner_deserialize':
+warning: tree-sitter-vim@0.7.0: src/scanner.c:102:34: warning: comparison of integer expressions of different signedness: 'int' and 'unsigned int' [-Wsign-compare]
+warning: tree-sitter-vim@0.7.0:   102 |   assert(s->marker_len + SC_MARK == length);
+warning: tree-sitter-vim@0.7.0:       |                                  ^~
+warning: tree-sitter-matlab@1.2.0: src/scanner.c: In function 'scan_command':
+warning: tree-sitter-matlab@1.2.0: src/scanner.c:315:27: warning: comparison of integer expressions of different signedness: 'int' and 'long unsigned int' [-Wsign-compare]
+warning: tree-sitter-matlab@1.2.0:   315 |         for (int i = 0; i < sizeof(allowed_commands) / sizeof(allowed_commands[0]); i++) {
+warning: tree-sitter-matlab@1.2.0:       |                           ^
+warning: tree-sitter-matlab@1.2.0: src/scanner.c:320:27: warning: comparison of integer expressions of different signedness: 'int' and 'size_t' {aka 'long unsigned int'} [-Wsign-compare]
+warning: tree-sitter-matlab@1.2.0:   320 |         for (int i = 0; i < keywords_size; i++) {
+warning: tree-sitter-matlab@1.2.0:       |                           ^
+warning: tree-sitter-julia@0.23.1: src/scanner.c: In function 'tree_sitter_julia_external_scanner_destroy':
+warning: tree-sitter-julia@0.23.1: src/scanner.c:36:55: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: tree-sitter-julia@0.23.1:    36 | void tree_sitter_julia_external_scanner_destroy(void *payload) {}
+warning: tree-sitter-julia@0.23.1:       |                                                 ~~~~~~^~~~~~~
+warning: tree-sitter-julia@0.23.1: src/scanner.c: In function 'tree_sitter_julia_external_scanner_serialize':
+warning: tree-sitter-julia@0.23.1: src/scanner.c:38:61: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: tree-sitter-julia@0.23.1:    38 | unsigned tree_sitter_julia_external_scanner_serialize(void *payload, char *buffer) { return 0; }
+warning: tree-sitter-julia@0.23.1:       |                                                       ~~~~~~^~~~~~~
+warning: tree-sitter-julia@0.23.1: src/scanner.c:38:76: warning: unused parameter 'buffer' [-Wunused-parameter]
+warning: tree-sitter-julia@0.23.1:    38 | unsigned tree_sitter_julia_external_scanner_serialize(void *payload, char *buffer) { return 0; }
+warning: tree-sitter-julia@0.23.1:       |                                                                      ~~~~~~^~~~~~
+warning: tree-sitter-julia@0.23.1: src/scanner.c: In function 'tree_sitter_julia_external_scanner_deserialize':
+warning: tree-sitter-julia@0.23.1: src/scanner.c:40:59: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: tree-sitter-julia@0.23.1:    40 | void tree_sitter_julia_external_scanner_deserialize(void *payload, const char *buffer, unsigned size) {}
+warning: tree-sitter-julia@0.23.1:       |                                                     ~~~~~~^~~~~~~
+warning: tree-sitter-julia@0.23.1: src/scanner.c:40:80: warning: unused parameter 'buffer' [-Wunused-parameter]
+warning: tree-sitter-julia@0.23.1:    40 | void tree_sitter_julia_external_scanner_deserialize(void *payload, const char *buffer, unsigned size) {}
+warning: tree-sitter-julia@0.23.1:       |                                                                    ~~~~~~~~~~~~^~~~~~
+warning: tree-sitter-julia@0.23.1: src/scanner.c:40:97: warning: unused parameter 'size' [-Wunused-parameter]
+warning: tree-sitter-julia@0.23.1:    40 | void tree_sitter_julia_external_scanner_deserialize(void *payload, const char *buffer, unsigned size) {}
+warning: tree-sitter-julia@0.23.1:       |                                                                                        ~~~~~~~~~^~~~
+warning: tree-sitter-julia@0.23.1: src/scanner.c: In function 'tree_sitter_julia_external_scanner_scan':
+warning: tree-sitter-julia@0.23.1: src/scanner.c:129:52: warning: unused parameter 'payload' [-Wunused-parameter]
+warning: tree-sitter-julia@0.23.1:   129 | bool tree_sitter_julia_external_scanner_scan(void *payload, TSLexer *lexer, const bool *valid_symbols) {
+warning: tree-sitter-julia@0.23.1:       |                                              ~~~~~~^~~~~~~
+warning: tree-sitter-dart@0.0.1: src/scanner.c:21:13: warning: 'skip' defined but not used [-Wunused-function]
+warning: tree-sitter-dart@0.0.1:    21 | static void skip(TSLexer *lexer) { lexer->advance(lexer, true); }
+warning: tree-sitter-dart@0.0.1:       |             ^~~~
+warning: tree-sitter-perl@0.0.1: src/scanner.c:18:1: warning: multi-line comment [-Wcomment]
+warning: tree-sitter-perl@0.0.1:    18 | // #define STRING_RESIZE(vec, _cap)                                         \
+warning: tree-sitter-perl@0.0.1:       | ^
+warning: tree-sitter-perl@0.0.1: src/scanner.c:26:1: warning: multi-line comment [-Wcomment]
+warning: tree-sitter-perl@0.0.1:    26 | // #define STRING_GROW(vec, _cap)    \
+warning: tree-sitter-perl@0.0.1:       | ^
+warning: tree-sitter-perl@0.0.1: src/scanner.c:31:1: warning: multi-line comment [-Wcomment]
+warning: tree-sitter-perl@0.0.1:    31 | // #define STRING_PUSH(vec, el)                      \
+warning: tree-sitter-perl@0.0.1:       | ^
+warning: tree-sitter-perl@0.0.1: src/scanner.c:37:1: warning: multi-line comment [-Wcomment]
+warning: tree-sitter-perl@0.0.1:    37 | // #define STRING_FREE(vec)  \
+warning: tree-sitter-perl@0.0.1:       | ^
+warning: tree-sitter-perl@0.0.1: src/scanner.c:42:1: warning: multi-line comment [-Wcomment]
+warning: tree-sitter-perl@0.0.1:    42 | // #define STRING_CLEAR(vec)                            \
+warning: tree-sitter-perl@0.0.1:       | ^
+warning: tree-sitter-perl@0.0.1: src/scanner.c: In function 'scan':
+warning: tree-sitter-perl@0.0.1: src/scanner.c:1064:14: warning: this statement may fall through [-Wimplicit-fallthrough=]
+warning: tree-sitter-perl@0.0.1:  1064 |           if (peek(scanner->heredoc.heredoc_allows_interpolation).boolean) {
+warning: tree-sitter-perl@0.0.1:       |              ^
+warning: tree-sitter-perl@0.0.1: src/scanner.c:1069:9: note: here
+warning: tree-sitter-perl@0.0.1:  1069 |         case '$': {
+warning: tree-sitter-perl@0.0.1:       |         ^~~~
+warning: tree-sitter-perl@0.0.1: src/scanner.c:1070:14: warning: this statement may fall through [-Wimplicit-fallthrough=]
+warning: tree-sitter-perl@0.0.1:  1070 |           if (peek(scanner->heredoc.heredoc_allows_interpolation).boolean) {
+warning: tree-sitter-perl@0.0.1:       |              ^
+warning: tree-sitter-perl@0.0.1: src/scanner.c:1075:9: note: here
+warning: tree-sitter-perl@0.0.1:  1075 |         case '\n': {
+warning: tree-sitter-perl@0.0.1:       |         ^~~~
+warning: tree-sitter-perl@0.0.1: At top level:
+warning: tree-sitter-perl@0.0.1: src/scanner.c:1181:13: warning: 'reset' defined but not used [-Wunused-function]
+warning: tree-sitter-perl@0.0.1:  1181 | static void reset (Scanner *scanner) {
+warning: tree-sitter-perl@0.0.1:       |             ^~~~~
+warning: tree-sitter-perl@0.0.1: src/scanner.c: In function 'dequeue':
+warning: tree-sitter-perl@0.0.1: src/scanner.c:173:16: warning: 'empty_data' may be used uninitialized [-Wmaybe-uninitialized]
+warning: tree-sitter-perl@0.0.1:   173 |         return empty_data;
+warning: tree-sitter-perl@0.0.1:       |                ^~~~~~~~~~
+warning: tree-sitter-perl@0.0.1: src/scanner.c:172:14: note: 'empty_data' declared here
+warning: tree-sitter-perl@0.0.1:   172 |         Data empty_data;
+warning: tree-sitter-perl@0.0.1:       |              ^~~~~~~~~~
+warning: tree-sitter-perl@0.0.1: src/scanner.c: In function 'peek':
+warning: tree-sitter-perl@0.0.1: src/scanner.c:189:16: warning: 'empty_data' may be used uninitialized [-Wmaybe-uninitialized]
+warning: tree-sitter-perl@0.0.1:   189 |         return empty_data;
+warning: tree-sitter-perl@0.0.1:       |                ^~~~~~~~~~
+warning: tree-sitter-perl@0.0.1: src/scanner.c:188:14: note: 'empty_data' declared here
+warning: tree-sitter-perl@0.0.1:   188 |         Data empty_data;
+warning: tree-sitter-perl@0.0.1:       |              ^~~~~~~~~~
+warning: tree-sitter-cobol@0.1.0: src/scanner.c: In function 'start_with_word':
+warning: tree-sitter-cobol@0.1.0: src/scanner.c:85:39: warning: comparison of integer expressions of different signedness: 'char' and 'wint_t' {aka 'unsigned int'} [-Wsign-compare]
+warning: tree-sitter-cobol@0.1.0:    85 |                 continue_check[i] = c == towupper(k) || c == towlower(k);
+warning: tree-sitter-cobol@0.1.0:       |                                       ^~
+warning: tree-sitter-cobol@0.1.0: src/scanner.c:85:59: warning: comparison of integer expressions of different signedness: 'char' and 'wint_t' {aka 'unsigned int'} [-Wsign-compare]
+warning: tree-sitter-cobol@0.1.0:    85 |                 continue_check[i] = c == towupper(k) || c == towlower(k);
+warning: tree-sitter-cobol@0.1.0:       |                                                           ^~
+error[E0308]: mismatched types
+   --> external-grammars/tree-sitter-systemverilog/bindings/rust/lib.rs:52:27
+    |
+ 52 |             .set_language(super::language())
+    |              ------------ ^^^^^^^^^^^^^^^^^ expected `&Language`, found `Language`
+    |              |
+    |              arguments to this method are incorrect
+    |
+note: method defined here
+   --> /home/verma/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-0.23.2/binding_rust/lib.rs:474:12
+    |
+474 |     pub fn set_language(&mut self, language: &Language) -> Result<(), LanguageError> {
+    |            ^^^^^^^^^^^^
+help: consider borrowing here
+    |
+ 52 |             .set_language(&super::language())
+    |                           +
+
+error[E0308]: mismatched types
+   --> external-grammars/tree-sitter-cobol/bindings/rust/lib.rs:49:27
+    |
+ 49 |             .set_language(super::language())
+    |              ------------ ^^^^^^^^^^^^^^^^^ expected `&Language`, found `Language`
+    |              |
+    |              arguments to this method are incorrect
+    |
+note: method defined here
+   --> /home/verma/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tree-sitter-0.23.2/binding_rust/lib.rs:474:12
+    |
+474 |     pub fn set_language(&mut self, language: &Language) -> Result<(), LanguageError> {
+    |            ^^^^^^^^^^^^
+help: consider borrowing here
+    |
+ 49 |             .set_language(&super::language())
+    |                           +
+
+For more information about this error, try `rustc --explain E0308`.
+warning: tree-sitter-cobol@0.1.0: src/scanner.c: In function 'start_with_word':
+warning: tree-sitter-cobol@0.1.0: src/scanner.c:85:39: warning: comparison of integer expressions of different signedness: 'char' and 'wint_t' {aka 'unsigned int'} [-Wsign-compare]
+warning: tree-sitter-cobol@0.1.0:    85 |                 continue_check[i] = c == towupper(k) || c == towlower(k);
+warning: tree-sitter-cobol@0.1.0:       |                                       ^~
+warning: tree-sitter-cobol@0.1.0: src/scanner.c:85:59: warning: comparison of integer expressions of different signedness: 'char' and 'wint_t' {aka 'unsigned int'} [-Wsign-compare]
+warning: tree-sitter-cobol@0.1.0:    85 |                 continue_check[i] = c == towupper(k) || c == towlower(k);
+warning: tree-sitter-cobol@0.1.0:       |                                                           ^~
+error: could not compile `tree-sitter-cobol` (lib test) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `tree-sitter-systemverilog` (lib test) due to 1 previous error
+error: linking with `cc` failed: exit status: 1
+  |
+  = note:  "cc" "-m64" "/tmp/rustcbeyeER/symbols.o" "<11 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "-ltree-sitter-gradle" "<sysroot>/lib/rustlib/x86_64-unknown-linux-gnu/lib/{libtest-*,libgetopts-*,libunicode_width-*,librustc_std_workspace_std-*}.rlib" "/home/verma/lapce/lapce-ai/CST-tree-sitter/target/debug/deps/{libtree_sitter-41287567b9b21b92,libregex-2cd931d7131c9507,libregex_automata-f8cf0cd4bdafcb9e,libaho_corasick-2ea4b481258a7f00,libmemchr-ccc31091145e243c,libregex_syntax-6318a9bbcc70ced8,libtree_sitter_language-c7b404c45376779c}.rlib" "<sysroot>/lib/rustlib/x86_64-unknown-linux-gnu/lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*,libcfg_if-*,liblibc-*,librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-Wl,-Bdynamic" "-lgcc_s" "-lutil" "-lrt" "-lpthread" "-lm" "-ldl" "-lc" "-L" "/tmp/rustcbeyeER/raw-dylibs" "-B<sysroot>/lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld" "-fuse-ld=lld" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-L" "/home/verma/lapce/lapce-ai/CST-tree-sitter/target/debug/build/tree-sitter-gradle-4de9a441bd0365ae/out" "-L" "/home/verma/lapce/lapce-ai/CST-tree-sitter/target/debug/build/tree-sitter-c4b3a59d55819b0b/out" "-L" "<sysroot>/lib/rustlib/x86_64-unknown-linux-gnu/lib" "-o" "/home/verma/lapce/lapce-ai/CST-tree-sitter/target/debug/deps/tree_sitter_gradle-139bd26cb2cdca42" "-Wl,--gc-sections" "-pie" "-Wl,-z,relro,-z,now" "-nodefaultlibs"
+  = note: some arguments are omitted. use `--verbose` to show all linker arguments
+  = note: rust-lld: error: undefined symbol: tree_sitter_gradle
+          >>> referenced by lib.rs:8 (external-grammars/tree-sitter-gradle/bindings/rust/lib.rs:8)
+          >>>               /home/verma/lapce/lapce-ai/CST-tree-sitter/target/debug/deps/tree_sitter_gradle-139bd26cb2cdca42.do4ty19przd9ao3di4s70n6gn.0wvnmig.rcgu.o:(tree_sitter_gradle::language::h0d78d00a84bbca37)
+          collect2: error: ld returned 1 exit status
+          
+
+error: could not compile `tree-sitter-gradle` (lib test) due to 1 previous error
+warning: tree-sitter-fsharp@0.1.0: In file included from ./fsharp/src/parser.c:1:
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/parser.c: In function 'ts_lex_keywords':
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/parser.h:136:8: warning: variable 'eof' set but not used [-Wunused-but-set-variable]
+warning: tree-sitter-fsharp@0.1.0:   136 |   bool eof = false;             \
+warning: tree-sitter-fsharp@0.1.0:       |        ^~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/parser.c:32685:3: note: in expansion of macro 'START_LEXER'
+warning: tree-sitter-fsharp@0.1.0: 32685 |   START_LEXER();
+warning: tree-sitter-fsharp@0.1.0:       |   ^~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: In file included from ./fsharp/src/../../common/scanner.h:5,
+warning: tree-sitter-fsharp@0.1.0:                  from ./fsharp/src/scanner.c:1:
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/../../common/scanner.h: In function 'scan':
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/../../common/scanner.h:136:7: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   136 |       array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |       ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/../../common/scanner.h:142:7: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   142 |       array_pop(&scanner->preprocessor_indents);
+warning: tree-sitter-fsharp@0.1.0:       |       ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/../../common/scanner.h:239:21: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   239 |                     array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |                     ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/../../common/scanner.h:246:21: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   246 |                     array_pop(&scanner->preprocessor_indents);
+warning: tree-sitter-fsharp@0.1.0:       |                     ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/../../common/scanner.h:267:19: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   267 |                   array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |                   ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/../../common/scanner.h:296:17: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   296 |                 array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |                 ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/../../common/scanner.h:426:13: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   426 |             array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |             ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/../../common/scanner.h:449:13: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   449 |             array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |             ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/../../common/scanner.h:474:15: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   474 |               array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |               ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/../../common/scanner.h:497:15: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   497 |               array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |               ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/../../common/scanner.h:526:13: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   526 |             array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |             ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/../../common/scanner.h:539:15: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   539 |               array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |               ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/../../common/scanner.h:548:13: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   548 |             array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |             ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/../../common/scanner.h:566:13: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   566 |             array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |             ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/../../common/scanner.h:630:7: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   630 |       array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |       ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/../../common/scanner.h:666:9: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   666 |         array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |         ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: In file included from ./fsharp_signature/src/parser.c:1:
+warning: tree-sitter-fsharp@0.1.0: ./fsharp_signature/src/parser.c: In function 'ts_lex_keywords':
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/parser.h:136:8: warning: variable 'eof' set but not used [-Wunused-but-set-variable]
+warning: tree-sitter-fsharp@0.1.0:   136 |   bool eof = false;             \
+warning: tree-sitter-fsharp@0.1.0:       |        ^~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp_signature/src/parser.c:24490:3: note: in expansion of macro 'START_LEXER'
+warning: tree-sitter-fsharp@0.1.0: 24490 |   START_LEXER();
+warning: tree-sitter-fsharp@0.1.0:       |   ^~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: In file included from ./fsharp_signature/src/../../common/scanner.h:5,
+warning: tree-sitter-fsharp@0.1.0:                  from ./fsharp_signature/src/scanner.c:1:
+warning: tree-sitter-fsharp@0.1.0: ./fsharp_signature/src/../../common/scanner.h: In function 'scan':
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp_signature/src/../../common/scanner.h:136:7: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   136 |       array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |       ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp_signature/src/../../common/scanner.h:142:7: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   142 |       array_pop(&scanner->preprocessor_indents);
+warning: tree-sitter-fsharp@0.1.0:       |       ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp_signature/src/../../common/scanner.h:239:21: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   239 |                     array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |                     ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp_signature/src/../../common/scanner.h:246:21: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   246 |                     array_pop(&scanner->preprocessor_indents);
+warning: tree-sitter-fsharp@0.1.0:       |                     ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp_signature/src/../../common/scanner.h:267:19: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   267 |                   array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |                   ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp_signature/src/../../common/scanner.h:296:17: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   296 |                 array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |                 ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp_signature/src/../../common/scanner.h:426:13: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   426 |             array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |             ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp_signature/src/../../common/scanner.h:449:13: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   449 |             array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |             ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp_signature/src/../../common/scanner.h:474:15: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   474 |               array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |               ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp_signature/src/../../common/scanner.h:497:15: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   497 |               array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |               ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp_signature/src/../../common/scanner.h:526:13: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   526 |             array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |             ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp_signature/src/../../common/scanner.h:539:15: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   539 |               array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |               ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp_signature/src/../../common/scanner.h:548:13: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   548 |             array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |             ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp_signature/src/../../common/scanner.h:566:13: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   566 |             array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |             ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp_signature/src/../../common/scanner.h:630:7: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   630 |       array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |       ^~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp/src/tree_sitter/array.h:107:42: warning: value computed is not used [-Wunused-value]
+warning: tree-sitter-fsharp@0.1.0:   107 | #define array_pop(self) ((self)->contents[--(self)->size])
+warning: tree-sitter-fsharp@0.1.0:       |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+warning: tree-sitter-fsharp@0.1.0: ./fsharp_signature/src/../../common/scanner.h:666:9: note: in expansion of macro 'array_pop'
+warning: tree-sitter-fsharp@0.1.0:   666 |         array_pop(&scanner->indents);
+warning: tree-sitter-fsharp@0.1.0:       |         ^~~~~~~~~

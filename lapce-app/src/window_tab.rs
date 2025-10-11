@@ -2724,7 +2724,26 @@ impl WindowTabData {
         if self.panel.is_panel_visible(&kind) {
             self.hide_panel(kind);
         } else {
-            self.show_panel(kind);
+            let should_hide = match kind {
+                PanelKind::Terminal => false,
+                PanelKind::FileExplorer => false,
+                PanelKind::SourceControl => false,
+                PanelKind::Plugin => false,
+                PanelKind::Search => true,
+                PanelKind::Problem => true,
+                PanelKind::Debug => {
+                    // Check if debug panel should be hidden
+                    false
+                }
+                PanelKind::CallHierarchy => true,
+                PanelKind::DocumentSymbol => true,
+                PanelKind::References => true,
+                PanelKind::Implementation => true,
+                PanelKind::AIChat => false,
+            };
+            if !should_hide {
+                self.show_panel(kind);
+            }
         }
     }
 
@@ -2738,7 +2757,8 @@ impl WindowTabData {
             | PanelKind::CallHierarchy
             | PanelKind::DocumentSymbol
             | PanelKind::References
-            | PanelKind::Implementation => {
+            | PanelKind::Implementation
+            | PanelKind::AIChat => {
                 // Some panels don't accept focus (yet). Fall back to visibility check
                 // in those cases.
                 self.panel.is_panel_visible(&kind)

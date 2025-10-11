@@ -7,7 +7,6 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 use tokio::time::{sleep, timeout};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use lapce_ai_rust::ipc::shared_memory_complete::{SharedMemoryListener, SharedMemoryStream};
 use rand::{Rng, SeedableRng};
 use rand::rngs::StdRng;
@@ -200,7 +199,7 @@ async fn nuclear_chaos() {
         let failed = failed_operations.clone();
         let stop = stop_signal.clone();
         tokio::spawn(async move {
-            let mut last_report = Instant::now();
+            let last_report = Instant::now();
             while !stop.load(Ordering::Relaxed) {
                 sleep(Duration::from_secs(30)).await;
                 

@@ -1,4 +1,7 @@
 pub mod about;
+pub mod ai_bridge;
+pub mod ai_i18n;
+pub mod ai_state;
 pub mod alert;
 pub mod app;
 pub mod code_action;

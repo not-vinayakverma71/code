@@ -87,11 +87,20 @@ impl<'a> BytecodeNavigator<'a> {
             if current_index == target_index {
                 reader.seek(node_start);
                 reader.read_op(); // Re-read the opcode
-                return match op {
+                let mut node = match op {
                     Opcode::Enter => self.decode_enter_node(&mut reader),
                     Opcode::Leaf => self.decode_leaf_node(&mut reader),
                     _ => None,
-                };
+                }?;
+                
+                // Set stable ID from stream
+                if target_index < self.stream.stable_ids.len() {
+                    node.stable_id = self.stream.stable_ids[target_index];
+                } else {
+                    node.stable_id = (target_index as u64) + 1;
+                }
+                
+                return Some(node);
             }
             
             // Skip this node

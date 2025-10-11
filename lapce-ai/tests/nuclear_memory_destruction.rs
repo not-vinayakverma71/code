@@ -7,7 +7,6 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use lapce_ai_rust::ipc::shared_memory_complete::{SharedMemoryListener, SharedMemoryStream};
 
 // Debug mode: 10x faster
@@ -147,7 +146,7 @@ async fn nuclear_memory_destruction() {
 }
 
 fn get_process_memory_mb() -> f64 {
-    use sysinfo::{System, Pid};
+    use sysinfo::System;
     
     let mut sys = System::new();
     sys.refresh_processes();
