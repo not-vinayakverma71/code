@@ -28,7 +28,7 @@ pub struct SharedMemoryBuffer {
     data_ptr: *mut u8,
     size: usize,
     capacity: usize,
-    fd: i32,  // File descriptor for cleanup
+    // Note: fd is closed immediately after mmap() to prevent leaks
 }
 
 unsafe impl Send for SharedMemoryBuffer {}
@@ -100,11 +100,13 @@ impl SharedMemoryBuffer {
                 0,
             ) as *mut u8;
             
-            libc::close(fd);
-            
             if ptr == libc::MAP_FAILED as *mut u8 {
+                libc::close(fd);
                 bail!("mmap failed");
             }
+            
+            // Close fd immediately - mmap keeps its own reference to the shm object
+            libc::close(fd);
             
             // Initialize header properly
             let header = RingBufferHeader::initialize(ptr, data_size);
@@ -115,7 +117,6 @@ impl SharedMemoryBuffer {
                 capacity: data_size,
                 header,
                 data_ptr: ptr.add(header_size),
-                fd,
             })
         }
     }
@@ -156,6 +157,9 @@ impl SharedMemoryBuffer {
                 bail!("mmap failed");
             }
             
+            // Close fd immediately - mmap keeps its own reference to the shm object
+            libc::close(fd);
+            
             let header = ptr as *mut RingBufferHeader;
             
             // Validate existing header
@@ -167,7 +171,6 @@ impl SharedMemoryBuffer {
                 data_ptr: ptr.add(header_size),
                 size: total_size,
                 capacity: data_size,
-                fd,
             })
         }
     }
@@ -335,13 +338,8 @@ impl Drop for SharedMemoryBuffer {
     fn drop(&mut self) {
         unsafe {
             if !self.ptr.is_null() {
-                // Unmap the memory
+                // Unmap the memory (fd was already closed after mmap)
                 libc::munmap(self.ptr as *mut core::ffi::c_void, self.size);
-                
-                // Close the file descriptor if we still have it
-                if self.fd > 0 {
-                    libc::close(self.fd);
-                }
             }
         }
     }
