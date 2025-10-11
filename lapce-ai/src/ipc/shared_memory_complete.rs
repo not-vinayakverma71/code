@@ -66,9 +66,6 @@ impl SharedMemoryBuffer {
         let shm_name = std::ffi::CString::new(shm_name_str)
             .map_err(|e| anyhow::anyhow!("Invalid path: {}", e))?;
         let fd = unsafe {
-            // Clean up any stale shared memory object first (ignore errors)
-            libc::shm_unlink(shm_name.as_ptr());
-            
             let fd = libc::shm_open(
                 shm_name.as_ptr(),
                 (libc::O_CREAT | libc::O_RDWR) as std::os::raw::c_int,
