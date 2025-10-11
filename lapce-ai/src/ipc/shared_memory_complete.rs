@@ -51,16 +51,13 @@ impl SharedMemoryBuffer {
             format!("/{}", without_leading.replace('/', "_"))
         };
         
-        eprintln!("[SHM DEBUG] Original path: '{}'", path);
-        eprintln!("[SHM DEBUG] Namespaced path: '{}'", namespaced_path);
-        eprintln!("[SHM DEBUG] Final shm_name_str (len={}): '{}'", shm_name_str.len(), shm_name_str);
-        
         // macOS has a 31-character limit (PSHMNAMLEN) for shm_open names
         #[cfg(target_os = "macos")]
         if shm_name_str.len() > 31 {
             bail!("SHM name too long for macOS ({}>{} chars): '{}'", shm_name_str.len(), 31, shm_name_str);
         }
         
+        let shm_name_str_copy = shm_name_str.clone();
         let shm_name = std::ffi::CString::new(shm_name_str)
             .map_err(|e| anyhow::anyhow!("Invalid path: {}", e))?;
         let fd = unsafe {
@@ -70,7 +67,9 @@ impl SharedMemoryBuffer {
                 0o600  // Owner read/write only for security (0600 permissions)
             );
             if fd == -1 {
-                bail!("shm_open failed: {}", std::io::Error::last_os_error());
+                let err = std::io::Error::last_os_error();
+                bail!("shm_open('{}') failed: {} (original='{}', namespaced='{}')", 
+                      shm_name_str_copy, err, path, namespaced_path);
             }
             
             // Set size
