@@ -78,6 +78,21 @@ lazy_static! {
         "Index operation latency in seconds",
         &["operation"]
     ).unwrap();
+    
+    // CST canonical mapping metrics
+    #[cfg(feature = "cst_ts")]
+    pub static ref CANONICAL_MAPPING_APPLIED_TOTAL: CounterVec = register_counter_vec!(
+        "canonical_mapping_applied_total",
+        "Total number of canonical mappings applied",
+        &["language"]
+    ).unwrap();
+    
+    #[cfg(feature = "cst_ts")]
+    pub static ref CANONICAL_MAPPING_UNKNOWN_TOTAL: CounterVec = register_counter_vec!(
+        "canonical_mapping_unknown_total",
+        "Total number of unknown canonical mappings encountered",
+        &["language"]
+    ).unwrap();
 }
 
 /// Metrics for tracking search performance

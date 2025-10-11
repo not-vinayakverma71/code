@@ -294,7 +294,7 @@ impl Drop for SharedMemoryBuffer {
         unsafe {
             if !self.ptr.is_null() {
                 // Unmap the view
-                let view_addr = MEMORY_MAPPED_VIEW_ADDRESS { Value: self.ptr as *const _ };
+                let view_addr = MEMORY_MAPPED_VIEW_ADDRESS { Value: self.ptr as *mut _ };
                 UnmapViewOfFile(view_addr);
             }
             if !self.mapping_handle.is_null() {

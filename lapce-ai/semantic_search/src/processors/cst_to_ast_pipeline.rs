@@ -474,8 +474,19 @@ fn canonical_to_ast_node_type(canonical: CanonicalKind) -> AstNodeType {
 /// Get node type using canonical mapping when available
 #[cfg(feature = "cst_ts")]
 fn get_node_type_with_canonical(language: &str, kind: &str) -> AstNodeType {
+    use crate::search::search_metrics::{CANONICAL_MAPPING_APPLIED_TOTAL, CANONICAL_MAPPING_UNKNOWN_TOTAL};
+    
     let canonical = map_kind(language, kind);
-    canonical_to_ast_node_type(canonical)
+    let result = canonical_to_ast_node_type(canonical);
+    
+    // Record metrics
+    if result == AstNodeType::Unknown {
+        CANONICAL_MAPPING_UNKNOWN_TOTAL.with_label_values(&[language]).inc();
+    } else {
+        CANONICAL_MAPPING_APPLIED_TOTAL.with_label_values(&[language]).inc();
+    }
+    
+    result
 }
 
 /// Get field name using canonical mapping when available
@@ -914,3 +925,6 @@ fn calculate_complexity(cst: &CstNode) -> usize {
 
 #[cfg(test)]
 mod cst_to_ast_tests;
+
+#[cfg(test)]
+mod security_tests;

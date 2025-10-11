@@ -124,7 +124,20 @@ impl SharedMemoryBuffer {
         let header_size = std::mem::size_of::<RingBufferHeader>();
         let total_size = header_size + data_size;
         
-        let shm_name = std::ffi::CString::new(format!("/{}", path.replace('/', "_")))
+        // Use the SAME namespaced path as create() - critical for matching!
+        #[cfg(target_os = "macos")]
+        let namespaced_path = path.to_string();
+        
+        #[cfg(not(target_os = "macos"))]
+        let namespaced_path = create_namespaced_path(path);
+        
+        // shm_open requires name to start with '/' but have no other slashes
+        let shm_name_str = {
+            let without_leading = namespaced_path.trim_start_matches('/');
+            format!("/{}", without_leading.replace('/', "_"))
+        };
+        
+        let shm_name = std::ffi::CString::new(shm_name_str)
             .map_err(|e| anyhow::anyhow!("Invalid path: {}", e))?;
         
         let fd = unsafe {
