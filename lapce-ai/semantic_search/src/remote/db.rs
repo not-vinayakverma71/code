@@ -346,14 +346,16 @@ impl<S: HttpSend> Database for RemoteDatabase<S> {
 
     async fn create_table(&self, request: CreateTableRequest) -> Result<Arc<dyn BaseTable>> {
         let data = match request.data {
-            CreateTableData::Data(data) => data,
-            CreateTableData::StreamingData(_) => {
+            Some(CreateTableData::Data(data)) => data,
+            Some(CreateTableData::StreamingData(_)) => {
                 return Err(Error::NotSupported {
                     message: "Creating a remote table from a streaming source".to_string(),
                 })
             }
-            CreateTableData::Empty(table_definition) => {
-                let schema = table_definition.schema.clone();
+            Some(CreateTableData::Empty) | None => {
+                let schema = request.schema.clone().unwrap_or_else(|| {
+                    Arc::new(arrow_schema::Schema::empty())
+                });
                 Box::new(RecordBatchIterator::new(vec![], schema))
             }
         };

@@ -5,7 +5,7 @@ use std::sync::Arc;
 use std::{future::Future, time::Duration};
 
 use arrow::compute::concat_batches;
-use arrow_array::{make_array, Array, Float16Array, Float32Array, Float64Array};
+use arrow_array::{make_array, Array, Float16Array, Float32Array, Float64Array, RecordBatchIterator};
 use arrow_schema::DataType;
 use datafusion_expr::Expr;
 use datafusion_physical_plan::ExecutionPlan;

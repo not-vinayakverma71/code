@@ -350,7 +350,11 @@ mod tests {
         let mut compressor = ZstdCompressor::new(CompressionConfig::default());
         
         // Test with typical embedding
-        let embedding = vec![0.1, -0.5, 0.3, 0.7, -0.2; 1536];  // 1536-dim like AWS Titan
+        let mut embedding = Vec::with_capacity(1536);
+        for _ in 0..1536 {
+            embedding.extend_from_slice(&[0.1, -0.5, 0.3, 0.7, -0.2]);
+        }
+        embedding.truncate(1536);  // 1536-dim like AWS Titan
         
         assert!(compressor.verify_bit_perfect(&embedding).unwrap());
     }

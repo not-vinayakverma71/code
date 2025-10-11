@@ -411,7 +411,7 @@ impl IpcServer {
                     if let Some(listener) = listener_guard.as_mut() {
                         // Non-blocking accept attempt
                         match listener.accept().await {
-                            Ok((stream, _)) => {
+                            Ok((stream, _addr)) => {
                                 drop(listener_guard); // Release lock
                                 
                                 let permit = match semaphore.clone().acquire_owned().await {

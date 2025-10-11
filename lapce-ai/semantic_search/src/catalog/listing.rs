@@ -15,6 +15,7 @@ use super::{
 use crate::connection::ConnectRequest;
 use crate::database::{Database, DatabaseOptions};
 use crate::database::listing::{ListingDatabase, ListingDatabaseOptions};
+use crate::database::types::{CreateTableMode, CreateTableData};
 use crate::error::{Error, Result};
 use async_trait::async_trait;
 use lance::io::{ObjectStore, ObjectStoreParams, ObjectStoreRegistry};
@@ -381,11 +382,12 @@ mod tests {
             .unwrap();
         let dummy_schema = Arc::new(arrow_schema::Schema::new(Vec::<Field>::default()));
         db1.create_table(CreateTableRequest {
-            name: "test_table".parse().unwrap(),
-            data: CreateTableData::Empty(TableDefinition::new_from_schema(dummy_schema)),
-            mode: Default::default(),
-            write_options: Default::default(),
+            name: "test_table".to_string(),
             namespace: vec![],
+            schema: Some(dummy_schema),
+            mode: CreateTableMode::Create,
+            data: Some(CreateTableData::Empty),
+            write_options: None,
         })
         .await
         .unwrap();
@@ -417,11 +419,12 @@ mod tests {
             .unwrap();
         let dummy_schema = Arc::new(arrow_schema::Schema::new(Vec::<Field>::default()));
         db.create_table(CreateTableRequest {
-            name: "old_table".parse().unwrap(),
-            data: CreateTableData::Empty(TableDefinition::new_from_schema(dummy_schema)),
-            mode: Default::default(),
-            write_options: Default::default(),
+            name: "old_table".to_string(),
             namespace: vec![],
+            schema: Some(dummy_schema),
+            mode: CreateTableMode::Create,
+            data: Some(CreateTableData::Empty),
+            write_options: None,
         })
         .await
         .unwrap();

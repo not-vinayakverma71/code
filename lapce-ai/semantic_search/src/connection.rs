@@ -1296,10 +1296,10 @@ mod tests {
         // TODO: None of the open table options are "inspectable" right now but once one is we
         // should assert we are passing these options in correctly
         db.create_empty_table("test", schema)
-            .mode(CreateTableMode::exist_ok(|mut req| {
+            .mode(CreateTableMode::ExistOk(Box::new(|mut req| {
                 req.index_cache_size = Some(16);
                 req
-            }))
+            })))
             .execute()
             .await
             .unwrap();

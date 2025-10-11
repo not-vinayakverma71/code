@@ -40,7 +40,7 @@ pub struct AstNode {
     pub semantic_info: Option<SemanticInfo>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum AstNodeType {
     // Program structure
     Program,

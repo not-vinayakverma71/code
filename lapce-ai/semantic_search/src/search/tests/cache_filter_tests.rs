@@ -44,6 +44,7 @@ async fn test_cache_isolation_with_filters() {
     
     // Create different result sets for different filters
     let result_no_filter = vec![SearchResult {
+        id: "result1".to_string(),
         path: "/src/main.rs".into(),
         content: "async fn main()".to_string(),
         score: 0.95,
@@ -54,6 +55,7 @@ async fn test_cache_isolation_with_filters() {
     }];
     
     let result_rust_filter = vec![SearchResult {
+        id: "result2".to_string(),
         path: "/src/lib.rs".into(),
         content: "async fn process()".to_string(),
         score: 0.90,
@@ -64,6 +66,7 @@ async fn test_cache_isolation_with_filters() {
     }];
     
     let result_python_filter = vec![SearchResult {
+        id: "result3".to_string(),
         path: "/src/main.py".into(),
         content: "async def main():".to_string(),
         score: 0.88,
@@ -83,18 +86,18 @@ async fn test_cache_isolation_with_filters() {
     cache.insert(key3.clone(), result_python_filter.clone()).await;
     
     // Verify each filter gets its own results
-    let cached1 = cache.get(&key1).await;
-    let cached2 = cache.get(&key2).await;
-    let cached3 = cache.get(&key3).await;
+    let cached1: Option<Vec<SearchResult>> = cache.get(&key1).await;
+    let cached2: Option<Vec<SearchResult>> = cache.get(&key2).await;
+    let cached3: Option<Vec<SearchResult>> = cache.get(&key3).await;
     
     assert!(cached1.is_some(), "Should have cached result for no filter");
     assert!(cached2.is_some(), "Should have cached result for rust filter");
     assert!(cached3.is_some(), "Should have cached result for python filter");
     
     // Verify results are different and correct
-    assert_eq!(cached1.unwrap()[0].path.to_str().unwrap(), "/src/main.rs");
-    assert_eq!(cached2.unwrap()[0].path.to_str().unwrap(), "/src/lib.rs");
-    assert_eq!(cached3.unwrap()[0].path.to_str().unwrap(), "/src/main.py");
+    assert_eq!(cached1.unwrap()[0].path.as_str(), "/src/main.rs");
+    assert_eq!(cached2.unwrap()[0].path.as_str(), "/src/lib.rs");
+    assert_eq!(cached3.unwrap()[0].path.as_str(), "/src/main.py");
 }
 
 #[tokio::test]
@@ -104,18 +107,12 @@ async fn test_search_filters_serialization() {
         language: Some("rust".to_string()),
         path_pattern: Some("/src".to_string()),
         min_score: Some(0.8),
-        max_results: Some(10),
-        file_extensions: Some(vec!["rs".to_string(), "toml".to_string()]),
-        exclude_patterns: None,
     };
     
     let filters2 = SearchFilters {
         language: Some("rust".to_string()),
         path_pattern: Some("/src".to_string()),
         min_score: Some(0.8),
-        max_results: Some(10),
-        file_extensions: Some(vec!["rs".to_string(), "toml".to_string()]),
-        exclude_patterns: None,
     };
     
     let str1 = format!("{:?}", filters1);
@@ -130,6 +127,7 @@ async fn test_cache_metrics_with_filter_aware_keys() {
     
     let query = "test query";
     let result = vec![SearchResult {
+        id: "test_result".to_string(),
         path: "/test.rs".into(),
         content: "test".to_string(),
         score: 1.0,
@@ -144,14 +142,14 @@ async fn test_cache_metrics_with_filter_aware_keys() {
     cache.insert(key.clone(), result.clone()).await;
     
     // First get should be a hit
-    let _ = cache.get(&key).await;
+    let _: Option<Vec<SearchResult>> = cache.get(&key).await;
     
     // Different filter should be a miss
     let key2 = cache.compute_cache_key_with_filters(query, Some("language:python"));
-    let _ = cache.get(&key2).await;
+    let _: Option<Vec<SearchResult>> = cache.get(&key2).await;
     
     let stats = cache.get_stats().await;
     assert_eq!(stats.hits, 1, "Should have 1 cache hit");
     assert_eq!(stats.misses, 1, "Should have 1 cache miss");
-    assert_eq!(stats.entries, 1, "Should have 1 cached entry");
+    assert_eq!(stats.size, 1, "Should have 1 cached entry");
 }

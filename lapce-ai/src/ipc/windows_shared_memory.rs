@@ -378,7 +378,7 @@ impl SharedMemoryListener {
         }
     }
     
-    pub async fn accept(&mut self) -> Result<SharedMemoryStream> {
+    pub async fn accept(&self) -> Result<(SharedMemoryStream, std::net::SocketAddr)> {
         let req = self.accept_rx.recv().await
             .ok_or_else(|| anyhow::anyhow!("Control channel closed"))?;
         
@@ -393,10 +393,13 @@ impl SharedMemoryListener {
         // Signal accept complete
         let _ = req.response_tx.send(Ok(()));
         
-        Ok(SharedMemoryStream {
+        // Return dummy SocketAddr for API compatibility (shared memory doesn't use network addresses)
+        let dummy_addr = "127.0.0.1:0".parse().unwrap();
+        
+        Ok((SharedMemoryStream {
             send_buffer: Arc::new(RwLock::new(send_buffer)),
             recv_buffer: Arc::new(RwLock::new(recv_buffer)),
-        })
+        }, dummy_addr))
     }
 }
 

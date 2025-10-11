@@ -422,7 +422,10 @@ mod tests {
         let storage = MmapStorage::new(temp_dir.path(), 100 * 1024 * 1024).unwrap();
         
         // Store embedding
-        let embedding = vec![0.1, 0.2, 0.3; 384];
+        let mut embedding = Vec::with_capacity(384);
+        for i in 0..384 {
+            embedding.push((i % 3) as f32 * 0.1 + 0.1);
+        }
         storage.store_embedding("test1", &embedding).unwrap();
         
         // Retrieve embedding

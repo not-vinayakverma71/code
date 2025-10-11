@@ -343,7 +343,7 @@ impl Stream for TimeoutStream {
 mod tests {
     use arrow_array::Int32Array;
     use arrow_schema::Field;
-    use datafusion_physical_plan::stream::RecordBatchStreamAdapter;
+    use crate::arrow::SimpleRecordBatchStream;
     use futures::{stream, StreamExt};
     use tokio::time::sleep;
 
@@ -435,7 +435,7 @@ mod tests {
         let mock_stream = stream::iter(vec![Ok(batch.clone()), Ok(batch.clone())]);
 
         let sendable_stream: SendableRecordBatchStream =
-            Box::pin(RecordBatchStreamAdapter::new(schema.clone(), mock_stream));
+            Box::pin(SimpleRecordBatchStream::new(mock_stream, schema.clone()));
         let timeout_duration = std::time::Duration::from_millis(10);
         let mut timeout_stream = TimeoutStream::new(sendable_stream, timeout_duration);
 
@@ -463,7 +463,7 @@ mod tests {
         let mock_stream = stream::iter(vec![Ok(batch.clone()), Ok(batch.clone())]);
 
         let sendable_stream: SendableRecordBatchStream =
-            Box::pin(RecordBatchStreamAdapter::new(schema.clone(), mock_stream));
+            Box::pin(SimpleRecordBatchStream::new(mock_stream, schema.clone()));
 
         // Setup similar to test_timeout_stream
         let timeout_duration = std::time::Duration::from_secs(0);
@@ -482,7 +482,7 @@ mod tests {
         let mock_stream = stream::iter(vec![Ok(batch.clone()), Ok(batch.clone())]);
 
         let sendable_stream: SendableRecordBatchStream =
-            Box::pin(RecordBatchStreamAdapter::new(schema.clone(), mock_stream));
+            Box::pin(SimpleRecordBatchStream::new(mock_stream, schema.clone()));
 
         // Setup a stream with 2 batches
         // Use a longer timeout that won't trigger

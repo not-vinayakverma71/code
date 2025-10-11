@@ -71,7 +71,7 @@ impl IpcTransport for WindowsSharedMemoryTransport {
     }
     
     fn read(&mut self) -> Result<Vec<u8>> {
-        self.mem.read()?.ok_or_else(|| anyhow!("No data available"))
+        self.mem.read().ok_or_else(|| anyhow!("No data available"))
     }
     
     fn platform_name(&self) -> &str {
@@ -247,8 +247,8 @@ impl CrossPlatformIpc {
             #[cfg(windows)]
             {
                 // Try native Windows shared memory first
-                match crate::ipc::windows_shared_memory::WindowsSharedMemory::create(name, size) {
-                    Ok(mut mem) => {
+                match crate::ipc::SharedMemoryBuffer::create(name, size) {
+                    Ok(mem) => {
                         println!("✅ Using Windows CreateFileMapping (2-5M msg/sec)");
                         Box::new(WindowsSharedMemoryTransport { mem })
                     }

@@ -99,13 +99,42 @@ mod tests {
         std::env::set_var("INDEX_COMPACTION_INTERVAL", "60");
         
         let config = crate::search::semantic_search_engine::SearchConfig {
-            db_path: std::path::PathBuf::from("./test_compaction"),
+            db_path: "./test_compaction".to_string(),
             max_embedding_dim: Some(1536),
-            index_params: Default::default(),
+            ..Default::default()
         };
         
+        // Create a mock embedder for testing
+        use crate::embeddings::embedder_interface::{IEmbedder, EmbeddingResponse, EmbedderInfo, AvailableEmbedders};
+        struct MockEmbedder;
+        #[async_trait::async_trait]
+        impl IEmbedder for MockEmbedder {
+            async fn create_embeddings(
+                &self,
+                texts: Vec<String>,
+                _model: Option<&str>
+            ) -> crate::error::Result<EmbeddingResponse> {
+                Ok(EmbeddingResponse {
+                    embeddings: vec![vec![0.0; 1536]; texts.len()],
+                    usage: None,
+                })
+            }
+            async fn validate_configuration(&self) -> crate::error::Result<(bool, Option<String>)> {
+                Ok((true, None))
+            }
+            fn embedder_info(&self) -> EmbedderInfo {
+                EmbedderInfo {
+                    name: AvailableEmbedders::OpenAi,
+                }
+            }
+            fn as_any(&self) -> &dyn std::any::Any {
+                self
+            }
+        }
+        let embedder = Arc::new(MockEmbedder) as Arc<dyn IEmbedder>;
+        
         let engine = Arc::new(
-            crate::search::semantic_search_engine::SemanticSearchEngine::new(config)
+            crate::search::semantic_search_engine::SemanticSearchEngine::new(config, embedder)
                 .await
                 .unwrap()
         );
