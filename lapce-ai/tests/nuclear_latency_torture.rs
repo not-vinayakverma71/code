@@ -32,7 +32,7 @@ async fn nuclear_latency_torture() {
     let server = Arc::new(IpcServer::new(socket_path).await.unwrap());
     
     // Register fast echo handler
-    server.register_handler(MessageType::Echo, |data| async move {
+    server.register_handler(MessageType::Heartbeat, |data| async move {
         Ok(data) // Immediate echo
     });
     

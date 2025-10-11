@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: Copyright The LanceDB Authors
+
 //! Stable ID-based embedding cache for incremental indexing (CST-B05)
 //!
 //! This cache maps stable IDs from CST nodes to their pre-computed embeddings,

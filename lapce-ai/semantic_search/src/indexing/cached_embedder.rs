@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: Copyright The LanceDB Authors
+
 //! Cached embedding layer using stable IDs (CST-B05-3)
 //!
 //! Wraps embedding model with intelligent caching:

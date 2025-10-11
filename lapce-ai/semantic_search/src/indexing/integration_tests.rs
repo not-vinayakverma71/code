@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: Copyright The LanceDB Authors
+
 //! Integration tests for incremental indexing (CST-B05-5)
 //!
 //! Tests the complete flow: parse → detect changes → cache embeddings → index

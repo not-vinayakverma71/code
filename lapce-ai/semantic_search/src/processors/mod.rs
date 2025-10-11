@@ -7,3 +7,9 @@ pub mod file_watcher;
 pub mod cst_to_ast_pipeline;
 pub mod lapce_integration;
 pub mod native_file_watcher;
+
+#[cfg(feature = "cst_ts")]
+pub mod cst_cache_integration;
+
+#[cfg(feature = "cst_ts")]
+pub use cst_cache_integration::{CstCache, CstCacheConfig, CstCacheStats, CachedCstParser};

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: Copyright The LanceDB Authors
+
 //! Incremental change detection using stable IDs (CST-B05-2)
 //!
 //! Compares old vs new CST trees by stable IDs to identify:

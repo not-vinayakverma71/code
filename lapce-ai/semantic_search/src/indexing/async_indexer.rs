@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: Copyright The LanceDB Authors
+
 //! Async indexer with back-pressure and timeout handling (CST-B10)
 //!
 //! Provides production-grade async indexing with:
