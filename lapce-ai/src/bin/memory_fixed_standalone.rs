@@ -1,3 +1,4 @@
+#![cfg(unix)]  // mmap/munmap are Unix-only
 /// STANDALONE MEMORY-FIXED TEST - Direct compilation without cargo
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, AtomicBool, Ordering};
