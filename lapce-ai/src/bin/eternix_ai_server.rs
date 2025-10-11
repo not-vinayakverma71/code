@@ -9,8 +9,12 @@ use tracing::{info, error};
 use lapce_ai_rust::{
     ipc::ipc_server::IpcServer,
     provider_pool::{ProviderPool, ProviderPoolConfig},
-    ipc::shared_memory_complete::SharedMemoryBuffer,
 };
+
+#[cfg(unix)]
+use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryBuffer;
+#[cfg(windows)]
+use lapce_ai_rust::ipc::windows_shared_memory::SharedMemoryBuffer;
 
 #[tokio::main]
 async fn main() -> Result<()> {
