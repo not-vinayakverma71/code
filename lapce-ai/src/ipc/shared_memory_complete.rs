@@ -42,6 +42,11 @@ impl SharedMemoryBuffer {
         let total_size = header_size + data_size;
         
         // Create namespaced SHM path with per-boot suffix for security
+        // On macOS, skip namespacing to avoid /var/tmp/ issues in CI environments
+        #[cfg(target_os = "macos")]
+        let namespaced_path = path.to_string();
+        
+        #[cfg(not(target_os = "macos"))]
         let namespaced_path = create_namespaced_path(path);
         
         // shm_open requires name to start with '/' but have no other slashes

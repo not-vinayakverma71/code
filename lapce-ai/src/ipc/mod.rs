@@ -6,8 +6,10 @@ pub mod config_validation_tests;
 pub mod binary_codec;
 pub mod errors;
 pub mod ipc_server;
+#[cfg(unix)]
 pub mod shared_memory_complete;
 pub mod zero_copy_codec;
+#[cfg(unix)]
 pub mod shm_namespace;
 pub mod cross_platform_ipc;
 pub mod macos_shared_memory;
@@ -34,6 +36,7 @@ pub use ipc_server::IpcServer;
 pub use errors::{IpcError, IpcResult};
 pub use ipc_config::IpcConfig;
 pub use ipc_messages::MessageType;
+#[cfg(unix)]
 pub use shared_memory_complete::{SharedMemoryBuffer, SharedMemoryListener, SharedMemoryStream};
 pub use crate::connection_pool_manager::{ConnectionPoolManager, PoolConfig, ConnectionStats};
 pub use auto_reconnection::AutoReconnectionManager;
