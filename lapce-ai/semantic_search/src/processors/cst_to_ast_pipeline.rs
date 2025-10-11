@@ -26,6 +26,9 @@ pub struct CstNode {
     pub is_extra: bool,
     pub field_name: Option<String>,
     pub children: Vec<CstNode>,
+    /// Stable ID for tracking nodes across file edits (Phase B)
+    /// Populated when using CstApi from lapce-tree-sitter
+    pub stable_id: Option<u64>,
 }
 
 /// AST Node - Abstract syntax tree derived from CST
@@ -112,6 +115,8 @@ pub struct NodeMetadata {
     pub source_file: Option<PathBuf>,
     pub language: String,
     pub complexity: usize,
+    /// Stable ID propagated from CST for incremental indexing (Phase B)
+    pub stable_id: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -215,6 +220,15 @@ impl CstToAstPipeline {
         // Detect language
         let language = self.detect_language(path)?;
         
+        // Phase B: Use CstApi for stable IDs when cst_ts feature is enabled
+        #[cfg(feature = "cst_ts")]
+        {
+            if let Ok(output) = self.process_file_with_cst_api(path, &source, &language).await {
+                return Ok(output);
+            }
+            // Fallback to regular parsing if CstApi fails
+        }
+        
         // Get or create parser from lapce-tree-sitter integration
         let parser = self.get_or_create_parser(&language)?;
         
@@ -271,6 +285,7 @@ impl CstToAstPipeline {
             is_extra: node.is_extra(),
             field_name: None,  // Would need parent context
             children,
+            stable_id: None,  // Phase B: Will be populated via CstApi
         })
     }
     
@@ -289,7 +304,7 @@ impl CstToAstPipeline {
         // Parser can't be cloned, so we create a new one each time
         let mut parser = Parser::new();
         let lang = self.get_language(language)?;
-        parser.set_language(lang)
+        parser.set_language(&lang)
             .map_err(|e| Error::Runtime {
                 message: format!("Failed to set language: {}", e)
             })?;
@@ -308,12 +323,12 @@ impl CstToAstPipeline {
     /// Get tree-sitter language
     fn get_language(&self, name: &str) -> Result<Language> {
         match name {
-            "rust" => Ok(unsafe { tree_sitter_rust::language() }),
-            "javascript" => Ok(unsafe { tree_sitter_javascript::language() }),
-            "typescript" => Ok(unsafe { tree_sitter_typescript::language_typescript() }),
-            "python" => Ok(unsafe { tree_sitter_python::language() }),
-            "go" => Ok(unsafe { tree_sitter_go::language() }),
-            "java" => Ok(unsafe { tree_sitter_java::language() }),
+            "rust" => Ok(tree_sitter_rust::LANGUAGE.into()),
+            "javascript" => Ok(tree_sitter_javascript::LANGUAGE.into()),
+            "typescript" => Ok(tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into()),
+            "python" => Ok(tree_sitter_python::LANGUAGE.into()),
+            "go" => Ok(tree_sitter_go::LANGUAGE.into()),
+            "java" => Ok(tree_sitter_java::LANGUAGE.into()),
             _ => Err(Error::Runtime {
                 message: format!("Unsupported language: {}", name)
             })
@@ -353,6 +368,66 @@ impl CstToAstPipeline {
             Err(Error::Runtime {
                 message: "File not processed yet".to_string()
             })
+        }
+    }
+    
+    /// Process file using CstApi for stable ID support (Phase B)
+    #[cfg(feature = "cst_ts")]
+    async fn process_file_with_cst_api(&self, path: &Path, source: &str, language: &str) -> Result<PipelineOutput> {
+        use lapce_tree_sitter::cst_api::CstApiBuilder;
+        
+        let start = std::time::Instant::now();
+        
+        // Parse with tree-sitter
+        let parser = self.get_or_create_parser(language)?;
+        let tree = self.parse_to_cst(parser, source)?;
+        let parse_time = start.elapsed().as_secs_f64() * 1000.0;
+        
+        // Build CstApi with stable IDs
+        let transform_start = std::time::Instant::now();
+        let cst_api = CstApiBuilder::new()
+            .build_from_tree(&tree, source.as_bytes())
+            .map_err(|e| Error::Runtime {
+                message: format!("Failed to build CstApi: {}", e)
+            })?;
+        
+        // Build regular CST tree
+        let mut cst = self.tree_to_cst_node(tree.root_node(), source)?;
+        
+        // Enrich CST with stable IDs from CstApi by matching byte positions
+        self.enrich_cst_with_stable_ids(&mut cst, &cst_api);
+        
+        // Transform CST to AST
+        let ast = self.transform_cst_to_ast(&cst, language, path)?;
+        let transform_time = transform_start.elapsed().as_secs_f64() * 1000.0;
+        
+        // Cache result
+        self.ast_cache.insert(path.to_path_buf(), ast.clone());
+        
+        Ok(PipelineOutput {
+            cst,
+            ast,
+            source_file: path.to_path_buf(),
+            language: language.to_string(),
+            parse_time_ms: parse_time,
+            transform_time_ms: transform_time,
+        })
+    }
+    
+    /// Enrich CstNode tree with stable IDs from CstApi by matching byte positions (Phase B)
+    #[cfg(feature = "cst_ts")]
+    fn enrich_cst_with_stable_ids(&self, cst: &mut CstNode, api: &lapce_tree_sitter::cst_api::CstApi) {
+        // Find node in CstApi by byte position
+        if let Some(decoded_node) = api.find_node_at_position(cst.start_byte) {
+            // Match by byte range to ensure correctness
+            if decoded_node.start_byte == cst.start_byte && decoded_node.end_byte == cst.end_byte {
+                cst.stable_id = Some(decoded_node.stable_id);
+            }
+        }
+        
+        // Recursively enrich children
+        for child in &mut cst.children {
+            self.enrich_cst_with_stable_ids(child, api);
         }
     }
     
@@ -557,6 +632,7 @@ fn transform_rust_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Result<
             source_file: Some(path.to_path_buf()),
             language: "rust".to_string(),
             complexity: calculate_complexity(cst),
+            stable_id: cst.stable_id,  // Propagate from CST
         },
         children: ast_children,
         semantic_info: Some(SemanticInfo {
@@ -626,6 +702,7 @@ fn transform_js_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Result<As
             source_file: Some(path.to_path_buf()),
             language: "javascript".to_string(),
             complexity: calculate_complexity(cst),
+            stable_id: cst.stable_id,  // Propagate from CST
         },
         children: ast_children,
         semantic_info: Some(SemanticInfo {
@@ -703,6 +780,7 @@ fn transform_python_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Resul
             source_file: Some(path.to_path_buf()),
             language: "python".to_string(),
             complexity: calculate_complexity(cst),
+            stable_id: cst.stable_id,  // Propagate from CST
         },
         children: ast_children,
         semantic_info: Some(SemanticInfo {
@@ -770,6 +848,7 @@ fn transform_go_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Result<As
             source_file: Some(path.to_path_buf()),
             language: "go".to_string(),
             complexity: calculate_complexity(cst),
+            stable_id: cst.stable_id,  // Propagate from CST
         },
         children: ast_children,
         semantic_info: Some(SemanticInfo {
@@ -839,6 +918,7 @@ fn transform_java_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Result<
             source_file: Some(path.to_path_buf()),
             language: "java".to_string(),
             complexity: calculate_complexity(cst),
+            stable_id: cst.stable_id,  // Propagate from CST
         },
         children: ast_children,
         semantic_info: Some(SemanticInfo {

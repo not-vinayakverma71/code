@@ -41,6 +41,16 @@ jobs:
         run: |
           cargo test -p lapce-ai-rust --test cross_os_success_criteria -- --nocapture
 
+      - name: Test semantic_search (default features)
+        working-directory: lapce-ai/semantic_search
+        run: |
+          cargo test --lib
+
+      - name: Test semantic_search (cst_ts feature)
+        working-directory: lapce-ai/semantic_search
+        run: |
+          cargo test --lib --no-default-features --features cst_ts
+
       - name: Upload test logs
         if: always()
         uses: actions/upload-artifact@v4

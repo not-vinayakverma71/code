@@ -9,6 +9,7 @@ use std::time::{Duration, Instant};
 use tokio::time::sleep;
 use lapce_ai_rust::ipc::ipc_server::IpcServer;
 use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryStream;
+use lapce_ai_rust::ipc_messages::MessageType;
 use bytes::Bytes;
 
 const CONCURRENT_OPERATIONS: usize = 100;

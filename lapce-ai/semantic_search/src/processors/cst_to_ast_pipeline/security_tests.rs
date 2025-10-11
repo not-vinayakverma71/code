@@ -110,6 +110,7 @@ mod tests {
             is_extra: false,
             field_name: None,
             children: vec![],
+            stable_id: None,
         };
         
         let parent_cst = CstNode {
@@ -124,6 +125,7 @@ mod tests {
             is_extra: false,
             field_name: None,
             children: vec![identifier_child],
+            stable_id: None,
         };
         
         let id = extract_identifier(&parent_cst);
@@ -168,6 +170,7 @@ mod tests {
             is_extra: false,
             field_name: None,
             children: vec![],
+            stable_id: None,
         };
         
         let complexity = calculate_complexity(&cst_with_string);
@@ -188,6 +191,7 @@ mod tests {
             source_file: Some(PathBuf::from("/home/user@example.com/code.rs")),
             language: "rust".to_string(),
             complexity: 5,
+            stable_id: None,
         };
         
         // If we serialize or log metadata, paths should be redacted
