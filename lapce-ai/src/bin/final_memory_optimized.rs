@@ -1,15 +1,18 @@
-#![cfg(unix)]
-
 /// FINAL MEMORY-OPTIMIZED TEST - Async tasks instead of threads
 /// This achieves <3MB memory by avoiding 1000 thread stacks
 /// UNIX ONLY: Uses mmap/munmap syscalls
 
+#[cfg(unix)]
 use std::sync::Arc;
+#[cfg(unix)]
 use std::sync::atomic::{AtomicU64, AtomicBool, AtomicUsize, Ordering};
+#[cfg(unix)]
 use std::time::{Duration, Instant};
+#[cfg(unix)]
 use std::ptr;
 
 // Inline SharedMemoryBuffer
+#[cfg(unix)]
 #[repr(C)]
 struct BufferHeader {
     write_pos: AtomicUsize,
@@ -17,15 +20,19 @@ struct BufferHeader {
     size: usize,
 }
 
+#[cfg(unix)]
 struct SharedMemoryBuffer {
     ptr: *mut u8,
     size: usize,
     header: *mut BufferHeader,
 }
 
+#[cfg(unix)]
 unsafe impl Send for SharedMemoryBuffer {}
+#[cfg(unix)]
 unsafe impl Sync for SharedMemoryBuffer {}
 
+#[cfg(unix)]
 impl SharedMemoryBuffer {
     fn create(_name: &str, size: usize) -> Result<Self, Box<dyn std::error::Error>> {
         unsafe {
@@ -115,6 +122,7 @@ impl SharedMemoryBuffer {
     }
 }
 
+#[cfg(unix)]
 impl Drop for SharedMemoryBuffer {
     fn drop(&mut self) {
         unsafe {
@@ -125,6 +133,7 @@ impl Drop for SharedMemoryBuffer {
     }
 }
 
+#[cfg(unix)]
 fn main() {
     println!("\n🎯 FINAL MEMORY-OPTIMIZED PRODUCTION TEST");
     println!("{}", "=".repeat(80));
@@ -258,6 +267,7 @@ fn main() {
     println!("{}", "=".repeat(80));
 }
 
+#[cfg(unix)]
 fn get_memory_kb() -> u64 {
     std::fs::read_to_string("/proc/self/status")
         .ok()
@@ -270,6 +280,7 @@ fn get_memory_kb() -> u64 {
         .unwrap_or(0)
 }
 
+#[cfg(unix)]
 mod libc {
     pub const PROT_READ: usize = 0x1;
     pub const PROT_WRITE: usize = 0x2;
@@ -281,4 +292,12 @@ mod libc {
         pub fn mmap(addr: *mut core::ffi::c_void, len: usize, prot: i32, flags: i32, fd: i32, offset: i64) -> *mut core::ffi::c_void;
         pub fn munmap(addr: *mut core::ffi::c_void, len: usize) -> i32;
     }
+}
+
+// Windows stub - binary is Unix-only
+#[cfg(not(unix))]
+fn main() {
+    eprintln!("Error: final_memory_optimized is a Unix-only binary.");
+    eprintln!("It uses mmap/munmap syscalls not available on Windows.");
+    std::process::exit(1);
 }

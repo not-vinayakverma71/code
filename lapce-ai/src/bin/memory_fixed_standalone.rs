@@ -1,13 +1,18 @@
-#![cfg(unix)]  // mmap/munmap are Unix-only
 /// STANDALONE MEMORY-FIXED TEST - Direct compilation without cargo
-use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, AtomicBool, Ordering};
-use std::time::{Duration, Instant};
+/// mmap/munmap are Unix-only
 
-// Inline minimal SharedMemoryBuffer implementation
+#[cfg(unix)]
+use std::sync::Arc;
+#[cfg(unix)]
+use std::sync::atomic::{AtomicU64, AtomicBool, Ordering};
+#[cfg(unix)]
+use std::time::{Duration, Instant};
+#[cfg(unix)]
 use std::ptr;
+#[cfg(unix)]
 use std::sync::atomic::AtomicUsize;
 
+#[cfg(unix)]
 #[repr(C)]
 struct BufferHeader {
     write_pos: AtomicUsize,
@@ -15,15 +20,19 @@ struct BufferHeader {
     size: usize,
 }
 
+#[cfg(unix)]
 struct SharedMemoryBuffer {
     ptr: *mut u8,
     size: usize,
     header: *mut BufferHeader,
 }
 
+#[cfg(unix)]
 unsafe impl Send for SharedMemoryBuffer {}
+#[cfg(unix)]
 unsafe impl Sync for SharedMemoryBuffer {}
 
+#[cfg(unix)]
 impl SharedMemoryBuffer {
     fn create(name: &str, size: usize) -> Result<Self, Box<dyn std::error::Error>> {
         unsafe {
@@ -101,6 +110,7 @@ impl SharedMemoryBuffer {
     }
 }
 
+#[cfg(unix)]
 impl Drop for SharedMemoryBuffer {
     fn drop(&mut self) {
         unsafe {
@@ -111,6 +121,7 @@ impl Drop for SharedMemoryBuffer {
     }
 }
 
+#[cfg(unix)]
 fn main() {
     println!("\n🚀 STANDALONE MEMORY-FIXED PRODUCTION TEST");
     println!("{}", "=".repeat(80));
@@ -231,6 +242,7 @@ extern "C" {
     // Link to libc
 }
 
+#[cfg(unix)]
 mod libc {
     pub const PROT_READ: usize = 0x1;
     pub const PROT_WRITE: usize = 0x2;
@@ -242,4 +254,12 @@ mod libc {
         pub fn mmap(addr: *mut core::ffi::c_void, len: usize, prot: i32, flags: i32, fd: i32, offset: i64) -> *mut core::ffi::c_void;
         pub fn munmap(addr: *mut core::ffi::c_void, len: usize) -> i32;
     }
+}
+
+// Windows stub - binary is Unix-only
+#[cfg(not(unix))]
+fn main() {
+    eprintln!("Error: memory_fixed_standalone is a Unix-only binary.");
+    eprintln!("It uses mmap/munmap syscalls not available on Windows.");
+    std::process::exit(1);
 }

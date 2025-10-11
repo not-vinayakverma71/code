@@ -26,6 +26,8 @@ default = []
 local_models = ["candle-core", "candle-nn", "candle-transformers", "ort"]
 jemalloc = ["jemallocator"]
 nuclear-tests = []
+# Feature only available on Unix platforms - used to exclude Unix-only binaries on Windows
+unix-bins = []
 
 [[bin]]
 name = "cli_tools"
@@ -39,12 +41,12 @@ path = "src/bin/lapce-ai-cli.rs"
 [[bin]]
 name = "final_memory_optimized"
 path = "src/bin/final_memory_optimized.rs"
-required-features = []  # Will be excluded on Windows due to #![cfg(unix)]
+required-features = ["unix-bins"]
 
 [[bin]]
 name = "memory_fixed_standalone"
 path = "src/bin/memory_fixed_standalone.rs"
-required-features = []  # Will be excluded on Windows due to #![cfg(unix)]
+required-features = ["unix-bins"]
 
 [[bench]]
 name = "benchmarks"
