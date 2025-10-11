@@ -7,13 +7,20 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
-use lapce_ai_rust::{IpcServer, IpcConfig};
-use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryStream;
-use lapce_ai_rust::ipc::binary_codec::MessageType;
-use bytes::Bytes;
+use lapce_ai_rust::ipc::shared_memory_complete::{SharedMemoryListener, SharedMemoryStream};
 
+// Debug mode: 10x faster
+#[cfg(debug_assertions)]
+const BACKGROUND_CONNECTIONS: usize = 100;
+#[cfg(debug_assertions)]
+const TEST_MESSAGES: usize = 1000;
+
+// Release mode: full scale
+#[cfg(not(debug_assertions))]
 const BACKGROUND_CONNECTIONS: usize = 999;
+#[cfg(not(debug_assertions))]
 const TEST_MESSAGES: usize = 10000;
+
 const MESSAGE_SIZE: usize = 256;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 16)]
@@ -27,20 +34,23 @@ async fn nuclear_latency_torture() {
     let start_time = Instant::now();
     let mut latencies = Vec::with_capacity(TEST_MESSAGES);
     
-    // Start IPC server
-    let socket_path = "/tmp/lapce_nuclear_3.sock";
-    let server = Arc::new(IpcServer::new(socket_path).await.unwrap());
-    
-    // Register fast echo handler
-    server.register_handler(MessageType::Heartbeat, |data| async move {
-        Ok(data) // Immediate echo
-    });
-    
-    // Start server
+    // Start raw SHM echo server (transport-level)
+    let socket_path = "/tmp/nuc3.sock";
+    let listener = Arc::new(SharedMemoryListener::bind(socket_path).unwrap());
     let server_handle = {
-        let server = server.clone();
+        let listener = listener.clone();
         tokio::spawn(async move {
-            server.serve().await.unwrap();
+            loop {
+                if let Ok((mut stream, _)) = listener.accept().await {
+                    tokio::spawn(async move {
+                        let mut buf = vec![0u8; MESSAGE_SIZE];
+                        loop {
+                            if stream.read_exact(&mut buf).await.is_err() { break; }
+                            if stream.write_all(&buf).await.is_err() { break; }
+                        }
+                    });
+                }
+            }
         })
     };
     

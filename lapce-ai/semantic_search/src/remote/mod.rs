@@ -9,7 +9,7 @@ pub mod util;
 
 pub use client::{ClientConfig, RestfulLanceDbClient};
 pub use db::RemoteDatabase;
-pub use retry::RetryConfig;
+pub use client::RetryConfig;
 pub use table::RemoteTable;
 
 pub const JSON_CONTENT_TYPE: &str = "application/json";

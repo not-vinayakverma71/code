@@ -30,7 +30,7 @@ async fn test_final_optimized_system() {
     
     // AWS Titan embedder with rate limit handling
     println!("🔐 Initializing AWS Titan...");
-    let embedder = AwsTitanProduction::new("us-east-1", AwsTier::Standard).await
+    let embedder = AwsTitanProduction::new_from_config().await
         .expect("Failed to create AWS Titan embedder");
     let (valid, msg) = embedder.validate_configuration().await.unwrap();
     assert!(valid, "AWS validation failed: {}", msg.unwrap_or_default());

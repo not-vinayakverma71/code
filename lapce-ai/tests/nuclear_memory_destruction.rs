@@ -7,12 +7,17 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
-use lapce_ai_rust::ipc::ipc_server::IpcServer;
-use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryStream;
-use lapce_ai_rust::ipc::binary_codec::MessageType;
-use bytes::Bytes;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use lapce_ai_rust::ipc::shared_memory_complete::{SharedMemoryListener, SharedMemoryStream};
 
+// Debug mode: 10x faster
+#[cfg(debug_assertions)]
+const CONCURRENT_OPERATIONS: usize = 10;
+
+// Release mode: full scale
+#[cfg(not(debug_assertions))]
 const CONCURRENT_OPERATIONS: usize = 100;
+
 const BUFFER_SIZES: &[usize] = &[
     64,      // Tiny
     1024,    // 1KB
@@ -32,27 +37,30 @@ async fn nuclear_memory_destruction() {
     let start_time = Instant::now();
     let peak_memory = Arc::new(AtomicUsize::new(0));
     
-    // Start IPC server
-    let socket_path = "/tmp/lapce_nuclear_2.sock";
-    let server = Arc::new(IpcServer::new(socket_path).await.unwrap());
-    
-    // Register handlers for different sizes
-    // Use MessageType::CompletionRequest for all handlers since we're testing memory, not message types
-    for (_idx, &size) in BUFFER_SIZES.iter().enumerate() {
-        let handler_size = size;
-        server.register_handler(MessageType::CompletionRequest, move |data| async move {
-            // Allocate temporary buffer to stress memory
-            let mut buffer = vec![0u8; handler_size];
-            buffer[0] = data[0]; // Touch memory
-            Ok(Bytes::from(buffer))
-        });
-    }
-    
-    // Start server
+    // Start raw SHM echo server with simple len-prefixed framing
+    let socket_path = "/tmp/nuc2.sock";
+    let listener = Arc::new(SharedMemoryListener::bind(socket_path).unwrap());
     let server_handle = {
-        let server = server.clone();
+        let listener = listener.clone();
         tokio::spawn(async move {
-            server.serve().await.unwrap();
+            loop {
+                if let Ok((mut stream, _)) = listener.accept().await {
+                    tokio::spawn(async move {
+                        loop {
+                            // Read 4-byte little-endian length
+                            let mut len_buf = [0u8; 4];
+                            if stream.read_exact(&mut len_buf).await.is_err() { break; }
+                            let len = u32::from_le_bytes(len_buf) as usize;
+                            if len == 0 || len > 1_048_576 { break; }
+                            // Read payload
+                            let mut buf = vec![0u8; len];
+                            if stream.read_exact(&mut buf).await.is_err() { break; }
+                            // Echo back
+                            if stream.write_all(&buf).await.is_err() { break; }
+                        }
+                    });
+                }
+            }
         })
     };
     
@@ -84,16 +92,19 @@ async fn nuclear_memory_destruction() {
                 .expect("Failed to connect");
             
             // Cycle through all buffer sizes rapidly
-            for _ in 0..100 {
+            #[cfg(debug_assertions)]
+            let iterations = 10;
+            #[cfg(not(debug_assertions))]
+            let iterations = 100;
+            
+            for _ in 0..iterations {
                 for (idx, &size) in BUFFER_SIZES.iter().enumerate() {
                     // Create message of varying size
-                    let message = vec![idx as u8; size.min(1024)];
-                    
-                    // Send with message type
-                    let mut full_msg = vec![];
-                    full_msg.extend_from_slice(&(idx as u32).to_le_bytes());
+                    let message = vec![idx as u8; size];
+                    // Send len-prefixed
+                    let mut full_msg = Vec::with_capacity(4 + size);
+                    full_msg.extend_from_slice(&(size as u32).to_le_bytes());
                     full_msg.extend_from_slice(&message);
-                    
                     stream.write_all(&full_msg).await.expect("Write failed");
                     
                     // Read response

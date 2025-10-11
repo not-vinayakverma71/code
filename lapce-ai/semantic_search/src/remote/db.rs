@@ -14,13 +14,12 @@ use serde::Deserialize;
 use tokio::task::spawn_blocking;
 
 use crate::database::{
-    CreateNamespaceRequest, CreateTableData, CreateTableMode, CreateTableRequest, Database,
+    CreateTableData, CreateTableMode, CreateTableRequest, CreateNamespaceRequest, Database,
     DatabaseOptions, DropNamespaceRequest, ListNamespacesRequest, OpenTableRequest,
     TableNamesRequest,
 };
-use crate::error::Result;
-use crate::table::BaseTable;
-use crate::Error;
+use crate::table::{Table, WriteOptions, BaseTable};
+use crate::{Error, Result};
 
 use super::client::{ClientConfig, HttpSend, RequestResultExt, RestfulLanceDbClient, Sender};
 use super::table::RemoteTable;
@@ -254,6 +253,7 @@ impl From<&CreateTableMode> for &'static str {
         match val {
             CreateTableMode::Create => "create",
             CreateTableMode::Overwrite => "overwrite",
+            CreateTableMode::CreateIfNotExists => "create_if_not_exists",
             CreateTableMode::ExistOk(_) => "exist_ok",
         }
     }
@@ -304,9 +304,15 @@ fn build_cache_key(name: &str, namespace: &[String]) -> String {
 #[async_trait]
 impl<S: HttpSend> Database for RemoteDatabase<S> {
     async fn table_names(&self, request: TableNamesRequest) -> Result<Vec<String>> {
-        let mut req = if !request.namespace.is_empty() {
+        let namespace_vec = if let Some(ref ns) = request.namespace {
+            vec![ns.clone()]
+        } else {
+            vec![]
+        };
+        
+        let mut req = if !namespace_vec.is_empty() {
             let namespace_id =
-                build_namespace_identifier(&request.namespace, &self.client.id_delimiter);
+                build_namespace_identifier(&namespace_vec, &self.client.id_delimiter);
             self.client
                 .get(&format!("/v1/namespace/{}/table/list", namespace_id))
         } else {
@@ -330,12 +336,12 @@ impl<S: HttpSend> Database for RemoteDatabase<S> {
             .tables;
         for table in &tables {
             let table_identifier =
-                build_table_identifier(table, &request.namespace, &self.client.id_delimiter);
-            let cache_key = build_cache_key(table, &request.namespace);
+                build_table_identifier(table, &namespace_vec, &self.client.id_delimiter);
+            let cache_key = build_cache_key(table, &namespace_vec);
             let remote_table = Arc::new(RemoteTable::new(
                 self.client.clone(),
                 table.clone(),
-                request.namespace.clone(),
+                namespace_vec.clone(),
                 table_identifier.clone(),
                 version.clone(),
             ));
@@ -344,7 +350,7 @@ impl<S: HttpSend> Database for RemoteDatabase<S> {
         Ok(tables)
     }
 
-    async fn create_table(&self, request: CreateTableRequest) -> Result<Arc<dyn BaseTable>> {
+    async fn create_table(&self, request: CreateTableRequest) -> Result<Table> {
         let data = match request.data {
             Some(CreateTableData::Data(data)) => data,
             Some(CreateTableData::StreamingData(_)) => {
@@ -384,6 +390,15 @@ impl<S: HttpSend> Database for RemoteDatabase<S> {
                 return match request.mode {
                     CreateTableMode::Create => {
                         Err(crate::Error::TableAlreadyExists { name: request.name })
+                    }
+                    CreateTableMode::CreateIfNotExists => {
+                        let req = OpenTableRequest {
+                            name: request.name.clone(),
+                            namespace: request.namespace.clone(),
+                            index_cache_size: None,
+                            lance_read_params: None,
+                        };
+                        self.open_table(req).await
                     }
                     CreateTableMode::ExistOk(callback) => {
                         let req = OpenTableRequest {
@@ -429,17 +444,17 @@ impl<S: HttpSend> Database for RemoteDatabase<S> {
         ));
         self.table_cache.insert(cache_key, table.clone()).await;
 
-        Ok(table)
+        Ok(Table::new(table))
     }
 
-    async fn open_table(&self, request: OpenTableRequest) -> Result<Arc<dyn BaseTable>> {
+    async fn open_table(&self, request: OpenTableRequest) -> Result<Table> {
         let identifier =
             build_table_identifier(&request.name, &request.namespace, &self.client.id_delimiter);
         let cache_key = build_cache_key(&request.name, &request.namespace);
 
         // We describe the table to confirm it exists before moving on.
         if let Some(table) = self.table_cache.get(&cache_key).await {
-            Ok(table.clone())
+            Ok(Table::new(table.clone()))
         } else {
             let req = self
                 .client
@@ -466,17 +481,14 @@ impl<S: HttpSend> Database for RemoteDatabase<S> {
             ));
             let cache_key = build_cache_key(&request.name, &request.namespace);
             self.table_cache.insert(cache_key, table.clone()).await;
-            Ok(table)
+            Ok(Table::new(table))
         }
     }
 
-    async fn rename_table(
-        &self,
-        current_name: &str,
-        new_name: &str,
-        cur_namespace: &[String],
-        new_namespace: &[String],
-    ) -> Result<()> {
+    async fn rename_table(&self, old_name: &str, new_name: &str) -> Result<()> {
+        let cur_namespace: &[String] = &[];
+        let new_namespace: &[String] = &[];
+        let current_name = old_name;
         let current_identifier =
             build_table_identifier(current_name, cur_namespace, &self.client.id_delimiter);
         let current_cache_key = build_cache_key(current_name, cur_namespace);
@@ -504,7 +516,8 @@ impl<S: HttpSend> Database for RemoteDatabase<S> {
         Ok(())
     }
 
-    async fn drop_table(&self, name: &str, namespace: &[String]) -> Result<()> {
+    async fn drop_table(&self, name: &str) -> Result<()> {
+        let namespace: &[String] = &[];
         let identifier = build_table_identifier(name, namespace, &self.client.id_delimiter);
         let cache_key = build_cache_key(name, namespace);
         let req = self.client.post(&format!("/v1/table/{}/drop/", identifier));
@@ -514,9 +527,9 @@ impl<S: HttpSend> Database for RemoteDatabase<S> {
         Ok(())
     }
 
-    async fn drop_all_tables(&self, namespace: &[String]) -> Result<()> {
-        // TODO: Implement namespace-aware drop_all_tables
-        let _namespace = namespace; // Suppress unused warning for now
+    async fn drop_all_tables(&self) -> Result<()> {
+        // TODO: Implement drop_all_tables
+        let namespace: &[String] = &[];
         Err(crate::Error::NotSupported {
             message: "Dropping all tables is not currently supported in the remote API".to_string(),
         })
@@ -524,14 +537,14 @@ impl<S: HttpSend> Database for RemoteDatabase<S> {
 
     async fn list_namespaces(&self, request: ListNamespacesRequest) -> Result<Vec<String>> {
         let namespace_id =
-            build_namespace_identifier(request.namespace.as_slice(), &self.client.id_delimiter);
+            build_namespace_identifier(&[], &self.client.id_delimiter);
         let mut req = self
             .client
             .get(&format!("/v1/namespace/{}/list", namespace_id));
         if let Some(limit) = request.limit {
             req = req.query(&[("limit", limit)]);
         }
-        if let Some(page_token) = request.page_token {
+        if let Some(page_token) = request.start_after {
             req = req.query(&[("page_token", page_token)]);
         }
 
@@ -551,7 +564,7 @@ impl<S: HttpSend> Database for RemoteDatabase<S> {
 
     async fn create_namespace(&self, request: CreateNamespaceRequest) -> Result<()> {
         let namespace_id =
-            build_namespace_identifier(request.namespace.as_slice(), &self.client.id_delimiter);
+            build_namespace_identifier(&[request.name.clone()], &self.client.id_delimiter);
         let req = self
             .client
             .post(&format!("/v1/namespace/{}/create", namespace_id));
@@ -562,7 +575,7 @@ impl<S: HttpSend> Database for RemoteDatabase<S> {
 
     async fn drop_namespace(&self, request: DropNamespaceRequest) -> Result<()> {
         let namespace_id =
-            build_namespace_identifier(request.namespace.as_slice(), &self.client.id_delimiter);
+            build_namespace_identifier(&[request.name.clone()], &self.client.id_delimiter);
         let req = self
             .client
             .post(&format!("/v1/namespace/{}/drop", namespace_id));

@@ -10,7 +10,7 @@ async fn test_missing_aws_region_error() {
     env::remove_var("AWS_REGION");
     env::remove_var("AWS_DEFAULT_REGION");
     
-    let result = AwsTitanProduction::new().await;
+    let result = AwsTitanProduction::new_from_config().await;
     
     // Restore original
     if let Some(val) = original {
@@ -32,7 +32,7 @@ async fn test_missing_aws_region_error() {
 async fn test_invalid_region_error() {
     env::set_var("AWS_REGION", "invalid-region-12345");
     
-    let result = AwsTitanProduction::new().await;
+    let result = AwsTitanProduction::new_from_config().await;
     
     env::remove_var("AWS_REGION");
     
@@ -53,7 +53,7 @@ async fn test_missing_credentials_error() {
     env::remove_var("AWS_ACCESS_KEY_ID");
     env::remove_var("AWS_SECRET_ACCESS_KEY");
     
-    let embedder = AwsTitanProduction::new().await;
+    let embedder = AwsTitanProduction::new_from_config().await;
     
     // Restore credentials
     if let Some(val) = orig_access {
@@ -80,7 +80,7 @@ async fn test_missing_credentials_error() {
 
 #[tokio::test]
 async fn test_rate_limit_configuration() {
-    let embedder = AwsTitanProduction::new().await;
+    let embedder = AwsTitanProduction::new_from_config().await;
     
     if let Ok(embedder) = embedder {
         // Verify rate limiting is configured
@@ -92,7 +92,7 @@ async fn test_rate_limit_configuration() {
 
 #[tokio::test]
 async fn test_concurrent_request_limit() {
-    let embedder = AwsTitanProduction::new().await;
+    let embedder = AwsTitanProduction::new_from_config().await;
     
     if let Ok(embedder) = embedder {
         let config = embedder.get_config();
@@ -103,7 +103,7 @@ async fn test_concurrent_request_limit() {
 
 #[tokio::test]
 async fn test_retry_configuration() {
-    let embedder = AwsTitanProduction::new().await;
+    let embedder = AwsTitanProduction::new_from_config().await;
     
     if let Ok(embedder) = embedder {
         let config = embedder.get_config();
@@ -119,7 +119,7 @@ async fn test_no_secrets_in_logs() {
     env::set_var("AWS_ACCESS_KEY_ID", "AKIAIOSFODNN7EXAMPLE");
     env::set_var("AWS_SECRET_ACCESS_KEY", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY");
     
-    let embedder = AwsTitanProduction::new().await;
+    let embedder = AwsTitanProduction::new_from_config().await;
     
     env::remove_var("AWS_ACCESS_KEY_ID");
     env::remove_var("AWS_SECRET_ACCESS_KEY");
@@ -131,7 +131,7 @@ async fn test_no_secrets_in_logs() {
 
 #[tokio::test]
 async fn test_timeout_configuration() {
-    let embedder = AwsTitanProduction::new().await;
+    let embedder = AwsTitanProduction::new_from_config().await;
     
     if let Ok(embedder) = embedder {
         let config = embedder.get_config();
@@ -156,7 +156,7 @@ fn test_no_hardcoded_credentials() {
 
 #[tokio::test]
 async fn test_empty_text_handling() {
-    let embedder = AwsTitanProduction::new().await;
+    let embedder = AwsTitanProduction::new_from_config().await;
     
     if let Ok(embedder) = embedder {
         let result = embedder.create_embeddings(vec!["".to_string()], None).await;
@@ -170,7 +170,7 @@ async fn test_empty_text_handling() {
 
 #[tokio::test]
 async fn test_oversized_text_handling() {
-    let embedder = AwsTitanProduction::new().await;
+    let embedder = AwsTitanProduction::new_from_config().await;
     
     if let Ok(embedder) = embedder {
         // Create text larger than AWS Titan's limit (8192 tokens)
@@ -191,7 +191,7 @@ async fn test_oversized_text_handling() {
 
 #[tokio::test]
 async fn test_special_characters_handling() {
-    let embedder = AwsTitanProduction::new().await;
+    let embedder = AwsTitanProduction::new_from_config().await;
     
     if let Ok(embedder) = embedder {
         let texts = vec![
@@ -219,7 +219,7 @@ async fn test_special_characters_handling() {
 
 #[tokio::test]
 async fn test_metrics_exported() {
-    let embedder = AwsTitanProduction::new().await;
+    let embedder = AwsTitanProduction::new_from_config().await;
     
     if let Ok(embedder) = embedder {
         // Make a test request
@@ -237,7 +237,7 @@ async fn test_metrics_exported() {
 
 #[tokio::test]
 async fn test_cost_tracking() {
-    let embedder = AwsTitanProduction::new().await;
+    let embedder = AwsTitanProduction::new_from_config().await;
     
     if let Ok(embedder) = embedder {
         let initial_metrics = embedder.get_metrics().await;

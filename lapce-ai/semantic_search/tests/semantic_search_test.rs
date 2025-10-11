@@ -4,9 +4,10 @@
 
 use lancedb::embeddings::service_factory::{create_embedder, EmbedderConfig};
 use lancedb::search::{
-    SemanticSearchEngine, SearchConfig, SearchResult, SearchFilters,
-    HybridSearcher, QueryCache, CodeIndexer, IncrementalIndexer, SearchMetrics,
+    SemanticSearchEngine, SearchConfig, SearchResult,
+    HybridSearcher, CodeIndexer, IncrementalIndexer,
 };
+use lancedb::search::semantic_search_engine::SearchFilters;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -39,6 +40,9 @@ impl TestFixture {
             batch_size: 100,
             max_results: 10,
             min_score: 0.5,
+            optimal_batch_size: Some(50),
+            max_embedding_dim: Some(1536),
+            index_nprobes: Some(10),
         };
         
         let search_engine = Arc::new(
@@ -217,10 +221,8 @@ async fn test_incremental_indexing_speed() {
     indexer.index_repository(fixture.temp_dir.path()).await.unwrap();
     
     // Create incremental indexer
-    let query_cache = Arc::new(QueryCache::new(100, Duration::from_secs(60)));
     let incremental = IncrementalIndexer::new(
         fixture.search_engine.clone(),
-        query_cache,
     );
     
     // Add a new file
@@ -259,8 +261,8 @@ async fn test_cache_hit_rate() {
         }
     }
     
-    // Check metrics
-    let metrics = fixture.search_engine.metrics.summary();
+    // Check metrics via public API
+    let metrics = fixture.search_engine.get_metrics_summary();
     let cache_hit_rate = metrics.cache_hit_rate;
     
     println!("Cache hit rate: {:.2}%", cache_hit_rate);

@@ -806,6 +806,11 @@ impl SemanticSearchEngine {
     pub fn is_steady_state(&self) -> bool {
         crate::memory::profiler::is_steady_state()
     }
+    
+    /// Get metrics summary for testing and monitoring
+    pub fn get_metrics_summary(&self) -> crate::search::search_metrics::MetricsSummary {
+        self.metrics.summary()
+    }
 }
 
 /// Search result structure

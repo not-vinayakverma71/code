@@ -5,7 +5,7 @@ use tokio::time::sleep;
 
 #[tokio::test]
 async fn test_rate_limiting_enforced() {
-    let embedder = AwsTitanProduction::new().await;
+    let embedder = AwsTitanProduction::new_from_config().await;
     
     if let Ok(embedder) = embedder {
         let config = embedder.get_config();
@@ -41,7 +41,7 @@ async fn test_rate_limiting_enforced() {
 
 #[tokio::test]
 async fn test_concurrent_request_limit() {
-    let embedder = AwsTitanProduction::new().await;
+    let embedder = AwsTitanProduction::new_from_config().await;
     
     if let Ok(embedder) = embedder {
         let config = embedder.get_config();
@@ -72,7 +72,7 @@ async fn test_concurrent_request_limit() {
 
 #[tokio::test]
 async fn test_retry_on_throttling() {
-    let embedder = AwsTitanProduction::new().await;
+    let embedder = AwsTitanProduction::new_from_config().await;
     
     if let Ok(embedder) = embedder {
         // Simulate throttling by making many rapid requests
@@ -99,7 +99,7 @@ async fn test_retry_on_throttling() {
 
 #[tokio::test]
 async fn test_exponential_backoff() {
-    let embedder = AwsTitanProduction::new().await;
+    let embedder = AwsTitanProduction::new_from_config().await;
     
     if let Ok(embedder) = embedder {
         let config = embedder.get_config();
@@ -114,7 +114,7 @@ async fn test_exponential_backoff() {
 
 #[tokio::test]
 async fn test_request_timeout() {
-    let embedder = AwsTitanProduction::new().await;
+    let embedder = AwsTitanProduction::new_from_config().await;
     
     if let Ok(embedder) = embedder {
         let config = embedder.get_config();
@@ -125,7 +125,7 @@ async fn test_request_timeout() {
 
 #[tokio::test]
 async fn test_chaos_random_failures() {
-    let embedder = AwsTitanProduction::new().await;
+    let embedder = AwsTitanProduction::new_from_config().await;
     
     if let Ok(embedder) = embedder {
         // Test resilience with rapid fire requests
@@ -162,7 +162,7 @@ async fn test_chaos_random_failures() {
 
 #[tokio::test]
 async fn test_burst_protection() {
-    let embedder = AwsTitanProduction::new().await;
+    let embedder = AwsTitanProduction::new_from_config().await;
     
     if let Ok(embedder) = embedder {
         // Send burst of requests
@@ -185,7 +185,7 @@ async fn test_burst_protection() {
 
 #[tokio::test]
 async fn test_jitter_in_backoff() {
-    let embedder = AwsTitanProduction::new().await;
+    let embedder = AwsTitanProduction::new_from_config().await;
     
     if let Ok(embedder) = embedder {
         // Make multiple retry-triggering requests
@@ -213,7 +213,7 @@ async fn test_jitter_in_backoff() {
 
 #[tokio::test]
 async fn test_graceful_degradation() {
-    let embedder = AwsTitanProduction::new().await;
+    let embedder = AwsTitanProduction::new_from_config().await;
     
     if let Ok(embedder) = embedder {
         // Test that system doesn't crash under stress
@@ -249,7 +249,7 @@ async fn test_graceful_degradation() {
 
 #[tokio::test]
 async fn test_circuit_breaker_pattern() {
-    let embedder = AwsTitanProduction::new().await;
+    let embedder = AwsTitanProduction::new_from_config().await;
     
     if let Ok(embedder) = embedder {
         // Verify metrics track failures
@@ -275,7 +275,7 @@ async fn test_circuit_breaker_pattern() {
 async fn test_resource_cleanup() {
     // Create and drop embedder multiple times
     for _ in 0..5 {
-        let embedder = AwsTitanProduction::new().await;
+        let embedder = AwsTitanProduction::new_from_config().await;
         
         if let Ok(embedder) = embedder {
             let _ = embedder.create_embeddings(vec!["cleanup test".to_string()], None).await;
@@ -291,7 +291,7 @@ async fn test_resource_cleanup() {
 
 #[tokio::test]
 async fn test_latency_tracking() {
-    let embedder = AwsTitanProduction::new().await;
+    let embedder = AwsTitanProduction::new_from_config().await;
     
     if let Ok(embedder) = embedder {
         // Make several requests
@@ -316,7 +316,7 @@ async fn test_latency_tracking() {
 
 #[tokio::test]
 async fn test_cost_limits() {
-    let embedder = AwsTitanProduction::new().await;
+    let embedder = AwsTitanProduction::new_from_config().await;
     
     if let Ok(embedder) = embedder {
         let initial_metrics = embedder.get_metrics().await;

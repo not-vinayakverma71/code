@@ -27,10 +27,9 @@ async fn test_real_aws_titan_no_mocks() {
     println!("🚀 Phase 1: Initialize REAL AWS Titan");
     println!("════════════════════════════════════════");
     
-    let embedder = Arc::new(AwsTitanProduction::new(
-        "us-east-1",
-        AwsTier::Standard,
-    ).await.expect("Failed to create AWS Titan - CHECK AWS CREDENTIALS"));
+    let embedder = Arc::new(AwsTitanProduction::new_from_config()
+        .await
+        .expect("Failed to create AWS Titan - CHECK AWS CREDENTIALS"));
     
     println!("  ✅ AWS Titan initialized (REAL API)");
     

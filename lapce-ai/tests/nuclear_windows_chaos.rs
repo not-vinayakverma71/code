@@ -8,7 +8,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 
-use lapce_ai_rust::ipc::windows_shared_memory::WindowsSharedMemory;
+use lapce_ai_rust::ipc::windows_shared_memory::SharedMemoryBuffer;
 use rand::Rng;
 
 const AGENTS: usize = 64;         // concurrent chaos workers
@@ -40,7 +40,7 @@ fn nuclear_windows_chaos() {
         let handle = thread::spawn(move || {
             // Each agent uses its own SHM segment to avoid cross-thread ring buffer contention
             let shm_name = format!("lapce_windows_chaos_{}", agent_id);
-            let mut shm = WindowsSharedMemory::create(&shm_name, SHM_SIZE).expect("create shm");
+            let mut shm = SharedMemoryBuffer::create(&shm_name, SHM_SIZE).expect("create shm");
 
             let mut rng = rand::thread_rng();
             let mut last_failure: Option<Instant> = None;
@@ -94,7 +94,7 @@ fn nuclear_windows_chaos() {
                         drop(shm);
                         // short backoff
                         thread::sleep(Duration::from_millis(5));
-                        shm = WindowsSharedMemory::create(&shm_name, SHM_SIZE).expect("recreate shm");
+                        shm = SharedMemoryBuffer::create(&shm_name, SHM_SIZE).expect("recreate shm");
                         if let Some(t) = last_failure.take() {
                             let ms = t.elapsed().as_millis() as u64;
                             rec_sum.fetch_add(ms, Ordering::Relaxed);

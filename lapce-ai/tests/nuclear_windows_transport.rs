@@ -4,13 +4,13 @@
 #![cfg(target_os = "windows")]
 
 use std::time::{Duration, Instant};
-use lapce_ai_rust::ipc::windows_shared_memory::WindowsSharedMemory;
+use lapce_ai_rust::ipc::windows_shared_memory::SharedMemoryBuffer;
 
 const SHM_NAME: &str = "lapce_windows_nuclear";
 
 #[test]
 fn windows_transport_throughput() {
-    let mut shm = WindowsSharedMemory::create(SHM_NAME, 8 * 1024 * 1024).expect("create shm");
+    let mut shm = SharedMemoryBuffer::create(SHM_NAME, 8 * 1024 * 1024).expect("create shm");
 
     let msg = vec![0xABu8; 1024]; // 1KB messages
     let iters = 1_000_000; // 1M messages
@@ -34,7 +34,7 @@ fn windows_transport_throughput() {
 
 #[test]
 fn windows_transport_latency() {
-    let mut shm = WindowsSharedMemory::create(SHM_NAME, 8 * 1024 * 1024).expect("create shm");
+    let mut shm = SharedMemoryBuffer::create(SHM_NAME, 8 * 1024 * 1024).expect("create shm");
 
     let msg = vec![0xCDu8; 256];
     let samples = 50_000;

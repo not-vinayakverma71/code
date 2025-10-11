@@ -147,7 +147,8 @@ fn main() {
     
     println!("\n✅ All tests completed successfully!");
     
-    // Cleanup
+    // Cleanup - use trash-put for safety
+    // Note: In production, use trash-put command or trash crate
     let _ = std::fs::remove_file(&file_path);
     let _ = std::fs::remove_file(tmpdir.join("zero_copy.bin"));
 }

@@ -82,7 +82,7 @@ pub enum PanelKind {
 
 ## Implementation Phases
 
-### Phase A: Core IPC Infrastructure (DONE)
+### Phase A: Core IPC Infrastructure (COMPONENT CREATED BUT HARDENING TO MAKE USABLE )
 ```
 Week 1-2:
 [✓] Step 1: IPC Server 
@@ -93,7 +93,7 @@ Week 1-2:
 ```
 
 
-### Phase B: IMPLEMENT THE OPTIMIZED COMPONENT (DONE)
+### Phase B: IMPLEMENT THE OPTIMIZED COMPONENT (COMPONENT CREATED BUT HARDENING TO MAKE USABLE)
 Week 3-4:
 [→]  Step 3&4 (AI Providers & Connection Pooling) 
 [→]  Step 5 (Tree-sitter) 
@@ -114,7 +114,7 @@ Week 5:
 [→] Test end-to-end: Component → IPC → Lapce IDE → IPC → Component
 ```
 
-### Phase D: UI  Translation 
+### Phase C: UI  Translation 
 ```
 Week 6:
 [→]  Port full Codex UI/UX to Floem

@@ -8,7 +8,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 
-use lapce_ai_rust::ipc::windows_shared_memory::WindowsSharedMemory;
+use lapce_ai_rust::ipc::windows_shared_memory::SharedMemoryBuffer;
 use sysinfo::{System, Pid};
 
 const AGENTS: usize = 32;
@@ -44,7 +44,7 @@ fn nuclear_windows_memory_growth() {
         let stop_c = stop.clone();
         let handle = thread::spawn(move || {
             let name = format!("lapce_windows_mem_{}", agent_id);
-            let mut shm = WindowsSharedMemory::create(&name, SHM_SIZE).expect("create shm");
+            let mut shm = SharedMemoryBuffer::create(&name, SHM_SIZE).expect("create shm");
             let msg = vec![0x33u8; 4096];
 
             for i in 0..ITERATIONS {
@@ -56,7 +56,7 @@ fn nuclear_windows_memory_growth() {
                 // Drop/recreate occasionally to force resource churn
                 if i % 200 == 0 {
                     drop(shm);
-                    shm = WindowsSharedMemory::create(&name, SHM_SIZE).expect("recreate shm");
+                    shm = SharedMemoryBuffer::create(&name, SHM_SIZE).expect("recreate shm");
                 }
 
                 // small yield

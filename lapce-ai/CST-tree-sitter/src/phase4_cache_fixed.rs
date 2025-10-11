@@ -299,6 +299,64 @@ impl Phase4Cache {
     pub fn manage_tiers(&self) -> Result<(), Box<dyn std::error::Error>> {
         self.multi_tier.manage_tiers()
     }
+    
+    /// Load CstApi from cache by path and hash (CST-UP02)
+    /// This is the upstream API required by semantic_search for CST integration
+    /// Returns Some(CstApi) if found in any tier (hot/warm/cold/frozen), None otherwise
+    pub fn load_api_from_cache(
+        &self,
+        path: &Path,
+        hash: u64,
+    ) -> Result<Option<crate::cst_api::CstApi>, Box<dyn std::error::Error>> {
+        use crate::{GET_LATENCY, CACHE_HITS, CACHE_MISSES, LOGGER, CacheLogEvent};
+        use slog::info;
+        use std::time::Instant;
+        
+        let start = Instant::now();
+        let path_str = path.display().to_string();
+        
+        // Get from multi-tier cache - this tracks tier-specific hits internally
+        let result = if let Some((bytecode_stream, source)) = self.multi_tier.get(path)? {
+            // Create CstApi from bytecode stream
+            // The segmented stream already has stable IDs embedded
+            // Try to unwrap Arc, otherwise we'll need to work with Arc
+            let stream = match Arc::try_unwrap(bytecode_stream) {
+                Ok(stream) => stream,
+                Err(arc) => {
+                    // Arc has multiple references, this shouldn't happen in normal flow
+                    // For now, return an error
+                    return Err("Cannot load CstApi: bytecode stream has multiple references".into());
+                }
+            };
+            let cst_api = crate::cst_api::CstApi::from_segmented(stream)
+                .map_err(|e| -> Box<dyn std::error::Error> { e.into() })?;
+            
+            CACHE_HITS.inc();
+            Some(cst_api)
+        } else {
+            CACHE_MISSES.inc();
+            None
+        };
+        
+        let duration = start.elapsed();
+        GET_LATENCY.observe(duration.as_secs_f64());
+        
+        // Structured logging
+        let log_event = CacheLogEvent {
+            timestamp: format!("{:?}", std::time::SystemTime::now()),
+            operation: "load_api_from_cache".to_string(),
+            tier: "multi_tier".to_string(),
+            key: path_str,
+            latency_ms: duration.as_secs_f64() * 1000.0,
+            success: result.is_some(),
+            error: None,
+        };
+        
+        info!(LOGGER, "cache_operation";
+            "event" => serde_json::to_string(&log_event).unwrap_or_default());
+        
+        Ok(result)
+    }
 }
 
 #[cfg(test)]

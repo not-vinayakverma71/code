@@ -49,7 +49,7 @@ async fn test_full_system_production_performance() {
     use lancedb::embeddings::aws_titan_production::AwsTitanProduction;
     use lancedb::embeddings::aws_titan_production::AwsTier;
     
-    let embedder = AwsTitanProduction::new("us-east-1", AwsTier::Standard).await
+    let embedder = AwsTitanProduction::new_from_config().await
         .expect("Failed to create AWS Titan embedder");
     let embedder = Arc::new(embedder);
 

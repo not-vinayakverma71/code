@@ -9,7 +9,7 @@ use lapce_tree_sitter::compact::{
 use tree_sitter::Parser;
 
 fn get_test_tree() -> tree_sitter::Tree {
-    let _code = r#"
+    let code = r#"
     fn main() {
         let x = 42;
         println!("Hello, world!");

@@ -28,7 +28,7 @@ async fn test_optimized_system_with_aws_titan() {
     
     // Create AWS Titan embedder
     println!("🔐 Connecting to AWS Titan...");
-    let embedder = AwsTitanProduction::new("us-east-1", AwsTier::Standard).await
+    let embedder = AwsTitanProduction::new_from_config().await
         .expect("Failed to create AWS Titan embedder");
     
     // Validate connection

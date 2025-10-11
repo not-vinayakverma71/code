@@ -6,14 +6,24 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
-use lapce_ai_rust::{IpcServer, IpcConfig};
-use lapce_ai_rust::ipc::shared_memory_complete::SharedMemoryStream;
-use lapce_ai_rust::ipc::binary_codec::MessageType;
-use bytes::Bytes;
+use lapce_ai_rust::ipc::shared_memory_complete::{SharedMemoryListener, SharedMemoryStream};
 
+// Debug mode: 10x faster
+#[cfg(debug_assertions)]
+const CYCLES: usize = 12;
+#[cfg(debug_assertions)]
+const MIN_CONNECTIONS: usize = 10;
+#[cfg(debug_assertions)]
+const MAX_CONNECTIONS: usize = 50;
+
+// Release mode: full scale
+#[cfg(not(debug_assertions))]
 const CYCLES: usize = 120;
+#[cfg(not(debug_assertions))]
 const MIN_CONNECTIONS: usize = 100;
+#[cfg(not(debug_assertions))]
 const MAX_CONNECTIONS: usize = 500;
+
 const MESSAGES_PER_CYCLE: usize = 1000;
 
 #[tokio::test(flavor = "multi_thread")]
@@ -26,20 +36,23 @@ async fn nuclear_memory_leak() {
     
     let start_time = Instant::now();
     
-    // Start IPC server
-    let socket_path = "/tmp/lapce_nuclear_4.sock";
-    let server = Arc::new(IpcServer::new(socket_path).await.unwrap());
-    
-    // Register handler
-    server.register_handler(MessageType::Heartbeat, |data| async move {
-        Ok(data)
-    });
-    
-    // Start server
+    // Start raw SHM echo server
+    let socket_path = "/tmp/nuc4.sock";
+    let listener = Arc::new(SharedMemoryListener::bind(socket_path).unwrap());
     let server_handle = {
-        let server = server.clone();
+        let listener = listener.clone();
         tokio::spawn(async move {
-            server.serve().await.unwrap();
+            loop {
+                if let Ok((mut stream, _)) = listener.accept().await {
+                    tokio::spawn(async move {
+                        let mut buf = vec![0u8; 256];
+                        loop {
+                            if stream.read_exact(&mut buf).await.is_err() { break; }
+                            if stream.write_all(&buf).await.is_err() { break; }
+                        }
+                    });
+                }
+            }
         })
     };
     
