@@ -13,6 +13,7 @@ pub mod zero_copy_codec;
 pub mod shm_namespace;
 pub mod cross_platform_ipc;
 pub mod macos_shared_memory;
+#[cfg(windows)]
 pub mod windows_shared_memory;
 pub mod auto_reconnection;
 pub mod buffer_management;
@@ -38,6 +39,8 @@ pub use ipc_config::IpcConfig;
 pub use ipc_messages::MessageType;
 #[cfg(unix)]
 pub use shared_memory_complete::{SharedMemoryBuffer, SharedMemoryListener, SharedMemoryStream};
+#[cfg(windows)]
+pub use windows_shared_memory::{SharedMemoryBuffer, SharedMemoryListener, SharedMemoryStream};
 pub use crate::connection_pool_manager::{ConnectionPoolManager, PoolConfig, ConnectionStats};
 pub use auto_reconnection::AutoReconnectionManager;
 pub use handler_registration_types::WebviewMessage;

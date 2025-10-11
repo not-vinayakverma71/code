@@ -9,6 +9,9 @@ use std::sync::Arc;
 use std::collections::{HashMap, VecDeque};
 use serde::{Serialize, Deserialize};
 
+#[cfg(feature = "cst_ts")]
+use lapce_tree_sitter::ast::kinds::{CanonicalKind, map_kind, map_field};
+
 /// CST Node - Raw concrete syntax tree from tree-sitter
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CstNode {
@@ -386,6 +389,101 @@ trait LanguageTransformer: Send + Sync {
     fn transform(&self, cst: &CstNode, path: &Path) -> Result<AstNode>;
 }
 
+/// Canonical kind mapping helper (only available with cst_ts feature)
+#[cfg(feature = "cst_ts")]
+fn canonical_to_ast_node_type(canonical: CanonicalKind) -> AstNodeType {
+    match canonical {
+        CanonicalKind::Module => AstNodeType::Module,
+        CanonicalKind::Block => AstNodeType::Unknown, // No direct mapping
+        CanonicalKind::Statement => AstNodeType::Unknown, // Too generic
+        CanonicalKind::Expression => AstNodeType::Unknown, // Too generic
+        
+        // Declarations
+        CanonicalKind::FunctionDeclaration => AstNodeType::FunctionDeclaration,
+        CanonicalKind::ClassDeclaration => AstNodeType::ClassDeclaration,
+        CanonicalKind::InterfaceDeclaration => AstNodeType::InterfaceDeclaration,
+        CanonicalKind::StructDeclaration => AstNodeType::StructDeclaration,
+        CanonicalKind::EnumDeclaration => AstNodeType::EnumDeclaration,
+        CanonicalKind::TypeAlias => AstNodeType::TypeAlias,
+        CanonicalKind::VariableDeclaration => AstNodeType::VariableDeclaration,
+        CanonicalKind::ConstantDeclaration => AstNodeType::VariableDeclaration,
+        
+        // Functions
+        CanonicalKind::FunctionSignature => AstNodeType::FunctionDeclaration,
+        CanonicalKind::ParameterList => AstNodeType::Parameter,
+        CanonicalKind::Parameter => AstNodeType::Parameter,
+        CanonicalKind::ReturnType => AstNodeType::TypeAnnotation,
+        CanonicalKind::FunctionBody => AstNodeType::Unknown,
+        
+        // Types
+        CanonicalKind::TypeAnnotation => AstNodeType::TypeAnnotation,
+        CanonicalKind::GenericType => AstNodeType::GenericType,
+        CanonicalKind::ArrayType => AstNodeType::TypeAnnotation,
+        CanonicalKind::PointerType => AstNodeType::TypeAnnotation,
+        CanonicalKind::ReferenceType => AstNodeType::TypeAnnotation,
+        CanonicalKind::UnionType => AstNodeType::UnionType,
+        CanonicalKind::IntersectionType => AstNodeType::IntersectionType,
+        
+        // Expressions
+        CanonicalKind::BinaryExpression => AstNodeType::BinaryExpression,
+        CanonicalKind::UnaryExpression => AstNodeType::UnaryExpression,
+        CanonicalKind::CallExpression => AstNodeType::CallExpression,
+        CanonicalKind::MemberExpression => AstNodeType::MemberExpression,
+        CanonicalKind::IndexExpression => AstNodeType::ArrayExpression,
+        CanonicalKind::LiteralExpression => AstNodeType::Unknown,
+        CanonicalKind::IdentifierExpression => AstNodeType::VariableReference,
+        CanonicalKind::AssignmentExpression => AstNodeType::Unknown,
+        
+        // Control flow
+        CanonicalKind::IfStatement => AstNodeType::IfStatement,
+        CanonicalKind::ForLoop => AstNodeType::ForLoop,
+        CanonicalKind::WhileLoop => AstNodeType::WhileLoop,
+        CanonicalKind::DoWhileLoop => AstNodeType::WhileLoop,
+        CanonicalKind::SwitchStatement => AstNodeType::SwitchStatement,
+        CanonicalKind::CaseClause => AstNodeType::Unknown,
+        CanonicalKind::BreakStatement => AstNodeType::BreakStatement,
+        CanonicalKind::ContinueStatement => AstNodeType::ContinueStatement,
+        CanonicalKind::ReturnStatement => AstNodeType::ReturnStatement,
+        CanonicalKind::ThrowStatement => AstNodeType::Unknown,
+        CanonicalKind::TryStatement => AstNodeType::Unknown,
+        CanonicalKind::CatchClause => AstNodeType::Unknown,
+        
+        // Literals
+        CanonicalKind::StringLiteral => AstNodeType::StringLiteral,
+        CanonicalKind::NumberLiteral => AstNodeType::NumberLiteral,
+        CanonicalKind::BooleanLiteral => AstNodeType::BooleanLiteral,
+        CanonicalKind::NullLiteral => AstNodeType::NullLiteral,
+        CanonicalKind::RegexLiteral => AstNodeType::StringLiteral,
+        CanonicalKind::TemplateLiteral => AstNodeType::StringLiteral,
+        
+        // Comments
+        CanonicalKind::LineComment => AstNodeType::Comment,
+        CanonicalKind::BlockComment => AstNodeType::Comment,
+        CanonicalKind::DocComment => AstNodeType::DocComment,
+        
+        // Other
+        CanonicalKind::Identifier => AstNodeType::VariableReference,
+        CanonicalKind::Operator => AstNodeType::Unknown,
+        CanonicalKind::Keyword => AstNodeType::Unknown,
+        CanonicalKind::Punctuation => AstNodeType::Unknown,
+        CanonicalKind::Error => AstNodeType::Error,
+        CanonicalKind::Unknown => AstNodeType::Unknown,
+    }
+}
+
+/// Get node type using canonical mapping when available
+#[cfg(feature = "cst_ts")]
+fn get_node_type_with_canonical(language: &str, kind: &str) -> AstNodeType {
+    let canonical = map_kind(language, kind);
+    canonical_to_ast_node_type(canonical)
+}
+
+/// Get field name using canonical mapping when available
+#[cfg(feature = "cst_ts")]
+fn get_canonical_field(language: &str, field: &str) -> String {
+    map_field(language, field).unwrap_or(field).to_string()
+}
+
 /// Rust-specific transformer
 struct RustTransformer;
 
@@ -396,6 +494,10 @@ impl LanguageTransformer for RustTransformer {
 }
 
 fn transform_rust_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Result<AstNode> {
+    #[cfg(feature = "cst_ts")]
+    let node_type = get_node_type_with_canonical("rust", &cst.kind);
+    
+    #[cfg(not(feature = "cst_ts"))]
     let node_type = match cst.kind.as_str() {
         "source_file" => AstNodeType::Program,
         "function_item" => AstNodeType::FunctionDeclaration,
@@ -457,6 +559,10 @@ impl LanguageTransformer for JavaScriptTransformer {
 }
 
 fn transform_js_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Result<AstNode> {
+    #[cfg(feature = "cst_ts")]
+    let node_type = get_node_type_with_canonical("javascript", &cst.kind);
+    
+    #[cfg(not(feature = "cst_ts"))]
     let node_type = match cst.kind.as_str() {
         "program" => AstNodeType::Program,
         "function_declaration" => AstNodeType::FunctionDeclaration,
@@ -524,6 +630,10 @@ impl LanguageTransformer for PythonTransformer {
 }
 
 fn transform_python_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Result<AstNode> {
+    #[cfg(feature = "cst_ts")]
+    let node_type = get_node_type_with_canonical("python", &cst.kind);
+    
+    #[cfg(not(feature = "cst_ts"))]
     let node_type = match cst.kind.as_str() {
         "module" => AstNodeType::Module,
         "function_definition" => AstNodeType::FunctionDeclaration,
@@ -579,6 +689,10 @@ impl LanguageTransformer for GoTransformer {
 }
 
 fn transform_go_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Result<AstNode> {
+    #[cfg(feature = "cst_ts")]
+    let node_type = get_node_type_with_canonical("go", &cst.kind);
+    
+    #[cfg(not(feature = "cst_ts"))]
     let node_type = match cst.kind.as_str() {
         "source_file" => AstNodeType::Program,
         "package_clause" => AstNodeType::Package,
@@ -634,6 +748,10 @@ impl LanguageTransformer for JavaTransformer {
 }
 
 fn transform_java_cst(cst: &CstNode, path: &Path, scope_depth: usize) -> Result<AstNode> {
+    #[cfg(feature = "cst_ts")]
+    let node_type = get_node_type_with_canonical("java", &cst.kind);
+    
+    #[cfg(not(feature = "cst_ts"))]
     let node_type = match cst.kind.as_str() {
         "program" => AstNodeType::Program,
         "package_declaration" => AstNodeType::Package,

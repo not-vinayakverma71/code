@@ -100,13 +100,13 @@ fn test_shared_memory_roundtrip_posix() {
 #[cfg(target_os = "windows")]
 #[test]
 fn test_shared_memory_roundtrip_windows() {
-    use lapce_ai_rust::ipc::windows_shared_memory::WindowsSharedMemory;
-
-    let mut shm = WindowsSharedMemory::create("ci_cross_os_shm", 1 * 1024 * 1024).expect("create shm");
-    let payload = b"hello-shm";
-
+    use lapce_ai_rust::ipc::SharedMemoryBuffer;
+    
+    let mut shm = SharedMemoryBuffer::create("ci_shm_win", 1 * 1024 * 1024).expect("create shm");
+    let payload = b"hello-shm-windows";
+    
     shm.write(payload).expect("write");
-    let got = shm.read().expect("read").expect("some");
+    let got = shm.read().expect("read some");
     assert_eq!(got, payload);
 }
 

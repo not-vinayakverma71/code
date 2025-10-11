@@ -58,6 +58,13 @@ harness = false
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", features = ["handleapi", "memoryapi", "winnt", "minwindef"] }
+windows-sys = { version = "0.59", features = [
+    "Win32_Foundation",
+    "Win32_System_Memory", 
+    "Win32_System_Threading",
+    "Win32_System_SystemInformation",
+    "Win32_Security"
+] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 libc = "0.2"

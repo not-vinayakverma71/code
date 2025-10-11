@@ -1,77 +1,130 @@
-use std::sync::atomic::AtomicUsize;
+/// Windows Shared Memory Implementation
+/// Provides API parity with Unix shared_memory_complete module
+/// Uses Win32 CreateFileMapping/MapViewOfFile for shared memory
+
+use anyhow::{Result, bail};
+use std::ptr;
+use std::sync::Arc;
+use std::sync::atomic::Ordering;
+use parking_lot::RwLock;
+use tokio::sync::mpsc;
+use tokio::sync::oneshot;
+use tokio::task::JoinHandle;
 
 // Windows-specific imports
-#[cfg(target_os = "windows")]
-use anyhow::{Result, anyhow};
-#[cfg(target_os = "windows")]
-use winapi::um::handleapi::{CloseHandle, INVALID_HANDLE_VALUE};
-#[cfg(target_os = "windows")]
-use winapi::um::memoryapi::{
-    CreateFileMappingW, MapViewOfFile, UnmapViewOfFile,
-    FILE_MAP_ALL_ACCESS,
-};
-#[cfg(target_os = "windows")]
-use winapi::um::winnt::{HANDLE, PAGE_READWRITE};
-#[cfg(target_os = "windows")]
-use winapi::shared::minwindef::DWORD;
-#[cfg(target_os = "windows")]
-use std::os::windows::ffi::OsStrExt;
-#[cfg(target_os = "windows")]
-use std::sync::atomic::Ordering;
-#[cfg(target_os = "windows")]
-use std::{ptr, ffi::OsStr};
+use windows_sys::Win32::Foundation::*;
+use windows_sys::Win32::System::Memory::*;
+use windows_sys::Win32::System::Threading::*;
+use windows_sys::Win32::System::SystemInformation::*;
+use windows_sys::Win32::Security::*;
 
-/// Header structure for shared memory buffer
-#[repr(C)]
-struct BufferHeader {
-    write_pos: AtomicUsize,
-    read_pos: AtomicUsize,
-    size: usize,
-    version: u32,
+// Include the shared header module inline (same as Unix)
+mod shared_memory_header {
+    include!("shared_memory_header.rs");
 }
+use shared_memory_header::*;
 
-#[cfg(target_os = "windows")]
-pub struct WindowsSharedMemory {
-    handle: HANDLE,
+// Constants matching Unix implementation
+const NUM_SLOTS: usize = 32;
+const SLOT_SIZE: usize = 128 * 1024;  // 128KB per slot
+const CONTROL_SIZE: usize = 4096;     // 4KB for control channel
+const SHM_PROTOCOL_VERSION: u8 = 1;
+
+/// Simple lock-free ring buffer (Windows version)
+pub struct SharedMemoryBuffer {
     ptr: *mut u8,
+    header: *mut RingBufferHeader,
+    data_ptr: *mut u8,
     size: usize,
-    name: String,
-    header: *mut BufferHeader,
+    capacity: usize,
+    mapping_handle: HANDLE,  // Windows mapping handle (closed in Drop)
+    // Note: view is unmapped via ptr in Drop
 }
 
-#[cfg(target_os = "windows")]
-unsafe impl Send for WindowsSharedMemory {}
-#[cfg(target_os = "windows")]
-unsafe impl Sync for WindowsSharedMemory {}
+unsafe impl Send for SharedMemoryBuffer {}
+unsafe impl Sync for SharedMemoryBuffer {}
 
-#[cfg(target_os = "windows")]
-impl WindowsSharedMemory {
-    /// Create or open a shared memory region
-    pub fn create(name: &str, size: usize) -> Result<Self> {
+impl SharedMemoryBuffer {
+    /// Sanitize name for Windows object namespace
+    fn sanitize_name(path: &str) -> String {
+        // Get process ID and session ID for uniqueness
+        let process_id = unsafe { GetCurrentProcessId() };
+        let mut session_id: u32 = 0;
         unsafe {
-            // Convert name to wide string for Windows API
-            let wide_name = Self::to_wide_string(&format!("Local\\{}", name));
-            
-            // Add header size to total allocation
-            let total_size = size + std::mem::size_of::<BufferHeader>();
-            
+            let mut _session_id = 0u32;
+            ProcessIdToSessionId(process_id, &mut _session_id);
+            session_id = _session_id;
+        }
+        
+        // Generate random suffix for collision avoidance
+        use std::collections::hash_map::RandomState;
+        use std::hash::{BuildHasher, Hasher};
+        let hasher = RandomState::new();
+        let mut h = hasher.build_hasher();
+        h.write_u64(std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos() as u64);
+        let random_suffix = format!("{:016x}", h.finish());
+        
+        // Sanitize path: keep only alphanumeric, underscore, dash
+        let sanitized = path.chars()
+            .map(|c| if c.is_ascii_alphanumeric() || c == '_' || c == '-' { c } else { '_' })
+            .collect::<String>();
+        
+        // Build Windows object name with Local namespace
+        // Format: Local\LapceAI_<session>_<random>_<sanitized_path>
+        let name = format!("Local\\LapceAI_{}_{}_{}_{}", 
+            session_id, process_id, random_suffix, sanitized);
+        
+        // Cap at 200 chars to avoid Windows limits
+        if name.len() > 200 {
+            name.chars().take(200).collect()
+        } else {
+            name
+        }
+    }
+    
+    /// Convert string to wide string for Windows API
+    fn to_wide_string(s: &str) -> Vec<u16> {
+        use std::ffi::OsStr;
+        use std::os::windows::ffi::OsStrExt;
+        
+        OsStr::new(s)
+            .encode_wide()
+            .chain(std::iter::once(0))
+            .collect()
+    }
+    
+    /// Create new shared memory buffer
+    pub fn create(path: &str, _requested_size: usize) -> Result<Self> {
+        let data_size = SLOT_SIZE * NUM_SLOTS;
+        let header_size = std::mem::size_of::<RingBufferHeader>();
+        let total_size = header_size + data_size;
+        
+        // Sanitize and create Windows object name
+        let object_name = Self::sanitize_name(path);
+        let wide_name = Self::to_wide_string(&object_name);
+        
+        unsafe {
             // Create file mapping object
-            let handle = CreateFileMappingW(
+            let mapping_handle = CreateFileMappingW(
                 INVALID_HANDLE_VALUE,
                 ptr::null_mut(),
                 PAGE_READWRITE,
-                (total_size >> 32) as DWORD,
-                total_size as DWORD,
+                (total_size >> 32) as u32,
+                total_size as u32,
                 wide_name.as_ptr(),
             );
             
-            if handle.is_null() {
-                return Err(anyhow!("Failed to create file mapping"));
+            if mapping_handle == 0 {
+                let err = std::io::Error::last_os_error();
+                bail!("CreateFileMappingW failed for '{}': {}", object_name, err);
             }
             
-            // Map view of file into process address space
+            // Map view of file into process memory
             let ptr = MapViewOfFile(
-                handle,
+                mapping_handle,
                 FILE_MAP_ALL_ACCESS,
                 0,
                 0,
@@ -79,145 +132,342 @@ impl WindowsSharedMemory {
             ) as *mut u8;
             
             if ptr.is_null() {
-                CloseHandle(handle);
-                return Err(anyhow!("Failed to map view of file"));
+                CloseHandle(mapping_handle);
+                let err = std::io::Error::last_os_error();
+                bail!("MapViewOfFile failed: {}", err);
             }
             
             // Initialize header
-            let header = ptr as *mut BufferHeader;
-            if (*header).version == 0 {
-                // First time initialization
-                (*header).write_pos = AtomicUsize::new(0);
-                (*header).read_pos = AtomicUsize::new(0);
-                (*header).size = size;
-                (*header).version = 1;
-            }
+            let header = RingBufferHeader::initialize(ptr, data_size);
             
             Ok(Self {
-                handle,
                 ptr,
                 size: total_size,
-                name: name.to_string(),
+                capacity: data_size,
                 header,
+                data_ptr: ptr.add(header_size),
+                mapping_handle,
             })
         }
     }
     
-    /// Write data to the shared memory buffer
+    /// Open existing shared memory
+    pub fn open(path: &str, _size: usize) -> Result<Self> {
+        let data_size = SLOT_SIZE * NUM_SLOTS;
+        let header_size = std::mem::size_of::<RingBufferHeader>();
+        let total_size = header_size + data_size;
+        
+        // Sanitize and create Windows object name
+        let object_name = Self::sanitize_name(path);
+        let wide_name = Self::to_wide_string(&object_name);
+        
+        unsafe {
+            // Open existing file mapping
+            let mapping_handle = OpenFileMappingW(
+                FILE_MAP_ALL_ACCESS,
+                0,  // FALSE - don't inherit handle
+                wide_name.as_ptr(),
+            );
+            
+            if mapping_handle == 0 {
+                let err = std::io::Error::last_os_error();
+                bail!("OpenFileMappingW failed for '{}': {}", object_name, err);
+            }
+            
+            // Map view of file
+            let ptr = MapViewOfFile(
+                mapping_handle,
+                FILE_MAP_ALL_ACCESS,
+                0,
+                0,
+                total_size,
+            ) as *mut u8;
+            
+            if ptr.is_null() {
+                CloseHandle(mapping_handle);
+                let err = std::io::Error::last_os_error();
+                bail!("MapViewOfFile failed: {}", err);
+            }
+            
+            let header = ptr as *mut RingBufferHeader;
+            
+            // Validate existing header
+            (*header).validate().map_err(|e| anyhow::anyhow!("Header validation failed: {}", e))?;
+            
+            Ok(Self {
+                ptr,
+                header: header as *mut RingBufferHeader,
+                data_ptr: ptr.add(header_size),
+                size: total_size,
+                capacity: data_size,
+                mapping_handle,
+            })
+        }
+    }
+    
+    /// Write to buffer (lock-free) - identical to Unix
+    #[inline(always)]
     pub fn write(&mut self, data: &[u8]) -> Result<()> {
+        if data.is_empty() {
+            return Ok(());
+        }
+        
+        if data.len() > SLOT_SIZE {
+            bail!("Data too large: {} > {}", data.len(), SLOT_SIZE);
+        }
+        
         unsafe {
             let header = &*self.header;
-            let buffer_start = self.ptr.add(std::mem::size_of::<BufferHeader>());
             
-            // Simple ring buffer implementation
-            let write_pos = header.write_pos.load(Ordering::Acquire);
-            let data_len = data.len();
-            
-            if data_len > header.size {
-                return Err(anyhow!("Data too large for buffer"));
+            // Find free slot
+            for _ in 0..NUM_SLOTS * 2 {
+                let write_pos = header.write_pos.load(Ordering::Acquire);
+                let read_pos = header.read_pos.load(Ordering::Acquire);
+                
+                if write_pos - read_pos >= NUM_SLOTS {
+                    std::thread::yield_now();
+                    continue;
+                }
+                
+                let slot_idx = write_pos % NUM_SLOTS;
+                let slot_ptr = self.data_ptr.add(slot_idx * SLOT_SIZE);
+                
+                // Write length prefix
+                let len_bytes = (data.len() as u32).to_le_bytes();
+                ptr::copy_nonoverlapping(len_bytes.as_ptr(), slot_ptr, 4);
+                
+                // Write data
+                ptr::copy_nonoverlapping(data.as_ptr(), slot_ptr.add(4), data.len());
+                
+                // Publish
+                header.write_pos.store(write_pos + 1, Ordering::Release);
+                return Ok(());
             }
             
-            // Write length prefix
-            let len_bytes = (data_len as u32).to_le_bytes();
-            let new_write_pos = (write_pos + 4 + data_len) % header.size;
-            
-            // Copy length
-            ptr::copy_nonoverlapping(
-                len_bytes.as_ptr(),
-                buffer_start.add(write_pos),
-                4,
-            );
-            
-            // Copy data
-            ptr::copy_nonoverlapping(
-                data.as_ptr(),
-                buffer_start.add(write_pos + 4),
-                data_len,
-            );
-            
-            // Update write position
-            header.write_pos.store(new_write_pos, Ordering::Release);
-            
-            Ok(())
+            bail!("Buffer full after retries");
         }
     }
     
-    /// Read data from the shared memory buffer
-    pub fn read(&mut self) -> Result<Option<Vec<u8>>> {
+    /// Read from buffer (lock-free) - identical to Unix
+    pub fn read(&mut self) -> Option<Vec<u8>> {
         unsafe {
             let header = &*self.header;
-            let buffer_start = self.ptr.add(std::mem::size_of::<BufferHeader>());
             
-            let read_pos = header.read_pos.load(Ordering::Acquire);
-            let write_pos = header.write_pos.load(Ordering::Acquire);
-            
-            if read_pos == write_pos {
-                return Ok(None); // No data available
+            for _ in 0..10 {
+                let read_pos = header.read_pos.load(Ordering::Acquire);
+                let write_pos = header.write_pos.load(Ordering::Acquire);
+                
+                if read_pos >= write_pos {
+                    return None;
+                }
+                
+                let slot_idx = read_pos % NUM_SLOTS;
+                let slot_ptr = self.data_ptr.add(slot_idx * SLOT_SIZE);
+                
+                // Read length
+                let mut len_bytes = [0u8; 4];
+                ptr::copy_nonoverlapping(slot_ptr, len_bytes.as_mut_ptr(), 4);
+                let len = u32::from_le_bytes(len_bytes) as usize;
+                
+                if len == 0 || len > SLOT_SIZE {
+                    header.read_pos.store(read_pos + 1, Ordering::Release);
+                    continue;
+                }
+                
+                // Read data
+                let mut data = vec![0u8; len];
+                ptr::copy_nonoverlapping(slot_ptr.add(4), data.as_mut_ptr(), len);
+                
+                // Advance read position
+                if header.read_pos.compare_exchange(
+                    read_pos,
+                    read_pos + 1,
+                    Ordering::Release,
+                    Ordering::Relaxed
+                ).is_ok() {
+                    return Some(data);
+                }
             }
             
-            // Read length prefix
-            let mut len_bytes = [0u8; 4];
-            ptr::copy_nonoverlapping(
-                buffer_start.add(read_pos),
-                len_bytes.as_mut_ptr(),
-                4,
-            );
-            let data_len = u32::from_le_bytes(len_bytes) as usize;
-            
-            if data_len > header.size {
-                return Err(anyhow!("Invalid data length"));
-            }
-            
-            // Read data
-            let mut data = vec![0u8; data_len];
-            ptr::copy_nonoverlapping(
-                buffer_start.add(read_pos + 4),
-                data.as_mut_ptr(),
-                data_len,
-            );
-            
-            // Update read position
-            let new_read_pos = (read_pos + 4 + data_len) % header.size;
-            header.read_pos.store(new_read_pos, Ordering::Release);
-            
-            Ok(Some(data))
+            None
         }
-    }
-    
-    /// Convert string to wide string for Windows API
-    fn to_wide_string(s: &str) -> Vec<u16> {
-        OsStr::new(s).encode_wide().chain(Some(0)).collect()
     }
 }
 
-#[cfg(target_os = "windows")]
-impl Drop for WindowsSharedMemory {
+impl Drop for SharedMemoryBuffer {
     fn drop(&mut self) {
         unsafe {
             if !self.ptr.is_null() {
-                UnmapViewOfFile(self.ptr as _);
+                // Unmap the view
+                UnmapViewOfFile(self.ptr as *const _);
             }
-            if !self.handle.is_null() {
-                CloseHandle(self.handle);
+            if self.mapping_handle != 0 {
+                // Close the mapping handle
+                CloseHandle(self.mapping_handle);
             }
         }
     }
 }
 
-#[cfg(not(windows))]
-pub struct WindowsSharedMemory;
+/// Listener for incoming shared memory connections (Windows)
+pub struct SharedMemoryListener {
+    control_path: String,
+    control_buffer: Arc<RwLock<SharedMemoryBuffer>>,
+    accept_rx: mpsc::UnboundedReceiver<AcceptRequest>,
+    _control_task: JoinHandle<()>,
+    is_owner: bool,
+}
 
-#[cfg(not(windows))]
-impl WindowsSharedMemory {
-    pub fn create(_name: &str, _size: usize) -> Result<Self, Box<dyn std::error::Error>> {
-        Err("Windows shared memory only available on Windows".into())
+#[derive(Debug)]
+struct AcceptRequest {
+    conn_id: u64,
+    response_tx: oneshot::Sender<Result<()>>,
+}
+
+impl SharedMemoryListener {
+    pub fn bind(path: &str) -> Result<Self> {
+        let control_path = format!("{}_control", path);
+        let control_buffer = Arc::new(RwLock::new(SharedMemoryBuffer::create(&control_path, CONTROL_SIZE)?));
+        
+        let (accept_tx, accept_rx) = mpsc::unbounded_channel();
+        
+        let control_buffer_clone = control_buffer.clone();
+        let _control_task = tokio::spawn(async move {
+            Self::handle_control_channel(control_buffer_clone, accept_tx).await;
+        });
+        
+        Ok(Self {
+            control_path,
+            control_buffer,
+            accept_rx,
+            _control_task,
+            is_owner: true,
+        })
     }
     
-    pub fn write(&mut self, _data: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
-        Err("Windows shared memory only available on Windows".into())
+    async fn handle_control_channel(
+        control_buffer: Arc<RwLock<SharedMemoryBuffer>>,
+        accept_tx: mpsc::UnboundedSender<AcceptRequest>,
+    ) {
+        loop {
+            // Poll for incoming connection requests
+            if let Some(data) = control_buffer.write().read() {
+                if data.len() >= 9 && data[0] == b'C' {
+                    // Connection request format: 'C' + 8 bytes conn_id
+                    let mut conn_id_bytes = [0u8; 8];
+                    conn_id_bytes.copy_from_slice(&data[1..9]);
+                    let conn_id = u64::from_le_bytes(conn_id_bytes);
+                    
+                    let (response_tx, response_rx) = oneshot::channel();
+                    let req = AcceptRequest { conn_id, response_tx };
+                    
+                    if accept_tx.send(req).is_err() {
+                        break;
+                    }
+                    
+                    // Wait for accept to complete
+                    if response_rx.await.is_ok() {
+                        // Send ACK
+                        let ack = [b'A'; 1];
+                        let _ = control_buffer.write().write(&ack);
+                    }
+                }
+            }
+            
+            tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
+        }
     }
     
-    pub fn read(&mut self) -> Result<Option<Vec<u8>>, Box<dyn std::error::Error>> {
-        Err("Windows shared memory only available on Windows".into())
+    pub async fn accept(&mut self) -> Result<SharedMemoryStream> {
+        let req = self.accept_rx.recv().await
+            .ok_or_else(|| anyhow::anyhow!("Control channel closed"))?;
+        
+        let base_path = self.control_path.trim_end_matches("_control");
+        let send_path = format!("{}_{}_send", base_path, req.conn_id);
+        let recv_path = format!("{}_{}_recv", base_path, req.conn_id);
+        
+        // Create buffers for this connection
+        let send_buffer = SharedMemoryBuffer::create(&send_path, 4 * 1024 * 1024)?;
+        let recv_buffer = SharedMemoryBuffer::create(&recv_path, 4 * 1024 * 1024)?;
+        
+        // Signal accept complete
+        let _ = req.response_tx.send(Ok(()));
+        
+        Ok(SharedMemoryStream {
+            send_buffer: Arc::new(RwLock::new(send_buffer)),
+            recv_buffer: Arc::new(RwLock::new(recv_buffer)),
+        })
+    }
+}
+
+impl Drop for SharedMemoryListener {
+    fn drop(&mut self) {
+        // Windows doesn't need explicit cleanup like shm_unlink
+        // Objects are destroyed when last handle closes
+    }
+}
+
+/// Shared memory stream (Windows)
+pub struct SharedMemoryStream {
+    send_buffer: Arc<RwLock<SharedMemoryBuffer>>,
+    recv_buffer: Arc<RwLock<SharedMemoryBuffer>>,
+}
+
+impl SharedMemoryStream {
+    pub async fn connect(path: &str) -> Result<Self> {
+        let control_path = format!("{}_control", path);
+        
+        // Open control channel
+        let mut control = SharedMemoryBuffer::open(&control_path, CONTROL_SIZE)?;
+        
+        // Generate connection ID
+        let conn_id = std::process::id() as u64 + 
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos() as u64;
+        
+        // Send connection request
+        let mut request = vec![b'C'];
+        request.extend_from_slice(&conn_id.to_le_bytes());
+        control.write(&request)?;
+        
+        // Wait for ACK
+        let start = std::time::Instant::now();
+        loop {
+            if let Some(data) = control.read() {
+                if data.len() == 1 && data[0] == b'A' {
+                    break;
+                }
+            }
+            
+            if start.elapsed() > std::time::Duration::from_secs(5) {
+                bail!("Connection timeout");
+            }
+            
+            tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
+        }
+        
+        // Open data channels (note: send/recv swapped for client)
+        let base_path = control_path.trim_end_matches("_control");
+        let send_path = format!("{}_{}_recv", base_path, conn_id);
+        let recv_path = format!("{}_{}_send", base_path, conn_id);
+        
+        Ok(Self {
+            send_buffer: Arc::new(RwLock::new(
+                SharedMemoryBuffer::open(&send_path, 4 * 1024 * 1024)?
+            )),
+            recv_buffer: Arc::new(RwLock::new(
+                SharedMemoryBuffer::open(&recv_path, 4 * 1024 * 1024)?
+            )),
+        })
+    }
+    
+    pub async fn send(&self, data: &[u8]) -> Result<()> {
+        self.send_buffer.write().write(data)
+    }
+    
+    pub async fn recv(&self) -> Result<Option<Vec<u8>>> {
+        Ok(self.recv_buffer.write().read())
     }
 }

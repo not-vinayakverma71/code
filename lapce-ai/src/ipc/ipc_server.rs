@@ -4,7 +4,10 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 use std::time::Duration;
 
+#[cfg(unix)]
 use super::shared_memory_complete::{SharedMemoryListener, SharedMemoryStream};
+#[cfg(windows)]
+use super::windows_shared_memory::{SharedMemoryListener, SharedMemoryStream};
 use super::binary_codec::{
     BinaryCodec, Message, MessageType, MessagePayload, ErrorMessage,
     MAGIC_HEADER, HEADER_SIZE, MAX_MESSAGE_SIZE
