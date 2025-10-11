@@ -69,7 +69,7 @@ impl SharedMemoryBuffer {
             let fd = libc::shm_open(
                 shm_name.as_ptr(),
                 (libc::O_CREAT | libc::O_RDWR) as std::os::raw::c_int,
-                0o600  // Owner read/write only for security (0600 permissions)
+                0o666  // More permissive for macOS CI compatibility
             );
             if fd == -1 {
                 let err = std::io::Error::last_os_error();
