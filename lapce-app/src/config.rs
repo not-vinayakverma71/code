@@ -12,24 +12,13 @@ use lapce_proxy::plugin::wasi::find_all_volts;
 use lapce_rpc::plugin::VoltID;
 use lsp_types::{CompletionItemKind, SymbolKind};
 use once_cell::sync::Lazy;
-use parking_lot::RwLock;
 use serde::Deserialize;
 use strum::VariantNames;
 use tracing::error;
 
-use self::{
-    color::LapceColor,
-    color_theme::{ColorThemeConfig, ThemeColor, ThemeColorPreference},
-    core::CoreConfig,
-    editor::{EditorConfig, SCALE_OR_SIZE_LIMIT, WrapStyle},
-    icon::LapceIcons,
-    icon_theme::IconThemeConfig,
-    svg::SvgStore,
-    terminal::TerminalConfig,
-    ui::UIConfig,
-};
 use crate::workspace::{LapceWorkspace, LapceWorkspaceType};
 
+pub mod ai;
 pub mod color;
 pub mod color_theme;
 pub mod core;
@@ -40,6 +29,21 @@ pub mod svg;
 pub mod terminal;
 pub mod ui;
 pub mod watcher;
+
+use self::{
+    ai::AIConfig,
+    color::LapceColor,
+    color_theme::{ColorThemeConfig, ThemeColor, ThemeColorPreference},
+    core::CoreConfig,
+    editor::{EditorConfig, SCALE_OR_SIZE_LIMIT, WrapStyle},
+    icon::LapceIcons,
+    icon_theme::IconThemeConfig,
+    svg::SvgStore,
+    terminal::TerminalConfig,
+    ui::UIConfig,
+};
+
+use parking_lot::RwLock;
 
 pub const LOGO: &str = include_str!("../../extra/images/logo.svg");
 const DEFAULT_SETTINGS: &str = include_str!("../../defaults/settings.toml");
@@ -96,6 +100,8 @@ pub struct DropdownInfo {
 pub struct LapceConfig {
     #[serde(skip)]
     pub id: u64,
+    #[serde(default)]
+    pub ai: AIConfig,
     pub core: CoreConfig,
     pub ui: UIConfig,
     pub editor: EditorConfig,

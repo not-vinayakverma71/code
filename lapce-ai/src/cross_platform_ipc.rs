@@ -5,9 +5,10 @@ use std::io::{Read, Write};
 use anyhow::{Result, anyhow};
 
 /// Platform-agnostic IPC trait
+#[async_trait::async_trait]
 pub trait IpcTransport: Send + Sync {
-    fn write(&mut self, data: &[u8]) -> Result<()>;
-    fn read(&mut self) -> Result<Vec<u8>>;
+    async fn write(&mut self, data: &[u8]) -> Result<()>;
+    async fn read(&mut self) -> Result<Vec<u8>>;
     fn platform_name(&self) -> &str;
     fn expected_performance(&self) -> &str;
 }
@@ -20,22 +21,23 @@ pub struct SharedMemoryTransport {
 
 #[cfg(unix)]
 impl SharedMemoryTransport {
-    pub fn new(name: &str, size: usize) -> Result<Self> {
+    pub async fn new(name: &str, size: usize) -> Result<Self> {
         Ok(Self {
-            buffer: crate::ipc::shared_memory_complete::SharedMemoryBuffer::create(name, size)?
+            buffer: crate::ipc::shared_memory_complete::SharedMemoryBuffer::create(name, size).await?
         })
     }
 }
 
 #[cfg(unix)]
+#[async_trait::async_trait]
 impl IpcTransport for SharedMemoryTransport {
-    fn write(&mut self, data: &[u8]) -> Result<()> {
-        self.buffer.write(data)?;
+    async fn write(&mut self, data: &[u8]) -> Result<()> {
+        self.buffer.write(data).await?;
         Ok(())
     }
     
-    fn read(&mut self) -> Result<Vec<u8>> {
-        self.buffer.read()
+    async fn read(&mut self) -> Result<Vec<u8>> {
+        self.buffer.read().await
             .ok_or_else(|| anyhow::anyhow!("No data available"))
     }
     
@@ -157,17 +159,16 @@ impl TcpTransport {
     }
 }
 
+#[async_trait::async_trait]
 impl IpcTransport for TcpTransport {
-    fn write(&mut self, data: &[u8]) -> Result<()> {
-        
-        
+    async fn write(&mut self, data: &[u8]) -> Result<()> {
         // In real implementation, maintain persistent connection
         self.buffer.clear();
         self.buffer.extend_from_slice(data);
         Ok(())
     }
     
-    fn read(&mut self) -> Result<Vec<u8>> {
+    async fn read(&mut self) -> Result<Vec<u8>> {
         if self.buffer.is_empty() {
             return Err(anyhow!("No data available"));
         }
@@ -190,13 +191,14 @@ pub struct WindowsSharedMemoryTransport {
 }
 
 #[cfg(windows)]
+#[async_trait::async_trait]
 impl IpcTransport for WindowsSharedMemoryTransport {
-    fn write(&mut self, data: &[u8]) -> Result<()> {
-        self.mem.write(data)
+    async fn write(&mut self, data: &[u8]) -> Result<()> {
+        self.mem.write(data).await
     }
     
-    fn read(&mut self) -> Result<Vec<u8>> {
-        self.mem.read().ok_or_else(|| anyhow!("No data available"))
+    async fn read(&mut self) -> Result<Vec<u8>> {
+        self.mem.read().await.ok_or_else(|| anyhow!("No data available"))
     }
     
     fn platform_name(&self) -> &str {
@@ -240,12 +242,12 @@ pub struct CrossPlatformIpc {
 
 impl CrossPlatformIpc {
     /// Create with automatic platform detection
-    pub fn new(name: &str, size: usize) -> Result<Self> {
+    pub async fn new(name: &str, size: usize) -> Result<Self> {
         let transport: Box<dyn IpcTransport> = {
             // Try platform-specific optimal transport first
             #[cfg(all(unix, not(target_os = "macos")))]
             {
-                match SharedMemoryTransport::new(name, size) {
+                match SharedMemoryTransport::new(name, size).await {
                     Ok(t) => {
                         println!("✅ Using SharedMemory (optimal for Linux)");
                         Box::new(t)
@@ -318,12 +320,12 @@ impl CrossPlatformIpc {
         })
     }
     
-    pub fn write(&mut self, data: &[u8]) -> Result<()> {
-        self.transport.write(data)
+    pub async fn write(&mut self, data: &[u8]) -> Result<()> {
+        self.transport.write(data).await
     }
     
-    pub fn read(&mut self) -> Result<Vec<u8>> {
-        self.transport.read()
+    pub async fn read(&mut self) -> Result<Vec<u8>> {
+        self.transport.read().await
     }
     
     pub fn platform_info(&self) -> String {

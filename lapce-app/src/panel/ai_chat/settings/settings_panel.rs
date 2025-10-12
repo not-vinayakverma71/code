@@ -1,5 +1,5 @@
 // Settings Panel
-// Pre-IPC Phase 7: Settings UI (read-only for now)
+// Pre-IPC Phase 7: Settings UI bound to AIChatState
 
 use std::sync::Arc;
 
@@ -9,13 +9,18 @@ use floem::{
     View,
 };
 
-use crate::config::LapceConfig;
+use crate::{
+    ai_state::AIChatState,
+    config::LapceConfig,
+};
 
 /// Settings panel for AI chat configuration
-/// TODO: Wire to actual settings when IPC ready
+/// Displays current state values (read-only pre-IPC)
 pub fn settings_panel(
+    ai_state: Arc<AIChatState>,
     config: impl Fn() -> Arc<LapceConfig> + 'static + Copy,
 ) -> impl View {
+    let state = ai_state.clone();
     container(
         scroll(
             v_stack((
@@ -30,21 +35,60 @@ pub fn settings_panel(
                 
                 // Auto-approval section
                 settings_section("Auto-Approval", config),
-                settings_item("Auto-approve read-only operations", "false", config),
-                settings_item("Auto-approve file writes", "false", config),
-                settings_item("Auto-approve commands", "false", config),
-                settings_item("Auto-approve MCP tools", "false", config),
+                {
+                    let s = state.clone();
+                    settings_item_dynamic("Auto-approval enabled", move || s.auto_approval_enabled.get().to_string(), config)
+                },
+                {
+                    let s = state.clone();
+                    settings_item_dynamic("Auto-approve read-only", move || s.always_allow_read_only.get().to_string(), config)
+                },
+                {
+                    let s = state.clone();
+                    settings_item_dynamic("Auto-approve writes", move || s.always_allow_write.get().to_string(), config)
+                },
+                {
+                    let s = state.clone();
+                    settings_item_dynamic("Auto-approve commands", move || s.always_allow_execute.get().to_string(), config)
+                },
+                {
+                    let s = state.clone();
+                    settings_item_dynamic("Auto-approve MCP", move || s.always_allow_mcp.get().to_string(), config)
+                },
+                {
+                    let s = state.clone();
+                    settings_item_dynamic("Auto-approve browser", move || s.always_allow_browser.get().to_string(), config)
+                },
                 
-                // Display section
+                // Display section  
                 settings_section("Display", config),
-                settings_item("Show tool details", "true", config),
-                settings_item("Show timestamps", "false", config),
-                settings_item("Syntax highlighting", "true", config),
+                {
+                    let s = state.clone();
+                    settings_item_dynamic("Show timestamps", move || s.show_timestamps.get().to_string(), config)
+                },
+                {
+                    let s = state.clone();
+                    settings_item_dynamic("Show task timeline", move || s.show_task_timeline.get().to_string(), config)
+                },
+                {
+                    let s = state.clone();
+                    settings_item_dynamic("Reasoning collapsed", move || s.reasoning_block_collapsed.get().to_string(), config)
+                },
                 
                 // Notifications section
                 settings_section("Notifications", config),
-                settings_item("Sound enabled", "true", config),
-                settings_item("Desktop notifications", "true", config),
+                {
+                    let s = state.clone();
+                    settings_item_dynamic("Sound enabled", move || s.sound_enabled.get().to_string(), config)
+                },
+                {
+                    let s = state.clone();
+                    settings_item_dynamic("Sound volume", move || format!("{:.0}%", s.sound_volume.get() * 100.0), config)
+                },
+                {
+                    let s = state.clone();
+                    settings_item_dynamic("System notifications", move || s.system_notifications_enabled.get().to_string(), config)
+                },
             ))
             .style(|s| s.gap(8.0).padding(16.0))
         )
@@ -84,6 +128,29 @@ fn settings_item(
                     s.color(cfg.color("editor.foreground"))
                 }),
             label(move || format!("Value: {}", value))
+                .style(move |s| {
+                    let cfg = config();
+                    s.font_size(11.0)
+                        .color(cfg.color("editor.dim"))
+                }),
+        ))
+    )
+    .style(|s| s.padding(8.0))
+}
+
+fn settings_item_dynamic(
+    name: &'static str,
+    value_fn: impl Fn() -> String + 'static,
+    config: impl Fn() -> Arc<LapceConfig> + 'static + Copy,
+) -> impl View {
+    container(
+        v_stack((
+            label(move || name.to_string())
+                .style(move |s| {
+                    let cfg = config();
+                    s.color(cfg.color("editor.foreground"))
+                }),
+            label(move || format!("Value: {}", value_fn()))
                 .style(move |s| {
                     let cfg = config();
                     s.font_size(11.0)

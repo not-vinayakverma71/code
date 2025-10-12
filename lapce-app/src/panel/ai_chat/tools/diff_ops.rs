@@ -4,9 +4,8 @@
 use std::sync::Arc;
 
 use floem::{
-    reactive::{SignalGet, SignalUpdate},
-    views::{Decorators, container, h_stack, label, v_stack},
-    IntoView, View,
+    reactive::SignalUpdate,
+    views::{Decorators, container, h_stack, label, v_stack}, View,
 };
 
 use crate::{

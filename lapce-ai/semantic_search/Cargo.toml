@@ -123,6 +123,34 @@ tree-sitter-typescript = "=0.23.0"
 tree-sitter-go = "=0.23.0"
 tree-sitter-java = "=0.23.0"
 tree-sitter-cpp = "=0.23.0"
+tree-sitter-c = "=0.23.0"
+tree-sitter-c-sharp = "=0.23.0"
+
+# Note: All 67 languages are provided by lapce-tree-sitter (CST-tree-sitter) via cst_ts feature
+# We keep only the core dependencies here that semantic_search uses directly
+# For full language support, use the cst_ts feature which provides all languages via CST-tree-sitter
+tree-sitter-ruby = "=0.23.0"
+tree-sitter-php = "=0.23.0"
+tree-sitter-lua = "=0.2.0"
+tree-sitter-bash = "=0.23.0"
+tree-sitter-css = "=0.23.0"
+tree-sitter-json = "=0.23.0"
+tree-sitter-swift = "=0.6.0"
+tree-sitter-scala = "0.23"
+tree-sitter-elixir = "=0.3.1"
+tree-sitter-html = "=0.23.0"
+tree-sitter-ocaml = "=0.23.2"
+tree-sitter-nix = "=0.3.0"
+tree-sitter-make = "=1.1.1"
+tree-sitter-cmake = "=0.7.1"
+tree-sitter-verilog = "=1.0.3"
+tree-sitter-erlang = "=0.14.0"
+tree-sitter-d = "=0.8.2"
+tree-sitter-pascal = "=0.10.0"
+tree-sitter-commonlisp = "=0.4.1"
+tree-sitter-objc = "=3.0.2"
+tree-sitter-groovy = "0.1.1"
+tree-sitter-embedded-template = "=0.23.2"
 
 # File watching
 notify = "6.1"
@@ -146,14 +174,14 @@ name = "current_benchmark"
 harness = false
 
 [dev-dependencies]
-arrow = { version = "56", features = ["test_utils", "prettyprint"] }
 criterion = "0.5"
+proptest = "1.4.0"
+tempfile = "3.8"
 fake = "2.9.2"
 hyper = { version = "1", features = ["server"] }
 itertools = "0.13"
 lance-test-macros = { version = "0.38.2" }
 datafusion-comet-spark-expr = "0.10"
-proptest = "1.4.0"
 pyo3 = { version = "0.22", features = ["auto-initialize"] }
 rand = "0.8.5"
 serial_test = "3.0.0"
@@ -162,7 +190,6 @@ anyhow = "1.0"
 float-ord = "0.3"
 rstest = "0.18.2"
 aws-sdk-sts = "1.13"
-tempfile = "3.8"
 aws-sdk-kms = { version = "1.48.0" }
 aws-config = "1.5.10"
 aws-credential-types = "1.2.1"
@@ -221,3 +248,23 @@ name = "ivf_pq"
 [[example]]
 name = "hybrid_search"
 required-features = ["sentence-transformers"]
+
+[[bench]]
+name = "cst_performance"
+harness = false
+required-features = ["cst_ts"]
+
+[[bench]]
+name = "cst_incremental"
+harness = false
+required-features = ["cst_ts"]
+
+[[bench]]
+name = "cst_memory"
+harness = false
+required-features = ["cst_ts"]
+
+[[bench]]
+name = "massive_codebase_benchmark"
+harness = false
+required-features = ["cst_ts"]

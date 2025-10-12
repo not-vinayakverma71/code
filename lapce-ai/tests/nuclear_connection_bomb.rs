@@ -36,9 +36,10 @@ async fn nuclear_connection_bomb() {
     let total_messages = Arc::new(AtomicU64::new(0));
     let total_bytes = Arc::new(AtomicU64::new(0));
     
-    // Start raw SHM echo server (transport-level)
-    let socket_path = "/tmp/nuc1.sock";
-    let listener = Arc::new(SharedMemoryListener::bind(socket_path).unwrap());
+    // Start raw SHM echo server (transport-level) with unique path
+    let socket_path = format!("/tmp/nuc1_{}.sock", std::process::id());
+    let _ = std::fs::remove_file(&socket_path); // Cleanup old socket
+    let listener = Arc::new(SharedMemoryListener::bind(&socket_path).await.unwrap());
     let server_handle = {
         let listener = listener.clone();
         tokio::spawn(async move {
@@ -65,11 +66,18 @@ async fn nuclear_connection_bomb() {
         let total_msgs = total_messages.clone();
         let total_bts = total_bytes.clone();
         
+        let socket = socket_path.clone();
         let handle = tokio::spawn(async move {
-            // Connect
-            let mut stream = SharedMemoryStream::connect(socket_path)
-                .await
-                .expect("Failed to connect");
+            // Connect with retry
+            let mut stream = loop {
+                match SharedMemoryStream::connect(&socket).await {
+                    Ok(s) => break s,
+                    Err(_) => {
+                        tokio::time::sleep(Duration::from_millis(10)).await;
+                        continue;
+                    }
+                }
+            };
 
             // Send messages (transport-level echo)
             for _msg_id in 0..MESSAGES_PER_CONNECTION {
@@ -139,4 +147,5 @@ async fn nuclear_connection_bomb() {
     }
     
     server_handle.abort();
+    let _ = std::fs::remove_file(&socket_path); // Cleanup
 }

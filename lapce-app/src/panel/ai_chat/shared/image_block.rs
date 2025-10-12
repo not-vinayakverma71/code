@@ -4,7 +4,6 @@
 use std::sync::Arc;
 
 use floem::{
-    reactive::SignalGet,
     views::{Decorators, container, empty, label, v_stack},
     IntoView, View,
 };

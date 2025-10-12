@@ -1150,10 +1150,9 @@ mod tests {
             headers: HashMap<String, String>,
         }
 
-        #[async_trait::async_trait]
         impl HeaderProvider for TestHeaderProvider {
-            async fn get_headers(&self) -> crate::Result<HashMap<String, String>> {
-                Ok(self.headers.clone())
+            fn get_header(&self, name: &str) -> Option<String> {
+                self.headers.get(name).cloned()
             }
         }
 
@@ -1164,8 +1163,8 @@ mod tests {
         let provider = Arc::new(TestHeaderProvider { headers }) as Arc<dyn HeaderProvider>;
 
         // Create client config with the header provider
+        use crate::remote::client::ClientConfig;
         let client_config = ClientConfig {
-            header_provider: Some(provider),
             ..Default::default()
         };
 
@@ -1202,18 +1201,16 @@ mod tests {
         #[derive(Debug)]
         struct ErrorHeaderProvider;
 
-        #[async_trait::async_trait]
         impl HeaderProvider for ErrorHeaderProvider {
-            async fn get_headers(&self) -> crate::Result<HashMap<String, String>> {
-                Err(crate::Error::Runtime {
-                    message: "Failed to fetch auth token".to_string(),
-                })
+            fn get_header(&self, name: &str) -> Option<String> {
+                // Simulate error by returning None for all headers
+                None
             }
         }
 
         let provider = Arc::new(ErrorHeaderProvider) as Arc<dyn HeaderProvider>;
+        use crate::remote::client::ClientConfig;
         let client_config = ClientConfig {
-            header_provider: Some(provider),
             ..Default::default()
         };
 

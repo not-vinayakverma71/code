@@ -1,0 +1,18 @@
+
+running 1 test
+
+🌪️ NUCLEAR TEST 5: CHAOS ENGINEERING
+=====================================
+Duration: 30 minutes
+Chaos probability: 10%
+Target: <1% failures, <100ms recovery
+
+test nuclear_chaos ... FAILED
+
+failures:
+
+failures:
+    nuclear_chaos
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

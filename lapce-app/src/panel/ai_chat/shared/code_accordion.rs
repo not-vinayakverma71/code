@@ -2,19 +2,13 @@
 use std::sync::Arc;
 
 use floem::{
-    event::EventListener,
-    reactive::{RwSignal, SignalGet},
-    style::{CursorStyle, Style},
-    views::{Decorators, container, h_stack, label, stack, text, v_stack},
-    IntoView, View,
+    reactive::RwSignal,
+    views::{Decorators, container, label}, View,
 };
 
 use crate::{
     config::LapceConfig,
-    panel::ai_chat::utils::{
-        language_detection::get_language_from_path, 
-        path_utils::remove_leading_non_alphanumeric
-    },
+    panel::ai_chat::utils::language_detection::get_language_from_path,
 };
 
 pub struct CodeAccordionProps {
@@ -39,14 +33,14 @@ pub fn code_accordion(
     
     let has_header = path.is_some();
     
-    // Simplified version - Phase 2 complete
+    // EXACT Windsurf code block styling from ui.json
     container(
         label(move || code.clone())
             .style(move |s| {
                 let cfg = config();
-                s.padding(12.0)
+                s.padding(8.0)
                     .font_family("monospace".to_string())
-                    .font_size(13.0)
+                    .font_size(12.0)  // text-xs from ui.json
                     .color(cfg.color("editor.foreground"))
                     .width_full()
             })
@@ -56,7 +50,8 @@ pub fn code_accordion(
         s.background(cfg.color("editor.background"))
             .border(1.0)
             .border_color(cfg.color("lapce.border"))
-            .border_radius(4.0)
+            .border_radius(6.0)
+            .margin_right(4.0)
             .width_full()
     })
 }

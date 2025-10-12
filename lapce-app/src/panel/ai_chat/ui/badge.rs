@@ -2,8 +2,6 @@
 use std::sync::Arc;
 
 use floem::{
-    reactive::SignalGet,
-    style::Style,
     views::{Decorators, label, stack},
     IntoView, View,
 };

@@ -27,8 +27,7 @@ impl Directory {
         }
         unreachable!("Couldn't obtain current process path");
     }
-
-    // Get path of local data directory
+   // Get path of local data directory
     // Local data directory differs from data directory
     // on some platforms and is not transferred across
     // machines

@@ -34,9 +34,10 @@ async fn nuclear_memory_leak() {
     
     let start_time = Instant::now();
     
-    // Start raw SHM echo server
-    let socket_path = "/tmp/nuc4.sock";
-    let listener = Arc::new(SharedMemoryListener::bind(socket_path).unwrap());
+    // Start raw SHM echo server with unique path
+    let socket_path = format!("/tmp/nuc4_{}.sock", std::process::id());
+    let _ = std::fs::remove_file(&socket_path);
+    let listener = Arc::new(SharedMemoryListener::bind(&socket_path).unwrap());
     let server_handle = {
         let listener = listener.clone();
         tokio::spawn(async move {
@@ -60,11 +61,16 @@ async fn nuclear_memory_leak() {
     let baseline_memory = {
         // Warmup with some connections
         let mut warmup_handles = Vec::new();
-        for _ in 0..10 {
+        let num_connections = 10;
+        for _ in 0..num_connections {
+            let socket = socket_path.clone();
             let handle = tokio::spawn(async move {
-                let mut stream = SharedMemoryStream::connect(socket_path)
-                    .await
-                    .expect("Failed to connect");
+                let mut stream = loop {
+                    match SharedMemoryStream::connect(&socket).await {
+                        Ok(s) => break s,
+                        Err(_) => { tokio::time::sleep(Duration::from_millis(10)).await; }
+                    }
+                };
                 
                 for _ in 0..100 {
                     let msg = vec![0u8; 256];
@@ -179,6 +185,7 @@ async fn nuclear_memory_leak() {
     }
     
     server_handle.abort();
+    let _ = std::fs::remove_file(&socket_path);
 }
 
 fn drop_and_measure_memory() -> f64 {

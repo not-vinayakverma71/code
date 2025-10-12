@@ -4,6 +4,15 @@ pub mod ipc_messages;
 pub mod ipc_config;
 pub mod config_validation_tests;
 pub mod binary_codec;
+pub mod canonical_header;
+#[cfg(unix)]
+pub mod framed_shm_stream;
+#[cfg(unix)]
+pub mod shm_metrics;
+#[cfg(unix)]
+pub mod shm_permissions;
+#[cfg(unix)]
+pub mod crash_recovery;
 pub mod errors;
 pub mod ipc_server;
 #[cfg(unix)]
@@ -39,6 +48,9 @@ pub use ipc_config::IpcConfig;
 pub use ipc_messages::MessageType;
 #[cfg(unix)]
 pub use shared_memory_complete::{SharedMemoryBuffer, SharedMemoryListener, SharedMemoryStream};
+#[cfg(unix)]
+pub use framed_shm_stream::FramedShmStream;
+pub use canonical_header::{CanonicalHeader, MessageType as CanonicalMessageType};
 #[cfg(windows)]
 pub use windows_shared_memory::{SharedMemoryBuffer, SharedMemoryListener, SharedMemoryStream};
 pub use crate::connection_pool_manager::{ConnectionPoolManager, PoolConfig, ConnectionStats};

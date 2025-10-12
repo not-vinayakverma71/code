@@ -5,6 +5,9 @@ pub mod parser;
 pub mod scanner;
 pub mod file_watcher;
 pub mod cst_to_ast_pipeline;
+pub mod language_registry;
+pub mod language_transformers;
+pub mod unified_language_detection;
 pub mod lapce_integration;
 pub mod native_file_watcher;
 

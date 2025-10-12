@@ -1,0 +1,29 @@
+
+running 5 tests
+
+💥 NUCLEAR LEVEL 2: MEMORY DESTRUCTION
+
+⚡ NUCLEAR LEVEL 3: LATENCY TORTURE
+
+🔥 NUCLEAR LEVEL 1: CONNECTION BOMB
+test nuclear_level_2_memory_destruction ... FAILED
+test nuclear_level_1_connection_bomb ... FAILED
+
+🔍 NUCLEAR LEVEL 4: MEMORY LEAK DETECTION
+
+🌪️ NUCLEAR LEVEL 5: CHAOS ENGINEERING
+test nuclear_level_3_latency_torture ... FAILED
+test nuclear_level_5_chaos_engineering ... FAILED
+test nuclear_level_4_memory_leak ... FAILED
+
+failures:
+
+failures:
+    nuclear_level_1_connection_bomb
+    nuclear_level_2_memory_destruction
+    nuclear_level_3_latency_torture
+    nuclear_level_4_memory_leak
+    nuclear_level_5_chaos_engineering
+
+test result: FAILED. 0 passed; 5 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

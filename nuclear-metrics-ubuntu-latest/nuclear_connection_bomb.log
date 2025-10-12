@@ -1,0 +1,11 @@
+
+running 1 test
+
+💣 NUCLEAR TEST 1: CONNECTION BOMB
+====================================
+Connections: 100
+Messages/conn: 500
+Total messages: 0M
+Target: >1M msg/sec sustained
+
+test nuclear_connection_bomb has been running for over 60 seconds

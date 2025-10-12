@@ -37,8 +37,9 @@ async fn nuclear_memory_destruction() {
     let peak_memory = Arc::new(AtomicUsize::new(0));
     
     // Start raw SHM echo server with simple len-prefixed framing
-    let socket_path = "/tmp/nuc2.sock";
-    let listener = Arc::new(SharedMemoryListener::bind(socket_path).unwrap());
+    let socket_path = format!("/tmp/nuc2_{}.sock", std::process::id());
+    let _ = std::fs::remove_file(&socket_path);
+    let listener = Arc::new(SharedMemoryListener::bind(&socket_path).unwrap());
     let server_handle = {
         let listener = listener.clone();
         tokio::spawn(async move {
@@ -85,10 +86,14 @@ async fn nuclear_memory_destruction() {
     let mut handles = Vec::new();
     
     for _ in 0..CONCURRENT_OPERATIONS {
+        let socket = socket_path.clone();
         let handle = tokio::spawn(async move {
-            let mut stream = SharedMemoryStream::connect(socket_path)
-                .await
-                .expect("Failed to connect");
+            let mut stream = loop {
+                match SharedMemoryStream::connect(&socket).await {
+                    Ok(s) => break s,
+                    Err(_) => { tokio::time::sleep(Duration::from_millis(10)).await; }
+                }
+            };
             
             // Cycle through all buffer sizes rapidly
             #[cfg(debug_assertions)]
@@ -143,6 +148,7 @@ async fn nuclear_memory_destruction() {
     }
     
     server_handle.abort();
+    let _ = std::fs::remove_file(&socket_path);
 }
 
 fn get_process_memory_mb() -> f64 {

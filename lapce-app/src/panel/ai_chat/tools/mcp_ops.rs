@@ -4,7 +4,7 @@
 use std::sync::Arc;
 
 use floem::{
-    reactive::{SignalGet, SignalUpdate},
+    reactive::SignalUpdate,
     views::{Decorators, container, h_stack, label, v_stack},
     View,
 };

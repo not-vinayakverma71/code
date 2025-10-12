@@ -7,7 +7,7 @@ use std::sync::Arc;
 use floem::{
     reactive::{RwSignal, SignalGet, create_rw_signal},
     views::{Decorators, container, dyn_stack, label, scroll, v_stack},
-    View,
+    IntoView, View,
 };
 
 use crate::{
@@ -46,15 +46,26 @@ pub fn chat_view(
         // Messages area (scrollable)
         container(
             scroll(
-                container(
+                v_stack((
+                    // Welcome screen (shows when empty)
+                    container(welcome_screen(config))
+                        .style(move |s| {
+                            let msgs = messages_signal.get();
+                            if msgs.is_empty() {
+                                s.width_full().flex_grow(1.0)
+                            } else {
+                                s.width_full().height(0.0)
+                            }
+                        }),
+                    
+                    // Message list
                     dyn_stack(
                         move || messages_signal.get(),
                         |msg| msg.ts,
                         move |msg| {
                             let is_expanded = create_rw_signal(false);
-                            let is_last = false; // TODO: track properly
+                            let is_last = false;
                             
-                            // Convert bridge message to chat row message
                             let chat_msg = ChatMessage {
                                 ts: msg.ts,
                                 message_type: convert_message_type(&msg.message_type, msg.content.contains("tool")),
@@ -72,8 +83,8 @@ pub fn chat_view(
                             )
                         },
                     )
-                )
-                .style(|s| s.padding(12.0).width_full())
+                ))
+                .style(|s| s.padding(12.0).width_full().flex_col())
             )
             .style(|s| s.flex_grow(1.0).width_full())
         )

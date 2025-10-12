@@ -1,7 +1,6 @@
 // Transport layer abstraction for AI Bridge
 // Supports NoTransport (disconnected), and later ShmTransport (shared memory IPC)
 
-use std::sync::Arc;
 
 use super::bridge::BridgeError;
 use super::messages::{ConnectionStatusType, InboundMessage, OutboundMessage};

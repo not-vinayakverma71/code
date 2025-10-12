@@ -2,10 +2,8 @@
 use std::sync::Arc;
 
 use floem::{
-    event::EventListener,
-    reactive::SignalGet,
-    style::{CursorStyle, Style},
-    views::{Decorators, container, h_stack, stack, v_stack},
+    style::CursorStyle,
+    views::{Decorators, container, h_stack},
     IntoView, View,
 };
 

@@ -4,7 +4,7 @@
 use std::sync::Arc;
 
 use floem::{
-    reactive::{RwSignal, SignalGet, SignalUpdate, create_rw_signal},
+    reactive::RwSignal,
     views::{Decorators, container, h_stack, label, v_stack},
     View,
 };
@@ -15,7 +15,6 @@ use crate::{
     panel::ai_chat::tools::{
         file_ops::*,
         diff_ops::*,
-        command_ops::*,
         task_ops::*,
     },
 };
@@ -99,74 +98,91 @@ fn say_message_simple(
             ).style(|s| s.padding(12.0)))
         },
         SayType::Text => Box::new({
-            // Regular assistant text
+            // Regular assistant text - EXACT Windsurf prose styling from ui.json
             let text = text.clone();
             container(
                 label(move || text.clone())
                     .style(move |s| {
                         let cfg = config();
-                        s.padding(12.0)
+                        s.padding(16.0)
                             .color(cfg.color("editor.foreground"))
-                            .font_size(16.0)
-                    })
-            )
-            .style(move |s| {
-                let cfg = config();
-                s.width_full()
-                    .background(cfg.color("editor.background"))
-                    .border_radius(4.0)
-                    .margin_bottom(8.0)
-            })
-        }),
-        SayType::User => Box::new({
-            // User message
-            let text = text.clone();
-            container(
-                label(move || text.clone())
-                    .style(move |s| {
-                        let cfg = config();
-                        s.padding(12.0)
-                            .color(cfg.color("editor.foreground"))
+                            .font_size(14.0)   // Exact from ui.json
+                            .line_height(1.6)  // 22.4px / 14px = 1.6
+                            .width_full()
                     })
             )
             .style(move |s| {
                 let cfg = config();
                 s.width_full()
                     .background(cfg.color("panel.background"))
-                    .border_radius(4.0)
-                    .margin_bottom(8.0)
+                    .border_radius(6.0)
+                    .margin_bottom(12.0)
+            })
+        }),
+        SayType::User => Box::new({
+            // User message - Windsurf style (more prominent)
+            let text = text.clone();
+            container(
+                label(move || text.clone())
+                    .style(move |s| {
+                        let cfg = config();
+                        s.padding(16.0)
+                            .color(cfg.color("editor.foreground"))
+                            .font_size(14.0)
+                    })
+            )
+            .style(move |s| {
+                let cfg = config();
+                s.width_full()
+                    .background(cfg.color("panel.background"))
+                    .border_radius(8.0)
+                    .margin_bottom(16.0)
+                    .border(1.0)
+                    .border_color(cfg.color("lapce.button_primary"))
             })
         }),
         SayType::ApiReqStarted => Box::new({
-            // API request indicator
+            // API request indicator - thinking state
             container(
                 h_stack((
-                    label(|| "⚡".to_string())
-                        .style(|s| s.margin_right(8.0)),
-                    label(|| "Processing...".to_string())
-                        .style(|s| s),
+                    label(|| "🧠".to_string())
+                        .style(|s| s.margin_right(8.0).font_size(14.0)),
+                    label(|| "Thinking...".to_string())
+                        .style(move |s| {
+                            let cfg = config();
+                            s.font_size(13.0).color(cfg.color("editor.dim"))
+                        }),
                 ))
             )
             .style(move |s| {
                 let cfg = config();
-                s.padding(8.0)
-                    .color(cfg.color("editor.dim"))
+                s.padding(12.0)
+                    .margin_bottom(8.0)
+                    .border_radius(6.0)
+                    .background(cfg.color("panel.background"))
             })
         }),
         SayType::CompletionResult => Box::new({
-            // Task completion
+            // Task completion - success indicator
             container(
                 h_stack((
-                    label(|| "✓".to_string())
-                        .style(|s| s.margin_right(8.0)),
-                    label(|| "Task completed".to_string())
-                        .style(|s| s),
+                    label(|| "✅".to_string())
+                        .style(|s| s.margin_right(8.0).font_size(14.0)),
+                    label(|| "Complete".to_string())
+                        .style(move |s| {
+                            let cfg = config();
+                            s.font_size(13.0).color(cfg.color("terminal.ansiGreen"))
+                        }),
                 ))
             )
             .style(move |s| {
                 let cfg = config();
-                s.padding(8.0)
-                    .color(cfg.color("terminal.ansiGreen"))
+                s.padding(12.0)
+                    .margin_bottom(8.0)
+                    .border_radius(6.0)
+                    .background(cfg.color("panel.background"))
+                    .border(1.0)
+                    .border_color(cfg.color("terminal.ansiGreen"))
             })
         }),
     }

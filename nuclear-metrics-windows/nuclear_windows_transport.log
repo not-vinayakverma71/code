@@ -1,0 +1,11 @@
+
+running 2 tests
+RESULT latency_p50_us=0
+RESULT latency_p99_us=0
+test windows_transport_latency ... ok
+RESULT throughput_msgs_per_sec=2854632
+RESULT throughput_MB_per_sec=2787.73
+test windows_transport_throughput ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.35s
+

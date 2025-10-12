@@ -48,8 +48,9 @@ async fn nuclear_chaos() {
     let recovery_times = Arc::new(parking_lot::Mutex::new(Vec::new()));
     
     // Start raw SHM echo server for chaos with large buffer to absorb oversized messages
-    let socket_path = "/tmp/nuc5.sock";
-    let listener = Arc::new(SharedMemoryListener::bind(socket_path).unwrap());
+    let socket_path = format!("/tmp/nuc5_{}.sock", std::process::id());
+    let _ = std::fs::remove_file(&socket_path);
+    let listener = Arc::new(SharedMemoryListener::bind(&socket_path).unwrap());
     let server_handle = {
         let listener = listener.clone();
         tokio::spawn(async move {
@@ -92,7 +93,7 @@ async fn nuclear_chaos() {
                 // Try to connect (with possible failures)
                 let connect_result = timeout(
                     Duration::from_secs(5),
-                    SharedMemoryStream::connect(socket_path)
+                    SharedMemoryStream::connect(&socket_path)
                 ).await;
                 
                 let mut stream = match connect_result {
@@ -285,4 +286,5 @@ async fn nuclear_chaos() {
     println!("\n✅ CHAOS TEST PASSED - System is resilient!");
     
     server_handle.abort();
+    let _ = std::fs::remove_file(&socket_path);
 }

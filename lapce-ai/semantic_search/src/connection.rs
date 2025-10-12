@@ -732,13 +732,13 @@ impl ConnectBuilder {
     /// # Arguments
     ///
     /// * `api_key` - The API key to use for the connection
-    // #[cfg(feature = "remote")]
-    // pub fn api_key(mut self, api_key: &str) -> Self {
-    //     self.request
-    //         .options
-    //         .insert(OPT_REMOTE_API_KEY.to_string(), api_key.to_string());
-    //     self
-    // }
+    #[cfg(feature = "remote")]
+    pub fn api_key(mut self, api_key: &str) -> Self {
+        self.request
+            .options
+            .insert("api_key".to_string(), api_key.to_string());
+        self
+    }
 
     /// Set the LanceDB Cloud region.
     ///
@@ -748,13 +748,13 @@ impl ConnectBuilder {
     /// # Arguments
     ///
     /// * `region` - The region to use for the connection
-    // #[cfg(feature = "remote")]
-    // pub fn region(mut self, region: &str) -> Self {
-    //     self.request
-    //         .options
-    //         .insert(OPT_REMOTE_REGION.to_string(), region.to_string());
-    //     self
-    // }
+    #[cfg(feature = "remote")]
+    pub fn region(mut self, region: &str) -> Self {
+        self.request
+            .options
+            .insert("region".to_string(), region.to_string());
+        self
+    }
 
     /// Set the LanceDB Cloud host override.
     ///
@@ -772,6 +772,7 @@ impl ConnectBuilder {
     //     );
     //     self
     // }
+
 
     /// Set the database specific options
     ///

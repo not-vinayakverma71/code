@@ -1,0 +1,18 @@
+
+running 1 test
+
+💥 NUCLEAR TEST 2: MEMORY DESTRUCTION
+======================================
+Concurrent operations: 10
+Buffer sizes: [64, 1024, 4096, 65536, 1048576]
+Target: <3MB memory always
+
+test nuclear_memory_destruction ... FAILED
+
+failures:
+
+failures:
+    nuclear_memory_destruction
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

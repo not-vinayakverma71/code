@@ -2,12 +2,14 @@
 /// Simple, robust, fast - meets all 8 success criteria
 
 use std::sync::Arc;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::ptr;
+use std::collections::HashMap;
 use anyhow::{Result, bail};
-use parking_lot::RwLock;
-use tokio::sync::oneshot;
+use parking_lot::{RwLock, Mutex};
+use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
+use std::time::{Duration, Instant};
 use crate::ipc::shm_namespace::create_namespaced_path;
 
 // Include the header module inline
@@ -35,8 +37,16 @@ unsafe impl Send for SharedMemoryBuffer {}
 unsafe impl Sync for SharedMemoryBuffer {}
 
 impl SharedMemoryBuffer {
-    /// Create new shared memory buffer
-    pub fn create(path: &str, _requested_size: usize) -> Result<Self> {
+    /// Create new shared memory buffer (async to avoid blocking runtime)
+    pub async fn create(path: &str, _requested_size: usize) -> Result<Self> {
+        let path_owned = path.to_string();
+        tokio::task::spawn_blocking(move || Self::create_blocking(&path_owned, _requested_size))
+            .await
+            .map_err(|e| anyhow::anyhow!("Task join error: {}", e))?
+    }
+    
+    /// Create new shared memory buffer (blocking implementation)
+    fn create_blocking(path: &str, _requested_size: usize) -> Result<Self> {
         let data_size = SLOT_SIZE * NUM_SLOTS;
         let header_size = std::mem::size_of::<RingBufferHeader>();
         let total_size = header_size + data_size;
@@ -118,8 +128,16 @@ impl SharedMemoryBuffer {
         }
     }
     
-    /// Open existing shared memory
-    pub fn open(path: &str, _size: usize) -> Result<Self> {
+    /// Open existing shared memory buffer (async to avoid blocking runtime)
+    pub async fn open(path: &str, _requested_size: usize) -> Result<Self> {
+        let path_owned = path.to_string();
+        tokio::task::spawn_blocking(move || Self::open_blocking(&path_owned, _requested_size))
+            .await
+            .map_err(|e| anyhow::anyhow!("Task join error: {}", e))?
+    }
+    
+    /// Open existing shared memory buffer (blocking implementation)
+    fn open_blocking(path: &str, _requested_size: usize) -> Result<Self> {
         let data_size = SLOT_SIZE * NUM_SLOTS;
         let header_size = std::mem::size_of::<RingBufferHeader>();
         let total_size = header_size + data_size;
@@ -185,9 +203,8 @@ impl SharedMemoryBuffer {
         }
     }
     
-    /// Write to buffer (lock-free)
-    #[inline(always)]
-    pub fn write(&mut self, data: &[u8]) -> Result<()> {
+    /// Write to buffer (lock-free, async with backpressure)
+    pub async fn write(&self, data: &[u8]) -> Result<()> {
         if data.is_empty() {
             return Ok(());
         }
@@ -214,15 +231,14 @@ impl SharedMemoryBuffer {
                 };
                 
                 if available <= total_len {
-                    // Ring buffer is full - implement backpressure
-                    // Try with exponential backoff
+                    // Ring buffer is full - implement async backpressure
                     let mut backoff_ms = 1;
                     let max_backoff_ms = 100;
                     let max_attempts = 10;
                     
                     for attempt in 0..max_attempts {
-                        // Re-check after backoff
-                        std::thread::sleep(std::time::Duration::from_millis(backoff_ms));
+                        // Async sleep to avoid blocking tokio runtime
+                        tokio::time::sleep(tokio::time::Duration::from_millis(backoff_ms)).await;
                         
                         let new_read_pos = header.read_pos.load(Ordering::Relaxed);
                         let new_available = if write_pos >= new_read_pos {
@@ -282,13 +298,12 @@ impl SharedMemoryBuffer {
         }
     }
     
-    /// Read from buffer (lock-free)
-    #[inline(always)]
-    pub fn read(&mut self) -> Option<Vec<u8>> {
+    /// Read from buffer (lock-free, async for API consistency)
+    pub async fn read(&self) -> Option<Vec<u8>> {
         unsafe {
             let header = &*self.header;
             
-            loop {
+            for _ in 0..100 {  // Limit retries to prevent infinite loop
                 let read_pos = header.read_pos.load(Ordering::Acquire);
                 let write_pos = header.write_pos.load(Ordering::Relaxed);
                 
@@ -339,7 +354,10 @@ impl SharedMemoryBuffer {
                     
                     return Some(data);
                 }
+                // Yield on contention to avoid busy-wait
+                tokio::task::yield_now().await;
             }
+            None  // Failed after retries
         }
     }
 }
@@ -365,17 +383,15 @@ pub fn cleanup_shared_memory(path: &str) {
     }
 }
 
-use tokio::sync::mpsc;
-use std::time::Duration;
-
 /// Handshake message for control channel
 #[repr(C)]
 struct HandshakeRequest {
-    client_id: [u8; 16],  // UUID as bytes
+    client_id: [u8; 16],  // UUID
     request_type: u32,    // 0 = connect, 1 = disconnect
+    slot_hint: u32,       // Client's preferred slot (0 = any)
     version: u8,          // Protocol version
     flags: u8,            // Feature flags
-    _padding: [u8; 10],   // Align to 32 bytes
+    _padding: [u8; 6],    // Align to 32 bytes
 }
 
 /// Handshake response
@@ -389,267 +405,332 @@ struct HandshakeResponse {
     _padding: [u8; 2],    // Align to 32 bytes
 }
 
-/// Listener for incoming shared memory connections
-pub struct SharedMemoryListener {
-    control_path: String,
-    control_buffer: Arc<RwLock<SharedMemoryBuffer>>,
-    accept_rx: mpsc::UnboundedReceiver<AcceptRequest>,
-    server_task: Option<JoinHandle<()>>,
-    is_owner: bool,  // Track if we created the shm segment
+/// Slot metadata for tracking and reclamation
+struct SlotMetadata {
+    slot_id: u32,
+    send_buffer: Arc<SharedMemoryBuffer>,  // Already lock-free with atomics
+    recv_buffer: Arc<SharedMemoryBuffer>,
+    created_at: Instant,
+    last_used: AtomicU64,  // Timestamp in seconds since epoch
+    in_use: AtomicBool,
 }
 
-struct AcceptRequest {
-    client_id: uuid::Uuid,
-    response_tx: oneshot::Sender<Result<()>>,
+/// Slot pool with warm pool + on-demand allocation
+struct SlotPool {
+    slots: Arc<Mutex<HashMap<u32, Arc<SlotMetadata>>>>,
+    base_path: String,
+    warm_pool_size: usize,
+    max_slots: usize,
+}
+
+impl SlotPool {
+    async fn new(base_path: String, warm_pool_size: usize, max_slots: usize) -> Result<Self> {
+        let pool = Self {
+            slots: Arc::new(Mutex::new(HashMap::new())),
+            base_path: base_path.clone(),
+            warm_pool_size,
+            max_slots,
+        };
+        
+        // Pre-create warm pool
+        for slot_id in 0..warm_pool_size as u32 {
+            pool.create_slot(slot_id).await?;
+        }
+        
+        Ok(pool)
+    }
+    
+    async fn create_slot(&self, slot_id: u32) -> Result<Arc<SlotMetadata>> {
+        let send_path = format!("{}_{}_send", self.base_path, slot_id);
+        let recv_path = format!("{}_{}_recv", self.base_path, slot_id);
+        
+        let send = SharedMemoryBuffer::create(&send_path, 2 * 1024 * 1024).await?;
+        let recv = SharedMemoryBuffer::create(&recv_path, 2 * 1024 * 1024).await?;
+        
+        let metadata = Arc::new(SlotMetadata {
+            slot_id,
+            send_buffer: Arc::new(send),  // No lock needed - already atomic
+            recv_buffer: Arc::new(recv),
+            created_at: Instant::now(),
+            last_used: AtomicU64::new(Self::current_timestamp()),
+            in_use: AtomicBool::new(false),
+        });
+        
+        self.slots.lock().insert(slot_id, metadata.clone());
+        Ok(metadata)
+    }
+    
+    async fn get_or_create_slot(&self, slot_id: u32) -> Result<Arc<SlotMetadata>> {
+        // Fast path: slot exists
+        if let Some(slot) = self.slots.lock().get(&slot_id).cloned() {
+            return Ok(slot);
+        }
+        
+        // Slow path: create on demand
+        let slots_count = self.slots.lock().len();
+        if slots_count >= self.max_slots {
+            bail!("Maximum slots ({}) reached", self.max_slots);
+        }
+        
+        self.create_slot(slot_id).await
+    }
+    
+    fn current_timestamp() -> u64 {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+    }
+}
+
+/// Listener for incoming shared memory connections
+pub struct SharedMemoryListener {
+    base_path: String,
+    is_owner: bool,
+    slot_pool: Arc<SlotPool>,
+    accept_rx: Arc<Mutex<mpsc::UnboundedReceiver<u32>>>,  // Slot IDs from watcher
+    _watcher_task: JoinHandle<()>,
 }
 
 impl SharedMemoryListener {
-    pub fn bind(path: &str) -> Result<Self> {
-        let control_path = format!("{}_control", path);
-        let control_buffer = Arc::new(RwLock::new(SharedMemoryBuffer::create(&control_path, CONTROL_SIZE)?));
+    pub async fn bind(path: &str) -> Result<Self> {
+        const WARM_POOL_SIZE: usize = 64;   // Warm pool for fast connection
+        const MAX_SLOTS: usize = 1000;       // Maximum allowed slots
         
-        let (accept_tx, accept_rx) = mpsc::unbounded_channel();
-        let control_buffer_clone = control_buffer.clone();
+        // Create slot pool with warm pool
+        let slot_pool = Arc::new(SlotPool::new(
+            path.to_string(),
+            WARM_POOL_SIZE,
+            MAX_SLOTS,
+        ).await?);
         
-        // Start server task to handle handshakes
-        let server_task = tokio::spawn(async move {
-            Self::handle_control_channel(control_buffer_clone, accept_tx).await;
+        // Create channel for accept queue
+        let (accept_tx, accept_rx) = mpsc::unbounded_channel::<u32>();
+        
+        // Ensure lock directory exists
+        let lock_dir = format!("{}_locks", path);
+        std::fs::create_dir_all(&lock_dir)?;
+        
+        // Do initial scan before spawning watcher
+        if let Ok(entries) = std::fs::read_dir(&lock_dir) {
+            for entry in entries.flatten() {
+                if let Ok(file_name) = entry.file_name().into_string() {
+                    if file_name.ends_with(".lock") {
+                        if let Some(slot_str) = file_name.strip_prefix("slot_").and_then(|s| s.strip_suffix(".lock")) {
+                            if let Ok(slot_id) = slot_str.parse::<u32>() {
+                                if slot_pool.get_or_create_slot(slot_id).await.is_ok() {
+                                    let _ = accept_tx.send(slot_id);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Spawn filesystem watcher for lock files
+        let lock_dir_clone = lock_dir.clone();
+        let slot_pool_clone = slot_pool.clone();
+        let watcher_task = tokio::spawn(async move {
+            Self::watch_lock_files(lock_dir_clone, accept_tx, slot_pool_clone).await;
         });
         
         Ok(Self {
-            control_path,
-            control_buffer,
-            accept_rx,
-            server_task: Some(server_task),
+            base_path: path.to_string(),
             is_owner: true,
+            slot_pool,
+            accept_rx: Arc::new(Mutex::new(accept_rx)),
+            _watcher_task: watcher_task,
         })
     }
     
-    async fn handle_control_channel(
-        control_buffer: Arc<RwLock<SharedMemoryBuffer>>,
-        accept_tx: mpsc::UnboundedSender<AcceptRequest>
+    
+    /// Watch for lock files and enqueue accepted connections
+    async fn watch_lock_files(
+        lock_dir: String,
+        accept_tx: mpsc::UnboundedSender<u32>,
+        slot_pool: Arc<SlotPool>,
     ) {
-        // Server loop to handle incoming connection requests
-        loop {
-            // Check for incoming handshake requests
-            let mut buffer_guard = control_buffer.write();
-            if let Some(data) = buffer_guard.read() {
-                if data.len() >= std::mem::size_of::<HandshakeRequest>() {
-                    // Parse handshake request
-                    let request = unsafe {
-                        ptr::read(data.as_ptr() as *const HandshakeRequest)
-                    };
-                    
-                    // Create response
-                    let response = HandshakeResponse {
-                        client_id: request.client_id,
-                        status: 0,  // Success
-                        conn_id: rand::random::<u64>(),
-                        version: 1,
-                        flags: 0,
-                        _padding: [0; 2],
-                    };
-                    
-                    // Write response back
-                    let response_bytes = unsafe {
-                        std::slice::from_raw_parts(
-                            &response as *const _ as *const u8,
-                            std::mem::size_of::<HandshakeResponse>()
-                        )
-                    };
-                    
-                    let mut write_guard = control_buffer.write();
-                    let _ = write_guard.write(response_bytes);
+        let mut interval = tokio::time::interval(Duration::from_millis(1));  // Faster polling
+        let mut seen_locks = std::collections::HashSet::new();
+        
+        // Pre-populate seen_locks with existing files
+        if let Ok(entries) = std::fs::read_dir(&lock_dir) {
+            for entry in entries.flatten() {
+                if let Ok(file_name) = entry.file_name().into_string() {
+                    if file_name.ends_with(".lock") {
+                        if let Some(slot_str) = file_name.strip_prefix("slot_").and_then(|s| s.strip_suffix(".lock")) {
+                            if let Ok(slot_id) = slot_str.parse::<u32>() {
+                                seen_locks.insert(slot_id);
+                            }
+                        }
+                    }
                 }
             }
+        }
+        
+        loop {
+            interval.tick().await;
             
-            tokio::time::sleep(Duration::from_millis(1)).await;
+            // Scan lock directory for new lock files
+            if let Ok(entries) = std::fs::read_dir(&lock_dir) {
+                for entry in entries.flatten() {
+                    if let Ok(file_name) = entry.file_name().into_string() {
+                        if file_name.ends_with(".lock") {
+                            // Extract slot_id from filename: slot_<id>.lock
+                            if let Some(slot_str) = file_name.strip_prefix("slot_").and_then(|s| s.strip_suffix(".lock")) {
+                                if let Ok(slot_id) = slot_str.parse::<u32>() {
+                                    if !seen_locks.contains(&slot_id) {
+                                        seen_locks.insert(slot_id);
+                                        
+                                        // Ensure slot exists (create on-demand if needed)
+                                        if slot_pool.get_or_create_slot(slot_id).await.is_ok() {
+                                            let _ = accept_tx.send(slot_id);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
     
     pub async fn accept(&self) -> Result<(SharedMemoryStream, std::net::SocketAddr)> {
-        // Wait for a connection request
-        let (client_id, conn_id) = self.wait_for_connection().await?;
+        // Wait for a slot to be claimed via lock file
+        let slot_id = self.accept_rx.lock().recv().await
+            .ok_or_else(|| anyhow::anyhow!("Accept channel closed"))?;
         
-        // For now, return a dummy address since we're using shared memory
-        let addr = "127.0.0.1:0".parse()
-            .unwrap_or_else(|_| std::net::SocketAddr::from(([127, 0, 0, 1], 0)));
+        // Get the slot metadata
+        let slot = self.slot_pool.get_or_create_slot(slot_id).await?;
         
-        // Create data buffers for this connection using server-generated conn_id
-        let base_path = self.control_path.trim_end_matches("_control");
-        let send_path = format!("{}_{}_send", base_path, conn_id);
-        let recv_path = format!("{}_{}_recv", base_path, conn_id);
+        // Mark slot as in use
+        slot.in_use.store(true, Ordering::Release);
+        slot.last_used.store(SlotPool::current_timestamp(), Ordering::Relaxed);
         
-        let send_buffer = Arc::new(RwLock::new(
-            SharedMemoryBuffer::create(&send_path, 4 * 1024 * 1024)?
-        ));
-        let recv_buffer = Arc::new(RwLock::new(
-            SharedMemoryBuffer::create(&recv_path, 4 * 1024 * 1024)?
-        ));
-        
+        // Create stream from slot
+        // Buffers are bidirectional - both sides use same physical buffers
         let stream = SharedMemoryStream {
-            send_buffer,
-            recv_buffer,
-            conn_id,
+            send_buffer: slot.send_buffer.clone(),
+            recv_buffer: slot.recv_buffer.clone(),
+            conn_id: slot_id as u64,
+            lock_path: Some(format!("{}_locks/slot_{}.lock", self.base_path, slot_id)),
+            base_path: self.base_path.clone(),
         };
         
+        // Return dummy address (SHM has no network address)
+        let addr = "0.0.0.0:0".parse().unwrap();
         Ok((stream, addr))
     }
-    
-    async fn wait_for_connection(&self) -> Result<(uuid::Uuid, u64)> {
-        let timeout = Duration::from_secs(60);
-        let start = std::time::Instant::now();
-        
-        loop {
-            let mut buffer_guard = self.control_buffer.write();
-            if let Some(data) = buffer_guard.read() {
-                if data.len() >= std::mem::size_of::<HandshakeRequest>() {
-                    // Parse handshake request
-                    let request = unsafe {
-                        ptr::read(data.as_ptr() as *const HandshakeRequest)
-                    };
-                    
-                    if request.request_type == 0 { // Connect request
-                        // Generate connection ID
-                        let conn_id = rand::random::<u64>();
-                        
-                        // Create response
-                        let response = HandshakeResponse {
-                            client_id: request.client_id,
-                            status: 0,  // Success
-                            conn_id,
-                            version: SHM_PROTOCOL_VERSION,
-                            flags: 0,
-                            _padding: [0; 2],
-                        };
-                        
-                        // Write response back
-                        let response_bytes = unsafe {
-                            std::slice::from_raw_parts(
-                                &response as *const _ as *const u8,
-                                std::mem::size_of::<HandshakeResponse>()
-                            )
-                        };
-                        
-                        buffer_guard.write(response_bytes)?;
-                        
-                        let client_uuid = uuid::Uuid::from_bytes(request.client_id);
-                        return Ok((client_uuid, conn_id));
-                    }
-                }
-            }
-            
-            if start.elapsed() > timeout {
-                bail!("Accept timeout");
-            }
-            
-            drop(buffer_guard);
-            tokio::time::sleep(Duration::from_millis(10)).await;
-        }
-    }
-    
 }
 
 impl Drop for SharedMemoryListener {
     fn drop(&mut self) {
-        // If we're the owner, clean up the shared memory
-        if self.is_owner {
-            cleanup_shared_memory(&self.control_path);
-        }
-        
-        // Cancel the server task
-        if let Some(task) = self.server_task.take() {
-            task.abort();
-        }
+        // Cleanup will be handled by OS when process exits
+        // Pre-allocated buffers remain on disk for reuse
     }
 }
 
 /// A shared memory stream for bidirectional communication
 pub struct SharedMemoryStream {
-    send_buffer: Arc<RwLock<SharedMemoryBuffer>>,
-    recv_buffer: Arc<RwLock<SharedMemoryBuffer>>,
+    send_buffer: Arc<SharedMemoryBuffer>,  // Lock-free with atomic ring operations
+    recv_buffer: Arc<SharedMemoryBuffer>,
     conn_id: u64,
+    lock_path: Option<String>,  // Track lock file for cleanup
+    base_path: String,
 }
 
 impl SharedMemoryStream {
-    /// Connect to a shared memory server
+    /// Connect to a shared memory server using lock-free slot claiming
     pub async fn connect(path: &str) -> Result<Self> {
-        let client_uuid = uuid::Uuid::new_v4();
-        let control_path = format!("{}_control", path);
-        let control_buffer = Arc::new(RwLock::new(SharedMemoryBuffer::open(&control_path, CONTROL_SIZE)?));
+        const MAX_ATTEMPTS: usize = 500;  // Increased for concurrent bursts
         
-        // Send handshake request
-        let request = HandshakeRequest {
-            client_id: *client_uuid.as_bytes(),
-            request_type: 0, // Connect
-            version: SHM_PROTOCOL_VERSION,
-            flags: 0,
-            _padding: [0; 10],
-        };
+        // Ensure lock directory exists
+        let lock_dir = format!("{}_locks", path);
+        std::fs::create_dir_all(&lock_dir)?;
         
-        let request_bytes = unsafe {
-            std::slice::from_raw_parts(
-                &request as *const _ as *const u8,
-                std::mem::size_of::<HandshakeRequest>()
-            )
-        };
-        
-        control_buffer.write().write(request_bytes)?;
-        
-        // Wait for response
-        let start = std::time::Instant::now();
-        let timeout = Duration::from_secs(5);
-        
-        loop {
-            let mut buffer_guard = control_buffer.write();
-            if let Some(data) = buffer_guard.read() {
-                if data.len() >= std::mem::size_of::<HandshakeResponse>() {
-                    let response: HandshakeResponse = unsafe {
-                        ptr::read(data.as_ptr() as *const HandshakeResponse)
-                    };
+        // Try random slots with exponential backoff
+        for attempt in 0..MAX_ATTEMPTS {
+            let slot_id = rand::random::<u32>() % 1000;
+            let lock_path = format!("{}/slot_{}.lock", lock_dir, slot_id);
+            
+            // Atomically try to create lock file
+            match std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)  // Fails if file exists
+                .open(&lock_path) {
+                Ok(mut file) => {
+                    // Successfully claimed slot!
+                    use std::io::Write;
+                    let _ = file.write_all(format!("{}", std::process::id()).as_bytes());
+                    drop(file);
                     
-                    // Check if response is for us
-                    if response.client_id == *client_uuid.as_bytes() && response.status == 0 {
-                        // Use the server-provided connection ID
-                        let conn_id = response.conn_id;
-                        
-                        // Check version compatibility
-                        if response.version != SHM_PROTOCOL_VERSION {
-                            bail!("Protocol version mismatch: server={}, client={}", 
-                                  response.version, SHM_PROTOCOL_VERSION);
+                    // Open pre-allocated buffers (reversed for client perspective)
+                    let send_path = format!("{}_{}_recv", path, slot_id);
+                    let recv_path = format!("{}_{}_send", path, slot_id);
+                    
+                    // Retry buffer opening with backoff (allows watcher to create slot on-demand)
+                    const MAX_BUFFER_RETRIES: usize = 50;  // Up to ~500ms total wait
+                    for retry in 0..MAX_BUFFER_RETRIES {
+                        match SharedMemoryBuffer::open(&send_path, 2 * 1024 * 1024).await {
+                            Ok(send_buf) => {
+                                match SharedMemoryBuffer::open(&recv_path, 2 * 1024 * 1024).await {
+                                    Ok(recv_buf) => {
+                                        return Ok(Self {
+                                            send_buffer: Arc::new(send_buf),
+                                            recv_buffer: Arc::new(recv_buf),
+                                            conn_id: slot_id as u64,
+                                            lock_path: Some(lock_path),
+                                            base_path: path.to_string(),
+                                        });
+                                    }
+                                    Err(_) if retry < MAX_BUFFER_RETRIES - 1 => {
+                                        // Retry recv buffer with backoff
+                                        tokio::time::sleep(Duration::from_millis(10)).await;
+                                        continue;
+                                    }
+                                    Err(e) => {
+                                        // Final retry failed - clean up lock
+                                        let _ = std::fs::remove_file(&lock_path);
+                                        return Err(e);
+                                    }
+                                }
+                            }
+                            Err(_) if retry < MAX_BUFFER_RETRIES - 1 => {
+                                // Retry send buffer with backoff
+                                tokio::time::sleep(Duration::from_millis(10)).await;
+                                continue;
+                            }
+                            Err(e) => {
+                                // Final retry failed - clean up lock
+                                let _ = std::fs::remove_file(&lock_path);
+                                return Err(e);
+                            }
                         }
-                        
-                        // Open buffers created by server (reversed for client perspective)
-                        // Use consistent base path without control suffix
-                        let base_path = path;
-                        let send_path = format!("{}_{}_recv", base_path, conn_id);
-                        let recv_path = format!("{}_{}_send", base_path, conn_id);
-                        
-                        return Ok(Self {
-                            send_buffer: Arc::new(RwLock::new(
-                                SharedMemoryBuffer::open(&send_path, 4 * 1024 * 1024)?
-                            )),
-                            recv_buffer: Arc::new(RwLock::new(
-                                SharedMemoryBuffer::open(&recv_path, 4 * 1024 * 1024)?
-                            )),
-                            conn_id,
-                        });
                     }
+                    
+                    // Unreachable, but for compiler
+                    let _ = std::fs::remove_file(&lock_path);
+                    bail!("Buffer opening timed out for slot {}", slot_id);
+                }
+                Err(_) => {
+                    // Exponential backoff for contention
+                    if attempt > 0 && attempt % 10 == 0 {
+                        let backoff_ms = std::cmp::min(attempt / 10, 5);
+                        tokio::time::sleep(Duration::from_millis(backoff_ms as u64)).await;
+                    }
+                    continue;
                 }
             }
-            
-            if start.elapsed() > timeout {
-                bail!("Handshake timeout");
-            }
-            
-            drop(buffer_guard);
-            tokio::time::sleep(Duration::from_millis(10)).await;
         }
+        
+        bail!("No available slots after {} attempts", MAX_ATTEMPTS)
     }
     
     /// Read data
     pub async fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
-        if let Some(data) = self.recv_buffer.write().read() {
+        if let Some(data) = self.recv_buffer.read().await {
             let to_copy = std::cmp::min(data.len(), buf.len());
             buf[..to_copy].copy_from_slice(&data[..to_copy]);
             Ok(to_copy)
@@ -660,7 +741,7 @@ impl SharedMemoryStream {
     
     /// Write data
     pub async fn write(&mut self, buf: &[u8]) -> Result<usize> {
-        self.send_buffer.write().write(buf)?;
+        self.send_buffer.write(buf).await?;
         Ok(buf.len())
     }
     
@@ -670,7 +751,7 @@ impl SharedMemoryStream {
         let mut total_read = 0;
         
         while total_read < needed {
-            if let Some(data) = self.recv_buffer.write().read() {
+            if let Some(data) = self.recv_buffer.read().await {
                 let to_copy = std::cmp::min(data.len(), needed - total_read);
                 buf[total_read..total_read + to_copy].copy_from_slice(&data[..to_copy]);
                 total_read += to_copy;
@@ -684,7 +765,8 @@ impl SharedMemoryStream {
     
     /// Write all bytes
     pub async fn write_all(&mut self, buf: &[u8]) -> Result<()> {
-        self.send_buffer.write().write(buf)?;
+        // True lock-free write via atomic ring operations
+        self.send_buffer.write(buf).await?;
         Ok(())
     }
     
@@ -692,6 +774,15 @@ impl SharedMemoryStream {
     pub async fn flush(&mut self) -> Result<()> {
         // Shared memory writes are immediate, no need to flush
         Ok(())
+    }
+}
+
+impl Drop for SharedMemoryStream {
+    fn drop(&mut self) {
+        // Release lock file to free slot for reuse
+        if let Some(lock_path) = &self.lock_path {
+            let _ = std::fs::remove_file(lock_path);
+        }
     }
 }
 
@@ -721,34 +812,34 @@ mod tests {
     #[tokio::test]
     async fn test_shared_memory_communication() {
         // Test basic shared memory buffer read/write
-        let mut buffer = SharedMemoryBuffer::create("/test_comm_buf", 2 * 1024 * 1024).unwrap();
+        let mut buffer = SharedMemoryBuffer::create("/test_comm_buf", 2 * 1024 * 1024).await.unwrap();
         
         let test_data = b"Hello SharedMemory!";
-        buffer.write(test_data).unwrap();
+        buffer.write(test_data).await.unwrap();
         
-        let read_data = buffer.read().unwrap();
+        let read_data = buffer.read().await.unwrap();
         assert_eq!(read_data, test_data);
         
         // Test multiple writes
         for i in 0..10 {
             let data = format!("Message {}", i);
-            buffer.write(data.as_bytes()).unwrap();
-            let result = buffer.read().unwrap();
+            buffer.write(data.as_bytes()).await.unwrap();
+            let result = buffer.read().await.unwrap();
             assert_eq!(result, data.as_bytes());
         }
     }
     
     #[tokio::test]
     async fn test_performance() {
-        let mut buffer = SharedMemoryBuffer::create("/perf_test_shm", 4 * 1024 * 1024).unwrap();
+        let mut buffer = SharedMemoryBuffer::create("/perf_test_shm", 4 * 1024 * 1024).await.unwrap();
         
         let data = vec![0u8; 512]; // Smaller than slot size (1024)
         let iterations = 10000;
         
         let start = std::time::Instant::now();
         for _ in 0..iterations {
-            buffer.write(&data).unwrap();
-            buffer.read().unwrap();
+            buffer.write(&data).await.unwrap();
+            buffer.read().await.unwrap();
         }
         let duration = start.elapsed();
         

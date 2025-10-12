@@ -1,5 +1,6 @@
 pub mod ai_chat;
 pub mod ai_chat_view;
+pub mod ai_settings;
 pub mod call_hierarchy_view;
 pub mod data;
 pub mod debug_view;

@@ -5,16 +5,15 @@ use std::{rc::Rc, sync::Arc};
 
 use floem::{
     reactive::{create_rw_signal, SignalGet, SignalUpdate},
-    views::{container, Decorators},
+    views::{container, v_stack, Decorators},
     IntoView,
 };
 
 use crate::{
-    ai_bridge::{BridgeClient, Transport, NoTransport},
+    ai_bridge::{BridgeClient, NoTransport},
     ai_state::AIChatState,
     panel::ai_chat::components::{
         chat_view::{ChatViewProps, chat_view},
-        chat_row::{ChatMessage, MessageType, SayType},
     },
     window_tab::WindowTabData,
 };
@@ -26,7 +25,7 @@ pub fn ai_chat_panel(
     let config = window_tab_data.common.config;
     
     // Initialize AI state with NoTransport (pre-IPC)
-    let bridge = Arc::new(BridgeClient::new(Arc::new(NoTransport)));
+    let bridge = Arc::new(BridgeClient::new(Box::new(NoTransport::new())));
     let ai_state = Arc::new(AIChatState::new(bridge));
     
     // Local input state
@@ -63,21 +62,29 @@ pub fn ai_chat_panel(
     // Convert state messages to chat row messages
     let messages_signal = ai_state.messages;
     
-    container(
-        chat_view(
-            ChatViewProps {
-                input_value,
-                sending_disabled,
-                on_send,
-                messages_signal,
-            },
-            move || config.get_untracked(),
-        )
-    )
+    // Main chat area (no sidebar)
+    v_stack((
+            // Chat view (includes messages area and input - integrated)
+            container(
+                chat_view(
+                    ChatViewProps {
+                        input_value,
+                        sending_disabled,
+                        on_send,
+                        messages_signal,
+                    },
+                    move || config.get_untracked(),
+                )
+            )
+            .style(|s| s.flex_grow(1.0).width_full()),
+            
+            // Clean: No toolbar buttons (Windsurf style)
+    ))
     .style(move |s| {
         let cfg = config.get_untracked();
         s.width_full()
             .height_full()
+            .flex_col()
             .background(cfg.color("panel.background"))
     })
 }

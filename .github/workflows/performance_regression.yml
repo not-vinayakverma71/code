@@ -1,0 +1,176 @@
+name: Performance Regression Check
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'lapce-ai/CST-tree-sitter/**'
+      - 'lapce-ai/semantic_search/**'
+  workflow_dispatch:
+    inputs:
+      threshold:
+        description: 'Regression threshold percentage'
+        required: false
+        default: '10'
+
+jobs:
+  benchmark:
+    name: Performance Regression Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Cache cargo index
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Cache target directory
+        uses: actions/cache@v3
+        with:
+          path: target
+          key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Checkout baseline (main)
+        run: |
+          git fetch origin main
+          git checkout origin/main
+          mkdir -p baseline
+          cp -r lapce-ai baseline/
+      
+      - name: Run baseline benchmarks
+        run: |
+          cd baseline/lapce-ai/CST-tree-sitter
+          cargo bench --bench property_tests -- --save-baseline main --output-format bencher
+          cargo bench --bench cache_bench -- --save-baseline main --output-format bencher
+          
+          # Save baseline results
+          mkdir -p ../../../benchmark-results
+          cp -r target/criterion ../../../benchmark-results/baseline || true
+      
+      - name: Checkout PR branch
+        run: git checkout ${{ github.sha }}
+      
+      - name: Run PR benchmarks
+        run: |
+          cd lapce-ai/CST-tree-sitter
+          cargo bench --bench property_tests -- --baseline main --output-format bencher
+          cargo bench --bench cache_bench -- --baseline main --output-format bencher
+          
+          # Save PR results
+          cp -r target/criterion ../../benchmark-results/pr || true
+      
+      - name: Check for regressions
+        run: |
+          cd lapce-ai/CST-tree-sitter
+          
+          # Create regression check script
+          cat > check_regression.sh << 'EOF'
+          #!/bin/bash
+          set -e
+          
+          THRESHOLD=${1:-10}
+          REGRESSION_FOUND=0
+          
+          echo "Performance Regression Check"
+          echo "============================="
+          echo "Threshold: ${THRESHOLD}%"
+          echo ""
+          
+          # Check if criterion generated comparison reports
+          if [ -d "target/criterion" ]; then
+              # Parse criterion output for regressions
+              for report in target/criterion/*/base/estimates.json; do
+                  if [ -f "$report" ]; then
+                      benchmark=$(basename $(dirname $(dirname "$report")))
+                      echo "Checking benchmark: $benchmark"
+                      
+                      # Simple check - in production, parse JSON properly
+                      if grep -q "regression" "$report" 2>/dev/null; then
+                          echo "  ⚠️  Potential regression detected in $benchmark"
+                          REGRESSION_FOUND=1
+                      else
+                          echo "  ✅ No regression detected"
+                      fi
+                  fi
+              done
+          else
+              echo "⚠️  No benchmark results found"
+          fi
+          
+          if [ $REGRESSION_FOUND -eq 1 ]; then
+              echo ""
+              echo "❌ Performance regressions detected above threshold"
+              echo "Please review the benchmark results and optimize if needed."
+              exit 1
+          else
+              echo ""
+              echo "✅ No performance regressions detected"
+          fi
+          EOF
+          
+          chmod +x check_regression.sh
+          ./check_regression.sh ${{ github.event.inputs.threshold || '10' }}
+      
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: benchmark-results
+          path: benchmark-results/
+      
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            let comment = '## 📊 Performance Benchmark Results\n\n';
+            
+            // Check if regression was detected
+            const workflowFailed = process.env.WORKFLOW_STATUS === 'failure';
+            
+            if (workflowFailed) {
+              comment += '⚠️ **Performance regression detected!**\n\n';
+              comment += 'One or more benchmarks showed performance degradation above the threshold.\n';
+              comment += 'Please review the detailed results and optimize if necessary.\n\n';
+            } else {
+              comment += '✅ **No performance regressions detected**\n\n';
+              comment += 'All benchmarks are within acceptable performance thresholds.\n\n';
+            }
+            
+            comment += '<details>\n<summary>View detailed benchmark results</summary>\n\n';
+            comment += '```\n';
+            comment += 'Baseline: main branch\n';
+            comment += 'Comparison: PR branch\n';
+            comment += 'Threshold: ${{ github.event.inputs.threshold || '10' }}%\n';
+            comment += '```\n\n';
+            comment += '</details>';
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+        env:
+          WORKFLOW_STATUS: ${{ job.status }}

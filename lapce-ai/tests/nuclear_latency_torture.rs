@@ -34,9 +34,10 @@ async fn nuclear_latency_torture() {
     let start_time = Instant::now();
     let mut latencies = Vec::with_capacity(TEST_MESSAGES);
     
-    // Start raw SHM echo server (transport-level)
-    let socket_path = "/tmp/nuc3.sock";
-    let listener = Arc::new(SharedMemoryListener::bind(socket_path).unwrap());
+    // Start raw SHM echo server (transport-level) with unique path
+    let socket_path = format!("/tmp/nuc3_{}.sock", std::process::id());
+    let _ = std::fs::remove_file(&socket_path);
+    let listener = Arc::new(SharedMemoryListener::bind(&socket_path).unwrap());
     let server_handle = {
         let listener = listener.clone();
         tokio::spawn(async move {
@@ -62,10 +63,14 @@ async fn nuclear_latency_torture() {
     
     for _ in 0..BACKGROUND_CONNECTIONS {
         let stop = stop_signal.clone();
+        let socket = socket_path.clone();
         let handle = tokio::spawn(async move {
-            let mut stream = SharedMemoryStream::connect(socket_path)
-                .await
-                .expect("Failed to connect");
+            let mut stream = loop {
+                match SharedMemoryStream::connect(&socket).await {
+                    Ok(s) => break s,
+                    Err(_) => { tokio::time::sleep(Duration::from_millis(10)).await; }
+                }
+            };
             
             let message = vec![0u8; MESSAGE_SIZE];
             
@@ -83,10 +88,13 @@ async fn nuclear_latency_torture() {
     sleep(Duration::from_secs(2)).await;
     println!("Background load established, starting latency test...");
     
-    // Test connection for latency measurement
-    let mut test_stream = SharedMemoryStream::connect(socket_path)
-        .await
-        .expect("Failed to connect test stream");
+    // Test connection for latency measurement with retry
+    let mut test_stream = loop {
+        match SharedMemoryStream::connect(&socket_path).await {
+            Ok(s) => break s,
+            Err(_) => { sleep(Duration::from_millis(10)).await; }
+        }
+    };
     
     // Measure latencies under load
     for i in 0..TEST_MESSAGES {
@@ -153,4 +161,5 @@ async fn nuclear_latency_torture() {
     }
     
     server_handle.abort();
+    let _ = std::fs::remove_file(&socket_path);
 }
