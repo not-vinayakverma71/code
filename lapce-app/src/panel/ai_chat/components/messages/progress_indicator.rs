@@ -3,7 +3,6 @@
 
 use std::sync::Arc;
 use floem::{
-    reactive::SignalGet,
     views::{container, label, Decorators},
     View,
 };

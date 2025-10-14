@@ -794,7 +794,7 @@ mod tests {
         let result = tool.execute(args, context.clone()).await.unwrap();
         assert!(result.success);
         assert_eq!(
-            result.data["result"].as_str().unwrap(),
+            result.result["result"].as_str().unwrap(),
             "SGVsbG8sIFdvcmxkIQ=="
         );
         
@@ -807,7 +807,7 @@ mod tests {
         let result = tool.execute(args, context).await.unwrap();
         assert!(result.success);
         assert_eq!(
-            result.data["result"].as_str().unwrap(),
+            result.result["result"].as_str().unwrap(),
             "Hello, World!"
         );
     }
@@ -843,7 +843,7 @@ mod tests {
         
         let result = tool.execute(args, context).await.unwrap();
         assert!(result.success);
-        assert!(result.data["formatted"].as_str().unwrap().contains(r#""a": 1"#));
+        assert!(result.result["formatted"].as_str().unwrap().contains(r#""a": 1"#));
     }
     
     #[tokio::test]
@@ -861,7 +861,7 @@ mod tests {
         
         let result = tool.execute(args, context).await.unwrap();
         assert!(result.success);
-        let env = result.data["environment"].as_object().unwrap();
+        let env = result.result["environment"].as_object().unwrap();
         assert_eq!(env.get("TEST_VAR_EXAMPLE").unwrap().as_str().unwrap(), "test_value");
     }
     
@@ -877,7 +877,7 @@ mod tests {
         
         let result = tool.execute(args, context).await.unwrap();
         assert!(result.success);
-        let processes = result.data["processes"].as_array().unwrap();
+        let processes = result.result["processes"].as_array().unwrap();
         assert!(processes.len() <= 5);
     }
     
@@ -914,9 +914,9 @@ mod tests {
         
         let result = tool.execute(args, context).await.unwrap();
         assert!(result.success);
-        assert_eq!(result.data["total_lines"].as_u64().unwrap(), 6);
-        assert_eq!(result.data["blank_lines"].as_u64().unwrap(), 1);
-        assert_eq!(result.data["by_type"]["comments"].as_u64().unwrap(), 2);
+        assert_eq!(result.result["total_lines"].as_u64().unwrap(), 6);
+        assert_eq!(result.result["blank_lines"].as_u64().unwrap(), 1);
+        assert_eq!(result.result["by_type"]["comments"].as_u64().unwrap(), 2);
     }
     
     #[tokio::test]
@@ -937,9 +937,9 @@ mod tests {
         
         let result = tool.execute(args, context).await.unwrap();
         assert!(result.success);
-        assert_eq!(result.data["size_bytes"].as_u64().unwrap(), 1234);
-        assert!(result.data["size_human"].as_str().unwrap().contains("KB"));
-        assert!(result.data["metadata"].is_object());
+        assert_eq!(result.result["size_bytes"].as_u64().unwrap(), 1234);
+        assert!(result.result["size_human"].as_str().unwrap().contains("KB"));
+        assert!(result.result["metadata"].is_object());
     }
     
     #[test]
@@ -1002,7 +1002,7 @@ mod tests {
         
         let result = tool.execute(args, context.clone()).await.unwrap();
         assert!(result.success);
-        assert_eq!(result.data["files_added"].as_u64().unwrap(), 2);
+        assert_eq!(result.result["files_added"].as_u64().unwrap(), 2);
         
         // List archive contents
         let args = json!({
@@ -1012,7 +1012,7 @@ mod tests {
         
         let result = tool.execute(args, context).await.unwrap();
         assert!(result.success);
-        let files = result.data["files"].as_array().unwrap();
+        let files = result.result["files"].as_array().unwrap();
         assert_eq!(files.len(), 2);
     }
 }

@@ -76,6 +76,11 @@ impl XmlParser {
             }
         }
         
+        // Validate that all tags were closed
+        if !stack.is_empty() {
+            bail!("Unclosed XML tags detected");
+        }
+        
         Ok(current)
     }
 }

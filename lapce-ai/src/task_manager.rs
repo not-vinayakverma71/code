@@ -530,24 +530,24 @@ mod tests {
         }
     }
     
-    #[test]
-    fn test_task_manager_creation() {
+    #[tokio::test]
+    async fn test_task_manager_creation() {
         let manager = TaskManager::new();
-        assert_eq!(manager.task_count(), 0);
+        assert_eq!(manager.task_count().await, 0);
     }
     
-    #[test]
-    fn test_create_task() {
+    #[tokio::test]
+    async fn test_create_task() {
         let manager = TaskManager::new();
         let options = create_test_options(Some("Test task".to_string()));
         
-        let task_id = manager.create_task(options).unwrap();
+        let task_id = manager.create_task(options).await.unwrap();
         assert!(!task_id.is_empty());
-        assert_eq!(manager.task_count(), 1);
+        assert_eq!(manager.task_count().await, 1);
     }
     
-    #[test]
-    fn test_create_duplicate_task_fails() {
+    #[tokio::test]
+    async fn test_create_duplicate_task_fails() {
         let manager = TaskManager::new();
         
         // Create first task with history_item to control ID
@@ -560,10 +560,10 @@ mod tests {
             is_favorited: None,
         });
         
-        manager.create_task(options.clone()).unwrap();
+        manager.create_task(options.clone()).await.unwrap();
         
         // Try to create again with same ID
-        let result = manager.create_task(options);
+        let result = manager.create_task(options).await;
         assert!(result.is_err());
     }
     
@@ -572,12 +572,12 @@ mod tests {
         let manager = TaskManager::new();
         let options = create_test_options(Some("Test task".to_string()));
         
-        let task_id = manager.create_task(options).unwrap();
+        let task_id = manager.create_task(options).await.unwrap();
         manager.start_task(&task_id).await.unwrap();
         
         // Verify task is marked as initialized
-        let task = manager.get_task(&task_id).unwrap();
-        assert!(*task.is_initialized.read());
+        let task = manager.get_task(&task_id).await.unwrap();
+        assert!(*task.is_initialized.read().await);
     }
     
     #[tokio::test]
@@ -585,12 +585,12 @@ mod tests {
         let manager = TaskManager::new();
         let options = create_test_options(Some("Test task".to_string()));
         
-        let task_id = manager.create_task(options).unwrap();
+        let task_id = manager.create_task(options).await.unwrap();
         manager.abort_task(&task_id).await.unwrap();
         
         // Verify abort flag is set
-        let task = manager.get_task(&task_id).unwrap();
-        assert!(*task.abort.read());
+        let task = manager.get_task(&task_id).await.unwrap();
+        assert!(*task.abort.read().await);
     }
     
     #[tokio::test]
@@ -598,15 +598,15 @@ mod tests {
         let manager = TaskManager::new();
         let options = create_test_options(Some("Test task".to_string()));
         
-        let task_id = manager.create_task(options).unwrap();
+        let task_id = manager.create_task(options).await.unwrap();
         
         // Abort twice
         manager.abort_task(&task_id).await.unwrap();
         manager.abort_task(&task_id).await.unwrap();
         
         // Should succeed both times
-        let task = manager.get_task(&task_id).unwrap();
-        assert!(*task.abort.read());
+        let task = manager.get_task(&task_id).await.unwrap();
+        assert!(*task.abort.read().await);
     }
     
     #[tokio::test]
@@ -614,42 +614,42 @@ mod tests {
         let manager = TaskManager::new();
         let options = create_test_options(Some("Test task".to_string()));
         
-        let task_id = manager.create_task(options).unwrap();
+        let task_id = manager.create_task(options).await.unwrap();
         
         // Pause
         manager.pause_task(&task_id).await.unwrap();
-        let task = manager.get_task(&task_id).unwrap();
-        assert!(*task.is_paused.read());
+        let task = manager.get_task(&task_id).await.unwrap();
+        assert!(*task.is_paused.read().await);
         
         // Resume
         manager.resume_task(&task_id).await.unwrap();
-        assert!(!*task.is_paused.read());
+        assert!(!*task.is_paused.read().await);
     }
     
-    #[test]
-    fn test_list_tasks() {
+    #[tokio::test]
+    async fn test_list_tasks() {
         let manager = TaskManager::new();
         
         // Create multiple tasks
         for i in 0..5 {
             let options = create_test_options(Some(format!("Task {}", i)));
-            manager.create_task(options).unwrap();
+            manager.create_task(options).await.unwrap();
         }
         
-        let tasks = manager.list_tasks();
+        let tasks = manager.list_tasks().await;
         assert_eq!(tasks.len(), 5);
     }
     
-    #[test]
-    fn test_cleanup_task() {
+    #[tokio::test]
+    async fn test_cleanup_task() {
         let manager = TaskManager::new();
         let options = create_test_options(Some("Test task".to_string()));
         
-        let task_id = manager.create_task(options).unwrap();
-        assert_eq!(manager.task_count(), 1);
+        let task_id = manager.create_task(options).await.unwrap();
+        assert_eq!(manager.task_count().await, 1);
         
         manager.cleanup_task(&task_id);
-        assert_eq!(manager.task_count(), 0);
+        assert_eq!(manager.task_count().await, 0);
     }
     
     #[tokio::test]
@@ -658,7 +658,7 @@ mod tests {
         let mut rx = manager.subscribe();
         
         let options = create_test_options(Some("Test task".to_string()));
-        let task_id = manager.create_task(options).unwrap();
+        let task_id = manager.create_task(options).await.unwrap();
         
         // Should receive TaskCreated event
         let event = rx.recv().await.unwrap();
@@ -670,12 +670,12 @@ mod tests {
         }
     }
     
-    #[test]
-    fn test_get_task_status() {
+    #[tokio::test]
+    async fn test_get_task_status() {
         let manager = TaskManager::new();
         let options = create_test_options(Some("Test task".to_string()));
         
-        let task_id = manager.create_task(options).unwrap();
+        let task_id = manager.create_task(options).await.unwrap();
         
         // Initial status should be Idle
         let status = manager.get_task_status(&task_id).unwrap();
@@ -692,7 +692,7 @@ mod tests {
             let manager_clone = manager.clone();
             let handle = tokio::spawn(async move {
                 let options = create_test_options(Some(format!("Concurrent task {}", i)));
-                manager_clone.create_task(options)
+                manager_clone.create_task(options).await
             });
             handles.push(handle);
         }
@@ -703,6 +703,6 @@ mod tests {
         }
         
         // All tasks should be created
-        assert_eq!(manager.task_count(), 10);
+        assert_eq!(manager.task_count().await, 10);
     }
 }

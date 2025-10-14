@@ -98,11 +98,17 @@ pub fn ensure_workspace_path(workspace: &Path, target: &Path) -> Result<PathBuf,
         workspace.join(target)
     };
     
+    // Try to canonicalize workspace
     let canonical_workspace = workspace.canonicalize()
-        .map_err(|e| format!("Failed to canonicalize workspace: {}", e))?;
+        .unwrap_or_else(|_| workspace.to_path_buf());
     
-    let canonical_target = abs_target.canonicalize()
-        .unwrap_or(abs_target.clone());
+    // Try to canonicalize target, if it fails normalize the path manually
+    let canonical_target = if let Ok(canon) = abs_target.canonicalize() {
+        canon
+    } else {
+        // Normalize path components for non-existent files
+        normalize_path(&abs_target)
+    };
     
     if !canonical_target.starts_with(&canonical_workspace) {
         return Err(format!(
@@ -113,6 +119,30 @@ pub fn ensure_workspace_path(workspace: &Path, target: &Path) -> Result<PathBuf,
     }
     
     Ok(canonical_target)
+}
+
+/// Normalize path by resolving . and .. components
+fn normalize_path(path: &Path) -> PathBuf {
+    let mut components = Vec::new();
+    
+    for component in path.components() {
+        match component {
+            std::path::Component::CurDir => {
+                // Skip current directory
+            }
+            std::path::Component::ParentDir => {
+                // Pop last component if not at root
+                if !components.is_empty() {
+                    components.pop();
+                }
+            }
+            _ => {
+                components.push(component);
+            }
+        }
+    }
+    
+    components.iter().collect()
 }
 
 #[cfg(test)]

@@ -55,16 +55,22 @@ impl TokenDecoder {
         // Try to decode accumulated tokens
         match self.tokenizer.decode(self.partial_tokens.iter().map(|&x| x as u32).collect()) {
             Ok(text) => {
-                self.partial_tokens.clear();
-                
-                // Update statistics
-                let elapsed = self.last_update.elapsed();
-                if elapsed > Duration::from_secs(1) {
-                    self.tokens_per_second = self.total_tokens as f64 / elapsed.as_secs_f64();
-                    self.last_update = Instant::now();
+                // Check if we have complete text
+                if text.len() > self.text_buffer.len() {
+                    let new_text = text[self.text_buffer.len()..].to_string();
+                    self.text_buffer = text.clone();
+                    
+                    // Update statistics
+                    let elapsed = self.last_update.elapsed();
+                    if elapsed > Duration::from_secs(1) {
+                        self.tokens_per_second = self.total_tokens as f64 / elapsed.as_secs_f64();
+                        self.last_update = Instant::now();
+                    }
+                    
+                    Some(new_text)
+                } else {
+                    None
                 }
-                
-                Some(text)
             }
             Err(_) => {
                 // Wait for more tokens to form valid UTF-8

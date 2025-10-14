@@ -3,8 +3,7 @@
 
 use std::sync::Arc;
 use std::collections::HashMap;
-use parking_lot::RwLock;
-use tokio::sync::Notify;
+use tokio::sync::{RwLock, Notify};
 use anyhow::Result;
 use tracing::{info, warn, debug};
 
@@ -55,20 +54,20 @@ impl SubtaskManager {
         
         // Register relationship
         {
-            let mut parent_map = self.parent_to_children.write();
+            let mut parent_map = self.parent_to_children.write().await;
             parent_map.entry(parent_task_id.to_string())
                 .or_insert_with(Vec::new)
                 .push(child_id.clone());
         }
         
         {
-            let mut child_map = self.child_to_parent.write();
+            let mut child_map = self.child_to_parent.write().await;
             child_map.insert(child_id.clone(), parent_task_id.to_string());
         }
         
         // Create completion notifier
         {
-            let mut notifiers = self.completion_notifiers.write();
+            let mut notifiers = self.completion_notifiers.write().await;
             notifiers.insert(child_id.clone(), Arc::new(Notify::new()));
         }
         
@@ -93,7 +92,7 @@ impl SubtaskManager {
         task_manager: &TaskManager,
     ) -> Result<()> {
         let child_ids = {
-            let parent_map = self.parent_to_children.read();
+            let parent_map = self.parent_to_children.read().await;
             parent_map.get(parent_task_id).cloned().unwrap_or_default()
         };
         
@@ -113,7 +112,7 @@ impl SubtaskManager {
             }
             
             // Wait for completion notification
-            if let Some(notifier) = self.completion_notifiers.read().get(child_id) {
+            if let Some(notifier) = self.completion_notifiers.read().await.get(child_id) {
                 notifier.notified().await;
             }
         }
@@ -123,16 +122,16 @@ impl SubtaskManager {
     }
     
     /// Notify that a task has completed
-    pub fn notify_completion(&self, task_id: &str) {
-        if let Some(notifier) = self.completion_notifiers.read().get(task_id) {
+    pub async fn notify_completion(&self, task_id: &str) {
+        if let Some(notifier) = self.completion_notifiers.read().await.get(task_id) {
             notifier.notify_waiters();
             debug!("Notified completion for task {}", task_id);
         }
     }
     
     /// Propagate event from child to parent
-    pub fn propagate_event(&self, child_task_id: &str, event: TaskEvent) {
-        if let Some(parent_id) = self.child_to_parent.read().get(child_task_id) {
+    pub async fn propagate_event(&self, child_task_id: &str, event: TaskEvent) {
+        if let Some(parent_id) = self.child_to_parent.read().await.get(child_task_id) {
             // Re-publish event with parent context
             let parent_event = match event {
                 TaskEvent::Message { payload, .. } => {
@@ -152,16 +151,16 @@ impl SubtaskManager {
     }
     
     /// Get all children of a task
-    pub fn get_children(&self, parent_task_id: &str) -> Vec<String> {
-        self.parent_to_children.read()
+    pub async fn get_children(&self, parent_task_id: &str) -> Vec<String> {
+        self.parent_to_children.read().await
             .get(parent_task_id)
             .cloned()
             .unwrap_or_default()
     }
     
     /// Get parent of a task
-    pub fn get_parent(&self, child_task_id: &str) -> Option<String> {
-        self.child_to_parent.read().get(child_task_id).cloned()
+    pub async fn get_parent(&self, child_task_id: &str) -> Option<String> {
+        self.child_to_parent.read().await.get(child_task_id).cloned()
     }
     
     /// Abort all children of a task
@@ -170,7 +169,7 @@ impl SubtaskManager {
         parent_task_id: &str,
         task_manager: &TaskManager,
     ) -> Result<()> {
-        let child_ids = self.get_children(parent_task_id);
+        let child_ids = self.get_children(parent_task_id).await;
         
         for child_id in child_ids {
             if let Err(e) = task_manager.abort_task(&child_id).await {
@@ -182,13 +181,13 @@ impl SubtaskManager {
     }
     
     /// Clean up completed task relationships
-    pub fn cleanup(&self, task_id: &str) {
+    pub async fn cleanup(&self, task_id: &str) {
         // Remove from parent map
-        let mut parent_map = self.parent_to_children.write();
+        let mut parent_map = self.parent_to_children.write().await;
         parent_map.remove(task_id);
         
         // Remove from child map
-        let mut child_map = self.child_to_parent.write();
+        let mut child_map = self.child_to_parent.write().await;
         if let Some(parent_id) = child_map.remove(task_id) {
             // Remove from parent's children list
             if let Some(children) = parent_map.get_mut(&parent_id) {
@@ -197,7 +196,7 @@ impl SubtaskManager {
         }
         
         // Remove notifier
-        let mut notifiers = self.completion_notifiers.write();
+        let mut notifiers = self.completion_notifiers.write().await;
         notifiers.remove(task_id);
         
         debug!("Cleaned up subtask relationships for {}", task_id);
@@ -237,7 +236,7 @@ mod tests {
             initial_todos: None,
             context: Some(ExtensionContext {
                 global_storage_uri: PathBuf::from("/tmp"),
-                workspace_state: Arc::new(RwLock::new(HashMap::new())),
+                workspace_state: Arc::new(RwLock::new(HashMap::<String, serde_json::Value>::new())),
             }),
             provider: None,
             api_configuration: None,
@@ -250,31 +249,31 @@ mod tests {
         }
     }
     
-    #[test]
-    fn test_subtask_manager_creation() {
+    #[tokio::test]
+    async fn test_subtask_manager_creation() {
         let manager = SubtaskManager::new();
-        assert!(manager.get_children("nonexistent").is_empty());
+        assert!(manager.get_children("nonexistent").await.is_empty());
     }
     
-    #[test]
-    fn test_spawn_child() {
+    #[tokio::test]
+    async fn test_spawn_child() {
         let task_mgr = TaskManager::new();
         let subtask_mgr = SubtaskManager::new();
         
         // Create parent
         let parent_opts = create_test_options("Parent task");
-        let parent_id = task_mgr.create_task(parent_opts).unwrap();
+        let parent_id = task_mgr.create_task(parent_opts).await.unwrap();
         
         // Spawn child
         let child_opts = create_test_options("Child task");
-        let child_id = subtask_mgr.spawn_child(&parent_id, child_opts, &task_mgr).unwrap();
+        let child_id = subtask_mgr.spawn_child(&parent_id, child_opts, &task_mgr).await.unwrap();
         
         // Verify relationship
-        let children = subtask_mgr.get_children(&parent_id);
+        let children = subtask_mgr.get_children(&parent_id).await;
         assert_eq!(children.len(), 1);
         assert_eq!(children[0], child_id);
         
-        let parent = subtask_mgr.get_parent(&child_id);
+        let parent = subtask_mgr.get_parent(&child_id).await;
         assert_eq!(parent, Some(parent_id));
     }
     
@@ -284,11 +283,11 @@ mod tests {
         let subtask_mgr = SubtaskManager::new();
         
         let parent_opts = create_test_options("Parent");
-        let parent_id = task_mgr.create_task(parent_opts).unwrap();
+        let parent_id = task_mgr.create_task(parent_opts).await.unwrap();
         
         // Spawn child
         let child_opts = create_test_options("Child");
-        let child_id = subtask_mgr.spawn_child(&parent_id, child_opts, &task_mgr).unwrap();
+        let child_id = subtask_mgr.spawn_child(&parent_id, child_opts, &task_mgr).await.unwrap();
         
         // Notify completion in background
         let mgr_clone = subtask_mgr.clone();
@@ -303,23 +302,23 @@ mod tests {
         assert!(result.is_ok());
     }
     
-    #[test]
-    fn test_cleanup() {
+    #[tokio::test]
+    async fn test_cleanup() {
         let task_mgr = TaskManager::new();
         let subtask_mgr = SubtaskManager::new();
         
         let parent_opts = create_test_options("Parent");
-        let parent_id = task_mgr.create_task(parent_opts).unwrap();
+        let parent_id = task_mgr.create_task(parent_opts).await.unwrap();
         
         let child_opts = create_test_options("Child");
-        let child_id = subtask_mgr.spawn_child(&parent_id, child_opts, &task_mgr).unwrap();
+        let child_id = subtask_mgr.spawn_child(&parent_id, child_opts, &task_mgr).await.unwrap();
         
-        assert_eq!(subtask_mgr.get_children(&parent_id).len(), 1);
+        assert_eq!(subtask_mgr.get_children(&parent_id).await.len(), 1);
         
-        subtask_mgr.cleanup(&child_id);
+        subtask_mgr.cleanup(&child_id).await;
         
-        assert!(subtask_mgr.get_children(&parent_id).is_empty());
-        assert!(subtask_mgr.get_parent(&child_id).is_none());
+        assert!(subtask_mgr.get_children(&parent_id).await.is_empty());
+        assert!(subtask_mgr.get_parent(&child_id).await.is_none());
     }
     
     #[tokio::test]
@@ -328,20 +327,20 @@ mod tests {
         let subtask_mgr = SubtaskManager::new();
         
         let parent_opts = create_test_options("Parent");
-        let parent_id = task_mgr.create_task(parent_opts).unwrap();
+        let parent_id = task_mgr.create_task(parent_opts).await.unwrap();
         
         // Spawn multiple children
         for i in 0..3 {
             let child_opts = create_test_options(&format!("Child {}", i));
-            subtask_mgr.spawn_child(&parent_id, child_opts, &task_mgr).unwrap();
+            subtask_mgr.spawn_child(&parent_id, child_opts, &task_mgr).await.unwrap();
         }
         
         // Abort all children
         subtask_mgr.abort_children(&parent_id, &task_mgr).await.unwrap();
         
         // Verify all aborted
-        for child_id in subtask_mgr.get_children(&parent_id) {
-            if let Some(task) = task_mgr.get_task(&child_id) {
+        for child_id in subtask_mgr.get_children(&parent_id).await {
+            if let Some(task) = task_mgr.get_task(&child_id).await {
                 assert!(task.is_aborted());
             }
         }

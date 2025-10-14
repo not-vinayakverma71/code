@@ -213,7 +213,7 @@ impl LapceError {
     /// Classify the error type for recovery strategies
     pub fn classify(&self) -> ErrorType {
         match self {
-            LapceError::Timeout { .. } => ErrorType::Transient,
+            LapceError::Timeout { .. } => ErrorType::Timeout,
             LapceError::RateLimit { .. } => ErrorType::RateLimit,
             LapceError::ResourceExhausted { .. } => ErrorType::ResourceExhausted,
             LapceError::CircuitOpen { .. } => ErrorType::CircuitBreaker,
@@ -236,7 +236,7 @@ impl LapceError {
     pub fn is_retryable(&self) -> bool {
         matches!(
             self.classify(),
-            ErrorType::Transient | ErrorType::RateLimit | ErrorType::ResourceExhausted
+            ErrorType::Transient | ErrorType::Timeout | ErrorType::RateLimit | ErrorType::ResourceExhausted
         )
     }
 

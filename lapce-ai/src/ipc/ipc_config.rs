@@ -603,7 +603,7 @@ impl Default for IpcConfig {
             },
             providers: ProvidersConfig {
                 openai: ProviderSettings {
-                    enabled: true,
+                    enabled: false, // Disabled by default until API key is provided
                     api_key: String::new(),
                     base_url: "https://api.openai.com/v1".to_string(),
                     default_model: "gpt-4-turbo-preview".to_string(),
@@ -612,7 +612,7 @@ impl Default for IpcConfig {
                     rate_limit_per_minute: Some(500),
                 },
                 anthropic: ProviderSettings {
-                    enabled: true,
+                    enabled: false, // Disabled by default until API key is provided
                     api_key: String::new(),
                     base_url: "https://api.anthropic.com".to_string(),
                     default_model: "claude-3-opus".to_string(),
@@ -621,7 +621,7 @@ impl Default for IpcConfig {
                     rate_limit_per_minute: Some(100),
                 },
                 gemini: ProviderSettings {
-                    enabled: true,
+                    enabled: false, // Disabled by default until API key is provided
                     api_key: String::new(),
                     base_url: "https://generativelanguage.googleapis.com".to_string(),
                     default_model: "gemini-pro".to_string(),

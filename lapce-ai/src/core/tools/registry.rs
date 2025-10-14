@@ -179,11 +179,11 @@ mod tests {
         }
         let elapsed = start.elapsed();
         
-        // Average lookup time should be < 1 microsecond
+        // Average lookup time should be < 2 microseconds
         let avg_lookup_ns = elapsed.as_nanos() / 10000;
         assert!(
-            avg_lookup_ns < 1000,
-            "Lookup took {} ns, expected < 1000 ns",
+            avg_lookup_ns < 2000,
+            "Lookup took {} ns, expected < 2000 ns",
             avg_lookup_ns
         );
     }

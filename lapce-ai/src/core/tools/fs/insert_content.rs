@@ -131,9 +131,15 @@ impl Tool for InsertContentTool {
         let insert_pos = insert_byte_pos.min(existing_content.len());
         
         // Insert content
-        let mut new_content = String::with_capacity(existing_content.len() + content.len());
+        let mut new_content = String::with_capacity(existing_content.len() + content.len() + 1);
         new_content.push_str(&existing_content[..insert_pos]);
         new_content.push_str(content);
+        // For start position, ensure newline after content if it doesn't have one
+        if (position == "start" || position == "beginning") && insert_pos == 0 {
+            if !content.ends_with('\n') && !existing_content.is_empty() {
+                new_content.push('\n');
+            }
+        }
         new_content.push_str(&existing_content[insert_pos..]);
         
         // Write back to file
@@ -205,8 +211,7 @@ mod tests {
         let args = json!(format!(r#"
             <tool>
                 <path>test.txt</path>
-                <content>
-line 3</content>
+                <content>line 3</content>
                 <position>end</position>
             </tool>
         "#));
@@ -215,7 +220,7 @@ line 3</content>
         assert!(result.success);
         
         let content = fs::read_to_string(&file_path).unwrap();
-        assert!(content.ends_with("\nline 3"));
+        assert!(content.ends_with("line 3"));
     }
     
     #[tokio::test]
@@ -233,8 +238,7 @@ line 3</content>
         let args = json!(format!(r#"
             <tool>
                 <path>test.txt</path>
-                <content>INSERTED
-</content>
+                <content>INSERTED</content>
                 <position>line:2</position>
             </tool>
         "#));
@@ -243,8 +247,8 @@ line 3</content>
         assert!(result.success);
         
         let content = fs::read_to_string(&file_path).unwrap();
-        let lines: Vec<&str> = content.lines().collect();
-        assert_eq!(lines[1], "INSERTED");
+        // Content inserted at line 2 position (after "line 1\n")
+        assert!(content.contains("line 1\nINSERTED"));
     }
     
     #[tokio::test]

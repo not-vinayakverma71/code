@@ -344,7 +344,7 @@ impl IpcServer {
         // Initialize unified connection pool manager
         let pool_config = PoolConfig {
             max_connections: MAX_CONNECTIONS as u32,
-            min_idle: 10,
+            min_idle: 0,  // Start with 0 pre-warmed connections to minimize baseline memory
             max_lifetime: Duration::from_secs(300),
             idle_timeout: Duration::from_secs(90),
             connection_timeout: Duration::from_secs(10),

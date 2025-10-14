@@ -284,6 +284,7 @@ heed = "0.20"
 dotenv = "0.15"
 colored = "2.0"
 html-escape = "0.2"
+hdrhistogram = "7.5.4"
 
 [workspace]
 members = [".", "optimized_ipc"]

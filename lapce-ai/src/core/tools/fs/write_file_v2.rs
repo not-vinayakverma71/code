@@ -46,8 +46,10 @@ impl Tool for WriteFileToolV2 {
             .ok_or_else(|| ToolError::InvalidArguments("Missing 'content' argument".to_string()))?;
             
         let create_dirs = tool_data.get("createDirs")
-            .and_then(|v| v.as_str())
-            .map(|s| s == "true")
+            .and_then(|v| {
+                v.as_bool()
+                    .or_else(|| v.as_str().and_then(|s| s.parse::<bool>().ok()))
+            })
             .unwrap_or(false);
             
         // New options for v2
@@ -69,11 +71,17 @@ impl Tool for WriteFileToolV2 {
             });
             
         let max_size = tool_data.get("maxSize")
-            .and_then(|v| v.as_u64())
+            .and_then(|v| {
+                v.as_u64()
+                    .or_else(|| v.as_str().and_then(|s| s.parse::<u64>().ok()))
+            })
             .unwrap_or(MAX_WRITE_SIZE);
             
         let backup_if_exists = tool_data.get("backupIfExists")
-            .and_then(|v| v.as_bool())
+            .and_then(|v| {
+                v.as_bool()
+                    .or_else(|| v.as_str().and_then(|s| s.parse::<bool>().ok()))
+            })
             .unwrap_or(false);
         
         // Resolve path
@@ -88,24 +96,29 @@ impl Tool for WriteFileToolV2 {
         }
         
         // Check permissions
-        if !context.can_write_file(&file_path).await {
+        if !context.permissions.file_write {
             return Err(ToolError::PermissionDenied(format!(
                 "Permission denied to write file: {}",
                 file_path.display()
             )));
         }
         
-        // Ensure path is within workspace
-        let safe_path = super::ensure_workspace_path(&context.workspace, &file_path)
-            .map_err(|e| ToolError::PermissionDenied(e))?;
-        
-        // Check for symlinks - don't write to symlinks
-        if utils::is_symlink(&safe_path).unwrap_or(false) {
+        // Check for symlinks BEFORE canonicalization
+        let original_path = if file_path.is_absolute() {
+            file_path.clone()
+        } else {
+            context.workspace.join(&file_path)
+        };
+        if utils::is_symlink(&original_path).unwrap_or(false) {
             return Err(ToolError::Other(format!(
                 "Cannot write to symlink: {}. Please write to the target file directly.",
                 path
             )));
         }
+        
+        // Ensure path is within workspace
+        let safe_path = super::ensure_workspace_path(&context.workspace, &file_path)
+            .map_err(|e| ToolError::PermissionDenied(e))?;
         
         // Check if file exists and get its info
         let (exists, original_info) = if safe_path.exists() {
@@ -175,7 +188,9 @@ impl Tool for WriteFileToolV2 {
         }
         
         // Write the file with safety checks
-        match write_file_safe(&safe_path, &processed_content, preserve_encoding, max_size) {
+        // Don't preserve encoding if we've forced line endings (already applied in preprocessing)
+        let should_preserve = preserve_encoding && force_line_ending.is_none();
+        match write_file_safe(&safe_path, &processed_content, should_preserve, max_size) {
             Ok(_) => {
                 // Log successful file operation
                 context.log_file_op("write", path, true, None);
@@ -402,6 +417,7 @@ new line2</content>
 line2
 line3</content>
                 <forceLineEnding>lf</forceLineEnding>
+                <createDirs>true</createDirs>
             </tool>
         "#));
         

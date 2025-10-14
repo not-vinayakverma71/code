@@ -152,8 +152,9 @@ pub fn chat_input(
                             .cursor(floem::style::CursorStyle::Pointer)
                     })
                 } else {
+                    // Windsurf-style circular send button
                     container(
-                        label(|| "↑ Send".to_string())
+                        label(|| "↑".to_string())
                     )
                     .on_click_stop(move |_| {
                         let message = text.get();
@@ -163,22 +164,19 @@ pub fn chat_input(
                         }
                     })
                     .style(move |s| {
-                        let cfg = config();
                         let can_send = !text.get().trim().is_empty();
-                        s.padding(8.0)
-                            .padding_horiz(16.0)
-                            .border_radius(6.0)
+                        s.width(32.0)
+                            .height(32.0)
+                            .border_radius(16.0)  // Fully circular
+                            .justify_center()
+                            .items_center()
                             .background(if can_send {
-                                cfg.color("lapce.button.primary.background")
+                                floem::peniko::Color::from_rgb8(0x00, 0x78, 0xd4)  // #0078d4 blue
                             } else {
-                                cfg.color("panel.current.background")
+                                floem::peniko::Color::from_rgb8(0x00, 0x78, 0xd4).multiply_alpha(0.5)
                             })
-                            .color(if can_send {
-                                cfg.color("lapce.button.primary.foreground")
-                            } else {
-                                cfg.color("editor.dim")
-                            })
-                            .font_size(12.0)
+                            .color(floem::peniko::Color::WHITE)
+                            .font_size(16.0)
                             .font_bold()
                             .cursor(if can_send {
                                 floem::style::CursorStyle::Pointer
@@ -187,7 +185,7 @@ pub fn chat_input(
                             })
                             .hover(move |s| {
                                 if can_send {
-                                    s.background(cfg.color("panel.hovered.background"))
+                                    s.background(floem::peniko::Color::from_rgb8(0x02, 0x6e, 0xc1))  // #026ec1 hover
                                 } else {
                                     s
                                 }

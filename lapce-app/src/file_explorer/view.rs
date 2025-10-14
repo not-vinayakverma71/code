@@ -358,15 +358,29 @@ fn file_explorer_view(
                     {
                         let kind = kind.clone();
                         let kind_for_style = kind.clone();
+                        let kind_for_size = kind.clone();
                         // TODO: use the current naming input as the path for the file svg
                         svg(move || {
                             let config = config.get();
                             if is_dir {
-                                let svg_str = match open {
-                                    true => LapceIcons::DIRECTORY_OPENED,
-                                    false => LapceIcons::DIRECTORY_CLOSED,
-                                };
-                                config.ui_svg(svg_str)
+                                // Check if folder has custom icon in theme
+                                if let Some(path) = kind.path() {
+                                    if let Some((folder_svg, _)) = config.folder_svg(path) {
+                                        folder_svg
+                                    } else {
+                                        let svg_str = match open {
+                                            true => LapceIcons::DIRECTORY_OPENED,
+                                            false => LapceIcons::DIRECTORY_CLOSED,
+                                        };
+                                        config.ui_svg(svg_str)
+                                    }
+                                } else {
+                                    let svg_str = match open {
+                                        true => LapceIcons::DIRECTORY_OPENED,
+                                        false => LapceIcons::DIRECTORY_CLOSED,
+                                    };
+                                    config.ui_svg(svg_str)
+                                }
                             } else if let Some(path) = kind.path() {
                                 config.file_svg(path).0
                             } else {
@@ -375,7 +389,19 @@ fn file_explorer_view(
                         })
                         .style(move |s| {
                             let config = config.get();
-                            let size = config.ui.icon_size() as f32;
+                            let base_size = config.ui.icon_size() as f32;
+                            // Directories: 0.9x, Custom language icons: 1.7x, Default generic icon: 0.8x
+                            let size = if is_dir {
+                                base_size * 0.9
+                            } else if let Some(path) = kind_for_size.path() {
+                                // Check if file has custom icon by checking the SVG content
+                                let (svg_content, _) = config.file_svg(path);
+                                let default_file_svg = config.ui_svg(LapceIcons::FILE);
+                                let is_default_icon = svg_content == default_file_svg;
+                                if is_default_icon { base_size * 0.8 } else { base_size * 1.7 }
+                            } else {
+                                base_size * 0.8 // Default icon = 0.8x
+                            };
 
                             s.size(size, size)
                                 .flex_shrink(0.0)

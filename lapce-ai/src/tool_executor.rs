@@ -208,7 +208,7 @@ mod tests {
     use super::*;
     use std::collections::HashMap;
     use crate::task_exact_translation::{TaskOptions, ExtensionContext};
-    use parking_lot::RwLock;
+    use tokio::sync::RwLock;
     
     fn create_test_task() -> Arc<Task> {
         let options = TaskOptions {
@@ -231,7 +231,7 @@ mod tests {
             initial_todos: None,
             context: Some(ExtensionContext {
                 global_storage_uri: PathBuf::from("/tmp"),
-                workspace_state: Arc::new(RwLock::new(HashMap::new())),
+                workspace_state: Arc::new(RwLock::new(HashMap::<String, serde_json::Value>::new())),
             }),
             provider: None,
             api_configuration: None,
@@ -262,7 +262,6 @@ mod tests {
             input: json!({
                 "path": "test.txt"
             }),
-            id: "tool_1".to_string(),
         };
         
         let result = executor.execute_tool_use(task, &content).await;

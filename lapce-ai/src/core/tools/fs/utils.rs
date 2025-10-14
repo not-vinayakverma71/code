@@ -286,7 +286,8 @@ pub fn write_file_safe(
     }
     
     // Check symlinks (don't allow writing to symlinks by default)
-    if is_symlink(path)? {
+    // Only check if file exists - non-existent files can't be symlinks
+    if path.exists() && is_symlink(path)? {
         return Err(io::Error::new(
             io::ErrorKind::Other,
             format!("Cannot write to symlink: {}", path.display())

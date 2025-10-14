@@ -3,7 +3,7 @@
 
 use std::sync::Arc;
 use floem::{
-    views::{container, label, v_stack, Decorators},
+    views::{label, Decorators},
     View,
 };
 use crate::config::LapceConfig;

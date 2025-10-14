@@ -9,17 +9,23 @@ pub mod canonical_header;
 pub mod framed_shm_stream;
 #[cfg(unix)]
 pub mod shm_metrics;
-#[cfg(unix)]
+pub mod shm_namespace;
 pub mod shm_permissions;
+pub mod shm_notifier;
+pub mod spsc_shm_ring;
+pub mod shm_waiter_cross_os;
+pub mod shm_stream_optimized;
+pub mod shm_io_workers;
+pub mod shm_metrics_optimized;
+pub mod shm_listener_optimized;
 #[cfg(unix)]
 pub mod crash_recovery;
 pub mod errors;
 pub mod ipc_server;
+pub mod ipc_client;
 #[cfg(unix)]
 pub mod shared_memory_complete;
 pub mod zero_copy_codec;
-#[cfg(unix)]
-pub mod shm_namespace;
 pub mod cross_platform_ipc;
 pub mod macos_shared_memory;
 #[cfg(windows)]
@@ -43,6 +49,7 @@ pub mod tool_router;
 
 // Re-export commonly used types
 pub use ipc_server::IpcServer;
+pub use ipc_client::{IpcClient, IpcClientStats};
 pub use errors::{IpcError, IpcResult};
 pub use ipc_config::IpcConfig;
 pub use ipc_messages::MessageType;

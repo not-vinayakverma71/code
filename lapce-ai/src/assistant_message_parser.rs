@@ -146,11 +146,20 @@ impl AssistantMessageParser {
         match std::mem::replace(&mut self.state, ParserState::Text) {
             ParserState::InToolUse { name, input_buffer, .. } => {
                 // Parse input as JSON
-                let input = serde_json::from_str(&input_buffer)
-                    .unwrap_or_else(|_| {
-                        // Fallback to raw string if not valid JSON
-                        serde_json::Value::String(input_buffer)
-                    });
+                let input = if input_buffer.trim().is_empty() {
+                    serde_json::Value::Object(serde_json::Map::new())
+                } else {
+                    serde_json::from_str(&input_buffer)
+                        .unwrap_or_else(|e| {
+                            // Try to parse as object if it looks like JSON
+                            if input_buffer.starts_with('{') && input_buffer.ends_with('}') {
+                                // Log the error for debugging
+                                eprintln!("Failed to parse JSON: {} - Buffer: {}", e, input_buffer);
+                            }
+                            // Fallback to raw string if not valid JSON
+                            serde_json::Value::String(input_buffer.clone())
+                        })
+                };
                 
                 // Add tool use block
                 self.content_blocks.push(AssistantMessageContent::ToolUse {
@@ -242,7 +251,8 @@ pub fn parse_assistant_text(text: &str) -> Vec<AssistantMessageContent> {
 /// Format: <tool_name>{"param": "value"}</tool_name>
 pub fn parse_xml_tool_invocation(xml: &str) -> Result<AssistantMessageContent, String> {
     // Simple regex-based parsing for XML tool format
-    let pattern = regex::Regex::new(r"<(\w+)>(.*?)</\1>")
+    // Note: Rust regex doesn't support backreferences, so we match opening/closing tags separately
+    let pattern = regex::Regex::new(r"<(\w+)>(.*?)</(\w+)>")
         .map_err(|e| format!("Regex error: {}", e))?;
     
     if let Some(captures) = pattern.captures(xml) {
@@ -250,6 +260,15 @@ pub fn parse_xml_tool_invocation(xml: &str) -> Result<AssistantMessageContent, S
             .ok_or("Missing tool name")?
             .as_str()
             .to_string();
+        
+        let closing_tag = captures.get(3)
+            .ok_or("Missing closing tag")?
+            .as_str();
+        
+        // Verify opening and closing tags match
+        if tool_name != closing_tag {
+            return Err(format!("Mismatched tags: <{}> and </{}>", tool_name, closing_tag));
+        }
         
         let json_str = captures.get(2)
             .ok_or("Missing tool input")?
@@ -366,7 +385,7 @@ mod tests {
         }).unwrap();
         
         // Input arrives in chunks
-        parser.process_chunk(StreamChunk::ToolUseInput(r#"{"path":"#.to_string())).unwrap();
+        parser.process_chunk(StreamChunk::ToolUseInput(r#"{"path":""#.to_string())).unwrap();
         parser.process_chunk(StreamChunk::ToolUseInput(r#"test.txt","#.to_string())).unwrap();
         parser.process_chunk(StreamChunk::ToolUseInput(r#""content":"Hello"}"#.to_string())).unwrap();
         

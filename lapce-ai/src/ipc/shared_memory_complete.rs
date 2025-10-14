@@ -11,6 +11,11 @@ use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
 use std::time::{Duration, Instant};
 use crate::ipc::shm_namespace::create_namespaced_path;
+use crate::ipc::shm_permissions::{create_fd_0600, create_secure_lock_dir};
+use crate::ipc::crash_recovery::{cleanup_all_stale_resources, graceful_shutdown_cleanup, CleanupConfig};
+#[cfg(unix)]
+use crate::ipc::shm_metrics::helpers as shm_metrics;
+use crate::ipc::shm_notifier::{EventNotifier, NotifierPair};
 
 // Include the header module inline
 mod shared_memory_header {
@@ -30,6 +35,7 @@ pub struct SharedMemoryBuffer {
     data_ptr: *mut u8,
     size: usize,
     capacity: usize,
+    notifier: Option<Arc<EventNotifier>>,  // For low-latency wakeups
     // Note: fd is closed immediately after mmap() to prevent leaks
 }
 
@@ -79,7 +85,7 @@ impl SharedMemoryBuffer {
             let fd = libc::shm_open(
                 shm_name.as_ptr(),
                 (libc::O_CREAT | libc::O_RDWR) as std::os::raw::c_int,
-                0o666  // More permissive for macOS CI compatibility
+                0o600  // Owner-only read/write for security
             );
             if fd == -1 {
                 let err = std::io::Error::last_os_error();
@@ -93,7 +99,8 @@ impl SharedMemoryBuffer {
                 bail!("ftruncate failed: {}", std::io::Error::last_os_error());
             }
             
-            // Permissions are already set via shm_open mode parameter
+            // Enforce strict permissions
+            create_fd_0600(fd)?;
             fd
         };
         
@@ -124,6 +131,7 @@ impl SharedMemoryBuffer {
                 capacity: data_size,
                 header,
                 data_ptr: ptr.add(header_size),
+                notifier: None,
             })
         }
     }
@@ -199,6 +207,7 @@ impl SharedMemoryBuffer {
                 data_ptr: ptr.add(header_size),
                 size: total_size,
                 capacity: data_size,
+                notifier: None,
             })
         }
     }
@@ -215,6 +224,8 @@ impl SharedMemoryBuffer {
         
         let len_bytes = (data.len() as u32).to_le_bytes();
         let total_len = 4 + data.len();
+        #[cfg(feature = "enable_metrics")]
+        let start_time = std::time::Instant::now();
         
         unsafe {
             let header = &*self.header;
@@ -232,6 +243,10 @@ impl SharedMemoryBuffer {
                 
                 if available <= total_len {
                     // Ring buffer is full - implement async backpressure
+                    #[cfg(unix)]
+                    #[cfg(feature = "enable_metrics")]
+                    let _backpressure_timer = shm_metrics::BackpressureTimer::new("send");
+                    
                     let mut backoff_ms = 1;
                     let max_backoff_ms = 100;
                     let max_attempts = 10;
@@ -292,6 +307,28 @@ impl SharedMemoryBuffer {
                         );
                     }
                     
+                    // Record metrics (disabled for performance testing)
+                    #[cfg(unix)]
+                    #[cfg(feature = "enable_metrics")]
+                    {
+                        let duration = start_time.elapsed();
+                        shm_metrics::record_write_success("send", data.len(), duration.as_secs_f64());
+                        let used = if new_write_pos > read_pos {
+                            new_write_pos - read_pos
+                        } else {
+                            self.capacity - read_pos + new_write_pos
+                        };
+                        shm_metrics::update_ring_occupancy("send", 0, used, self.capacity);
+                    }
+                    
+                    // Notify reader only if buffer was previously empty (reduce syscall overhead)
+                    if let Some(ref notifier) = self.notifier {
+                        // Only notify if this is the first message in an empty buffer
+                        if read_pos == write_pos {
+                            let _ = notifier.notify();
+                        }
+                    }
+                    
                     return Ok(());
                 }
             }
@@ -300,6 +337,8 @@ impl SharedMemoryBuffer {
     
     /// Read from buffer (lock-free, async for API consistency)
     pub async fn read(&self) -> Option<Vec<u8>> {
+        #[cfg(feature = "enable_metrics")]
+        let start_time = std::time::Instant::now();
         unsafe {
             let header = &*self.header;
             
@@ -351,6 +390,22 @@ impl SharedMemoryBuffer {
                             );
                         }
                     }
+                    
+                    // Record metrics (disabled for performance testing)
+                    #[cfg(unix)]
+                    #[cfg(feature = "enable_metrics")]
+                    {
+                        let duration = start_time.elapsed();
+                        shm_metrics::record_read_success("recv", msg_len, duration.as_secs_f64());
+                        let used = if write_pos > new_read_pos {
+                            write_pos - new_read_pos
+                        } else {
+                            self.capacity - new_read_pos + write_pos
+                        };
+                        shm_metrics::update_ring_occupancy("recv", 0, used, self.capacity);
+                    }
+                    
+                    // No notification needed on read (reader is already awake)
                     
                     return Some(data);
                 }
@@ -494,7 +549,11 @@ pub struct SharedMemoryListener {
 
 impl SharedMemoryListener {
     pub async fn bind(path: &str) -> Result<Self> {
-        const WARM_POOL_SIZE: usize = 64;   // Warm pool for fast connection
+        // Run crash recovery before starting (only at startup, not in hot path)
+        let cleanup_config = CleanupConfig::default();
+        cleanup_all_stale_resources(path, &cleanup_config)?;
+        
+        const WARM_POOL_SIZE: usize = 0;    // No warm pool to minimize baseline memory
         const MAX_SLOTS: usize = 1000;       // Maximum allowed slots
         
         // Create slot pool with warm pool
@@ -507,9 +566,9 @@ impl SharedMemoryListener {
         // Create channel for accept queue
         let (accept_tx, accept_rx) = mpsc::unbounded_channel::<u32>();
         
-        // Ensure lock directory exists
+        // Ensure lock directory exists with secure permissions
         let lock_dir = format!("{}_locks", path);
-        std::fs::create_dir_all(&lock_dir)?;
+        create_secure_lock_dir(&lock_dir)?;
         
         // Do initial scan before spawning watcher
         if let Ok(entries) = std::fs::read_dir(&lock_dir) {
@@ -627,8 +686,10 @@ impl SharedMemoryListener {
 
 impl Drop for SharedMemoryListener {
     fn drop(&mut self) {
-        // Cleanup will be handled by OS when process exits
-        // Pre-allocated buffers remain on disk for reuse
+        // Perform graceful shutdown cleanup
+        if let Err(e) = graceful_shutdown_cleanup(&self.base_path) {
+            eprintln!("Warning: Failed to perform graceful shutdown cleanup: {}", e);
+        }
     }
 }
 
@@ -646,9 +707,9 @@ impl SharedMemoryStream {
     pub async fn connect(path: &str) -> Result<Self> {
         const MAX_ATTEMPTS: usize = 500;  // Increased for concurrent bursts
         
-        // Ensure lock directory exists
+        // Ensure lock directory exists with secure permissions
         let lock_dir = format!("{}_locks", path);
-        std::fs::create_dir_all(&lock_dir)?;
+        create_secure_lock_dir(&lock_dir)?;
         
         // Try random slots with exponential backoff
         for attempt in 0..MAX_ATTEMPTS {
@@ -745,7 +806,7 @@ impl SharedMemoryStream {
         Ok(buf.len())
     }
     
-    /// Read exact number of bytes
+    /// Read exact number of bytes (optimized for low latency)
     pub async fn read_exact(&mut self, buf: &mut [u8]) -> Result<()> {
         let needed = buf.len();
         let mut total_read = 0;
@@ -756,7 +817,8 @@ impl SharedMemoryStream {
                 buf[total_read..total_read + to_copy].copy_from_slice(&data[..to_copy]);
                 total_read += to_copy;
             } else {
-                tokio::time::sleep(tokio::time::Duration::from_micros(1)).await;
+                // Simple yield for low overhead - eventfd adds too much syscall cost
+                tokio::task::yield_now().await;
             }
         }
         

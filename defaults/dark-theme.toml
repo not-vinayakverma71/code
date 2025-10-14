@@ -1,7 +1,7 @@
 #:schema ../extra/schemas/color-theme.json
 
 [color-theme]
-name = "Lapce Dark (VSCode Modern)"
+name = "Lapce Dark Modern"
 
 [ui]
 font-family = ""
@@ -15,11 +15,11 @@ drop-shadow-width = 0
 
 [color-theme.base]
 # VSCode Dark Modern colors - deeper blacks, better contrast
-black = "#181818"
+black = "#0D0D0D"
 blue = "#569CD6"
 cyan = "#4EC9B0"
 green = "#6A9955"
-grey = "#3E3E42"
+grey = "#2B2B2B"
 magenta = "#C586C0"
 orange = "#CE9178"
 purple = "#C586C0"
@@ -27,9 +27,9 @@ red = "#F48771"
 white = "#CCCCCC"
 yellow = "#DCDCAA"
 
-primary-background = "$black"
+primary-background = "#181818"
 # Background for 'secondary' elements: panels, palette, status bar, completion, hover
-secondary-background = "#1E1E1E"
+secondary-background = "#1F1F1F"
 current-background = "#2A2D2E"
 text = "$white"
 dim-text = "#858585"
@@ -86,20 +86,20 @@ dim-text = "#858585"
 "lapce.error" = "$red"
 "lapce.warn" = "$yellow"
 "lapce.dropdown_shadow" = "#000000"
-"lapce.border" = "#454545"
-"lapce.scroll_bar" = "#424242"
+"lapce.border" = "$grey"
+"lapce.scroll_bar" = "#3C3C3C"
 
 "lapce.button.primary.background" = "#0E639C"
 "lapce.button.primary.foreground" = "#FFFFFF"
 
 # tab
-"lapce.tab.active.background" = "#181818"
-"lapce.tab.active.foreground" = "$text"
-"lapce.tab.active.underline" = "#528BFF"
+"lapce.tab.active.background" = "$secondary-background"
+"lapce.tab.active.foreground" = "#FFFFFF"
+"lapce.tab.active.underline" = "#0078D4"
 
-"lapce.tab.inactive.background" = "#1E1E1E"
-"lapce.tab.inactive.foreground" = "$text"
-"lapce.tab.inactive.underline" = "#528BFF77"
+"lapce.tab.inactive.background" = "$primary-background"
+"lapce.tab.inactive.foreground" = "#9D9D9D"
+"lapce.tab.inactive.underline" = "#0078D477"
 
 "lapce.tab.separator" = ""
 
@@ -116,20 +116,20 @@ dim-text = "#858585"
 "lapce.plugin.description" = "$text"
 "lapce.plugin.author" = "#B0B0B0"
 
-"editor.background" = "$primary-background"
+"editor.background" = "$secondary-background"
 "editor.foreground" = "$text"
 "editor.dim" = "$dim-text"
 "editor.focus" = "#CCCCCC"
 "editor.caret" = "#AEAFAD"
 "editor.selection" = "#264F78"
-"editor.current_line" = "#2A2D2E"
+"editor.current_line" = "#282828"
 "editor.debug_break_line" = "#528abF37"
 "editor.link" = "$blue"
-"editor.visible_whitespace" = "#3B3B3B"
+"editor.visible_whitespace" = "#3C3C3C"
 "editor.indent_guide" = "#404040"
 "editor.drag_drop_background" = "#79c1fc55"
 "editor.drag_drop_tab_background" = "#0b0e1455"
-"editor.sticky_header_background" = "$primary-background"
+"editor.sticky_header_background" = "$secondary-background"
 
 "inlay_hint.foreground" = "$text"
 "inlay_hint.background" = "#528abF37"
@@ -147,26 +147,26 @@ dim-text = "#858585"
 "source_control.removed" = "#FF5266CC"
 "source_control.modified" = "#0184BCCC"
 
-"tooltip.background" = "$primary-background"
+"tooltip.background" = "#202020"
 "tooltip.foreground" = "$text"
 
-"palette.background" = "#1E1E1E"
+"palette.background" = "#222222"
 "palette.foreground" = "$text"
 "palette.current.background" = "$current-background"
 "palette.current.foreground" = "$text"
 
-"completion.background" = "#1E1E1E"
+"completion.background" = "#202020"
 "completion.current" = "$current-background"
 
-"hover.background" = "#1E1E1E"
+"hover.background" = "#202020"
 
-"activity.background" = "#181818"
-"activity.current" = "#181818"
+"activity.background" = "$primary-background"
+"activity.current" = "$primary-background"
 
 "debug.breakpoint" = "$red"
 "debug.breakpoint.hover" = "#E06C7566"
 
-"panel.background" = "#181818"
+"panel.background" = "$primary-background"
 "panel.foreground" = "$text"
 "panel.foreground.dim" = "$dim-text"
 "panel.current.background" = "#2A2D2E"
@@ -177,7 +177,7 @@ dim-text = "#858585"
 "panel.hovered.foreground" = "$text"
 "panel.hovered.foreground.dim" = "$dim-text"
 
-"status.background" = "#181818"
+"status.background" = "$primary-background"
 "status.foreground" = "$text"
 "status.modal.normal.background" = "$blue"
 "status.modal.normal.foreground" = "$black"
@@ -192,7 +192,7 @@ dim-text = "#858585"
 
 "terminal.cursor" = "$text"
 "terminal.foreground" = "$text"
-"terminal.background" = "$primary-background"
+"terminal.background" = "$secondary-background"
 "terminal.white" = "$white"
 "terminal.black" = "$black"
 "terminal.red" = "$red"

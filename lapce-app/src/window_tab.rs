@@ -2729,16 +2729,13 @@ impl WindowTabData {
                 PanelKind::FileExplorer => false,
                 PanelKind::SourceControl => false,
                 PanelKind::Plugin => false,
-                PanelKind::Search => true,
-                PanelKind::Problem => true,
-                PanelKind::Debug => {
-                    // Check if debug panel should be hidden
-                    false
-                }
-                PanelKind::CallHierarchy => true,
-                PanelKind::DocumentSymbol => true,
-                PanelKind::References => true,
-                PanelKind::Implementation => true,
+                PanelKind::Search => false,
+                PanelKind::Problem => false,
+                PanelKind::Debug => false,
+                PanelKind::CallHierarchy => false,
+                PanelKind::DocumentSymbol => false,
+                PanelKind::References => false,
+                PanelKind::Implementation => false,
                 PanelKind::AIChat => false,
             };
             if !should_hide {

@@ -73,6 +73,19 @@ impl Tool for ReadFileTool {
             )));
         }
         
+        // Check file size
+        let metadata = safe_path.metadata()
+            .map_err(|e| ToolError::Io(e))?;
+        let file_size = metadata.len() as usize;
+        let max_size = context.max_file_size();
+        
+        if file_size > max_size {
+            return Err(ToolError::Other(format!(
+                "File size ({} bytes) exceeds maximum allowed size ({} bytes)",
+                file_size, max_size
+            )));
+        }
+        
         // Check if it's a binary file
         if super::is_binary_file(&safe_path) {
             if super::is_image_file(&safe_path) {

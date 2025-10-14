@@ -66,35 +66,37 @@ impl SseParser {
     
     /// Parse next event from buffer
     fn parse_next_event(&mut self) -> Option<SseEvent> {
-        // Find line ending
-        let line_end = self.buffer.iter().position(|&b| b == b'\n')?;
-        
-        // Extract line with allocation to avoid borrow conflict
-        let line = if line_end > 0 && self.buffer[line_end - 1] == b'\r' {
-            self.buffer[..line_end - 1].to_vec()
-        } else {
-            self.buffer[..line_end].to_vec()
-        };
-        
-        // Handle different line types
-        if line.is_empty() {
-            // Empty line - dispatch event if we have data
-            if !self.data_buffer.is_empty() || !self.event_type.is_empty() {
-                let event = self.build_event();
-                self.reset_event_state();
+        loop {
+            // Find line ending
+            let line_end = self.buffer.iter().position(|&b| b == b'\n')?;
+            
+            // Extract line with allocation to avoid borrow conflict
+            let line = if line_end > 0 && self.buffer[line_end - 1] == b'\r' {
+                self.buffer[..line_end - 1].to_vec()
+            } else {
+                self.buffer[..line_end].to_vec()
+            };
+            
+            // Handle different line types
+            if line.is_empty() {
+                // Empty line - dispatch event if we have data
+                if !self.data_buffer.is_empty() || !self.event_type.is_empty() {
+                    let event = self.build_event();
+                    self.reset_event_state();
+                    let _ = self.buffer.split_to(line_end + 1);
+                    return Some(event);
+                }
+                // Empty line but no data - just skip it
                 let _ = self.buffer.split_to(line_end + 1);
-                return Some(event);
+            } else if line.starts_with(b":") {
+                // Comment - ignore and advance
+                let _ = self.buffer.split_to(line_end + 1);
+            } else {
+                // Parse field and advance
+                self.parse_field(&line);
+                let _ = self.buffer.split_to(line_end + 1);
             }
-        } else if line.starts_with(b":") {
-            // Comment - ignore
-        } else {
-            // Parse field
-            self.parse_field(&line);
         }
-        
-        // Advance buffer past this line
-        let _ = self.buffer.split_to(line_end + 1);
-        None
     }
     
     /// Parse a field line

@@ -67,6 +67,17 @@ impl Tool for ExecuteCommandTool {
             .and_then(|s| s.parse::<u64>().ok())
             .unwrap_or_else(|| context.get_tool_timeout("executeCommand").as_secs());
         
+        // Check for command injection patterns
+        let injection_patterns = [";", "&&", "||", "|", "$(", "`"];
+        for pattern in &injection_patterns {
+            if command.contains(pattern) {
+                return Err(ToolError::PermissionDenied(format!(
+                    "Command contains potentially dangerous pattern '{}' that could allow command injection",
+                    pattern
+                )));
+            }
+        }
+        
         // Parse command to check against denylist
         let command_parts: Vec<&str> = command.split_whitespace().collect();
         let base_command = command_parts.first()
@@ -119,6 +130,7 @@ impl Tool for ExecuteCommandTool {
                 "command": command,
                 "cwd": cwd.as_ref().map(|p| p.display().to_string()),
                 "dryRun": true,
+                "wouldExecute": true,
             })));
         }
         
@@ -341,7 +353,7 @@ mod tests {
         if let Err(ToolError::PermissionDenied(msg)) = result {
             assert!(msg.contains("blocked"));
             assert!(msg.contains("trash-put"));
-            assert!(msg.contains("safer alternative"));
+            assert!(msg.contains("safer file deletion"));
         } else {
             panic!("Expected PermissionDenied error with trash-put suggestion");
         }

@@ -576,7 +576,8 @@ mod tests {
         if let Err(blocked) = result {
             assert!(blocked.message.contains("blocked"));
             assert!(blocked.suggestion.is_some());
-            assert_eq!(blocked.path, temp_dir.path().join("blocked.txt").canonicalize().unwrap_or_default());
+            // File doesn't exist, so compare with non-canonicalized path
+            assert_eq!(blocked.path, temp_dir.path().join("blocked.txt"));
         }
     }
     

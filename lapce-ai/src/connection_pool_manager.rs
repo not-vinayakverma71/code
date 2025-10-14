@@ -698,6 +698,7 @@ mod tests {
     async fn test_connection_reuse() {
         let config = PoolConfig {
             max_connections: 1,
+            min_idle: 0,
             ..Default::default()
         };
         

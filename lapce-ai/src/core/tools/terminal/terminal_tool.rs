@@ -29,6 +29,7 @@ pub struct TerminalCommand {
     pub timeout_ms: Option<u64>,
     pub capture_output: bool,
     pub use_osc_markers: bool,
+    #[serde(default)]
     pub allow_dangerous: bool,
 }
 
@@ -286,33 +287,46 @@ impl TerminalTool {
         
         let mut current_segment = String::new();
         let mut current_type = SegmentType::Output;
-        let mut line_start = 0;
+        let mut last_pos = 0;
+        let line_count = output.lines().count();
         
-        for (line_num, line) in output.lines().enumerate() {
-            if let Some(marker) = osc_regex.find(line) {
-                // Save current segment
-                if !current_segment.is_empty() {
-                    segments.push(OutputSegment {
-                        segment_type: current_type.clone(),
-                        content: current_segment.clone(),
-                        timestamp: Utc::now(),
-                        line_start,
-                        line_end: line_num - 1,
-                    });
-                }
-                
-                // Determine new segment type
-                current_type = match marker.as_str() {
-                    s if s.contains("A") => SegmentType::Prompt,
-                    s if s.contains("C") => SegmentType::Command,
-                    _ => SegmentType::Output,
-                };
-                
+        // Find all OSC markers and split by them
+        for marker_match in osc_regex.find_iter(output) {
+            // Add content before this marker to current segment
+            let content_before = &output[last_pos..marker_match.start()];
+            if !content_before.is_empty() {
+                current_segment.push_str(content_before);
+            }
+            
+            // Save current segment if not empty
+            if !current_segment.is_empty() {
+                segments.push(OutputSegment {
+                    segment_type: current_type.clone(),
+                    content: current_segment.clone(),
+                    timestamp: Utc::now(),
+                    line_start: 0,
+                    line_end: line_count.saturating_sub(1),
+                });
                 current_segment.clear();
-                line_start = line_num;
-            } else {
-                current_segment.push_str(line);
-                current_segment.push('\n');
+            }
+            
+            // Determine new segment type based on marker
+            current_type = match marker_match.as_str() {
+                s if s.contains("A") => SegmentType::Prompt,
+                s if s.contains("C") => SegmentType::Command,
+                s if s.contains("D") => SegmentType::Output,
+                s if s.contains("B") => SegmentType::Output,
+                _ => SegmentType::Output,
+            };
+            
+            last_pos = marker_match.end();
+        }
+        
+        // Add remaining content
+        if last_pos < output.len() {
+            let remaining = &output[last_pos..];
+            if !remaining.is_empty() {
+                current_segment.push_str(remaining);
             }
         }
         
@@ -322,8 +336,8 @@ impl TerminalTool {
                 segment_type: current_type,
                 content: current_segment,
                 timestamp: Utc::now(),
-                line_start,
-                line_end: output.lines().count() - 1,
+                line_start: 0,
+                line_end: line_count.saturating_sub(1),
             });
         }
         
@@ -355,7 +369,7 @@ mod tests {
         let result = tool.execute(args, context).await.unwrap();
         assert!(result.success);
         
-        let output: TerminalOutput = serde_json::from_value(result.data).unwrap();
+        let output: TerminalOutput = serde_json::from_value(result.result).unwrap();
         assert_eq!(output.exit_code, 0);
         assert!(output.stdout.iter().any(|l| l.contains("hello")));
     }
@@ -373,6 +387,7 @@ mod tests {
         let args = serde_json::json!({
             "command": "rm -rf /",
             "capture_output": true,
+            "use_osc_markers": false,
             "allow_dangerous": false,
         });
         
@@ -411,6 +426,7 @@ mod tests {
             "command": "sleep 10",
             "timeout_ms": 100,
             "capture_output": true,
+            "use_osc_markers": false,
         });
         
         let result = tool.execute(args, context).await;

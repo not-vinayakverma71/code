@@ -44,19 +44,26 @@ impl Tool for SearchAndReplaceTool {
         let search = tool_data["search"].as_str()
             .ok_or_else(|| ToolError::InvalidArguments("Missing 'search' argument".to_string()))?;
             
-        let replace = tool_data["replace"].as_str()
-            .ok_or_else(|| ToolError::InvalidArguments("Missing 'replace' argument".to_string()))?;
+        let replace = tool_data.get("replace")
+            .and_then(|v| v.as_str())
+            .unwrap_or(""); // Allow empty string for replace
             
         let mode = tool_data.get("mode")
             .and_then(|v| v.as_str())
             .unwrap_or("literal");
             
         let multiline = tool_data.get("multiline")
-            .and_then(|v| v.as_bool())
+            .and_then(|v| {
+                v.as_bool()
+                    .or_else(|| v.as_str().and_then(|s| s.parse::<bool>().ok()))
+            })
             .unwrap_or(false);
             
         let preview_only = tool_data.get("preview")
-            .and_then(|v| v.as_bool())
+            .and_then(|v| {
+                v.as_bool()
+                    .or_else(|| v.as_str().and_then(|s| s.parse::<bool>().ok()))
+            })
             .unwrap_or(false);
         
         // Resolve path

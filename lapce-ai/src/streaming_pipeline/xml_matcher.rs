@@ -18,18 +18,32 @@ impl XmlMatcher {
         self.buffer.push_str(&text);
         let mut results = Vec::new();
         
-        // Simple XML tag detection
-        while let Some(start) = self.buffer.find('<') {
-            if let Some(end) = self.buffer.find('>') {
-                if end > start {
-                    let tag = self.buffer[start..=end].to_string();
-                    results.push(tag.clone());
-                    self.buffer = self.buffer[end+1..].to_string();
-                } else {
-                    break;
+        // Look for complete XML elements
+        if let Some(start) = self.buffer.find('<') {
+            if let Some(tag_end) = self.buffer[start..].find('>') {
+                let tag_name_end = start + tag_end + 1;
+                
+                // Extract tag name
+                let tag_content = &self.buffer[start+1..start+tag_end];
+                if let Some(space_pos) = tag_content.find(' ') {
+                    let tag_name = &tag_content[..space_pos];
+                    // Look for closing tag
+                    let closing = format!("</{}>", tag_name);
+                    if let Some(close_pos) = self.buffer.find(&closing) {
+                        let full_element = self.buffer[start..close_pos + closing.len()].to_string();
+                        results.push(full_element);
+                        self.buffer = self.buffer[close_pos + closing.len()..].to_string();
+                    }
+                } else if !tag_content.starts_with('/') {
+                    // Simple tag without attributes
+                    let tag_name = tag_content;
+                    let closing = format!("</{}>", tag_name);
+                    if let Some(close_pos) = self.buffer.find(&closing) {
+                        let full_element = self.buffer[start..close_pos + closing.len()].to_string();
+                        results.push(full_element);
+                        self.buffer = self.buffer[close_pos + closing.len()..].to_string();
+                    }
                 }
-            } else {
-                break;
             }
         }
         

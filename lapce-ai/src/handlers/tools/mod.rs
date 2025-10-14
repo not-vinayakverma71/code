@@ -140,13 +140,17 @@ mod tests {
     
     #[tokio::test]
     async fn test_execute_read_file_tool() {
+        use crate::core::tools::fs::ReadFileTool;
+        
         let temp_dir = TempDir::new().unwrap();
         let test_file = temp_dir.path().join("test.txt");
         std::fs::write(&test_file, "test content").unwrap();
         
         let handler = ToolExecutionHandler::new();
+        // Register the read file tool
+        handler.registry.register(ReadFileTool).unwrap();
         let request = ToolExecutionRequest {
-            tool_name: "read_file".to_string(),
+            tool_name: "readFile".to_string(),
             params: serde_json::json!({
                 "path": "test.txt"
             }),

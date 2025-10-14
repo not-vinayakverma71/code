@@ -232,7 +232,7 @@ mod tests {
     use super::*;
     use crate::task_exact_translation::{TaskOptions, ExtensionContext};
     use std::path::PathBuf;
-    use parking_lot::RwLock;
+    use tokio::sync::RwLock;
     use std::collections::HashMap;
     
     fn create_test_task() -> Arc<Task> {
@@ -256,7 +256,7 @@ mod tests {
             initial_todos: None,
             context: Some(ExtensionContext {
                 global_storage_uri: PathBuf::from("/tmp"),
-                workspace_state: Arc::new(RwLock::new(HashMap::new())),
+                workspace_state: Arc::new(RwLock::new(HashMap::<String, serde_json::Value>::new())),
             }),
             provider: None,
             api_configuration: None,

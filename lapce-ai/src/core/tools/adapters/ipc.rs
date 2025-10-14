@@ -162,8 +162,8 @@ impl IpcAdapter {
         
         self.sender.send(message)?;
         
-        // Wait for response (blocking)
-        match rx.blocking_recv() {
+        // Wait for response (async)
+        match rx.await {
             Ok(approved) => Ok(approved),
             Err(_) => {
                 // Channel closed

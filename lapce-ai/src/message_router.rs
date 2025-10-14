@@ -238,7 +238,7 @@ mod tests {
         match response {
             MessageResponse::TaskCreated { task_id } => {
                 assert!(!task_id.is_empty());
-                assert_eq!(task_manager.task_count(), 1);
+                assert_eq!(task_manager.task_count().await, 1);
             }
             _ => panic!("Expected TaskCreated response"),
         }
@@ -269,7 +269,7 @@ mod tests {
         router.route(pause_msg).await.unwrap();
         
         // Verify paused
-        if let Some(task) = task_manager.get_task(&task_id) {
+        if let Some(task) = task_manager.get_task(&task_id).await {
             assert!(task.is_paused());
         }
         
@@ -280,7 +280,7 @@ mod tests {
         router.route(resume_msg).await.unwrap();
         
         // Verify resumed
-        if let Some(task) = task_manager.get_task(&task_id) {
+        if let Some(task) = task_manager.get_task(&task_id).await {
             assert!(!task.is_paused());
         }
     }
@@ -310,7 +310,7 @@ mod tests {
         router.route(cancel_msg).await.unwrap();
         
         // Verify aborted
-        if let Some(task) = task_manager.get_task(&task_id) {
+        if let Some(task) = task_manager.get_task(&task_id).await {
             assert!(task.is_aborted());
         }
     }
@@ -341,9 +341,9 @@ mod tests {
         router.route(mode_msg).await.unwrap();
         
         // Verify mode switched
-        if let Some(task) = task_manager.get_task(&task_id) {
+        if let Some(task) = task_manager.get_task(&task_id).await {
             let mode = task.get_task_mode().await;
-            assert_eq!(mode, Some("code".to_string()));
+            assert_eq!(mode, "code".to_string());
         }
     }
 }

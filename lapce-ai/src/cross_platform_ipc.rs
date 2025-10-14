@@ -341,9 +341,9 @@ impl CrossPlatformIpc {
 mod tests {
     use super::*;
     
-    #[test]
-    fn test_cross_platform_creation() {
-        let ipc = CrossPlatformIpc::new("test", 8192);
+    #[tokio::test]
+    async fn test_cross_platform_creation() {
+        let ipc = CrossPlatformIpc::new("test", 8192).await;
         assert!(ipc.is_ok(), "Should create appropriate transport for platform");
     }
     
@@ -353,13 +353,13 @@ mod tests {
         assert!(ipc.is_ok(), "TCP fallback should always work");
     }
     
-    #[test]
-    fn test_read_write() {
-        let mut ipc = CrossPlatformIpc::new("test", 8192).unwrap();
+    #[tokio::test]
+    async fn test_read_write() {
+        let mut ipc = CrossPlatformIpc::new("test", 8192).await.unwrap();
         let data = b"Hello, cross-platform!";
         
-        assert!(ipc.write(data).is_ok());
-        let read_data = ipc.read();
+        assert!(ipc.write(data).await.is_ok());
+        let read_data = ipc.read().await;
         
         // Note: Some transports might need connection setup
         // This is a simplified test

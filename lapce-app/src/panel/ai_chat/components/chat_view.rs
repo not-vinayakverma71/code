@@ -6,12 +6,12 @@ use std::sync::Arc;
 
 use floem::{
     reactive::{RwSignal, SignalGet, create_rw_signal},
-    views::{Decorators, container, dyn_stack, label, scroll, v_stack},
-    IntoView, View,
+    views::{Decorators, container, dyn_stack, scroll, v_stack},
+    View,
 };
 
 use crate::{
-    ai_bridge::messages::{MessageType as BridgeMessageType, SayType as BridgeSayType, AskType as BridgeAskType},
+    ai_bridge::messages::{MessageType as BridgeMessageType},
     config::LapceConfig,
     panel::ai_chat::components::{
         chat_text_area::{ChatTextAreaProps, chat_text_area},
@@ -41,6 +41,10 @@ pub fn chat_view(
 ) -> impl View {
     let input_value = props.input_value;
     let messages_signal = props.messages_signal;
+    
+    // Windsurf-style model selector state
+    let current_model = create_rw_signal("GPT-4".to_string());
+    let is_model_open = create_rw_signal(false);
     
     v_stack((
         // Messages area (scrollable)
@@ -103,6 +107,8 @@ pub fn chat_view(
                     sending_disabled: props.sending_disabled,
                     placeholder_text: "Ask AI...".to_string(),
                     on_send: props.on_send.clone(),
+                    current_model,
+                    is_model_open,
                 },
                 config,
             )

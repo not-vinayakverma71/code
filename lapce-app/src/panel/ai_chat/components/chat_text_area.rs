@@ -1,5 +1,4 @@
 // ChatTextArea - EXACT Windsurf input area replica
-// Extracted from real Windsurf HTML (small.html)
 // Key measurements: 20x20px send button, gap-1.5 (6px), text-[12px] buttons
 
 use std::rc::Rc;
@@ -9,20 +8,26 @@ use floem::{
     event::{EventListener, EventPropagation},
     keyboard::{Key, NamedKey},
     peniko::Color,
-    reactive::RwSignal,
+    reactive::{RwSignal, SignalGet, SignalUpdate},
     style::CursorStyle,
-    text::Weight,
-    views::{Decorators, container, empty, h_stack, label, svg, text, text_input, v_stack},
-    View, ViewId,
+    views::{Decorators, container, empty, h_stack, svg, text_input, v_stack},
+    View,
 };
 
-use crate::config::LapceConfig;
+use crate::{
+    config::LapceConfig,
+    panel::ai_chat::{
+        icons::*,
+    },
+};
 
 pub struct ChatTextAreaProps {
     pub input_value: RwSignal<String>,
     pub sending_disabled: bool,
     pub placeholder_text: String,
     pub on_send: Rc<dyn Fn()>,
+    pub current_model: RwSignal<String>,
+    pub is_model_open: RwSignal<bool>,
 }
 
 /// EXACT Windsurf chat input area
@@ -44,62 +49,36 @@ pub fn chat_text_area(
     
     // Main container with input and button row
     v_stack((
-        // Input area with placeholder overlay
+        // Input area
         container(
-            v_stack((
-                // Multi-line text input
-                text_input(input_value)
-                    .keyboard_navigable()
-                    .on_event(EventListener::KeyDown, move |event| {
-                        if let floem::event::Event::KeyDown(key_event) = event {
-                            if key_event.key.logical_key == Key::Named(NamedKey::Enter)
-                                && !key_event.modifiers.shift()
-                            {
+            text_input(input_value)
+                .keyboard_navigable()
+                .placeholder(placeholder)
+                .on_event(EventListener::KeyDown, move |event| {
+                    if let floem::event::Event::KeyDown(key_event) = event {
+                        if key_event.key.logical_key == Key::Named(NamedKey::Enter)
+                            && !key_event.modifiers.shift()
+                        {
+                            if !input_value.get().trim().is_empty() {
                                 on_send();
-                                return EventPropagation::Stop;
+                                input_value.set(String::new());
                             }
+                            return EventPropagation::Stop;
                         }
-                        EventPropagation::Continue
-                    })
-                    .style(move |s| {
-                        let cfg = config();
-                        s.width_full()
-                            .min_height(32.0)  // 2rem = 32px
-                            .max_height(300.0)
-                            .padding(0.0)
-                            .background(Color::TRANSPARENT)
-                            .border(0.0)
-                            .color(cfg.color("input.foreground"))
-                            .font_size(14.0)
-                    }),
-                
-                // Placeholder overlay (shown when input is empty)
-                // Positioned absolutely over input
-                label(move || {
-                    if input_value.get().is_empty() {
-                        placeholder.clone()
-                    } else {
-                        String::new()
                     }
+                    EventPropagation::Continue
                 })
                 .style(move |s| {
                     let cfg = config();
-                    let visible = input_value.get().is_empty();
-                    s.position_absolute()
-                        .inset_left(0.0)
-                        .inset_right(0.0)
-                        .inset_top(0.0)
-                        .color(cfg.color("input.foreground").multiply_alpha(0.5))
+                    s.width_full()
+                        .min_height(32.0)  // 2rem = 32px
+                        .max_height(300.0)
+                        .padding(0.0)
+                        .background(Color::TRANSPARENT)
+                        .border(0.0)
+                        .color(cfg.color("input.foreground"))
                         .font_size(14.0)
-                        .cursor(CursorStyle::Text)
-                        .apply_if(!visible, |s| s.display_none())
-                }),
-            ))
-            .style(|s| {
-                s.position_relative()
-                    .width_full()
-                    .min_height(32.0)
-            })
+                })
         )
         .style(|s| {
             s.width_full()
@@ -117,9 +96,6 @@ pub fn chat_text_area(
                 
                 // Code button
                 code_button(config),
-                
-                // Model selector button
-                model_selector_button(config),
             ))
             .style(|s| s.gap(6.0)),  // gap-1.5 = 6px
             
@@ -132,7 +108,7 @@ pub fn chat_text_area(
                 mic_button(config),
                 
                 // Send button (20x20px circular)
-                send_button(disabled, on_send_btn, config),
+                send_button(disabled, input_value, on_send_btn, config),
             ))
             .style(|s| s.gap(6.0)),  // gap-1.5 = 6px
         ))
@@ -146,7 +122,7 @@ pub fn chat_text_area(
         let cfg = config();
         s.width_full()
             .padding(6.0)  // p-[6px]
-            .border_radius(15.0)  // rounded-[15px]
+            .border_radius(8.0)  // Reduced to avoid clipping dropdown
             .background(cfg.color("panel.background"))
             .border(1.0)
             .border_color(cfg.color("lapce.border"))
@@ -155,16 +131,16 @@ pub fn chat_text_area(
     })
 }
 
-/// Add files button (+) - text-[12px], opacity-70
+/// Add files button (+) - h-3 w-3 (12px), stroke-[2]
 fn add_files_button(
     config: impl Fn() -> Arc<LapceConfig> + 'static + Copy,
 ) -> impl View {
     container(
-        label(|| "+".to_string())
+        svg(|| ICON_PLUS.to_string())
             .style(move |s| {
                 let cfg = config();
-                s.font_size(12.0)
-                    .font_weight(Weight::BOLD)
+                s.width(12.0)
+                    .height(12.0)
                     .color(cfg.color("editor.foreground"))
             })
     )
@@ -183,15 +159,16 @@ fn add_files_button(
     })
 }
 
-/// Code button with icon
+/// Code button - size-[12px] (12x12px), stroke-[2.5px]
 fn code_button(
     config: impl Fn() -> Arc<LapceConfig> + 'static + Copy,
 ) -> impl View {
     container(
-        label(|| "</>".to_string())
+        svg(|| ICON_CODE.to_string())
             .style(move |s| {
                 let cfg = config();
-                s.font_size(12.0)
+                s.width(12.0)
+                    .height(12.0)
                     .color(cfg.color("editor.foreground"))
             })
     )
@@ -210,42 +187,17 @@ fn code_button(
     })
 }
 
-/// Model selector button
-fn model_selector_button(
-    config: impl Fn() -> Arc<LapceConfig> + 'static + Copy,
-) -> impl View {
-    container(
-        label(|| "GPT-5-Codex".to_string())
-            .style(move |s| {
-                let cfg = config();
-                s.font_size(12.0)
-                    .color(cfg.color("editor.foreground"))
-            })
-    )
-    .style(move |s| {
-        let cfg = config();
-        s.padding_horiz(4.0)
-            .padding_vert(2.0)
-            .border_radius(4.0)
-            .cursor(CursorStyle::Pointer)
-            .color(cfg.color("editor.foreground").multiply_alpha(0.7))
-            .hover(|s| {
-                let cfg = config();
-                s.background(cfg.color("editor.foreground").multiply_alpha(0.1))
-                    .color(cfg.color("editor.foreground"))
-            })
-    })
-}
 
 /// Microphone button - h-3.5 w-3.5 (14px icon)
 fn mic_button(
     config: impl Fn() -> Arc<LapceConfig> + 'static + Copy,
 ) -> impl View {
     container(
-        label(|| "🎤".to_string())
+        svg(|| ICON_MIC.to_string())
             .style(move |s| {
                 let cfg = config();
-                s.font_size(14.0)
+                s.width(14.0)  // h-3.5 w-3.5 = 14px
+                    .height(14.0)
                     .color(cfg.color("editor.foreground"))
             })
     )
@@ -263,45 +215,51 @@ fn mic_button(
     })
 }
 
-/// Send button - EXACT: h-[20px] w-[20px] rounded-full
-/// Arrow icon: h-3 w-3 (12px)
+/// Send button - Windsurf style: 32x32px blue circle with white arrow
+/// Blue: #0078d4, Hover: #026ec1, Icon: white
 fn send_button(
     disabled: bool,
+    input_value: RwSignal<String>,
     on_click: Rc<dyn Fn()>,
     config: impl Fn() -> Arc<LapceConfig> + 'static + Copy,
 ) -> impl View {
     container(
-        label(|| "↑".to_string())
+        svg(|| ICON_ARROW_UP.to_string())
             .style(move |s| {
-                let cfg = config();
-                s.font_size(12.0)  // h-3 w-3 = 12px
-                    .font_weight(Weight::BOLD)
-                    .color(cfg.color("input.background"))
+                s.width(14.0)  // Slightly larger for 32px button
+                    .height(14.0)
+                    .color(Color::WHITE)  // White arrow
             })
     )
     .on_click_stop(move |_| {
-        if !disabled {
+        if !disabled && !input_value.get().trim().is_empty() {
             on_click();
+            input_value.set(String::new());
         }
     })
     .style(move |s| {
-        let cfg = config();
-        s.width(20.0)      // EXACT: w-[20px]
-            .height(20.0)   // EXACT: h-[20px]
-            .border_radius(10.0)  // rounded-full = 50%
+        s.width(32.0)      // Windsurf size: 32x32px
+            .height(32.0)
+            .border_radius(16.0)  // Fully circular
             .flex_shrink(0.0)
             .justify_center()
             .items_center()
             .background(if disabled {
-                cfg.color("input.foreground").multiply_alpha(0.5)
+                Color::from_rgb8(0x00, 0x78, 0xd4).multiply_alpha(0.5)  // Dimmed blue
             } else {
-                cfg.color("input.foreground")
+                Color::from_rgb8(0x00, 0x78, 0xd4)  // #0078d4 Windsurf blue
             })
             .cursor(if disabled {
-                CursorStyle::NotAllowed
+                CursorStyle::Default
             } else {
                 CursorStyle::Pointer
             })
-            .apply_if(disabled, |s| s.apply_if(disabled, |s| s.opacity(0.5)))
+            .hover(move |s| {
+                if !disabled {
+                    s.background(Color::from_rgb8(0x02, 0x6e, 0xc1))  // #026ec1 darker blue on hover
+                } else {
+                    s
+                }
+            })
     })
 }

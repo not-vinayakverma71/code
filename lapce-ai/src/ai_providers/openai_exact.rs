@@ -145,10 +145,11 @@ impl OpenAiHandler {
         
         // Add default headers
         for (key, value) in DEFAULT_HEADERS {
-            headers.insert(
-                reqwest::header::HeaderName::from_static(key),
-                HeaderValue::from_static(value)
-            );
+            if let Ok(header_name) = reqwest::header::HeaderName::from_bytes(key.as_bytes()) {
+                if let Ok(header_value) = HeaderValue::from_str(value) {
+                    headers.insert(header_name, header_value);
+                }
+            }
         }
         
         // Add custom headers

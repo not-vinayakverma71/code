@@ -71,10 +71,8 @@ impl Default for CommandPolicy {
             r"wget.*\|\s*bash".to_string(),
         ];
         
-        let denied_commands = HashSet::new();
-        
         Self {
-            denied_commands,
+            denied_commands: denied,
             allowed_commands: HashSet::new(),
             dangerous_patterns,
             require_trash_put: true,
@@ -389,7 +387,10 @@ pub fn validate_command_security(command: &str) -> Result<String> {
     if let Some(ref manager) = *SECURITY_MANAGER.read() {
         manager.validate_command(command)
     } else {
-        Ok(command.to_string())
+        // Fallback to default validation when manager not initialized
+        let policy = CommandPolicy::default();
+        let validator = CommandValidator::new(policy)?;
+        validator.validate_command(command)
     }
 }
 

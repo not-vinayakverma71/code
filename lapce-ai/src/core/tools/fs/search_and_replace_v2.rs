@@ -63,11 +63,17 @@ impl Tool for SearchAndReplaceToolV2 {
             
         // New v2 options
         let case_insensitive = tool_data.get("caseInsensitive")
-            .and_then(|v| v.as_bool())
+            .and_then(|v| {
+                v.as_bool()
+                    .or_else(|| v.as_str().and_then(|s| s.parse::<bool>().ok()))
+            })
             .unwrap_or(false);
             
         let whole_word = tool_data.get("wholeWord")
-            .and_then(|v| v.as_bool())
+            .and_then(|v| {
+                v.as_bool()
+                    .or_else(|| v.as_str().and_then(|s| s.parse::<bool>().ok()))
+            })
             .unwrap_or(false);
             
         let line_start = tool_data.get("lineStart")
@@ -83,11 +89,17 @@ impl Tool for SearchAndReplaceToolV2 {
             .unwrap_or(true);
             
         let max_replacements = tool_data.get("maxReplacements")
-            .and_then(|v| v.as_u64())
+            .and_then(|v| {
+                v.as_u64()
+                    .or_else(|| v.as_str().and_then(|s| s.parse::<u64>().ok()))
+            })
             .map(|v| v as usize);
             
         let backup_if_changed = tool_data.get("backupIfChanged")
-            .and_then(|v| v.as_bool())
+            .and_then(|v| {
+                v.as_bool()
+                    .or_else(|| v.as_str().and_then(|s| s.parse::<bool>().ok()))
+            })
             .unwrap_or(false);
         
         // Validate line range if provided
@@ -123,6 +135,23 @@ impl Tool for SearchAndReplaceToolV2 {
             )));
         }
         
+        // Check for symlinks BEFORE canonicalization
+        if !preview_only {
+            let original_path = if file_path.is_absolute() {
+                file_path.clone()
+            } else {
+                context.workspace.join(&file_path)
+            };
+            if let Ok(metadata) = fs::symlink_metadata(&original_path) {
+                if metadata.file_type().is_symlink() {
+                    return Err(ToolError::Other(format!(
+                        "Cannot modify symlink: {}. Please modify the target file directly.",
+                        path
+                    )));
+                }
+            }
+        }
+        
         // Ensure path is within workspace
         let safe_path = ensure_workspace_path(&context.workspace, &file_path)
             .map_err(|e| ToolError::PermissionDenied(e))?;
@@ -131,14 +160,6 @@ impl Tool for SearchAndReplaceToolV2 {
         if !safe_path.exists() {
             return Err(ToolError::InvalidArguments(format!(
                 "File does not exist: {}",
-                path
-            )));
-        }
-        
-        // Check for symlinks
-        if !preview_only && utils::is_symlink(&safe_path).unwrap_or(false) {
-            return Err(ToolError::Other(format!(
-                "Cannot modify symlink: {}. Please modify the target file directly.",
                 path
             )));
         }
@@ -348,11 +369,12 @@ fn perform_full_replacement(
             
             let mut result = String::new();
             let mut last_end = 0;
+            let mut count = 0;
             
-            for (idx, (start, end, matched)) in matches.iter().enumerate() {
+            for (start, end, matched) in matches.iter() {
+                // Check if we've hit max replacements before processing
                 if let Some(max) = max_replacements {
-                    if idx >= max {
-                        result.push_str(&content[last_end..]);
+                    if count >= max {
                         break;
                     }
                 }
@@ -372,8 +394,10 @@ fn perform_full_replacement(
                 result.push_str(&content[last_end..*start]);
                 result.push_str(replace);
                 last_end = *end;
+                count += 1;
             }
             
+            // Add any remaining content after last replacement
             if last_end < content.len() {
                 result.push_str(&content[last_end..]);
             }

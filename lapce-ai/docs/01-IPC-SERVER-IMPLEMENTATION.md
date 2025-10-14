@@ -24,7 +24,7 @@ Production-grade IPC system with shared memory transport achieving ≥1M msg/s t
 - [ ] **Zero Allocations**: No heap allocations in hot path
 - [ ] **Error Recovery**: Automatic reconnection within 100ms
 - [ ] **Test Coverage**: > 90% code coverage
-- [ ] **Benchmark**: Outperform Node.js IPC by 10x
+- [ ] **Benchmark**: Outperform Node.js IPC by 10x 
 
 ## Overview
 The IPC (Inter-Process Communication) server is the foundation of our Rust port, handling all communication between the IDE and AI services. This implementation achieves 95% memory reduction compared to Node.js.

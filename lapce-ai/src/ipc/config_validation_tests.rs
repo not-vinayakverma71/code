@@ -2,6 +2,9 @@
 #[cfg(test)]
 mod config_validation_tests {
     use super::*;
+    use crate::ipc::ipc_config::IpcConfig;
+    use tempfile::TempDir;
+    use std::fs;
 
     /// Test default configuration is valid
     #[test]
@@ -132,8 +135,8 @@ mod config_validation_tests {
         config.monitoring.health_check_port = 80;
         assert!(config.validate().is_err());
         
-        config.monitoring.health_check_port = 70000;
-        assert!(config.validate().is_err());
+        config.monitoring.health_check_port = 65535; // Max valid port
+        assert!(config.validate().is_ok()); // Should be valid
         
         // Test prometheus_port out of range
         config.monitoring.health_check_port = 8080; // Reset to valid
@@ -333,9 +336,12 @@ retention_hours = 24
 export_path = "/tmp/lapce-metrics"
 
 [monitoring]
+health_check_enabled = true
 health_check_port = 8080
+health_check_path = "/health"
+prometheus_enabled = true
 prometheus_port = 9090
-enable_debug_endpoints = false
+grafana_dashboard_path = "./dashboards"
 
 [reconnection]
 strategy = "exponential"
@@ -417,19 +423,23 @@ connection_pool_max_lifetime_secs = 3600
 slot_size = 1024
 num_slots = 100
 ring_buffer_size = 65536
+control_buffer_size = 4096
+max_memory_per_connection = 30720
 permissions = 384
-namespace_suffix = "lapce-ai"
 
 [metrics]
-enabled = true
+enable = true
 export_interval_secs = 60
 retention_hours = 24
 export_path = "/tmp/lapce-metrics"
 
 [monitoring]
+health_check_enabled = true
 health_check_port = 8080
+health_check_path = "/health"
+prometheus_enabled = true
 prometheus_port = 9090
-enable_debug_endpoints = false
+grafana_dashboard_path = "./dashboards"
 
 [reconnection]
 strategy = "exponential"
@@ -508,7 +518,7 @@ max_requests_per_minute = 1000
         let mut config = IpcConfig::default();
         
         // Edge case: very large values
-        config.ipc.max_connections = u32::MAX;
+        config.ipc.max_connections = u32::MAX as usize;
         assert!(config.validate().is_err());
         
         // Edge case: zero values where not allowed
@@ -537,8 +547,8 @@ max_requests_per_minute = 1000
         // Verify production-safe defaults
         assert!(config.shared_memory.permissions >= 0o600, "SHM permissions should be secure");
         assert!(config.security.rate_limiting, "Rate limiting should be enabled by default");
-        assert!(config.metrics.enabled, "Metrics should be enabled by default");
-        assert!(!config.monitoring.enable_debug_endpoints, "Debug endpoints should be disabled by default");
+        assert!(config.metrics.enable, "Metrics should be enabled by default");
+        assert!(config.monitoring.health_check_enabled, "Health check should be enabled by default");
         
         // Verify reasonable resource limits
         assert!(config.ipc.max_connections <= 10000, "Connection limit should be reasonable");

@@ -82,10 +82,12 @@ impl ToolMetrics {
         sorted.sort_unstable();
         
         let len = sorted.len();
-        self.avg_duration_ms = self.total_duration_ms / self.call_count;
-        self.p50_duration_ms = sorted[len / 2];
-        self.p95_duration_ms = sorted[len * 95 / 100.min(len - 1)];
-        self.p99_duration_ms = sorted[len * 99 / 100.min(len - 1)];
+        if len > 0 {
+            self.avg_duration_ms = self.total_duration_ms / self.call_count;
+            self.p50_duration_ms = sorted[len / 2];
+            self.p95_duration_ms = sorted[(len * 95 / 100).min(len - 1)];
+            self.p99_duration_ms = sorted[(len * 99 / 100).min(len - 1)];
+        }
         
         // Keep only last 1000 samples to prevent memory growth
         if self.latencies.len() > 1000 {
@@ -405,8 +407,12 @@ mod tests {
             metrics.record_call(i as u64, true);
         }
         
-        assert_eq!(metrics.p50_duration_ms, 50);
-        assert_eq!(metrics.p95_duration_ms, 95);
-        assert_eq!(metrics.p99_duration_ms, 99);
+        // With 100 values (1-100), 0-indexed:
+        // p50 = sorted[50] = 51
+        // p95 = sorted[95] = 96  
+        // p99 = sorted[99] = 100
+        assert_eq!(metrics.p50_duration_ms, 51);
+        assert_eq!(metrics.p95_duration_ms, 96);
+        assert_eq!(metrics.p99_duration_ms, 100);
     }
 }

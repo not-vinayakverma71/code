@@ -87,27 +87,28 @@ private/
         let tool = ExecuteCommandTool;
         let mut context = ToolContext::new(temp_dir.path().to_path_buf(), "test_user".to_string());
         context.require_approval = false;
+        context.permissions.execute = true; // Enable execute permission to test injection checks
         
-        // Test command injection attempts
+        // Test command injection attempts (with XML-escaped ampersands)
         let injection_attempts = vec![
-            "ls; rm -rf /",
-            "echo test && dd if=/dev/zero of=/dev/sda",
-            "cat file.txt | sudo rm -rf /*",
-            "test`rm -rf /`",
-            "$(rm -rf /)",
-            "test;mkfs.ext4 /dev/sda",
+            ("ls; rm -rf /", "ls; rm -rf /"),
+            ("echo test &amp;&amp; dd if=/dev/zero of=/dev/sda", "echo test && dd if=/dev/zero of=/dev/sda"),
+            ("cat file.txt | sudo rm -rf /*", "cat file.txt | sudo rm -rf /*"),
+            ("test`rm -rf /`", "test`rm -rf /`"),
+            ("$(rm -rf /)", "$(rm -rf /)"),
+            ("test;mkfs.ext4 /dev/sda", "test;mkfs.ext4 /dev/sda"),
         ];
         
-        for cmd in injection_attempts {
+        for (xml_cmd, display_cmd) in injection_attempts {
             let args = serde_json::json!(format!(r#"
                 <tool>
                     <command>{}</command>
                 </tool>
-            "#, cmd));
+            "#, xml_cmd));
             
             let result = tool.execute(args, context.clone()).await;
             assert!(matches!(result, Err(ToolError::PermissionDenied(_))), 
-                "Should block dangerous command: {}", cmd);
+                "Should block dangerous command: {}", display_cmd);
         }
     }
     
@@ -150,7 +151,7 @@ private/
         
         // Create a large file (simulate)
         let large_file = temp_dir.path().join("large.txt");
-        let size = 100 * 1024 * 1024; // 100MB
+        let size = 150 * 1024 * 1024; // 150MB (larger than default 100MB limit)
         fs::write(&large_file, vec![b'a'; size]).unwrap();
         
         let tool = ReadFileTool;
@@ -196,6 +197,7 @@ private/
         // Create context with approval required
         let mut context = ToolContext::new(temp_dir.path().to_path_buf(), "test_user".to_string());
         context.require_approval = true;
+        context.permissions.file_write = true; // Enable write permission to test approval logic
         
         // Try to write without approval
         let args = serde_json::json!(format!(r#"

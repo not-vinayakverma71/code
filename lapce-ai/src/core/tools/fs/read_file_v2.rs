@@ -48,12 +48,18 @@ impl Tool for ReadFileToolV2 {
             
         // Optional: follow symlinks flag (default: true for reads)
         let follow_symlinks = tool_data.get("followSymlinks")
-            .and_then(|v| v.as_bool())
+            .and_then(|v| {
+                v.as_bool()
+                    .or_else(|| v.as_str().and_then(|s| s.parse::<bool>().ok()))
+            })
             .unwrap_or(true);
             
-        // Optional: custom size limit
+        // Optional: custom size limit (parse from string or u64)
         let max_size = tool_data.get("maxSize")
-            .and_then(|v| v.as_u64())
+            .and_then(|v| {
+                v.as_u64()
+                    .or_else(|| v.as_str().and_then(|s| s.parse::<u64>().ok()))
+            })
             .unwrap_or(MAX_FILE_SIZE);
         
         // Resolve path
@@ -68,14 +74,30 @@ impl Tool for ReadFileToolV2 {
         }
         
         // Check permissions
-        if !context.can_read_file(&file_path).await {
+        if !context.permissions.file_read {
             return Err(ToolError::PermissionDenied(format!(
                 "Permission denied to read file: {}",
                 file_path.display()
             )));
         }
         
-        // Ensure path is within workspace
+        // Check if original path is a symlink BEFORE canonicalization
+        let original_path = if file_path.is_absolute() {
+            file_path.clone()
+        } else {
+            context.workspace.join(&file_path)
+        };
+        let is_symlink = utils::is_symlink(&original_path).unwrap_or(false);
+        
+        // If symlink and not following symlinks, reject immediately
+        if is_symlink && !follow_symlinks {
+            return Err(ToolError::Other(format!(
+                "Path is a symlink (not allowed): {}",
+                path
+            )));
+        }
+        
+        // Ensure path is within workspace (this may canonicalize)
         let safe_path = super::ensure_workspace_path(&context.workspace, &file_path)
             .map_err(|e| ToolError::PermissionDenied(e))?;
         
@@ -87,7 +109,7 @@ impl Tool for ReadFileToolV2 {
             )));
         }
         
-        // Handle symlinks
+        // Resolve path (will follow symlinks if policy allows)
         let symlink_policy = if follow_symlinks {
             SymlinkPolicy::Follow
         } else {
@@ -98,8 +120,11 @@ impl Tool for ReadFileToolV2 {
             .map_err(|e| ToolError::Other(format!("Symlink error: {}", e)))?;
         
         // Get comprehensive file info
-        let file_info = utils::get_file_info(&resolved_path)
+        let mut file_info = utils::get_file_info(&resolved_path)
             .map_err(|e| ToolError::Io(e))?;
+        
+        // Override is_symlink with the original check
+        file_info.is_symlink = is_symlink;
         
         // Check file size
         if file_info.size > max_size {
@@ -160,7 +185,7 @@ impl Tool for ReadFileToolV2 {
                 "size": info.size,
                 "encoding": format!("{:?}", info.encoding),
                 "lineEnding": info.line_ending.map(|le| format!("{:?}", le)),
-                "isSymlink": info.is_symlink,
+                "isSymlink": is_symlink,
                 "isReadonly": info.is_readonly,
             }
         })))

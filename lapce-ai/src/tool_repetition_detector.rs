@@ -395,9 +395,10 @@ mod tests {
         
         // Should detect cyclic pattern
         match result {
-            RepetitionResult::CyclicPattern { pattern, cycle_count } => {
+            RepetitionResult::CyclicPattern { pattern, cycle_count, pattern_length } => {
                 assert!(cycle_count >= 2);
                 assert!(!pattern.is_empty());
+                assert_eq!(pattern_length, pattern.len());
             }
             _ => {
                 // Pattern might not be detected yet, acceptable
