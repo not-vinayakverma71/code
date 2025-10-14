@@ -2,6 +2,7 @@
 
 [icon-theme]
 name = "Lapce Codicons"
+use-editor-color = false
 
 [icon-theme.ui]
 "logo" = "lapce_logo.svg"
