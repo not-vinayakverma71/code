@@ -8,7 +8,7 @@
 **Status:** ✅ Committed  
 
 ### **Icon Size**
-**Size:** 0 (default/auto)  
+**Size:** 1.7 (70% larger than default)  
 **Location in repo:** `defaults/settings.toml` line 92  
 **Status:** ✅ Committed  
 
@@ -113,78 +113,37 @@
 
 ## 📏 **Exact Sizes**
 
-### Your Configuration:
 ```toml
 [ui]
-icon-size = 0  # 0 = use default sizes based on UI scale
+icon-size = 1.7  # 70% larger icons for better visibility
 ```
+### Actual Rendered Sizes (with icon-size = 1.7):
+- **Folders:** ~41x41 pixels (24 × 1.7)
+- **Files:** ~27x27 pixels (16 × 1.7)
+- **UI Icons:** Scaled 70% larger from base sizes
+- **Symbol Icons:** ~27x27 pixels (16 × 1.7)
 
-### Actual Rendered Sizes (with icon-size = 0):
-- **Folders:** 24x24 pixels
-- **Files:** 16x16 pixels
-- **UI Icons:** Varies (16x16, 20x20, 24x24 depending on context)
-- **Symbol Icons:** 16x16 pixels
-
-### If You Want to Change:
+Want to Change:
 Edit `defaults/settings.toml`:
 ```toml
 [ui]
-icon-size = 16  # All icons will scale to this size
-```
-
+icon-size = 1.7  # Multiplier: 1.0 = default, 1.7 = current, 2.0 = double size
 ---
 
 ## ✅ **Verification: Everything in Repo**
-
-### Committed Files:
-```bash
-git ls-files icons/ | wc -l
-# Output: 961 ✅
-
-ls icons/codicons/ | wc -l
-# Output: 941 ✅
-
-ls icons/file-types/ | wc -l
-# Output: 18 ✅
-
-ls icons/lapce/ | wc -l
-# Output: 2 ✅
-```
-
-### Defaults Configuration:
-```bash
-defaults/settings.toml:
-  icon-theme = "Lapce Codicons" ✅
-  icon-size = 0 ✅
-
-defaults/icon-theme.toml:
-  name = "Lapce Codicons" ✅
-  use-editor-color = false ✅
-  (defines all 961 icon mappings) ✅
-```
-
----
-
-## 🎯 **What Users Get**
-
-When someone clones your repo and builds:
-
-```bash
-git clone https://github.com/not-vinayakverma71/lapce.git
-cd lapce
-cargo build --release
+{{ ... }}
 ./target/release/lapce
 ```
 
 **They get EXACTLY:**
 1. ✅ **Icon Theme:** Lapce Codicons
-2. ✅ **Icon Size:** 0 (default/auto-scaled)
+2. ✅ **Icon Size:** 1.7 (larger)
 3. ✅ **Folder Icons:** 24x24 yellow folders
 4. ✅ **File Icons:** 16x16 generic + 18 custom types
 5. ✅ **UI Icons:** All 941 codicons
 6. ✅ **Symbol Icons:** 25 code symbol types
 7. ✅ **Same visual experience as you**
-
+{{ ... }}
 ---
 
 ## 📦 **What's Embedded in Binary**
@@ -251,7 +210,7 @@ use-editor-color = false  # Icons use their own colors, not editor text color
 | Aspect | Your Machine | Users Building Repo |
 |--------|--------------|---------------------|
 | Icon Theme | Lapce Codicons | Lapce Codicons ✅ |
-| Icon Size | 0 (default) | 0 (default) ✅ |
+| Icon Size | 1.7 (larger) | 1.7 (larger) ✅ |
 | Folder Icons | 24x24 yellow | 24x24 yellow ✅ |
 | File Icons | 16x16 + 18 types | 16x16 + 18 types ✅ |
 | UI Icons | 941 codicons | 941 codicons ✅ |
