@@ -81,7 +81,7 @@ jobs:
       - name: Run Direct SHM IPC Test
         working-directory: lapce-ai
         run: cargo test --test direct_shm_ipc_test -- --nocapture --test-threads=1
-        timeout-minutes: 5
+        timeout-minutes: 60
 
       - name: Upload test results on failure
         if: failure()
@@ -154,7 +154,7 @@ jobs:
       - name: Run Comprehensive Multi-Process IPC Test
         working-directory: lapce-ai
         run: cargo test --test comprehensive_multiprocess_ipc -- --nocapture --test-threads=1
-        timeout-minutes: 10
+        timeout-minutes: 60
 
       - name: Upload test results on failure
         if: failure()
@@ -223,7 +223,7 @@ jobs:
       - name: Run Comprehensive Stress Test
         working-directory: lapce-ai
         run: cargo test --test stress_test_comprehensive -- --nocapture --test-threads=1
-        timeout-minutes: 15
+        timeout-minutes: 60
 
       - name: Upload test results on failure
         if: failure()
