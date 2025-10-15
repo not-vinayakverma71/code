@@ -3,9 +3,6 @@
 /// Validates full IPC stack with separate OS processes (NOT tokio tasks)
 /// This is the TRUE test of IPC functionality
 
-// This test uses POSIX shared memory and is Unix/Linux only
-#![cfg(unix)]
-
 use std::process::{Command, Child, Stdio};
 use std::time::{Duration, Instant};
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -25,21 +22,43 @@ fn spawn_server_process() -> Result<Child, std::io::Error> {
     
     eprintln!("[TEST] Spawning IPC server in separate process...");
     
-    // Spawn server as separate process
-    let child = Command::new("cargo")
-        .args(&["run", "--bin", "ipc_test_server", "--", TEST_SOCKET])
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()?;
+    // Try to use pre-built binary first (for CI), fall back to cargo run
+    // Test binary is in target/debug/deps/, server binary is in target/debug/
+    let binary_path = std::env::current_exe()
+        .ok()
+        .and_then(|test_exe| {
+            // Go from target/debug/deps/test_binary to target/debug/ipc_test_server
+            test_exe.parent()  // target/debug/deps/
+                .and_then(|deps| deps.parent())  // target/debug/
+                .map(|debug| debug.join("ipc_test_server"))
+        })
+        .filter(|p| p.exists());
+    
+    let child = if let Some(bin_path) = binary_path {
+        eprintln!("[TEST] Using pre-built binary: {:?}", bin_path);
+        Command::new(bin_path)
+            .arg(TEST_SOCKET)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()?
+    } else {
+        eprintln!("[TEST] Building and running with cargo...");
+        Command::new("cargo")
+            .args(&["run", "--bin", "ipc_test_server", "--", TEST_SOCKET])
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()?
+    };
     
     eprintln!("[TEST] Server process spawned with PID {}", child.id());
     
-    // Give server time to start
-    std::thread::sleep(Duration::from_millis(1000));
+    // Give server more time to start (especially in CI)
+    std::thread::sleep(Duration::from_secs(3));
     
     Ok(child)
 }
 
+#[cfg(unix)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn test_comprehensive_multiprocess_ipc() {
     println!("\n╔═══════════════════════════════════════════════════════════╗");
@@ -56,7 +75,7 @@ async fn test_comprehensive_multiprocess_ipc() {
     // Step 2: Connect client
     println!("\n[TEST] Connecting client to server...");
     let client = match timeout(
-        Duration::from_secs(5),
+        Duration::from_secs(10),  // Longer timeout for CI environments
         IpcClient::connect(TEST_SOCKET)
     ).await {
         Ok(Ok(c)) => {
