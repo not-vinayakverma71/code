@@ -1,0 +1,191 @@
+# =====================================================================================
+# VS CODE KEYBINDINGS PATCH FOR LAPCE
+# =====================================================================================
+# Add these keybindings to /home/verma/lapce/defaults/keymaps-nonmacos.toml
+# 
+# Instructions:
+# 1. Open: /home/verma/lapce/defaults/keymaps-nonmacos.toml
+# 2. Scroll to the end of the file
+# 3. Copy and paste all sections below
+# 4. Rebuild Lapce: cargo build --release
+# =====================================================================================
+
+# ================================== CRITICAL VS CODE SHORTCUTS ===================================
+
+# 🔴 Toggle Sidebar (Ctrl+B) - Most used VS Code shortcut
+# Only in insert mode to avoid conflict with vim's ctrl+b (left)
+[[keymaps]]
+key = "ctrl+b"
+command = "toggle_panel_left_visual"
+mode = "i"
+
+# 🔴 Toggle Bottom Panel (Ctrl+J) - Essential UI control
+[[keymaps]]
+key = "ctrl+j"
+command = "toggle_panel_bottom_visual"
+mode = "i"
+
+# 🔴 Navigate Back (Alt+Left) - Critical for navigation history
+[[keymaps]]
+key = "alt+left"
+command = "jump_location_backward"
+mode = "i"
+
+# 🔴 Navigate Forward (Alt+Right) - Critical for navigation history
+[[keymaps]]
+key = "alt+right"
+command = "jump_location_forward"
+mode = "i"
+
+# 🔴 Replace/Find (Ctrl+H) - Opens search (can switch to replace)
+# Only in insert mode to avoid conflict with vim's ctrl+h (delete_backward)
+[[keymaps]]
+key = "ctrl+h"
+command = "search"
+mode = "i"
+
+# Note: Once dedicated "replace" command exists, update to:
+# command = "replace"
+
+# ================================== MEDIUM PRIORITY VS CODE SHORTCUTS ===================================
+
+# 🟡 Save All Files (Ctrl+K S)
+[[keymaps]]
+key = "ctrl+k s"
+command = "save_all"
+
+# 🟡 New Window (Ctrl+Shift+N)
+[[keymaps]]
+key = "ctrl+shift+n"
+command = "new_window"
+
+# 🟡 Navigate to Beginning/End of File with Selection
+[[keymaps]]
+key = "ctrl+shift+Home"
+command = "select_to_beginning"
+mode = "i"
+
+[[keymaps]]
+key = "ctrl+shift+End"  
+command = "select_to_end"
+mode = "i"
+
+# ================================== PANEL VISIBILITY SHORTCUTS (VS CODE STYLE) ===================================
+
+# These improve VS Code user muscle memory by adding common panel toggles
+
+# 🟡 Toggle Right Sidebar (if you use it like VS Code's secondary sidebar)
+[[keymaps]]
+key = "ctrl+alt+b"
+command = "toggle_panel_right_visual"
+mode = "i"
+
+# ================================== SEARCH & REPLACE ENHANCEMENTS ===================================
+
+# 🟡 Toggle Search in Files (already mapped but adding consistency)
+# Already exists as Ctrl+Shift+F in base keymaps
+
+# ================================== NAVIGATION ENHANCEMENTS ===================================
+
+# 🟡 Go Back/Forward in Vim Normal Mode (for vim users who want this)
+[[keymaps]]
+key = "ctrl+o"
+command = "jump_location_backward_local"
+mode = "n"
+
+[[keymaps]]
+key = "ctrl+i"
+command = "jump_location_forward_local"
+mode = "n"
+
+# These are already in keymaps-common.toml but adding here for clarity
+
+# ================================== NOTES & MISSING COMMANDS ===================================
+#
+# The following VS Code keybindings CANNOT be added yet because commands don't exist:
+#
+# 🔴 HIGH PRIORITY MISSING:
+# - Ctrl+Shift+T: reopen_closed_editor (needs implementation)
+# - Shift+Alt+F: format_document (needs implementation)  
+# - Ctrl+T: Already correctly mapped to palette.workspace_symbol ✅
+#
+# 🟡 MEDIUM PRIORITY MISSING:
+# - Ctrl+Shift+K: delete_line (may exist as combination of commands)
+# - Ctrl+Shift+H: global_search_replace (needs implementation)
+# - Ctrl+1/2/3/4: focus_editor_group_N (needs multi-group support)
+# - Ctrl+Shift+[/]: fold/unfold (needs code folding feature)
+# - Alt+F12: peek_definition (needs peek feature)
+# - Ctrl+K Ctrl+I: show_hover (may exist, needs verification)
+# - Ctrl+K Ctrl+W: close_all_editors (needs implementation)
+# - Shift+Alt+Right/Left: expand_selection/shrink_selection (needs smart selection)
+#
+# 🟢 LOW PRIORITY MISSING:
+# - Alt+Z: toggle_word_wrap (needs implementation)
+# - Ctrl+K Ctrl+0: fold_all (needs folding feature)
+# - Ctrl+K Ctrl+J: unfold_all (needs folding feature)
+# - Ctrl+K F12: open_definition_to_side (needs implementation)
+# - Ctrl+K Enter: keep_editor/pin_editor (needs implementation)
+#
+# ✅ ALREADY WORKING PERFECTLY (No changes needed):
+# - Ctrl+P: Quick Open (palette)
+# - Ctrl+Shift+P: Command Palette (palette.command)
+# - Ctrl+G: Go to Line (palette.line)
+# - Ctrl+Shift+O: Go to Symbol in File (palette.symbol)
+# - Ctrl+T: Go to Symbol in Workspace (palette.workspace_symbol)
+# - Ctrl+F: Find (search)
+# - Ctrl+S: Save
+# - Ctrl+N: New File
+# - Ctrl+O: Open File
+# - Ctrl+W: Close Editor
+# - Ctrl+\: Split Editor
+# - Ctrl+Tab / Ctrl+Shift+Tab: Next/Previous Tab
+# - Ctrl+Shift+E: Toggle File Explorer
+# - Ctrl+Shift+F: Toggle Search Panel
+# - Ctrl+Shift+M: Toggle Problems Panel
+# - Ctrl+Shift+X: Toggle Extensions/Plugins Panel
+# - Ctrl+`: Toggle Terminal
+# - Ctrl+Z/Y: Undo/Redo
+# - Ctrl+X/C/V: Cut/Copy/Paste
+# - Ctrl+/: Toggle Line Comment
+# - Ctrl+D: Add Next Occurrence
+# - Ctrl+Shift+L: Select All Occurrences
+# - Alt+Up/Down: Move Line Up/Down
+# - Alt+Shift+Up/Down: Copy Line Up/Down
+# - Ctrl+Enter: Insert Line Below
+# - Ctrl+Shift+Enter: Insert Line Above
+# - F2: Rename Symbol
+# - F12: Go to Definition
+# - Ctrl+.: Quick Fix/Code Actions
+# - F8 / Shift+F8: Next/Previous Error
+# - Ctrl+Space: Trigger Suggestion
+# - Ctrl+Shift+Space: Parameter Hints
+# - Ctrl+Shift+\: Go to Bracket
+# - Ctrl+L: Select Current Line
+# - Ctrl+U: Undo Last Cursor Operation
+# - Ctrl+Alt+Up/Down: Add Cursor Above/Below
+# - Ctrl+K Ctrl+S: Open Keyboard Shortcuts
+# - Ctrl+,: Open Settings
+# - Ctrl+= / Ctrl+-: Zoom In/Out
+# - Alt+F4: Close Window
+# - Ctrl+K F: Close Folder
+#
+# =====================================================================================
+# RECOMMENDED NEXT STEPS:
+# =====================================================================================
+# 
+# 1. **Immediate**: Add this patch to keymaps-nonmacos.toml
+# 2. **Short-term**: Implement missing HIGH priority commands:
+#    - reopen_closed_editor
+#    - format_document (or map to existing formatter)
+#    - Dedicated replace command
+# 3. **Medium-term**: Implement MEDIUM priority features:
+#    - delete_line command
+#    - global_search_replace
+#    - Code folding (fold/unfold)
+#    - Peek definition
+# 4. **Long-term**: Implement LOW priority polish:
+#    - Word wrap toggle
+#    - Smart selection expand/shrink
+#    - Pin editor tabs
+#
+# =====================================================================================

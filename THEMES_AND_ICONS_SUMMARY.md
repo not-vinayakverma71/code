@@ -234,7 +234,7 @@ icon-size = 18  # Options: 12, 14, 16, 18, 20, 24 (or 0 for default)
 | **Default Theme** | Lapce Dark Modern | Lapce Dark Modern ✅ Same |
 | **Your Active Theme** | Lapce Dark Modern | Lapce Dark Modern (default) ✅ |
 | **Icon Theme** | Lapce Codicons | Lapce Codicons ✅ Same |
-| **Icon Size** | 1.7 (70% larger) | 1.7 (70% larger) ✅ Same |
+| **Icon Size** | 0 (default) | 0 (default) ✅ Same |
 | **Folder Icons** | 24x24 yellow folders | 24x24 yellow folders ✅ Same |
 | **File Icons** | 16x16 + 18 custom | 16x16 + 18 custom ✅ Same |
 

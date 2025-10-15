@@ -3311,6 +3311,7 @@ fn window_tab(window_tab_data: Rc<WindowTabData>) -> impl View {
                 workbench_command,
                 status_height,
                 config,
+                window_tab_data.panel.clone(),
             ),
         ))
         .on_resize(move |rect| {

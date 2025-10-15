@@ -31,11 +31,12 @@ fn windsurf_chat_view() -> impl View {
             container(
                 v_stack((
                     v_stack((
-                        user_msg("tell me about this repo"),
+                        user_msg("Hey, Analyze the repo"),
                         ai_msg("I'll analyze the Lapce repository structure for you."),
                         ai_msg_with_files("I'll read the following files:"),
                         ai_reading_file("windsurf_chat_demo.rs", "#L60-64"),
                         ai_reading_file("write.rs", ""),
+                        directory_analysis_indicator("lapce/lapce-app/src"),
                         ai_msg("Based on my analysis, here's what I found:"),
                         ai_section_with_files("Repository Focus", "Lapce is a Rust-based code editor with UI built in Floem. Core functionality spans multiple crates like lapce-ai/, lapce-app/, lapce-core/, lapce-proxy/, and lapce-rpc/, each targeting distinct subsystems.", vec!["README.md"]),
                         ai_section_with_files("AI Integration", "lapce-ai/ houses AI tooling, including IPC messaging and tool abstraction layers. Supporting markdown references detail precise UI specifications derived from real DOM captures.", vec!["lapce-ai/src/ipc_messages.rs", "lapce-ai/src/core/tools/traits.rs", "WINDSURF_INPUT_EXACT.md"]),
@@ -102,17 +103,17 @@ fn header_bar() -> impl View {
     container(
         label(|| "Windsurf Chat - Real Conversation".to_string())
             .style(|s| {
-                s.font_size(16.0)
+                s.font_size(14.0)
                     .font_weight(floem::text::Weight::BOLD)
-                    .color(Color::WHITE)
+                    .color(Color::from_rgb8(0xcc, 0xcc, 0xcc))
             })
     )
     .style(|s| {
         s.width_full()
-            .padding(16.0)
-            .background(Color::from_rgb8(0x20, 0x20, 0x20))
+            .padding(12.0)
             .border_bottom(1.0)
             .border_color(Color::from_rgb8(0x45, 0x45, 0x45))
+            .background(Color::from_rgb8(0x1e, 0x1e, 0x1e))
     })
 }
 
@@ -575,6 +576,32 @@ fn file_edit_item(filename: &str, additions: i32, deletions: i32) -> impl View {
         .style(|s| s.flex_col().gap(6.0))
     )
     .style(|s| s.width_full().max_width_pct(90.0))
+}
+
+// Directory analysis indicator - same styling as Read file indicator
+fn directory_analysis_indicator(directory: &str) -> impl View {
+    let dir_display = directory.to_string();
+    let dir_click = directory.to_string();
+    
+    h_stack((
+        label(|| "Analyzed".to_string())
+            .style(|s| {
+                s.font_size(13.0)
+                    .color(Color::from_rgb8(0xcc, 0xcc, 0xcc).multiply_alpha(0.5))
+            }),
+        
+        label(move || dir_display.clone())
+            .on_click_stop(move |_| {
+                println!("[Analyzed Directory] Open directory: {}", dir_click);
+            })
+            .style(|s| {
+                s.font_size(13.0)
+                    .color(Color::from_rgb8(0xcc, 0xcc, 0xcc).multiply_alpha(0.7))
+                    .cursor(floem::style::CursorStyle::Pointer)
+                    .hover(|s| s.color(Color::from_rgb8(0xcc, 0xcc, 0xcc)))
+            }),
+    ))
+    .style(|s| s.gap(4.0).items_center().padding_vert(4.0))
 }
 
 // EXACT Windsurf AI reading file indicator with collapsible Thought section
@@ -1451,6 +1478,150 @@ fn status_item_exact(text: String) -> impl View {
     })
 }
 
+// Simple toggle - unused for now, keeping for reference
+fn _code_mode_selector_simple() -> impl View {
+    let selected_mode = create_rw_signal("Code".to_string());
+    
+    container(
+        label(move || selected_mode.get())
+            .style(|s| {
+                s.font_size(12.0)
+                    .color(Color::from_rgb8(0xcc, 0xcc, 0xcc))
+            })
+    )
+    .on_click_stop(move |_| {
+        let current = selected_mode.get();
+        let new_mode = if current == "Code" { "Chat" } else { "Code" };
+        println!("[Code Mode] Switched to: {}", new_mode);
+        selected_mode.set(new_mode.to_string());
+    })
+    .style(|s| {
+        s.padding(6.0)
+            .padding_horiz(12.0)
+            .border_radius(4.0)
+            .border(1.0)
+            .border_color(Color::from_rgb8(0x45, 0x45, 0x45))
+            .background(Color::from_rgb8(0x2a, 0x2a, 0x2a))
+            .cursor(floem::style::CursorStyle::Pointer)
+            .hover(|s| s.background(Color::from_rgb8(0x35, 0x35, 0x35)))
+    })
+}
+
+// Code mode selector - EXACT structure from model_selector_dropdown
+fn code_mode_selector() -> impl View {
+    let is_open = create_rw_signal(false);
+    let selected_mode = create_rw_signal("Code".to_string());
+    
+    container(
+        v_stack((
+            // Dropdown panel (shown above when open)
+            container(
+                container(
+                    v_stack((
+                        // Code option
+                        container(
+                            h_stack((
+                                label(|| "Code".to_string())
+                                    .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc)).flex_grow(1.0)),
+                                label(move || if selected_mode.get() == "Code" { "✓" } else { "" }.to_string())
+                                    .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc).multiply_alpha(0.5))),
+                            ))
+                            .style(|s| s.width_full())
+                        )
+                        .on_click_stop(move |_| {
+                            println!("[Code Mode] Selected: Code");
+                            selected_mode.set("Code".to_string());
+                            is_open.set(false);
+                        })
+                        .style(|s| {
+                            s.width_full()
+                                .padding_horiz(8.0)
+                                .padding_vert(4.0)
+                                .border_radius(6.0)
+                                .cursor(floem::style::CursorStyle::Pointer)
+                                .hover(|s| s.background(Color::from_rgb8(0x80, 0x80, 0x80).multiply_alpha(0.1)))
+                        }),
+                    
+                        // Chat option
+                        container(
+                            label(|| "Chat".to_string())
+                                .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc)))
+                        )
+                        .on_click_stop(move |_| {
+                            println!("[Code Mode] Selected: Chat");
+                            selected_mode.set("Chat".to_string());
+                            is_open.set(false);
+                        })
+                        .style(|s| {
+                            s.width_full()
+                                .padding_horiz(8.0)
+                                .padding_vert(4.0)
+                                .border_radius(6.0)
+                                .cursor(floem::style::CursorStyle::Pointer)
+                                .hover(|s| s.background(Color::from_rgb8(0x80, 0x80, 0x80).multiply_alpha(0.1)))
+                        }),
+                    ))
+                    .style(|s| s.flex_col().gap(4.0))
+                )
+                .style(|s| {
+                    s.width(240.0)
+                        .min_height(100.0)
+                        .padding(6.0)
+                        .padding_bottom(12.0)
+                        .background(Color::from_rgb8(0x1a, 0x1a, 0x1a))
+                        .border(1.0)
+                        .border_color(Color::from_rgb8(0x45, 0x45, 0x45))
+                        .border_radius(12.0)
+                })
+            )
+            .style(move |s| {
+                if is_open.get() {
+                    s.position(floem::style::Position::Absolute)
+                        .inset_bottom_pct(100.0)
+                        .margin_bottom(8.0)
+                } else {
+                    s.position(floem::style::Position::Absolute)
+                        .inset_left(-9999.0)
+                }
+            }),
+            // Selector button
+            container(
+                h_stack((
+                    label(move || selected_mode.get())
+                        .style(|s| {
+                            s.font_size(12.0)
+                                .color(Color::from_rgb8(0xcc, 0xcc, 0xcc))
+                                .flex_grow(1.0)
+                        }),
+                    label(|| "▼".to_string())
+                        .style(|s| {
+                            s.font_size(10.0)
+                                .color(Color::from_rgb8(0xcc, 0xcc, 0xcc).multiply_alpha(0.5))
+                        }),
+                ))
+                .style(|s| s.width_full().items_center())
+            )
+            .on_click_stop(move |_| {
+                println!("[Code Mode] Button clicked: {} -> {}", is_open.get(), !is_open.get());
+                is_open.update(|v| *v = !*v);
+            })
+            .style(|s| {
+                s.padding(4.0)
+                    .padding_horiz(8.0)
+                    .min_width(80.0)
+                    .border_radius(4.0)
+                    .border(1.0)
+                    .border_color(Color::from_rgb8(0x45, 0x45, 0x45))
+                    .background(Color::from_rgb8(0x2a, 0x2a, 0x2a))
+                    .cursor(floem::style::CursorStyle::Pointer)
+                    .hover(|s| s.background(Color::from_rgb8(0x35, 0x35, 0x35)))
+            }),
+        ))
+        .style(|s| s.flex_col())
+    )
+    .style(|s| s.position(floem::style::Position::Relative))
+}
+
 fn model_selector_dropdown() -> impl View {
     let is_open = create_rw_signal(false);
     let selected_model = create_rw_signal("Claude Sonnet 4.5 Thinking ".to_string());
@@ -1461,6 +1632,57 @@ fn model_selector_dropdown() -> impl View {
             container(
                 container(
                     v_stack((
+                        // Code/Chat mode section
+                        v_stack((
+                            // Code option
+                            container(
+                                h_stack((
+                                    label(|| "Code".to_string())
+                                        .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc)).flex_grow(1.0)),
+                                    label(|| "✓".to_string())
+                                        .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc).multiply_alpha(0.5))),
+                                ))
+                                .style(|s| s.width_full())
+                            )
+                            .on_click_stop(|_| {
+                                println!("[Mode] Selected: Code");
+                            })
+                            .style(|s| {
+                                s.width_full()
+                                    .padding_horiz(8.0)
+                                    .padding_vert(4.0)
+                                    .border_radius(6.0)
+                                    .cursor(floem::style::CursorStyle::Pointer)
+                                    .hover(|s| s.background(Color::from_rgb8(0x80, 0x80, 0x80).multiply_alpha(0.1)))
+                            }),
+                            // Chat option
+                            container(
+                                label(|| "Chat".to_string())
+                                    .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc)))
+                            )
+                            .on_click_stop(|_| {
+                                println!("[Mode] Selected: Chat");
+                            })
+                            .style(|s| {
+                                s.width_full()
+                                    .padding_horiz(8.0)
+                                    .padding_vert(4.0)
+                                    .border_radius(6.0)
+                                    .cursor(floem::style::CursorStyle::Pointer)
+                                    .hover(|s| s.background(Color::from_rgb8(0x80, 0x80, 0x80).multiply_alpha(0.1)))
+                            }),
+                        ))
+                        .style(|s| s.width_full().gap(2.0).padding_bottom(4.0)),
+                        
+                        // Separator line
+                        container(label(|| "".to_string()))
+                            .style(|s| {
+                                s.width_full()
+                                    .height(1.0)
+                                    .background(Color::from_rgb8(0x45, 0x45, 0x45))
+                                    .margin_bottom(4.0)
+                            }),
+                        
                         // Search bar with filter
                         container(
                             h_stack((
@@ -1506,6 +1728,7 @@ fn model_selector_dropdown() -> impl View {
                                 .style(|s| s.width_full())
                             )
                             .on_click_stop(move |_| {
+                                println!("[DEBUG] Item clicked: Claude Sonnet 4.5 Thinking");
                                 selected_model.set("Claude Sonnet 4.5 Thinking ".to_string());
                                 is_open.set(false);
                             })
@@ -1646,15 +1869,15 @@ fn model_selector_dropdown() -> impl View {
                 })
             )
             .style(move |s| {
-                let mut style = if is_open.get() {
-                    s.display(floem::style::Display::Flex)
+                if is_open.get() {
+                    s.position(floem::style::Position::Absolute)
+                        .inset_bottom_pct(100.0)
+                        .margin_bottom(8.0)
+                        .z_index(1000)
                 } else {
-                    s.display(floem::style::Display::None)
-                };
-                style = style.position(floem::style::Position::Absolute)
-                    .inset_bottom_pct(100.0)
-                    .margin_bottom(4.0);
-                style
+                    s.position(floem::style::Position::Absolute)
+                        .inset_left(-9999.0)
+                }
             }),
             
             // Selector button

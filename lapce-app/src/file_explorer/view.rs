@@ -390,9 +390,9 @@ fn file_explorer_view(
                         .style(move |s| {
                             let config = config.get();
                             let base_size = config.ui.icon_size() as f32;
-                            // Directories: 0.9x, Custom language icons: 1.7x, Default generic icon: 0.8x
+                            // Directories: 1.0x, Custom language icons: 1.7x, Default generic icon: 0.8x
                             let size = if is_dir {
-                                base_size * 0.9
+                                base_size * 1.0
                             } else if let Some(path) = kind_for_size.path() {
                                 // Check if file has custom icon by checking the SVG content
                                 let (svg_content, _) = config.file_svg(path);
@@ -407,9 +407,16 @@ fn file_explorer_view(
                                 .flex_shrink(0.0)
                                 .margin_horiz(6.0)
                                 .apply_if(is_dir, |s| {
-                                    s.color(
-                                        config.color(LapceColor::LAPCE_ICON_ACTIVE),
-                                    )
+                                    // Only apply color if it's a default folder (not custom)
+                                    let has_custom_folder = kind_for_style
+                                        .path()
+                                        .and_then(|p| config.folder_svg(p))
+                                        .is_some();
+                                    if has_custom_folder {
+                                        s // No color override for custom folders
+                                    } else {
+                                        s.color(config.color(LapceColor::LAPCE_ICON_ACTIVE))
+                                    }
                                 })
                                 .apply_if(!is_dir, |s| {
                                     s.apply_opt(

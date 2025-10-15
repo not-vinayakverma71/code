@@ -647,12 +647,8 @@ impl LapceConfig {
             .and_then(|p| self.svg_store.write().get_svg_on_disk(&p));
 
         if let Some(svg) = svg {
-            let color = if self.icon_theme.use_editor_color.unwrap_or(false) {
-                Some(self.color(LapceColor::LAPCE_ICON_ACTIVE))
-            } else {
-                None
-            };
-            (svg, color)
+            // Return None for color to preserve SVG's natural colors
+            (svg, None)
         } else {
             (
                 self.ui_svg(LapceIcons::FILE),
@@ -671,12 +667,8 @@ impl LapceConfig {
         let icon_file = self.icon_theme.foldername.get(folder_name)?;
         let icon_path = self.icon_theme.path.join(icon_file);
         let svg = self.svg_store.write().get_svg_on_disk(&icon_path)?;
-        let color = if self.icon_theme.use_editor_color.unwrap_or(false) {
-            Some(self.color(LapceColor::LAPCE_ICON_ACTIVE))
-        } else {
-            None
-        };
-        Some((svg, color))
+        // Return None for color to preserve SVG's natural colors
+        Some((svg, None))
     }
 
     pub fn symbol_svg(&self, kind: &SymbolKind) -> Option<String> {
