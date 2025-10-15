@@ -800,7 +800,7 @@ impl SharedMemoryListener {
     ) {
         eprintln!("[WATCHER] Starting filesystem watcher on: {}", lock_dir);
         
-        let mut interval = tokio::time::interval(Duration::from_millis(1));  // Faster polling
+        let mut interval = tokio::time::interval(Duration::from_micros(100));  // Check every 100µs
         let mut seen_locks = std::collections::HashSet::new();
         
         // Pre-populate seen_locks with existing files
@@ -968,6 +968,17 @@ impl SharedMemoryStream {
                     eprintln!("[CLIENT] Created lock file: {}", lock_path);
                     use std::io::Write;
                     let _ = file.write_all(format!("{}", std::process::id()).as_bytes());
+                    
+                    // Force flush to disk for visibility
+                    #[cfg(unix)]
+                    {
+                        use std::os::unix::io::AsRawFd;
+                        unsafe { libc::fsync(file.as_raw_fd()); }
+                        // Also sync the directory to make entry visible
+                        if let Ok(dir) = std::fs::File::open(&lock_dir) {
+                            unsafe { libc::fsync(dir.as_raw_fd()); }
+                        }
+                    }
                     drop(file);
                     eprintln!("[CLIENT] Claimed slot {}, waiting for buffers...", slot_id);
                     
