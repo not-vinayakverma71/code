@@ -7,6 +7,7 @@ use anyhow::{Result, bail};
 use crate::ipc::spsc_shm_ring::{SpscRing, RingHeader};
 use crate::ipc::shm_waiter_cross_os::ShmWaiter;
 use crate::ipc::shm_namespace::create_namespaced_path;
+#[cfg(unix)]
 use crate::ipc::shm_permissions::create_fd_0600;
 use std::time::Duration;
 

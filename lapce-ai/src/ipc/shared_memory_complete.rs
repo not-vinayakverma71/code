@@ -66,20 +66,31 @@ impl SharedMemoryBuffer {
         let namespaced_path = create_namespaced_path(path);
         
         // shm_open requires name to start with '/' but have no other slashes
-        // Keep leading /, replace subsequent slashes with underscores
+        // macOS has a 31-character limit (PSHMNAMLEN) - use hash for long names
         let shm_name_str = {
             let without_leading = namespaced_path.trim_start_matches('/');
-            format!("/{}", without_leading.replace('/', "_"))
+            let full_name = format!("/{}", without_leading.replace('/', "_"));
+            
+            #[cfg(target_os = "macos")]
+            {
+                if full_name.len() > 31 {
+                    // Use hash to create short unique name
+                    use std::collections::hash_map::DefaultHasher;
+                    use std::hash::{Hash, Hasher};
+                    let mut hasher = DefaultHasher::new();
+                    full_name.hash(&mut hasher);
+                    format!("/shm_{:x}", hasher.finish())
+                } else {
+                    full_name
+                }
+            }
+            
+            #[cfg(not(target_os = "macos"))]
+            full_name
         };
         
         let ts = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
-        eprintln!("[CREATE @{}] path='{}' -> shm_name='{}'", ts, path, shm_name_str);
-        
-        // macOS has a 31-character limit (PSHMNAMLEN) for shm_open names
-        #[cfg(target_os = "macos")]
-        if shm_name_str.len() > 31 {
-            bail!("SHM name too long for macOS ({}>{} chars): '{}'", shm_name_str.len(), 31, shm_name_str);
-        }
+        eprintln!("[CREATE @{}] path='{}' -> namespaced='{}' -> shm_name='{}'", ts, path, namespaced_path, shm_name_str);
         
         let shm_name_str_copy = shm_name_str.clone();
         let shm_name = std::ffi::CString::new(shm_name_str)
@@ -216,7 +227,24 @@ impl SharedMemoryBuffer {
         // MUST use EXACT SAME algorithm as create() for matching!
         let shm_name_str = {
             let without_leading = namespaced_path.trim_start_matches('/');
-            format!("/{}", without_leading.replace('/', "_"))
+            let full_name = format!("/{}", without_leading.replace('/', "_"));
+            
+            #[cfg(target_os = "macos")]
+            {
+                if full_name.len() > 31 {
+                    // Use hash to create short unique name (MUST match create())
+                    use std::collections::hash_map::DefaultHasher;
+                    use std::hash::{Hash, Hasher};
+                    let mut hasher = DefaultHasher::new();
+                    full_name.hash(&mut hasher);
+                    format!("/shm_{:x}", hasher.finish())
+                } else {
+                    full_name
+                }
+            }
+            
+            #[cfg(not(target_os = "macos"))]
+            full_name
         };
         
         let ts = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();

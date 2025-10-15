@@ -123,8 +123,11 @@ impl IpcServerComplete {
     pub async fn new(config: IpcConfig) -> Result<Arc<Self>> {
         info!("Starting IPC server with config: {:?}", config);
         
-        // Create SharedMemory listener
+        // Create SharedMemory listener (async on Unix, sync on Windows)
+        #[cfg(unix)]
         let listener = SharedMemoryListener::bind(&config.socket_path).await?;
+        #[cfg(windows)]
+        let listener = SharedMemoryListener::bind(&config.socket_path)?;
         
         let (shutdown_tx, _) = broadcast::channel(1);
         

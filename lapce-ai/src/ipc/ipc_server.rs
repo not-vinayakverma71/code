@@ -340,8 +340,11 @@ pub struct IpcServer {
 
 impl IpcServer {
     pub async fn new(socket_path: &str) -> IpcResult<Self> {
-        // Create SharedMemory listener (no file cleanup needed)
+        // Create SharedMemory listener (async on Unix, sync on Windows)
+        #[cfg(unix)]
         let listener = SharedMemoryListener::bind(socket_path).await?;
+        #[cfg(windows)]
+        let listener = SharedMemoryListener::bind(socket_path)?;
         
         let (shutdown_tx, _) = broadcast::channel(1);
         
