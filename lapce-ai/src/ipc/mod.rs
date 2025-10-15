@@ -10,7 +10,9 @@ pub mod framed_shm_stream;
 #[cfg(unix)]
 pub mod shm_metrics;
 pub mod shm_namespace;
+#[cfg(unix)]
 pub mod shm_permissions;
+#[cfg(unix)]
 pub mod shm_notifier;
 pub mod spsc_shm_ring;
 pub mod shm_waiter_cross_os;

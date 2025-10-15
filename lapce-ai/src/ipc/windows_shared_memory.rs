@@ -396,6 +396,7 @@ impl SharedMemoryListener {
         Ok((SharedMemoryStream {
             send_buffer: Arc::new(RwLock::new(send_buffer)),
             recv_buffer: Arc::new(RwLock::new(recv_buffer)),
+            conn_id: req.conn_id,
         }, dummy_addr))
     }
 }
