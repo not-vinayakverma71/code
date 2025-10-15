@@ -2,6 +2,9 @@
 /// Tests IPC with manually created buffers (bypasses filesystem watcher)
 /// This validates the CORE fix: O_EXCL prevents buffer corruption
 
+// This test uses POSIX shared memory and is Unix/Linux only
+#![cfg(unix)]
+
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use lapce_ai_rust::ipc::shared_memory_complete::{SharedMemoryBuffer, SharedMemoryStream};

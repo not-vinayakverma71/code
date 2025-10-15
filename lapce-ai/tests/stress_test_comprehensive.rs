@@ -2,6 +2,9 @@
 /// Tests 1000+ concurrent connections with sustained load
 /// Validates memory stability and performance under realistic production load
 
+// This test uses POSIX shared memory and is Unix/Linux only
+#![cfg(unix)]
+
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::time::{Duration, Instant};

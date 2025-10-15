@@ -1,6 +1,10 @@
 /// Comprehensive Multi-Process IPC Integration Test
-/// Tests REAL IPC server/client in SEPARATE OS processes
-/// Validates: messages, handlers, streaming, concurrent connections
+/// COMPREHENSIVE MULTI-PROCESS IPC TEST
+/// Validates full IPC stack with separate OS processes (NOT tokio tasks)
+/// This is the TRUE test of IPC functionality
+
+// This test uses POSIX shared memory and is Unix/Linux only
+#![cfg(unix)]
 
 use std::process::{Command, Child, Stdio};
 use std::time::{Duration, Instant};
