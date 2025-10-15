@@ -62,10 +62,13 @@ impl OptimizedShmStream {
         unsafe {
             let send_header = send_shm.ptr as *mut RingHeader;
             let send_data = send_shm.ptr.add(std::mem::size_of::<RingHeader>());
+            // Calculate data capacity as power of 2
+            let header_size = std::mem::size_of::<RingHeader>();
+            let data_capacity = (DEFAULT_RING_SIZE - header_size).next_power_of_two() / 2; // Ensure power of 2
             let send_ring = Arc::new(SpscRing::from_raw(
                 send_header,
                 send_data,
-                DEFAULT_RING_SIZE - std::mem::size_of::<RingHeader>(),
+                data_capacity,
             ));
             
             let recv_header = recv_shm.ptr as *mut RingHeader;
@@ -73,7 +76,7 @@ impl OptimizedShmStream {
             let recv_ring = Arc::new(SpscRing::from_raw(
                 recv_header,
                 recv_data,
-                DEFAULT_RING_SIZE - std::mem::size_of::<RingHeader>(),
+                data_capacity,
             ));
             
             Ok(Self {
@@ -305,7 +308,7 @@ mod tests {
     
     #[tokio::test]
     async fn test_optimized_stream_roundtrip() {
-        let stream = OptimizedShmStream::connect("/tmp/test_optimized_stream")
+        let stream = OptimizedShmStream::connect("/test_optimized_stream")
             .await
             .expect("Failed to create stream");
         
@@ -322,7 +325,7 @@ mod tests {
     
     #[tokio::test]
     async fn test_batch_operations() {
-        let stream = OptimizedShmStream::connect("/tmp/test_batch")
+        let stream = OptimizedShmStream::connect("/test_batch_ops")
             .await
             .expect("Failed to create stream");
         

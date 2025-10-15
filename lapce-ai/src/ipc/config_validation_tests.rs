@@ -349,6 +349,7 @@ initial_delay_ms = 1000
 max_delay_ms = 30000
 multiplier = 2.0
 max_retries = 5
+health_check_interval_secs = 30
 
 [providers]
 
@@ -356,22 +357,28 @@ max_retries = 5
 enabled = false
 api_key = ""
 base_url = "https://api.openai.com"
+default_model = "gpt-4-turbo-preview"
 timeout_secs = 30
 max_retries = 3
+rate_limit_per_minute = 500
 
 [providers.anthropic]
 enabled = false
 api_key = ""
 base_url = "https://api.anthropic.com"
+default_model = "claude-3-opus"
 timeout_secs = 30
 max_retries = 3
+rate_limit_per_minute = 100
 
 [providers.gemini]
 enabled = false
 api_key = ""
 base_url = "https://generativelanguage.googleapis.com"
+default_model = "gemini-pro"
 timeout_secs = 30
 max_retries = 3
+rate_limit_per_minute = 200
 
 [logging]
 level = "info"
@@ -382,6 +389,10 @@ rotation_size_mb = 100
 max_backups = 10
 
 [performance]
+zero_copy = true
+buffer_reuse = true
+connection_pooling = true
+cache_enabled = true
 cache_size_mb = 50
 cache_ttl_secs = 3600
 
@@ -447,6 +458,7 @@ initial_delay_ms = 1000
 max_delay_ms = 30000
 multiplier = 2.0
 max_retries = 5
+health_check_interval_secs = 30
 
 [providers]
 
@@ -454,22 +466,28 @@ max_retries = 5
 enabled = true
 api_key = "${TEST_API_KEY}"
 base_url = "https://api.openai.com"
+default_model = "gpt-4-turbo-preview"
 timeout_secs = 30
 max_retries = 3
+rate_limit_per_minute = 500
 
 [providers.anthropic]
 enabled = false
 api_key = ""
 base_url = "https://api.anthropic.com"
+default_model = "claude-3-opus"
 timeout_secs = 30
 max_retries = 3
+rate_limit_per_minute = 100
 
 [providers.gemini]
 enabled = false
 api_key = ""
 base_url = "https://generativelanguage.googleapis.com"
+default_model = "gemini-pro"
 timeout_secs = 30
 max_retries = 3
+rate_limit_per_minute = 200
 
 [logging]
 level = "info"
@@ -480,6 +498,10 @@ rotation_size_mb = 100
 max_backups = 10
 
 [performance]
+zero_copy = true
+buffer_reuse = true
+connection_pooling = true
+cache_enabled = true
 cache_size_mb = 50
 cache_ttl_secs = 3600
 
@@ -504,7 +526,19 @@ max_requests_per_minute = 1000
     /// Test configuration loading with missing file uses defaults
     #[test]
     fn test_missing_file_uses_defaults() {
+        // Ensure env var is not set
+        std::env::remove_var("LAPCE_AI_CONFIG");
+        
+        // Work in a temp directory where config.toml doesn't exist
+        let temp_dir = TempDir::new().unwrap();
+        let original_dir = std::env::current_dir().unwrap();
+        std::env::set_current_dir(temp_dir.path()).unwrap();
+        
         let result = IpcConfig::load();
+        
+        // Restore original directory
+        std::env::set_current_dir(original_dir).unwrap();
+        
         assert!(result.is_ok(), "Loading missing config should use defaults");
         
         let config = result.unwrap();

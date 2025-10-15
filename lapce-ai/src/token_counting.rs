@@ -284,7 +284,7 @@ mod tests {
     fn test_count_text_tokens() {
         assert_eq!(count_text_tokens(""), 1);
         assert_eq!(count_text_tokens("Hello"), 2); // ~5 chars / 4 = 1.25 -> 2
-        assert_eq!(count_text_tokens("Hello, world!"), 3); // ~13 chars
+        assert_eq!(count_text_tokens("Hello, world!"), 4); // ~13 chars / 4 = 3.25 -> 4
         
         let long_text = "The quick brown fox jumps over the lazy dog";
         let tokens = count_text_tokens(long_text);

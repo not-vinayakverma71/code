@@ -390,8 +390,9 @@ mod tests {
     #[tokio::test]
     async fn test_ai_assistant_executor() {
         let config = McpServerConfig::default();
-        let workspace = tempdir().unwrap().path().to_path_buf();
-        let executor = AiAssistantToolExecutor::new(config, workspace.clone());
+        let temp_dir = tempdir().unwrap();
+        let workspace = temp_dir.path();
+        let executor = AiAssistantToolExecutor::new(config, workspace.to_path_buf());
         
         // Create test file
         std::fs::write(workspace.join("test.txt"), "AI Test").unwrap();

@@ -275,17 +275,22 @@ mod tests {
     async fn test_http2_support() {
         let conn = HttpsConnectionManager::new().await.unwrap();
         
-        // Test HTTP/2 endpoint
-        let req = Request::get("https://http2.golang.org/reqinfo")
+        // Test HTTP/2 endpoint - use a reliable test URL
+        let req = Request::get("https://www.google.com")
             .body(Full::new(Bytes::new()))
             .unwrap();
             
-        let (response, body) = conn.execute_request_full(req).await.unwrap();
-        assert_eq!(response.status(), StatusCode::OK);
+        let (response, _body) = conn.execute_request_full(req).await.unwrap();
         
-        // Check if response indicates HTTP/2 was used
-        let body_str = std::str::from_utf8(&body).unwrap();
-        println!("HTTP/2 test response: {}", body_str);
+        // Accept 200 OK or 3xx redirects as valid responses
+        assert!(
+            response.status().is_success() || response.status().is_redirection(),
+            "Expected success or redirect, got: {}",
+            response.status()
+        );
+        
+        // Verify HTTP/2 is supported by checking version
+        assert_eq!(response.version(), hyper::Version::HTTP_2);
     }
     
     #[tokio::test]

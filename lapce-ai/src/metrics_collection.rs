@@ -258,7 +258,8 @@ mod tests {
         assert_eq!(metrics.total_tokens_out, 45);
         assert_eq!(metrics.total_cache_writes, Some(5));
         assert_eq!(metrics.total_cache_reads, Some(3));
-        assert_eq!(metrics.total_cost, 0.013);
+        // Use approximate comparison for floating point
+        assert!((metrics.total_cost - 0.013).abs() < 0.0001, "Expected cost ~0.013, got {}", metrics.total_cost);
         assert_eq!(metrics.context_tokens, 40); // Last request: 15+25
     }
     

@@ -293,7 +293,7 @@ mod tests {
         let executor = OrchestrationExecutor::default();
         
         // Abort before running
-        task.request_abort();
+        task.request_abort().await;
         
         let result = executor.run(&task).await;
         assert!(result.is_ok());

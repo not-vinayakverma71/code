@@ -105,15 +105,16 @@ impl RingBufferHeader {
         // Zero the entire header first
         std::ptr::write_bytes(ptr, 0, std::mem::size_of::<Self>());
         
-        // Initialize fields
+        // Initialize fields directly in shared memory
         (*header).magic = MAGIC_NUMBER;
-        (*header).write_pos = AtomicUsize::new(0);
-        (*header).read_pos = AtomicUsize::new(0);
+        // CRITICAL: Initialize atomics in-place in shared memory
+        (*header).write_pos.store(0, Ordering::Relaxed);
+        (*header).read_pos.store(0, Ordering::Relaxed);
         (*header).capacity = capacity;
         (*header).version = PROTOCOL_VERSION;
-        (*header).flags = AtomicU32::new(flags::INITIALIZED);
-        (*header).sequence = AtomicU64::new(0);
-        (*header).last_error = AtomicU64::new(0);
+        (*header).flags.store(flags::INITIALIZED, Ordering::Relaxed);
+        (*header).sequence.store(0, Ordering::Relaxed);
+        (*header).last_error.store(0, Ordering::Relaxed);
         
         // Full memory fence to ensure all writes are visible
         std::sync::atomic::fence(Ordering::SeqCst);

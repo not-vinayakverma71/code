@@ -22,22 +22,32 @@ pub async fn read_delimited_message<R: AsyncReadExt + Unpin>(
     let mut temp_buffer = vec![0u8; 4096];
     
     loop {
-        let n = reader.read(&mut temp_buffer).await?;
-        if n == 0 {
-            return Ok(None); // Connection closed
-        }
-        
-        buffer.extend_from_slice(&temp_buffer[..n]);
-        
-        // Check for delimiter
+        // Check for delimiter in existing buffer first
         if let Some(pos) = buffer.windows(MESSAGE_DELIMITER.len())
             .position(|window| window == MESSAGE_DELIMITER) 
         {
             // Found a complete message
             let message = buffer[..pos].to_vec();
-            buffer.drain(..=pos + MESSAGE_DELIMITER.len() - 1);
+            // Remove message + delimiter from buffer
+            buffer.drain(..pos + MESSAGE_DELIMITER.len());
             return Ok(Some(message));
         }
+        
+        // No complete message yet, read more data
+        let n = reader.read(&mut temp_buffer).await?;
+        if n == 0 {
+            // Connection closed
+            if buffer.is_empty() {
+                return Ok(None);
+            } else {
+                // Return partial data if any
+                let message = buffer.clone();
+                buffer.clear();
+                return Ok(Some(message));
+            }
+        }
+        
+        buffer.extend_from_slice(&temp_buffer[..n]);
     }
 }
 

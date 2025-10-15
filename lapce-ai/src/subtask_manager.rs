@@ -105,7 +105,7 @@ impl SubtaskManager {
         
         for child_id in &child_ids {
             // Check current status
-            if let Some(status) = task_manager.get_task_status(child_id) {
+            if let Some(status) = task_manager.get_task_status(child_id).await {
                 if status == TaskStatus::Completed || status == TaskStatus::Aborted {
                     continue;
                 }
@@ -341,7 +341,7 @@ mod tests {
         // Verify all aborted
         for child_id in subtask_mgr.get_children(&parent_id).await {
             if let Some(task) = task_mgr.get_task(&child_id).await {
-                assert!(task.is_aborted());
+                assert!(task.is_aborted_async().await);
             }
         }
     }

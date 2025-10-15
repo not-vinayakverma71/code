@@ -333,8 +333,9 @@ mod tests {
     #[tokio::test]
     async fn test_execute_tool_request() {
         let config = McpServerConfig::default();
-        let workspace = tempdir().unwrap().path().to_path_buf();
-        let handler = McpIpcHandler::new(config, workspace.clone());
+        let temp_dir = tempdir().unwrap();
+        let workspace = temp_dir.path();
+        let handler = McpIpcHandler::new(config, workspace.to_path_buf());
         
         // Create test file
         std::fs::write(workspace.join("test.txt"), "Hello IPC").unwrap();

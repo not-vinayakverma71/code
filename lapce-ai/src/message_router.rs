@@ -311,7 +311,7 @@ mod tests {
         
         // Verify aborted
         if let Some(task) = task_manager.get_task(&task_id).await {
-            assert!(task.is_aborted());
+            assert!(task.is_aborted_async().await);
         }
     }
     

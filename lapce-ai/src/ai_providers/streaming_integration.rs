@@ -25,13 +25,13 @@ pub enum ProviderType {
 }
 
 impl ProviderType {
-    /// Get the model name for token decoder
+    /// Get the model name for token decoder (tiktoken-rs compatible)
     pub fn default_model(&self) -> &str {
         match self {
-            Self::OpenAI | Self::Azure | Self::XAI => "gpt-4",
-            Self::Anthropic => "claude-3",
-            Self::Gemini | Self::VertexAI => "gemini-pro",
-            Self::Bedrock => "claude-v2",
+            Self::OpenAI | Self::Azure | Self::XAI => "gpt-4o",  // tiktoken supports gpt-4o
+            Self::Anthropic => "gpt-4o",  // Use gpt-4o tokenizer as fallback
+            Self::Gemini | Self::VertexAI => "gpt-4o",
+            Self::Bedrock => "gpt-4o",
         }
     }
     

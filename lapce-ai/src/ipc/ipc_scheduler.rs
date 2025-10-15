@@ -172,8 +172,23 @@ impl IpcScheduler {
     /// Get next message to process (fair scheduling)
     pub fn get_next_message(&self) -> Option<ScheduledMessage> {
         if self.config.fair_scheduling {
-            // Round-robin across connections
-            self.priority_queue.lock().pop_front()
+            // Get highest priority message from queue
+            let mut queue = self.priority_queue.lock();
+            if queue.is_empty() {
+                return None;
+            }
+            
+            // Find index of highest priority message
+            let mut max_priority_idx = 0;
+            let mut max_priority = queue[0].priority;
+            for (i, msg) in queue.iter().enumerate().skip(1) {
+                if msg.priority > max_priority {
+                    max_priority = msg.priority;
+                    max_priority_idx = i;
+                }
+            }
+            
+            queue.remove(max_priority_idx)
         } else {
             // Process by priority only
             let mut best_msg = None;

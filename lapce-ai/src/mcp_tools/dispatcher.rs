@@ -43,9 +43,14 @@ pub struct ToolMetrics {
 }
 
 impl McpToolSystem {
-    fn check_permissions(&self, _tool_name: &str, _config: &McpServerConfig) -> bool {
-        // Always allow for now
-        true
+    fn check_permissions(&self, tool_name: &str, config: &McpServerConfig) -> bool {
+        // Check permissions based on tool name
+        match tool_name {
+            "executeCommand" => config.permissions.default.process_execute,
+            "readFile" => config.permissions.default.file_read,
+            "writeFile" => config.permissions.default.file_write,
+            _ => true, // Allow other tools by default
+        }
     }
     
     /// Create a new MCP tool system with configuration
@@ -54,8 +59,14 @@ impl McpToolSystem {
         
         // Register all available tools
         tools.insert("codebaseSearch".to_string(), Box::new(CodebaseSearchTool::new()));
+        tools.insert("readFile".to_string(), Box::new(crate::mcp_tools::tools::read_file::ReadFileTool::new()));
+        tools.insert("writeFile".to_string(), Box::new(crate::mcp_tools::tools::write_file::WriteFileTool::new()));
+        tools.insert("executeCommand".to_string(), Box::new(crate::mcp_tools::tools::execute_command::ExecuteCommandTool::new()));
+        tools.insert("listFiles".to_string(), Box::new(crate::mcp_tools::tools::list_files::ListFilesTool::new()));
+        tools.insert("searchFiles".to_string(), Box::new(crate::mcp_tools::tools::search_files::SearchFilesTool::new()));
+        tools.insert("editFile".to_string(), Box::new(crate::mcp_tools::tools::edit_file::EditFileTool::new()));
         
-        let rate_limiter = Arc::new(RateLimiter::new());
+        let rate_limiter = Arc::new(RateLimiter::with_rate(config.rate_limits.requests_per_minute as u32));
         
         Self {
             tools,
@@ -208,7 +219,8 @@ mod tests {
     #[tokio::test]
     async fn test_tool_execution() {
         let config = McpServerConfig::default();
-        let workspace = tempdir().unwrap().path().to_path_buf();
+        let temp_dir = tempdir().unwrap();
+        let workspace = temp_dir.path().to_path_buf();
         let system = McpToolSystem::new(config, workspace.clone());
         
         // Create a test file

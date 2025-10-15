@@ -35,6 +35,7 @@ pub mod error_handling_patterns;
 pub mod event_emitter;
 pub mod events_exact_translation;
 pub mod file_watcher;
+pub mod global_sled;
 pub mod global_settings_exact_translation;
 pub mod handler_registration;
 pub mod handler_registration_types;

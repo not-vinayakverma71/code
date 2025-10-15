@@ -39,6 +39,17 @@ impl GovernorRateLimiter {
         }
     }
     
+    pub fn with_rate(requests_per_minute: u32) -> Self {
+        let default_quota = Quota::per_minute(NonZeroU32::new(requests_per_minute.max(1)).unwrap());
+        
+        Self {
+            limiters: DashMap::new(),
+            windows: DashMap::new(),
+            default_quota,
+            adaptive_config: AdaptiveConfig::default(),
+        }
+    }
+    
     pub async fn check_rate_limit(&self, user_id: &str, tool_name: &str) -> Result<()> {
         let key = (user_id.to_string(), tool_name.to_string());
         
@@ -85,7 +96,7 @@ struct AdaptiveConfig {
 impl Default for AdaptiveConfig {
     fn default() -> Self {
         Self {
-            enabled: true,
+            enabled: false,  // Disabled by default for strict rate limiting
             burst_multiplier: 2.0,
             decay_rate: 0.9,
         }

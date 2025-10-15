@@ -24,7 +24,9 @@ impl TantivySearchEngine {
         
         let schema = schema_builder.build();
         
-        let index = if index_path.as_ref().exists() {
+        // Check if it's a valid index directory by looking for meta.json
+        let meta_path = index_path.as_ref().join("meta.json");
+        let index = if meta_path.exists() {
             Index::open_in_dir(index_path)?
         } else {
             std::fs::create_dir_all(&index_path)?;

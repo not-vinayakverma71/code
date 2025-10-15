@@ -674,7 +674,17 @@ mod tests {
     fn test_load_config() {
         // Test with non-existent file returns defaults
         std::env::remove_var("LAPCE_AI_CONFIG");
+        
+        // Work in a temp directory where config.toml doesn't exist
+        let temp_dir = tempfile::TempDir::new().unwrap();
+        let original_dir = std::env::current_dir().unwrap();
+        std::env::set_current_dir(temp_dir.path()).unwrap();
+        
         let config = IpcConfig::load().unwrap();
+        
+        // Restore original directory
+        std::env::set_current_dir(original_dir).unwrap();
+        
         assert_eq!(config.ipc.max_connections, 1000);
     }
     

@@ -2,7 +2,7 @@
 /// Simple, robust, fast - meets all 8 success criteria
 
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::ptr;
 use std::collections::HashMap;
 use anyhow::{Result, bail};
@@ -31,12 +31,12 @@ const SHM_PROTOCOL_VERSION: u8 = 1;  // Shared memory protocol version
 /// Simple lock-free ring buffer
 pub struct SharedMemoryBuffer {
     ptr: *mut u8,
-    header: *mut RingBufferHeader,
-    data_ptr: *mut u8,
     size: usize,
     capacity: usize,
+    header: *mut RingBufferHeader,
+    data_ptr: *mut u8,
     notifier: Option<Arc<EventNotifier>>,  // For low-latency wakeups
-    // Note: fd is closed immediately after mmap() to prevent leaks
+    debug_name: String,  // For debugging
 }
 
 unsafe impl Send for SharedMemoryBuffer {}
@@ -72,6 +72,9 @@ impl SharedMemoryBuffer {
             format!("/{}", without_leading.replace('/', "_"))
         };
         
+        let ts = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
+        eprintln!("[CREATE @{}] path='{}' -> shm_name='{}'", ts, path, shm_name_str);
+        
         // macOS has a 31-character limit (PSHMNAMLEN) for shm_open names
         #[cfg(target_os = "macos")]
         if shm_name_str.len() > 31 {
@@ -81,27 +84,64 @@ impl SharedMemoryBuffer {
         let shm_name_str_copy = shm_name_str.clone();
         let shm_name = std::ffi::CString::new(shm_name_str)
             .map_err(|e| anyhow::anyhow!("Invalid path: {}", e))?;
-        let fd = unsafe {
+        
+        let (fd, is_new) = unsafe {
+            // Try to create exclusively first (O_EXCL = 0x80 on Linux)
+            const O_EXCL: std::os::raw::c_int = 0x80;
             let fd = libc::shm_open(
                 shm_name.as_ptr(),
-                (libc::O_CREAT | libc::O_RDWR) as std::os::raw::c_int,
-                0o600  // Owner-only read/write for security
+                (libc::O_CREAT as std::os::raw::c_int) | O_EXCL | (libc::O_RDWR as std::os::raw::c_int),
+                0o600
             );
-            if fd == -1 {
+            
+            let (fd, is_new) = if fd == -1 {
                 let err = std::io::Error::last_os_error();
-                bail!("shm_open('{}') failed: {} (original='{}', namespaced='{}')", 
-                      shm_name_str_copy, err, path, namespaced_path);
+                if err.kind() == std::io::ErrorKind::AlreadyExists {
+                    // Already exists, open it without O_EXCL
+                    eprintln!("[CREATE] '{}' already exists, opening existing", shm_name_str_copy);
+                    let fd = libc::shm_open(
+                        shm_name.as_ptr(),
+                        libc::O_RDWR as std::os::raw::c_int,
+                        0
+                    );
+                    if fd == -1 {
+                        bail!("shm_open existing failed: {}", std::io::Error::last_os_error());
+                    }
+                    (fd, false)
+                } else {
+                    bail!("shm_open O_CREAT|O_EXCL failed: {}", err);
+                }
+            } else {
+                eprintln!("[CREATE] '{}' created new", shm_name_str_copy);
+                (fd, true)
+            };
+            
+            let ts = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
+            eprintln!("[CREATE @{} SUCCESS] '{}' fd={} is_new={}", ts, shm_name_str_copy, fd, is_new);
+            
+            // fstat to log inode/dev
+            {
+                let mut st: ::libc::stat = std::mem::MaybeUninit::zeroed().assume_init();
+                let r = ::libc::fstat(fd, &mut st as *mut _);
+                if r == 0 {
+                    eprintln!("[CREATE fstat] name='{}' dev={} ino={}", shm_name_str_copy, st.st_dev, st.st_ino);
+                } else {
+                    eprintln!("[CREATE fstat] FAILED for '{}' err={}", shm_name_str_copy, std::io::Error::last_os_error());
+                }
             }
             
-            // Set size
-            if libc::ftruncate(fd, total_size as i64) == -1 {
-                libc::close(fd);
-                bail!("ftruncate failed: {}", std::io::Error::last_os_error());
+            // CRITICAL: Only ftruncate if we created it new
+            // ftruncate on existing object would WIPE all data!
+            if is_new {
+                if libc::ftruncate(fd, total_size as i64) == -1 {
+                    libc::close(fd);
+                    bail!("ftruncate failed: {}", std::io::Error::last_os_error());
+                }
             }
             
             // Enforce strict permissions
             create_fd_0600(fd)?;
-            fd
+            (fd, is_new)
         };
         
         unsafe {
@@ -119,11 +159,25 @@ impl SharedMemoryBuffer {
                 bail!("mmap failed");
             }
             
+            eprintln!("[CREATE] '{}' mapped at ptr={:p}", shm_name_str_copy, ptr);
+            
             // Close fd immediately - mmap keeps its own reference to the shm object
             libc::close(fd);
             
-            // Initialize header properly
-            let header = RingBufferHeader::initialize(ptr, data_size);
+            // CRITICAL: Only initialize header if we created new buffer
+            // Calling initialize on existing buffer would WIPE all data!
+            let header = if is_new {
+                eprintln!("[CREATE] '{}' initializing header (new buffer)", shm_name_str_copy);
+                RingBufferHeader::initialize(ptr, data_size)
+            } else {
+                eprintln!("[CREATE] '{}' reusing existing header (existing buffer)", shm_name_str_copy);
+                ptr as *mut RingBufferHeader
+            };
+            
+            let read_pos = (*header).read_pos.load(std::sync::atomic::Ordering::Relaxed);
+            let write_pos = (*header).write_pos.load(std::sync::atomic::Ordering::Relaxed);
+            eprintln!("[CREATE] '{}' header@{:p} (offset from base={}) init: r={}, w={}", 
+                shm_name_str_copy, header, (header as usize) - (ptr as usize), read_pos, write_pos);
             
             Ok(Self {
                 ptr,
@@ -132,6 +186,7 @@ impl SharedMemoryBuffer {
                 header,
                 data_ptr: ptr.add(header_size),
                 notifier: None,
+                debug_name: path.to_string(),
             })
         }
     }
@@ -158,11 +213,17 @@ impl SharedMemoryBuffer {
         let namespaced_path = create_namespaced_path(path);
         
         // shm_open requires name to start with '/' but have no other slashes
+        // MUST use EXACT SAME algorithm as create() for matching!
         let shm_name_str = {
             let without_leading = namespaced_path.trim_start_matches('/');
             format!("/{}", without_leading.replace('/', "_"))
         };
         
+        let ts = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
+        eprintln!("[OPEN @{}] path='{}' -> namespaced='{}' -> shm_name='{}'", 
+            ts, path, namespaced_path, shm_name_str);
+        
+        let shm_name_str_copy = shm_name_str.clone();
         let shm_name = std::ffi::CString::new(shm_name_str)
             .map_err(|e| anyhow::anyhow!("Invalid path: {}", e))?;
         
@@ -173,7 +234,22 @@ impl SharedMemoryBuffer {
                 0
             );
             if fd == -1 {
-                bail!("shm_open failed: {}", std::io::Error::last_os_error());
+                let err = std::io::Error::last_os_error();
+                let ts = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
+                eprintln!("[OPEN @{} FAILED] '{}': {}", ts, shm_name_str_copy, err);
+                bail!("shm_open failed: {}", err);
+            }
+            let ts = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
+            eprintln!("[OPEN @{} SUCCESS] '{}' fd={}", ts, shm_name_str_copy, fd);
+            // fstat to log inode/dev for debugging identity across processes
+            {
+                let mut st: ::libc::stat = std::mem::MaybeUninit::zeroed().assume_init();
+                let r = ::libc::fstat(fd, &mut st as *mut _);
+                if r == 0 {
+                    eprintln!("[OPEN fstat] name='{}' dev={} ino={}", shm_name_str_copy, st.st_dev, st.st_ino);
+                } else {
+                    eprintln!("[OPEN fstat] FAILED for '{}' err={}", shm_name_str_copy, std::io::Error::last_os_error());
+                }
             }
             fd
         };
@@ -193,6 +269,8 @@ impl SharedMemoryBuffer {
                 bail!("mmap failed");
             }
             
+            eprintln!("[OPEN] '{}' mapped at ptr={:p}", shm_name_str_copy, ptr);
+            
             // Close fd immediately - mmap keeps its own reference to the shm object
             libc::close(fd);
             
@@ -201,6 +279,11 @@ impl SharedMemoryBuffer {
             // Validate existing header
             (*header).validate().map_err(|e| anyhow::anyhow!("Header validation failed: {}", e))?;
             
+            let read_pos = (*header).read_pos.load(std::sync::atomic::Ordering::Relaxed);
+            let write_pos = (*header).write_pos.load(std::sync::atomic::Ordering::Relaxed);
+            eprintln!("[OPEN] '{}' header@{:p} (offset from base={}) valid: r={}, w={}", 
+                shm_name_str_copy, header, (header as usize) - (ptr as usize), read_pos, write_pos);
+            
             Ok(Self {
                 ptr,
                 header: header as *mut RingBufferHeader,
@@ -208,6 +291,7 @@ impl SharedMemoryBuffer {
                 size: total_size,
                 capacity: data_size,
                 notifier: None,
+                debug_name: path.to_string(),
             })
         }
     }
@@ -232,7 +316,7 @@ impl SharedMemoryBuffer {
             
             loop {
                 let write_pos = header.write_pos.load(Ordering::Acquire);
-                let read_pos = header.read_pos.load(Ordering::Relaxed);
+                let read_pos = header.read_pos.load(Ordering::Acquire);
                 
                 // Calculate available space
                 let available = if write_pos >= read_pos {
@@ -255,7 +339,7 @@ impl SharedMemoryBuffer {
                         // Async sleep to avoid blocking tokio runtime
                         tokio::time::sleep(tokio::time::Duration::from_millis(backoff_ms)).await;
                         
-                        let new_read_pos = header.read_pos.load(Ordering::Relaxed);
+                        let new_read_pos = header.read_pos.load(Ordering::Acquire);
                         let new_available = if write_pos >= new_read_pos {
                             self.capacity - write_pos + new_read_pos
                         } else {
@@ -279,72 +363,123 @@ impl SharedMemoryBuffer {
                     continue;
                 }
                 
-                // Try to claim space
+                // Compute new write position
                 let new_write_pos = (write_pos + total_len) % self.capacity;
-                if header.write_pos.compare_exchange_weak(
-                    write_pos,
-                    new_write_pos,
-                    Ordering::Release,
-                    Ordering::Relaxed
-                ).is_ok() {
-                    // Write length prefix
-                    let dst = self.data_ptr.add(write_pos);
-                    ptr::copy_nonoverlapping(len_bytes.as_ptr(), dst, 4);
-                    
-                    // Write data
-                    let data_dst = dst.add(4);
-                    if write_pos + total_len <= self.capacity {
-                        // Contiguous write
-                        ptr::copy_nonoverlapping(data.as_ptr(), data_dst, data.len());
-                    } else {
-                        // Wrap around
-                        let first_part = self.capacity - write_pos - 4;
-                        ptr::copy_nonoverlapping(data.as_ptr(), data_dst, first_part);
-                        ptr::copy_nonoverlapping(
-                            data.as_ptr().add(first_part),
-                            self.data_ptr,
-                            data.len() - first_part
-                        );
-                    }
-                    
-                    // Record metrics (disabled for performance testing)
-                    #[cfg(unix)]
-                    #[cfg(feature = "enable_metrics")]
-                    {
-                        let duration = start_time.elapsed();
-                        shm_metrics::record_write_success("send", data.len(), duration.as_secs_f64());
-                        let used = if new_write_pos > read_pos {
-                            new_write_pos - read_pos
-                        } else {
-                            self.capacity - read_pos + new_write_pos
-                        };
-                        shm_metrics::update_ring_occupancy("send", 0, used, self.capacity);
-                    }
-                    
-                    // Notify reader only if buffer was previously empty (reduce syscall overhead)
-                    if let Some(ref notifier) = self.notifier {
-                        // Only notify if this is the first message in an empty buffer
-                        if read_pos == write_pos {
-                            let _ = notifier.notify();
-                        }
-                    }
-                    
-                    return Ok(());
+                
+                // SWSR: Write data first, then publish write_pos with Release ordering
+                // Write length prefix
+                let dst = self.data_ptr.add(write_pos);
+                ptr::copy_nonoverlapping(len_bytes.as_ptr(), dst, 4);
+                
+                // Write data
+                let data_dst = dst.add(4);
+                if write_pos + total_len <= self.capacity {
+                    // Contiguous write
+                    ptr::copy_nonoverlapping(data.as_ptr(), data_dst, data.len());
+                } else {
+                    // Wrap-around write
+                    let first_part = self.capacity - write_pos - 4;
+                    ptr::copy_nonoverlapping(data.as_ptr(), data_dst, first_part);
+                    let remaining = data.len() - first_part;
+                    ptr::copy_nonoverlapping(data.as_ptr().add(first_part), self.data_ptr, remaining);
                 }
+                
+                // Publish new write position (Release ensures data visibility)
+                header.write_pos.store(new_write_pos, Ordering::Release);
+                
+                // CRITICAL: Flush to ensure visibility across processes
+                unsafe {
+                    libc::msync(
+                        self.ptr as *mut core::ffi::c_void,
+                        self.size,
+                        1 // MS_SYNC = 1
+                    );
+                }
+                
+                // Metrics: update occupancy (optional)
+                #[cfg(feature = "enable_metrics")]
+                {
+                    let used = if new_write_pos >= read_pos {
+                        new_write_pos - read_pos
+                    } else {
+                        self.capacity - read_pos + new_write_pos
+                    };
+                    shm_metrics::update_ring_occupancy("send", 0, used, self.capacity);
+                }
+                
+                // Notify reader only if buffer was previously empty (reduce syscall overhead)
+                if let Some(ref notifier) = self.notifier {
+                    // Only notify if this is the first message in an empty buffer
+                    if read_pos == write_pos {
+                        let _ = notifier.notify();
+                    }
+                }
+                
+                // CRITICAL: Full memory barrier to ensure write is visible across threads/processes
+                std::sync::atomic::fence(Ordering::SeqCst);
+                
+                unsafe {
+                    let header = &*self.header;
+                    let final_write = header.write_pos.load(Ordering::SeqCst);
+                    let final_read = header.read_pos.load(Ordering::SeqCst);
+                    
+                    // VERIFY: Read raw bytes from memory to ensure write is physically present
+                    let write_pos_ptr = &header.write_pos as *const AtomicUsize as *const u8;
+                    let mut raw_bytes = [0u8; 8];
+                    std::ptr::copy_nonoverlapping(write_pos_ptr, raw_bytes.as_mut_ptr(), 8);
+                    let raw_value = usize::from_le_bytes(raw_bytes);
+                    
+                    eprintln!("[BUFFER WRITE] '{}' - Wrote {} bytes to header@{:p}, r={} w={} [FENCE]", 
+                        self.debug_name, data.len(), self.header, final_read, final_write);
+                    eprintln!("[BUFFER WRITE] RAW MEMORY: write_pos raw_bytes={:?}, raw_value={}, atomic_load={}",
+                        raw_bytes, raw_value, final_write);
+                    eprintln!("[BUFFER WRITE] MMAP base_ptr={:p}, header_offset={}, data_ptr={:p}",
+                        self.ptr, (self.header as usize) - (self.ptr as usize), self.data_ptr);
+                    
+                    if raw_value != final_write {
+                        eprintln!("[BUFFER WRITE] ⚠️ MEMORY CORRUPTION: raw != atomic!");
+                    }
+                }
+                return Ok(());
             }
         }
     }
     
     /// Read from buffer (lock-free, async for API consistency)
     pub async fn read(&self) -> Option<Vec<u8>> {
+        eprintln!("[BUFFER READ] Attempting to read from buffer");
         #[cfg(feature = "enable_metrics")]
         let start_time = std::time::Instant::now();
         unsafe {
             let header = &*self.header;
             
-            for _ in 0..100 {  // Limit retries to prevent infinite loop
+            for attempt in 0..100 {  // Limit retries to prevent infinite loop
+                // CRITICAL: Sync memory to see writes from other processes
+                unsafe {
+                    libc::msync(
+                        self.ptr as *mut core::ffi::c_void,
+                        self.size,
+                        3 // MS_SYNC | MS_INVALIDATE = 1 | 2 = 3
+                    );
+                }
+                
                 let read_pos = header.read_pos.load(Ordering::Acquire);
-                let write_pos = header.write_pos.load(Ordering::Relaxed);
+                let write_pos = header.write_pos.load(Ordering::Acquire);
+                
+                if attempt == 0 || attempt % 20 == 0 {
+                    // RAW MEMORY CHECK: Read raw bytes to see what's physically there
+                    let write_pos_ptr = &header.write_pos as *const AtomicUsize as *const u8;
+                    let mut raw_bytes = [0u8; 8];
+                    std::ptr::copy_nonoverlapping(write_pos_ptr, raw_bytes.as_mut_ptr(), 8);
+                    let raw_value = usize::from_le_bytes(raw_bytes);
+                    
+                    eprintln!("[BUFFER READ] '{}' Attempt {} from header@{:p}: r={}, w={}", 
+                        self.debug_name, attempt, header, read_pos, write_pos);
+                    eprintln!("[BUFFER READ] RAW MEMORY: write_pos raw_bytes={:?}, raw_value={}, atomic_load={}",
+                        raw_bytes, raw_value, write_pos);
+                    eprintln!("[BUFFER READ] MMAP base_ptr={:p}, header_offset={}, data_ptr={:p}",
+                        self.ptr, (self.header as usize) - (self.ptr as usize), self.data_ptr);
+                }
                 
                 if read_pos == write_pos {
                     return None; // Empty
@@ -496,9 +631,11 @@ impl SlotPool {
     }
     
     async fn create_slot(&self, slot_id: u32) -> Result<Arc<SlotMetadata>> {
+        eprintln!("[SLOT_POOL] Creating slot {}", slot_id);
         let send_path = format!("{}_{}_send", self.base_path, slot_id);
         let recv_path = format!("{}_{}_recv", self.base_path, slot_id);
         
+        eprintln!("[SLOT_POOL] Slot {} paths: send='{}', recv='{}'", slot_id, send_path, recv_path);
         let send = SharedMemoryBuffer::create(&send_path, 2 * 1024 * 1024).await?;
         let recv = SharedMemoryBuffer::create(&recv_path, 2 * 1024 * 1024).await?;
         
@@ -512,14 +649,18 @@ impl SlotPool {
         });
         
         self.slots.lock().insert(slot_id, metadata.clone());
+        eprintln!("[SLOT_POOL] Created slot {}, metadata.slot_id={}", slot_id, metadata.slot_id);
         Ok(metadata)
     }
     
     async fn get_or_create_slot(&self, slot_id: u32) -> Result<Arc<SlotMetadata>> {
         // Fast path: slot exists
         if let Some(slot) = self.slots.lock().get(&slot_id).cloned() {
+            eprintln!("[SLOT_POOL] Slot {} already exists, reusing", slot_id);
             return Ok(slot);
         }
+        
+        eprintln!("[SLOT_POOL] Slot {} does not exist, creating...", slot_id);
         
         // Slow path: create on demand
         let slots_count = self.slots.lock().len();
@@ -527,7 +668,9 @@ impl SlotPool {
             bail!("Maximum slots ({}) reached", self.max_slots);
         }
         
-        self.create_slot(slot_id).await
+        let result = self.create_slot(slot_id).await?;
+        eprintln!("[SLOT_POOL] get_or_create_slot({}) returning metadata with slot_id={}", slot_id, result.slot_id);
+        Ok(result)
     }
     
     fn current_timestamp() -> u64 {
@@ -610,41 +753,71 @@ impl SharedMemoryListener {
         accept_tx: mpsc::UnboundedSender<u32>,
         slot_pool: Arc<SlotPool>,
     ) {
+        eprintln!("[WATCHER] Starting filesystem watcher on: {}", lock_dir);
+        
         let mut interval = tokio::time::interval(Duration::from_millis(1));  // Faster polling
         let mut seen_locks = std::collections::HashSet::new();
         
         // Pre-populate seen_locks with existing files
-        if let Ok(entries) = std::fs::read_dir(&lock_dir) {
-            for entry in entries.flatten() {
-                if let Ok(file_name) = entry.file_name().into_string() {
-                    if file_name.ends_with(".lock") {
-                        if let Some(slot_str) = file_name.strip_prefix("slot_").and_then(|s| s.strip_suffix(".lock")) {
-                            if let Ok(slot_id) = slot_str.parse::<u32>() {
-                                seen_locks.insert(slot_id);
+        match std::fs::read_dir(&lock_dir) {
+            Ok(entries) => {
+                let mut count = 0;
+                for entry in entries.flatten() {
+                    if let Ok(file_name) = entry.file_name().into_string() {
+                        if file_name.ends_with(".lock") {
+                            if let Some(slot_str) = file_name.strip_prefix("slot_").and_then(|s| s.strip_suffix(".lock")) {
+                                if let Ok(slot_id) = slot_str.parse::<u32>() {
+                                    seen_locks.insert(slot_id);
+                                    count += 1;
+                                }
                             }
                         }
                     }
                 }
+                eprintln!("[WATCHER] Pre-populated {} existing lock files", count);
+            }
+            Err(e) => {
+                eprintln!("[WATCHER] ERROR: Cannot read lock directory: {}", e);
             }
         }
         
+        let mut tick_count = 0u64;
         loop {
             interval.tick().await;
+            tick_count += 1;
+            
+            // Log every 1000 ticks (1 second)
+            if tick_count % 1000 == 0 {
+                eprintln!("[WATCHER] Still running, {} lock files tracked", seen_locks.len());
+            }
             
             // Scan lock directory for new lock files
-            if let Ok(entries) = std::fs::read_dir(&lock_dir) {
-                for entry in entries.flatten() {
-                    if let Ok(file_name) = entry.file_name().into_string() {
-                        if file_name.ends_with(".lock") {
-                            // Extract slot_id from filename: slot_<id>.lock
-                            if let Some(slot_str) = file_name.strip_prefix("slot_").and_then(|s| s.strip_suffix(".lock")) {
-                                if let Ok(slot_id) = slot_str.parse::<u32>() {
-                                    if !seen_locks.contains(&slot_id) {
-                                        seen_locks.insert(slot_id);
-                                        
-                                        // Ensure slot exists (create on-demand if needed)
-                                        if slot_pool.get_or_create_slot(slot_id).await.is_ok() {
-                                            let _ = accept_tx.send(slot_id);
+            match std::fs::read_dir(&lock_dir) {
+                Ok(entries) => {
+                    for entry in entries.flatten() {
+                        if let Ok(file_name) = entry.file_name().into_string() {
+                            if file_name.ends_with(".lock") {
+                                // Extract slot_id from filename: slot_<id>.lock
+                                if let Some(slot_str) = file_name.strip_prefix("slot_").and_then(|s| s.strip_suffix(".lock")) {
+                                    if let Ok(slot_id) = slot_str.parse::<u32>() {
+                                        if !seen_locks.contains(&slot_id) {
+                                            eprintln!("[WATCHER] NEW lock file detected: slot_{}.lock", slot_id);
+                                            seen_locks.insert(slot_id);
+                                            
+                                            // Ensure slot exists (create on-demand if needed)
+                                            match slot_pool.get_or_create_slot(slot_id).await {
+                                                Ok(_) => {
+                                                    eprintln!("[WATCHER] Created slot {} successfully", slot_id);
+                                                    if accept_tx.send(slot_id).is_ok() {
+                                                        eprintln!("[WATCHER] Enqueued slot {} for accept()", slot_id);
+                                                    } else {
+                                                        eprintln!("[WATCHER] ERROR: Failed to enqueue slot {}", slot_id);
+                                                    }
+                                                }
+                                                Err(e) => {
+                                                    eprintln!("[WATCHER] ERROR: Failed to create slot {}: {}", slot_id, e);
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -652,14 +825,23 @@ impl SharedMemoryListener {
                         }
                     }
                 }
+                Err(e) => {
+                    if tick_count % 1000 == 0 {
+                        eprintln!("[WATCHER] ERROR: Cannot scan directory: {}", e);
+                    }
+                }
             }
         }
     }
     
     pub async fn accept(&self) -> Result<(SharedMemoryStream, std::net::SocketAddr)> {
+        eprintln!("[ACCEPT] Waiting for connection...");
+        
         // Wait for a slot to be claimed via lock file
         let slot_id = self.accept_rx.lock().recv().await
             .ok_or_else(|| anyhow::anyhow!("Accept channel closed"))?;
+        
+        eprintln!("[ACCEPT] Received slot_id: {}", slot_id);
         
         // Get the slot metadata
         let slot = self.slot_pool.get_or_create_slot(slot_id).await?;
@@ -670,6 +852,13 @@ impl SharedMemoryListener {
         
         // Create stream from slot
         // Buffers are bidirectional - both sides use same physical buffers
+        eprintln!("[ACCEPT SLOT={}] Server using buffers: send={:p} (header@{:p}), recv={:p} (header@{:p})",
+            slot_id, 
+            slot.send_buffer.as_ref() as *const _,
+            slot.send_buffer.header,
+            slot.recv_buffer.as_ref() as *const _,
+            slot.recv_buffer.header);
+        
         let stream = SharedMemoryStream {
             send_buffer: slot.send_buffer.clone(),
             recv_buffer: slot.recv_buffer.clone(),
@@ -677,6 +866,9 @@ impl SharedMemoryListener {
             lock_path: Some(format!("{}_locks/slot_{}.lock", self.base_path, slot_id)),
             base_path: self.base_path.clone(),
         };
+        
+        eprintln!("[ACCEPT SLOT={}] ✓ Handler will write to '{}_{}_send', read from '{}_{}_recv'", 
+            slot_id, self.base_path, slot_id, self.base_path, slot_id);
         
         // Return dummy address (SHM has no network address)
         let addr = "0.0.0.0:0".parse().unwrap();
@@ -703,6 +895,11 @@ pub struct SharedMemoryStream {
 }
 
 impl SharedMemoryStream {
+    /// Get connection ID (slot ID)
+    pub fn conn_id(&self) -> u64 {
+        self.conn_id
+    }
+    
     /// Connect to a shared memory server using lock-free slot claiming
     pub async fn connect(path: &str) -> Result<Self> {
         const MAX_ATTEMPTS: usize = 500;  // Increased for concurrent bursts
@@ -723,9 +920,11 @@ impl SharedMemoryStream {
                 .open(&lock_path) {
                 Ok(mut file) => {
                     // Successfully claimed slot!
+                    eprintln!("[CLIENT] Created lock file: {}", lock_path);
                     use std::io::Write;
                     let _ = file.write_all(format!("{}", std::process::id()).as_bytes());
                     drop(file);
+                    eprintln!("[CLIENT] Claimed slot {}, waiting for buffers...", slot_id);
                     
                     // Open pre-allocated buffers (reversed for client perspective)
                     let send_path = format!("{}_{}_recv", path, slot_id);
@@ -734,39 +933,44 @@ impl SharedMemoryStream {
                     // Retry buffer opening with backoff (allows watcher to create slot on-demand)
                     const MAX_BUFFER_RETRIES: usize = 50;  // Up to ~500ms total wait
                     for retry in 0..MAX_BUFFER_RETRIES {
-                        match SharedMemoryBuffer::open(&send_path, 2 * 1024 * 1024).await {
-                            Ok(send_buf) => {
-                                match SharedMemoryBuffer::open(&recv_path, 2 * 1024 * 1024).await {
-                                    Ok(recv_buf) => {
-                                        return Ok(Self {
-                                            send_buffer: Arc::new(send_buf),
-                                            recv_buffer: Arc::new(recv_buf),
-                                            conn_id: slot_id as u64,
-                                            lock_path: Some(lock_path),
-                                            base_path: path.to_string(),
-                                        });
+                        // Try to open both buffers
+                        let send_result = SharedMemoryBuffer::open(&send_path, 2 * 1024 * 1024).await;
+                        let recv_result = SharedMemoryBuffer::open(&recv_path, 2 * 1024 * 1024).await;
+                        
+                        match (send_result, recv_result) {
+                            (Ok(send_buf), Ok(recv_buf)) => {
+                                eprintln!("[CLIENT SLOT={}] Opened both buffers", slot_id);
+                                eprintln!("[CLIENT SLOT={}] Client using buffers: send={:p} (header@{:p}), recv={:p} (header@{:p})",
+                                    slot_id,
+                                    &send_buf as *const _,
+                                    send_buf.header,
+                                    &recv_buf as *const _,
+                                    recv_buf.header);
+                                eprintln!("[CLIENT SLOT={}] ✓ CONNECTED - Will write to '{}', read from '{}'", 
+                                    slot_id, send_path, recv_path);
+                                return Ok(Self {
+                                    send_buffer: Arc::new(send_buf),
+                                    recv_buffer: Arc::new(recv_buf),
+                                    conn_id: slot_id as u64,
+                                    lock_path: Some(lock_path),
+                                    base_path: path.to_string(),
+                                });
+                            }
+                            (send_res, recv_res) => {
+                                if retry < MAX_BUFFER_RETRIES - 1 {
+                                    if send_res.is_err() {
+                                        eprintln!("[CLIENT] Send buffer not ready (retry {}/{})", retry + 1, MAX_BUFFER_RETRIES);
                                     }
-                                    Err(_) if retry < MAX_BUFFER_RETRIES - 1 => {
-                                        // Retry recv buffer with backoff
-                                        tokio::time::sleep(Duration::from_millis(10)).await;
-                                        continue;
+                                    if recv_res.is_err() {
+                                        eprintln!("[CLIENT] Recv buffer not ready (retry {}/{})", retry + 1, MAX_BUFFER_RETRIES);
                                     }
-                                    Err(e) => {
-                                        // Final retry failed - clean up lock
-                                        let _ = std::fs::remove_file(&lock_path);
-                                        return Err(e);
-                                    }
+                                    // Exponential backoff: 10ms, 20ms, 30ms...
+                                    tokio::time::sleep(tokio::time::Duration::from_millis(10 * (retry as u64 + 1))).await;
+                                    continue;
+                                } else {
+                                    eprintln!("[CLIENT] Failed to open buffers after {} retries", MAX_BUFFER_RETRIES);
+                                    bail!("Failed to open buffers after {} retries", MAX_BUFFER_RETRIES);
                                 }
-                            }
-                            Err(_) if retry < MAX_BUFFER_RETRIES - 1 => {
-                                // Retry send buffer with backoff
-                                tokio::time::sleep(Duration::from_millis(10)).await;
-                                continue;
-                            }
-                            Err(e) => {
-                                // Final retry failed - clean up lock
-                                let _ = std::fs::remove_file(&lock_path);
-                                return Err(e);
                             }
                         }
                     }
@@ -808,6 +1012,12 @@ impl SharedMemoryStream {
     
     /// Read exact number of bytes (optimized for low latency)
     pub async fn read_exact(&mut self, buf: &mut [u8]) -> Result<()> {
+        eprintln!("[STREAM read_exact] conn_id={} reading {} bytes from buffer '{}'", 
+            self.conn_id, buf.len(), self.recv_buffer.debug_name);
+        
+        // CRITICAL: Memory barrier to ensure we see writes from other processes
+        std::sync::atomic::fence(Ordering::SeqCst);
+        
         let needed = buf.len();
         let mut total_read = 0;
         
@@ -827,8 +1037,11 @@ impl SharedMemoryStream {
     
     /// Write all bytes
     pub async fn write_all(&mut self, buf: &[u8]) -> Result<()> {
+        eprintln!("[STREAM write_all] conn_id={} writing {} bytes to buffer '{}'", 
+            self.conn_id, buf.len(), self.send_buffer.debug_name);
         // True lock-free write via atomic ring operations
         self.send_buffer.write(buf).await?;
+        eprintln!("[STREAM write_all] conn_id={} write complete", self.conn_id);
         Ok(())
     }
     
@@ -864,6 +1077,7 @@ mod libc {
         pub fn close(fd: i32) -> i32;
         pub fn mmap(addr: *mut core::ffi::c_void, len: usize, prot: i32, flags: i32, fd: i32, offset: i64) -> *mut core::ffi::c_void;
         pub fn munmap(addr: *mut core::ffi::c_void, len: usize) -> i32;
+        pub fn msync(addr: *mut core::ffi::c_void, len: usize, flags: i32) -> i32;
     }
 }
 

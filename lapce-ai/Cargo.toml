@@ -37,6 +37,10 @@ path = "src/bin/cli.rs"
 name = "lapce-ai-cli"
 path = "src/bin/lapce-ai-cli.rs"
 
+[[bin]]
+name = "ipc_test_server"
+path = "src/bin/ipc_test_server.rs"
+
 # Unix-only binaries (use mmap/munmap syscalls)
 [[bin]]
 name = "final_memory_optimized"

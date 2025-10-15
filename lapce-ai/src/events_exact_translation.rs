@@ -561,6 +561,9 @@ mod tests {
     fn test_event_bus_cleanup() {
         let bus = TaskEventBus::new(100);
         
+        // Create a subscriber to keep the channel open
+        let _rx = bus.subscribe();
+        
         // Publish events to create sequence entries
         for i in 0..5 {
             let event = TaskEvent::TaskStarted {

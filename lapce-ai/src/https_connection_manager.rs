@@ -44,15 +44,19 @@ impl HttpsConnectionManager {
     fn load_root_certificates() -> rustls::RootCertStore {
         let mut roots = rustls::RootCertStore::empty();
         
-        // Add webpki roots
-        for cert in webpki_roots::TLS_SERVER_ROOTS.iter() {
-            roots.add(&rustls::Certificate(cert.subject.to_vec())).unwrap();
-        }
+        // Add webpki roots - convert to owned trust anchors for rustls 0.21
+        roots.add_server_trust_anchors(webpki_roots::TLS_SERVER_ROOTS.iter().map(|ta| {
+            rustls::OwnedTrustAnchor::from_subject_spki_name_constraints(
+                ta.subject.as_ref().to_vec(),
+                ta.subject_public_key_info.as_ref().to_vec(),
+                ta.name_constraints.as_ref().map(|nc| nc.as_ref().to_vec()),
+            )
+        }));
         
         // Optionally add system roots  
         if let Ok(native_certs) = rustls_native_certs::load_native_certs() {
             for cert in native_certs {
-                let _ = roots.add_parsable_certificates(&[cert.as_ref()]);
+                let _ = roots.add(&rustls::Certificate(cert.as_ref().to_vec()));
             }
         }
         

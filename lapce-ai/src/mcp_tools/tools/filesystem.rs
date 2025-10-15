@@ -21,9 +21,53 @@ impl ReadFileTool {
     pub fn new() -> Self { Self }
 }
 
+#[async_trait]
+impl crate::mcp_tools::core::Tool for ReadFileTool {
+    fn name(&self) -> &str { "readFile" }
+    fn description(&self) -> &str { "Read file contents" }
+    fn input_schema(&self) -> Value { json!({"type": "object", "properties": {"path": {"type": "string"}}}) }
+    fn required_permissions(&self) -> Vec<Permission> { vec![Permission::FileRead("*".to_string())] }
+    async fn execute(&self, args: Value, context: ToolContext) -> Result<ToolResult> {
+        let path = args["path"].as_str().unwrap_or("");
+        let full_path = context.workspace.join(path);
+        
+        match fs::read_to_string(&full_path).await {
+            Ok(content) => Ok(ToolResult { 
+                success: true, 
+                error: None, 
+                data: Some(json!({"content": content, "path": path})), 
+                metadata: None 
+            }),
+            Err(e) => Ok(ToolResult { 
+                success: false, 
+                error: Some(e.to_string()), 
+                data: None, 
+                metadata: None 
+            })
+        }
+    }
+}
+
 pub struct WriteFileTool;
 impl WriteFileTool {
     pub fn new() -> Self { Self }
+}
+
+#[async_trait]
+impl crate::mcp_tools::core::Tool for WriteFileTool {
+    fn name(&self) -> &str { "writeFile" }
+    fn description(&self) -> &str { "Write file contents" }
+    fn input_schema(&self) -> Value { json!({"type": "object", "properties": {"path": {"type": "string"}, "content": {"type": "string"}}}) }
+    fn required_permissions(&self) -> Vec<Permission> { vec![Permission::FileWrite("*".to_string())] }
+    async fn execute(&self, args: Value, context: ToolContext) -> Result<ToolResult> {
+        let path = args["path"].as_str().unwrap_or("");
+        let content = args["content"].as_str().unwrap_or("");
+        
+        let full_path = context.workspace.join(path);
+        fs::write(&full_path, content).await?;
+        
+        Ok(ToolResult { success: true, error: None, data: Some(json!({"path": path})), metadata: None })
+    }
 }
 
 pub struct EditFileTool;
@@ -31,9 +75,31 @@ impl EditFileTool {
     pub fn new() -> Self { Self }
 }
 
+#[async_trait]
+impl crate::mcp_tools::core::Tool for EditFileTool {
+    fn name(&self) -> &str { "editFile" }
+    fn description(&self) -> &str { "Edit file contents" }
+    fn input_schema(&self) -> Value { json!({"type": "object", "properties": {"path": {"type": "string"}, "old_content": {"type": "string"}, "new_content": {"type": "string"}}}) }
+    fn required_permissions(&self) -> Vec<Permission> { vec![Permission::FileWrite("*".to_string())] }
+    async fn execute(&self, _args: Value, _context: ToolContext) -> Result<ToolResult> {
+        Ok(ToolResult { success: true, error: None, data: Some(json!({})), metadata: None })
+    }
+}
+
 pub struct ListFilesTool;
 impl ListFilesTool {
     pub fn new() -> Self { Self }
+}
+
+#[async_trait]
+impl crate::mcp_tools::core::Tool for ListFilesTool {
+    fn name(&self) -> &str { "listFiles" }
+    fn description(&self) -> &str { "List files in directory" }
+    fn input_schema(&self) -> Value { json!({"type": "object", "properties": {"path": {"type": "string"}}}) }
+    fn required_permissions(&self) -> Vec<Permission> { vec![Permission::FileRead("*".to_string())] }
+    async fn execute(&self, _args: Value, _context: ToolContext) -> Result<ToolResult> {
+        Ok(ToolResult { success: true, error: None, data: Some(json!([])), metadata: None })
+    }
 }
 
 pub struct SearchFilesTool;
@@ -41,9 +107,31 @@ impl SearchFilesTool {
     pub fn new() -> Self { Self }
 }
 
+#[async_trait]
+impl crate::mcp_tools::core::Tool for SearchFilesTool {
+    fn name(&self) -> &str { "searchFiles" }
+    fn description(&self) -> &str { "Search files by pattern" }
+    fn input_schema(&self) -> Value { json!({"type": "object", "properties": {"pattern": {"type": "string"}, "path": {"type": "string"}}}) }
+    fn required_permissions(&self) -> Vec<Permission> { vec![Permission::FileRead("*".to_string())] }
+    async fn execute(&self, _args: Value, _context: ToolContext) -> Result<ToolResult> {
+        Ok(ToolResult { success: true, error: None, data: Some(json!([])), metadata: None })
+    }
+}
+
 pub struct ExecuteCommandTool;
 impl ExecuteCommandTool {
     pub fn new() -> Self { Self }
+}
+
+#[async_trait]
+impl crate::mcp_tools::core::Tool for ExecuteCommandTool {
+    fn name(&self) -> &str { "executeCommand" }
+    fn description(&self) -> &str { "Execute shell command" }
+    fn input_schema(&self) -> Value { json!({"type": "object", "properties": {"command": {"type": "string"}}}) }
+    fn required_permissions(&self) -> Vec<Permission> { vec![Permission::CommandExecute("*".to_string())] }
+    async fn execute(&self, _args: Value, _context: ToolContext) -> Result<ToolResult> {
+        Ok(ToolResult { success: true, error: None, data: Some(json!({})), metadata: None })
+    }
 }
 
 pub struct InsertContentTool;

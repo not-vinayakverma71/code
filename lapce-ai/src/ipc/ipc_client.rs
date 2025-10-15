@@ -12,20 +12,16 @@ use rkyv::ser::serializers::AllocSerializer;
 use rkyv::validation::validators::DefaultValidator;
 use rkyv::CheckBytes;
 
-use super::shared_memory_complete::SharedMemoryBuffer;
+use super::shared_memory_complete::SharedMemoryStream;
 use super::binary_codec::{MessageType, BinaryCodec, Message, MessageEnvelope, HEADER_SIZE};
 use super::ipc_messages::MessageType as IpcMessageType;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 /// IPC Client for connecting to IpcServer
+#[derive(Clone)]
 pub struct IpcClient {
-    /// Connection ID assigned by server
-    conn_id: Option<String>,
-    
-    /// Client-to-server shared memory buffer
-    client_tx: Arc<SharedMemoryBuffer>,
-    
-    /// Server-to-client shared memory buffer
-    client_rx: Arc<SharedMemoryBuffer>,
+    /// Shared memory stream for bidirectional communication
+    stream: Arc<tokio::sync::Mutex<SharedMemoryStream>>,
     
     /// Connection statistics
     stats: Arc<IpcClientStats>,
@@ -71,51 +67,27 @@ impl IpcClient {
         let socket_path = socket_path.into();
         info!("IPC client connecting to: {}", socket_path);
         
-        // Generate unique connection ID
-        let conn_id = uuid::Uuid::new_v4().to_string();
+        // Use SharedMemoryStream to properly connect via lock-file mechanism
+        let stream = SharedMemoryStream::connect(&socket_path).await
+            .context("Failed to connect to IPC server")?;
         
-        // Create client-side shared memory channels
-        // Client writes to server on tx, reads from server on rx
-        let client_tx_path = format!("{}_client_{}_tx", socket_path, conn_id);
-        let client_rx_path = format!("{}_client_{}_rx", socket_path, conn_id);
+        let conn_id = stream.conn_id();
+        eprintln!("[CLIENT connect()] Created stream with conn_id={}", conn_id);
         
-        debug!("Creating client shared memory: tx={}, rx={}", client_tx_path, client_rx_path);
-        
-        // Create both channels
-        let client_tx = SharedMemoryBuffer::create(&client_tx_path, 1024 * 1024).await
-            .context("Failed to create client tx buffer")?;
-        let client_rx = SharedMemoryBuffer::create(&client_rx_path, 1024 * 1024).await
-            .context("Failed to create client rx buffer")?;
-        
-        let mut client = Self {
-            conn_id: Some(conn_id.clone()),
-            client_tx: Arc::new(client_tx),
-            client_rx: Arc::new(client_rx),
+        let client = Self {
+            stream: Arc::new(tokio::sync::Mutex::new(stream)),
             stats: Arc::new(IpcClientStats::default()),
-            connected: Arc::new(AtomicBool::new(false)),
+            connected: Arc::new(AtomicBool::new(true)),
             socket_path: socket_path.clone(),
         };
         
-        // Perform handshake with server
-        client.handshake().await?;
-        
-        info!("IPC client connected: conn_id={}", conn_id);
+        info!("IPC client connected successfully with conn_id={}", conn_id);
         Ok(client)
-    }
-    
-    /// Perform connection handshake with server
-    async fn handshake(&mut self) -> Result<()> {
-        debug!("Starting client handshake");
-        
-        // For now, just mark as connected - full handshake protocol will be implemented
-        // when we integrate with the actual IpcServer handler
-        self.connected.store(true, Ordering::Release);
-        debug!("Client handshake complete (simplified)");
-        Ok(())
     }
     
     /// Send raw bytes and wait for response
     pub async fn send_bytes(&self, data: &[u8]) -> Result<Vec<u8>> {
+        eprintln!("[CLIENT send_bytes] Starting, {} bytes", data.len());
         if !self.connected.load(Ordering::Acquire) {
             bail!("Client not connected");
         }
@@ -123,23 +95,42 @@ impl IpcClient {
         let start = Instant::now();
         let msg_size = data.len();
         
+        // Lock stream for exclusive access
+        eprintln!("[CLIENT send_bytes] Locking stream...");
+        let mut stream = self.stream.lock().await;
+        eprintln!("[CLIENT send_bytes] Got stream lock");
+        
         // Send to server
-        self.client_tx.write(data).await
+        eprintln!("[CLIENT send_bytes] Calling write_all...");
+        stream.write_all(data).await
             .context("Failed to write message")?;
+        eprintln!("[CLIENT send_bytes] Calling flush...");
+        stream.flush().await
+            .context("Failed to flush")?;
+        eprintln!("[CLIENT send_bytes] Write complete");
         
         self.stats.messages_sent.fetch_add(1, Ordering::Relaxed);
         self.stats.bytes_sent.fetch_add(msg_size as u64, Ordering::Relaxed);
         
-        // Wait for response with timeout
-        let response_data = timeout(
+        // Read response with timeout
+        eprintln!("[CLIENT send_bytes] Reading response...");
+        let mut response_data = vec![0u8; 1024 * 1024]; // 1MB buffer
+        let n = timeout(
             Duration::from_secs(30),
-            self.client_rx.read()
+            stream.read(&mut response_data)
         ).await
             .map_err(|_| anyhow::anyhow!("Request timeout"))?
-            .ok_or_else(|| anyhow::anyhow!("No data received"))?;
+            .context("Failed to read response")?;
+        
+        eprintln!("[CLIENT send_bytes] Read {} bytes", n);
+        if n == 0 {
+            bail!("No data received (connection closed)");
+        }
+        
+        response_data.truncate(n);
         
         self.stats.messages_received.fetch_add(1, Ordering::Relaxed);
-        self.stats.bytes_received.fetch_add(response_data.len() as u64, Ordering::Relaxed);
+        self.stats.bytes_received.fetch_add(n as u64, Ordering::Relaxed);
         
         // Track latency
         let latency_us = start.elapsed().as_micros() as u64;
@@ -147,22 +138,6 @@ impl IpcClient {
         self.stats.message_count.fetch_add(1, Ordering::Relaxed);
         
         Ok(response_data)
-    }
-    
-    /// Send bytes without waiting for response (fire and forget)
-    pub async fn send_oneway(&self, data: &[u8]) -> Result<()> {
-        if !self.connected.load(Ordering::Acquire) {
-            bail!("Client not connected");
-        }
-        
-        let msg_size = data.len();
-        
-        self.client_tx.write(data).await?;
-        
-        self.stats.messages_sent.fetch_add(1, Ordering::Relaxed);
-        self.stats.bytes_sent.fetch_add(msg_size as u64, Ordering::Relaxed);
-        
-        Ok(())
     }
     
     /// Get client statistics
@@ -173,11 +148,6 @@ impl IpcClient {
     /// Check if client is connected
     pub fn is_connected(&self) -> bool {
         self.connected.load(Ordering::Acquire)
-    }
-    
-    /// Get connection ID
-    pub fn conn_id(&self) -> Option<&str> {
-        self.conn_id.as_deref()
     }
     
     /// Disconnect from server

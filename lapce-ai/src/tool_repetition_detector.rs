@@ -177,10 +177,11 @@ impl ToolRepetitionDetector {
     
     /// Detect identical tool calls (same tool + same params)
     fn detect_identical_calls(&self, current_call: &ToolCallRecord) -> Option<RepetitionResult> {
+        // For identical calls, require EXACT parameter match (not just similar)
         let identical_count = self.recent_calls.iter()
             .filter(|call| {
                 call.tool_name == current_call.tool_name &&
-                self.params_are_similar(&call.params, &current_call.params)
+                call.params == current_call.params
             })
             .count();
         

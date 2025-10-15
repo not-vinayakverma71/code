@@ -458,13 +458,13 @@ impl Task {
         Ok(())
     }
     
-    pub fn request_abort(&self) {
-        let mut abort = self.abort.blocking_write();
+    pub async fn request_abort(&self) {
+        let mut abort = self.abort.write().await;
         *abort = true;
     }
     
-    pub fn pause(&self) -> Result<(), String> {
-        let mut paused = self.is_paused.blocking_write();
+    pub async fn pause(&self) -> Result<(), String> {
+        let mut paused = self.is_paused.write().await;
         if *paused {
             return Err("Task already paused".to_string());
         }
@@ -483,7 +483,12 @@ impl Task {
     }
     
     pub fn is_aborted(&self) -> bool {
-        *self.abort.blocking_read()
+        // Use try_read for non-blocking access in sync contexts
+        self.abort.try_read().map(|v| *v).unwrap_or(false)
+    }
+    
+    pub async fn is_aborted_async(&self) -> bool {
+        *self.abort.read().await
     }
     
     pub fn clear_asks(&self) {
@@ -506,23 +511,23 @@ impl Task {
     }
     
     pub fn get_last_message_ts(&self) -> Option<u64> {
-        *self.last_message_ts.blocking_read()
+        self.last_message_ts.try_read().ok().and_then(|v| *v)
     }
     
     pub fn is_paused(&self) -> bool {
-        *self.is_paused.blocking_read()
+        self.is_paused.try_read().map(|v| *v).unwrap_or(false)
     }
     
     pub fn is_initialized(&self) -> bool {
-        *self.is_initialized.blocking_read()
+        self.is_initialized.try_read().map(|v| *v).unwrap_or(false)
     }
     
     pub fn is_abandoned(&self) -> bool {
-        *self.abandoned.blocking_read()
+        self.abandoned.try_read().map(|v| *v).unwrap_or(false)
     }
     
     pub fn get_consecutive_mistakes(&self) -> u32 {
-        *self.consecutive_mistake_count.blocking_read()
+        self.consecutive_mistake_count.try_read().map(|v| *v).unwrap_or(0)
     }
     
     pub fn get_all_tool_usage(&self) -> ToolUsageTracker {

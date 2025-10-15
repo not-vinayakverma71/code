@@ -241,34 +241,34 @@ impl TaskManager {
     }
     
     /// Determine task status (engine-only, based on flags)
-    pub fn get_task_status(&self, task_id: &str) -> Option<TaskStatus> {
-        let task = self.get_task_blocking(task_id)?;
+    pub async fn get_task_status(&self, task_id: &str) -> Option<TaskStatus> {
+        let task = self.get_task(task_id).await?;
         
         // Check abort flag
-        if *task.abort.blocking_read() {
+        if *task.abort.read().await {
             return Some(TaskStatus::Aborted);
         }
         
         // Check pause flag
-        if *task.is_paused.blocking_read() {
+        if *task.is_paused.read().await {
             return Some(TaskStatus::Paused);
         }
         
         // Check if waiting for response
-        if task.idle_ask.blocking_read().is_some() {
+        if task.idle_ask.read().await.is_some() {
             return Some(TaskStatus::Idle);
         }
         
-        if task.resumable_ask.blocking_read().is_some() {
+        if task.resumable_ask.read().await.is_some() {
             return Some(TaskStatus::Resumable);
         }
         
-        if task.interactive_ask.blocking_read().is_some() {
+        if task.interactive_ask.read().await.is_some() {
             return Some(TaskStatus::Interactive);
         }
         
         // Check if initialized
-        if *task.is_initialized.blocking_read() {
+        if *task.is_initialized.read().await {
             return Some(TaskStatus::Active);
         }
         
@@ -405,10 +405,10 @@ impl TaskManager {
     ) {
         // Restore flags
         if state.is_aborted {
-            task.request_abort();
+            task.request_abort().await;
         }
         if state.is_paused {
-            let _ = task.pause();
+            let _ = task.pause().await;
         }
         if state.is_initialized {
             task.mark_initialized();
@@ -648,7 +648,7 @@ mod tests {
         let task_id = manager.create_task(options).await.unwrap();
         assert_eq!(manager.task_count().await, 1);
         
-        manager.cleanup_task(&task_id);
+        manager.cleanup_task(&task_id).await;
         assert_eq!(manager.task_count().await, 0);
     }
     
@@ -678,7 +678,7 @@ mod tests {
         let task_id = manager.create_task(options).await.unwrap();
         
         // Initial status should be Idle
-        let status = manager.get_task_status(&task_id).unwrap();
+        let status = manager.get_task_status(&task_id).await.unwrap();
         assert_eq!(status, TaskStatus::Idle);
     }
     
