@@ -66,7 +66,7 @@ impl SharedMemoryBuffer {
         let namespaced_path = create_namespaced_path(path);
         
         // shm_open requires name to start with '/' but have no other slashes
-        // macOS has a 31-character limit (PSHMNAMLEN) - use hash for long names
+        // macOS has a 31-character limit (PSHMNAMLEN) - truncate deterministically
         let shm_name_str = {
             let without_leading = namespaced_path.trim_start_matches('/');
             let full_name = format!("/{}", without_leading.replace('/', "_"));
@@ -74,12 +74,11 @@ impl SharedMemoryBuffer {
             #[cfg(target_os = "macos")]
             {
                 if full_name.len() > 31 {
-                    // Use hash to create short unique name
-                    use std::collections::hash_map::DefaultHasher;
-                    use std::hash::{Hash, Hasher};
-                    let mut hasher = DefaultHasher::new();
-                    full_name.hash(&mut hasher);
-                    format!("/shm_{:x}", hasher.finish())
+                    // Deterministic truncation: take first 15 + last 15 chars
+                    let chars: Vec<char> = full_name.chars().collect();
+                    let prefix: String = chars.iter().take(15).collect();
+                    let suffix: String = chars.iter().skip(chars.len().saturating_sub(15)).collect();
+                    format!("{}_", prefix) + &suffix
                 } else {
                     full_name
                 }
@@ -232,12 +231,11 @@ impl SharedMemoryBuffer {
             #[cfg(target_os = "macos")]
             {
                 if full_name.len() > 31 {
-                    // Use hash to create short unique name (MUST match create())
-                    use std::collections::hash_map::DefaultHasher;
-                    use std::hash::{Hash, Hasher};
-                    let mut hasher = DefaultHasher::new();
-                    full_name.hash(&mut hasher);
-                    format!("/shm_{:x}", hasher.finish())
+                    // Deterministic truncation: take first 15 + last 15 chars (MUST match create())
+                    let chars: Vec<char> = full_name.chars().collect();
+                    let prefix: String = chars.iter().take(15).collect();
+                    let suffix: String = chars.iter().skip(chars.len().saturating_sub(15)).collect();
+                    format!("{}_", prefix) + &suffix
                 } else {
                     full_name
                 }
