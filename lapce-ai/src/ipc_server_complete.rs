@@ -124,7 +124,7 @@ impl IpcServerComplete {
         info!("Starting IPC server with config: {:?}", config);
         
         // Create SharedMemory listener
-        let listener = SharedMemoryListener::bind(&config.socket_path).await?;
+        let listener = SharedMemoryListener::bind(&config.socket_path)?;
         
         let (shutdown_tx, _) = broadcast::channel(1);
         

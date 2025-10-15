@@ -42,8 +42,9 @@ impl Drop for ShmSegment {
             
             #[cfg(windows)]
             {
-                use windows_sys::Win32::System::Memory::{UnmapViewOfFile, VirtualFree, MEM_RELEASE};
-                UnmapViewOfFile(self.ptr as *const std::ffi::c_void);
+                use windows_sys::Win32::System::Memory::{UnmapViewOfFile, VirtualFree, MEM_RELEASE, MEMORY_MAPPED_VIEW_ADDRESS};
+                let view_addr = MEMORY_MAPPED_VIEW_ADDRESS { Value: self.ptr as *mut _ };
+                UnmapViewOfFile(view_addr);
                 VirtualFree(self.ptr as *mut std::ffi::c_void, 0, MEM_RELEASE);
             }
         }
@@ -160,20 +161,20 @@ impl OptimizedShmStream {
                 wide_name.as_ptr(),
             );
             
-            if handle == 0 {
+            if handle.is_null() {
                 bail!("CreateFileMappingW failed");
             }
             
             let ptr = MapViewOfFile(handle, FILE_MAP_ALL_ACCESS, 0, 0, size);
             
-            if ptr.is_null() {
+            if ptr.Value.is_null() {
                 bail!("MapViewOfFile failed");
             }
             
-            Self::setup_memory_advice(ptr as *mut u8, size)?;
+            Self::setup_memory_advice(ptr.Value as *mut u8, size)?;
             
             Ok(ShmSegment {
-                ptr: ptr as *mut u8,
+                ptr: ptr.Value as *mut u8,
                 size,
                 name: name.to_string(),
             })

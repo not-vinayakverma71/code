@@ -66,13 +66,14 @@ impl WindowsSharedMemoryTransport {
 }
 
 #[cfg(windows)]
+#[async_trait::async_trait]
 impl IpcTransport for WindowsSharedMemoryTransport {
-    fn write(&mut self, data: &[u8]) -> Result<()> {
+    async fn write(&mut self, data: &[u8]) -> Result<()> {
         self.mem.write(data)?;
         Ok(())
     }
     
-    fn read(&mut self) -> Result<Vec<u8>> {
+    async fn read(&mut self) -> Result<Vec<u8>> {
         self.mem.read().ok_or_else(|| anyhow!("No data available"))
     }
     
@@ -104,18 +105,16 @@ impl UnixSocketTransport {
 }
 
 #[cfg(target_os = "macos")]
+#[async_trait::async_trait]
 impl IpcTransport for UnixSocketTransport {
-    fn write(&mut self, data: &[u8]) -> Result<()> {
-        use tokio::net::UnixStream;
-        use tokio::runtime::Runtime;
-        
+    async fn write(&mut self, data: &[u8]) -> Result<()> {
         // In real implementation, maintain persistent connection
         self.buffer.clear();
         self.buffer.extend_from_slice(data);
         Ok(())
     }
     
-    fn read(&mut self) -> Result<Vec<u8>> {
+    async fn read(&mut self) -> Result<Vec<u8>> {
         if self.buffer.is_empty() {
             return Err(anyhow!("No data available"));
         }
@@ -182,11 +181,11 @@ pub struct MacSharedMemoryTransport {
 #[async_trait::async_trait]
 impl IpcTransport for MacSharedMemoryTransport {
     async fn write(&mut self, data: &[u8]) -> Result<()> {
-        self.mem.write(data).await
+        self.mem.write(data)
     }
     
     async fn read(&mut self) -> Result<Vec<u8>> {
-        self.mem.read().await?.ok_or_else(|| anyhow!("No data available"))
+        self.mem.read()?.ok_or_else(|| anyhow!("No data available"))
     }
     
     fn platform_name(&self) -> &str {

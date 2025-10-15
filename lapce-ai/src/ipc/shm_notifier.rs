@@ -1,9 +1,14 @@
-/// EventFD-based notifier for low-latency wakeups (Linux)
-/// Replaces micro-sleep polling to achieve ≤10µs p99 latency
+/// Event notification for shared memory using eventfd
+/// Provides zero-copy signaling for reader/writer coordination
+
+#![cfg(unix)]
 
 use std::os::unix::io::{AsRawFd, RawFd};
 use std::sync::Arc;
 use anyhow::{Result, bail};
+
+/// EventFD-based notifier for low-latency wakeups (Linux)
+/// Replaces micro-sleep polling to achieve ≤10µs p99 latency
 
 #[cfg(target_os = "linux")]
 pub struct EventNotifier {

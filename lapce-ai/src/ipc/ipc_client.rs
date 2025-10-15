@@ -12,7 +12,13 @@ use rkyv::ser::serializers::AllocSerializer;
 use rkyv::validation::validators::DefaultValidator;
 use rkyv::CheckBytes;
 
+#[cfg(unix)]
 use super::shared_memory_complete::SharedMemoryStream;
+#[cfg(windows)]
+use super::windows_shared_memory::SharedMemoryStream;
+#[cfg(target_os = "macos")]
+use super::macos_shared_memory::MacOSSharedMemory as SharedMemoryStream;
+
 use super::binary_codec::{MessageType, BinaryCodec, Message, MessageEnvelope, HEADER_SIZE};
 use super::ipc_messages::MessageType as IpcMessageType;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};

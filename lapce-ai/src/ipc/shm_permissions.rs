@@ -1,6 +1,8 @@
 /// Enforce 0600 permissions on shared memory segments and lock files
 /// Security: Restrict access to owner-only (user isolation)
 
+#![cfg(unix)]
+
 use anyhow::{Result, Context};
 use std::os::unix::fs::{PermissionsExt, MetadataExt};
 use std::path::Path;
@@ -50,7 +52,8 @@ pub fn verify_0600<P: AsRef<Path>>(path: P) -> Result<()> {
 /// Create file descriptor with 0600 permissions
 pub fn create_fd_0600(fd: std::os::unix::io::RawFd) -> Result<()> {
     unsafe {
-        let result = libc::fchmod(fd, REQUIRED_MODE);
+        // Cast to libc::mode_t for platform compatibility (u16 on macOS, u32 on Linux)
+        let result = libc::fchmod(fd, REQUIRED_MODE as libc::mode_t);
         if result != 0 {
             let err = std::io::Error::last_os_error();
             anyhow::bail!("fchmod failed: {}", err);

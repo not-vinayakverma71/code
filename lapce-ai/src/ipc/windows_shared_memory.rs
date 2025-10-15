@@ -411,6 +411,7 @@ impl Drop for SharedMemoryListener {
 pub struct SharedMemoryStream {
     send_buffer: Arc<RwLock<SharedMemoryBuffer>>,
     recv_buffer: Arc<RwLock<SharedMemoryBuffer>>,
+    conn_id: u64,
 }
 
 impl SharedMemoryStream {
@@ -460,7 +461,12 @@ impl SharedMemoryStream {
             recv_buffer: Arc::new(RwLock::new(
                 SharedMemoryBuffer::open(&recv_path, 4 * 1024 * 1024)?
             )),
+            conn_id,
         })
+    }
+    
+    pub fn conn_id(&self) -> u64 {
+        self.conn_id
     }
     
     pub async fn send(&self, data: &[u8]) -> Result<()> {

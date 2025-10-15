@@ -70,8 +70,9 @@ impl NamedPipeTransport {
 }
 
 #[cfg(windows)]
+#[async_trait::async_trait]
 impl IpcTransport for NamedPipeTransport {
-    fn write(&mut self, data: &[u8]) -> Result<()> {
+    async fn write(&mut self, data: &[u8]) -> Result<()> {
         // Windows implementation would use:
         // - CreateNamedPipe
         // - ConnectNamedPipe
@@ -82,7 +83,7 @@ impl IpcTransport for NamedPipeTransport {
         Ok(())
     }
     
-    fn read(&mut self) -> Result<Vec<u8>> {
+    async fn read(&mut self) -> Result<Vec<u8>> {
         if self.buffer.is_empty() {
             return Err(anyhow!("No data available"));
         }
@@ -194,11 +195,11 @@ pub struct WindowsSharedMemoryTransport {
 #[async_trait::async_trait]
 impl IpcTransport for WindowsSharedMemoryTransport {
     async fn write(&mut self, data: &[u8]) -> Result<()> {
-        self.mem.write(data).await
+        self.mem.write(data)
     }
     
     async fn read(&mut self) -> Result<Vec<u8>> {
-        self.mem.read().await.ok_or_else(|| anyhow!("No data available"))
+        self.mem.read().ok_or_else(|| anyhow!("No data available"))
     }
     
     fn platform_name(&self) -> &str {

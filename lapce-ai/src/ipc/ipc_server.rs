@@ -341,7 +341,7 @@ pub struct IpcServer {
 impl IpcServer {
     pub async fn new(socket_path: &str) -> IpcResult<Self> {
         // Create SharedMemory listener (no file cleanup needed)
-        let listener = SharedMemoryListener::bind(socket_path).await?;
+        let listener = SharedMemoryListener::bind(socket_path)?;
         
         let (shutdown_tx, _) = broadcast::channel(1);
         
