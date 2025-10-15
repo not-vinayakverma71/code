@@ -1,7 +1,7 @@
+#![cfg(unix)]
+
 /// Enforce 0600 permissions on shared memory segments and lock files
 /// Security: Restrict access to owner-only (user isolation)
-
-#![cfg(unix)]
 
 use anyhow::{Result, Context};
 use std::os::unix::fs::{PermissionsExt, MetadataExt};

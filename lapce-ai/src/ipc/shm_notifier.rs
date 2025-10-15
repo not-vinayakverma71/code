@@ -1,7 +1,7 @@
+#![cfg(unix)]
+
 /// Event notification for shared memory using eventfd
 /// Provides zero-copy signaling for reader/writer coordination
-
-#![cfg(unix)]
 
 use std::os::unix::io::{AsRawFd, RawFd};
 use std::sync::Arc;

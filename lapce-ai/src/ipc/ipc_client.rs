@@ -12,7 +12,7 @@ use rkyv::ser::serializers::AllocSerializer;
 use rkyv::validation::validators::DefaultValidator;
 use rkyv::CheckBytes;
 
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "macos")))] 
 use super::shared_memory_complete::SharedMemoryStream;
 #[cfg(windows)]
 use super::windows_shared_memory::SharedMemoryStream;
