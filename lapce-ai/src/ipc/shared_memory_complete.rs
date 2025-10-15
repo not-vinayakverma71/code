@@ -11,10 +11,29 @@ use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
 use std::time::{Duration, Instant};
 use crate::ipc::shm_namespace::create_namespaced_path;
+#[cfg(unix)]
 use crate::ipc::shm_permissions::{create_fd_0600, create_secure_lock_dir};
+#[cfg(unix)]
 use crate::ipc::crash_recovery::{cleanup_all_stale_resources, graceful_shutdown_cleanup, CleanupConfig};
 #[cfg(unix)]
 use crate::ipc::shm_metrics::helpers as shm_metrics;
+
+// Windows stubs for Unix-only functions
+#[cfg(not(unix))]
+fn create_fd_0600(_fd: i32) -> Result<()> { Ok(()) }
+#[cfg(not(unix))]
+fn create_secure_lock_dir<P: AsRef<std::path::Path>>(dir: P) -> Result<()> {
+    std::fs::create_dir_all(dir)?;
+    Ok(())
+}
+#[cfg(not(unix))]
+fn cleanup_all_stale_resources(_path: &str, _config: &CleanupConfig) -> Result<()> { Ok(()) }
+#[cfg(not(unix))]
+fn graceful_shutdown_cleanup(_path: &str) -> Result<()> { Ok(()) }
+#[cfg(not(unix))]
+struct CleanupConfig;
+#[cfg(not(unix))]
+impl Default for CleanupConfig { fn default() -> Self { CleanupConfig } }
 use crate::ipc::shm_notifier::{EventNotifier, NotifierPair};
 
 // Include the header module inline
