@@ -54,7 +54,7 @@ impl WindowsMutex {
         
         let handle = unsafe {
             OpenMutexW(
-                SYNCHRONIZATION_SYNCHRONIZE.0,
+                SYNCHRONIZATION_SYNCHRONIZE,
                 false,
                 PCWSTR(wide_name.as_ptr()),
             )?
@@ -140,7 +140,7 @@ impl WindowsSemaphore {
         
         let handle = unsafe {
             OpenSemaphoreW(
-                SYNCHRONIZATION_SYNCHRONIZE.0,
+                SYNCHRONIZATION_SYNCHRONIZE,
                 false,
                 PCWSTR(wide_name.as_ptr()),
             )?

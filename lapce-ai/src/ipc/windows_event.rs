@@ -53,7 +53,7 @@ impl WindowsEvent {
         
         let handle = unsafe {
             OpenEventW(
-                EVENT_ALL_ACCESS.0,
+                EVENT_ALL_ACCESS,
                 false,
                 PCWSTR(wide_name.as_ptr()),
             )?
