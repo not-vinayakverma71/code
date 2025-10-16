@@ -265,7 +265,7 @@ impl WindowsSharedMemoryBuffer {
         // Update write position
         self.write_mutex.lock()?;
         let new_write_pos = end_pos % capacity;
-        unsafe { ptr::write_volatile(&(*self.header).write_pos, new_write_pos) };
+        unsafe { ptr::write_volatile(&mut (*self.header).write_pos as *mut u32, new_write_pos) };
         self.write_mutex.unlock()?;
         
         // Ring doorbell
@@ -339,7 +339,7 @@ impl WindowsSharedMemoryBuffer {
         // Update read position
         self.read_mutex.lock()?;
         let new_read_pos = end_pos % capacity;
-        unsafe { ptr::write_volatile(&(*self.header).read_pos, new_read_pos) };
+        unsafe { ptr::write_volatile(&mut (*self.header).read_pos as *mut u32, new_read_pos) };
         self.read_mutex.unlock()?;
         
         Ok(to_read)
