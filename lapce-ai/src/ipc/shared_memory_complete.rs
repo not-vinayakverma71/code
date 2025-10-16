@@ -831,16 +831,19 @@ impl SharedMemoryListener {
             interval.tick().await;
             tick_count += 1;
             
-            // Log every 1000 ticks (1 second)
-            if tick_count % 1000 == 0 {
-                eprintln!("[WATCHER] Still running, {} lock files tracked", seen_locks.len());
+            // Log every 10000 ticks (~1 second at 100µs)
+            if tick_count % 10000 == 0 {
+                eprintln!("[WATCHER] Tick {}: {} tracked locks, last read_dir had {} entries", 
+                    tick_count, seen_locks.len(), "checking...");
             }
             
             // Scan lock directory for new lock files
             match std::fs::read_dir(&lock_dir) {
                 Ok(entries) => {
+                    let mut files_seen = Vec::new();
                     for entry in entries.flatten() {
                         if let Ok(file_name) = entry.file_name().into_string() {
+                            files_seen.push(file_name.clone());
                             if file_name.ends_with(".lock") {
                                 // Extract slot_id from filename: slot_<id>.lock
                                 if let Some(slot_str) = file_name.strip_prefix("slot_").and_then(|s| s.strip_suffix(".lock")) {
@@ -970,14 +973,10 @@ impl SharedMemoryStream {
                     let _ = file.write_all(format!("{}", std::process::id()).as_bytes());
                     
                     // Force flush to disk for visibility
-                    #[cfg(unix)]
-                    {
-                        use std::os::unix::io::AsRawFd;
-                        unsafe { libc::fsync(file.as_raw_fd()); }
-                        // Also sync the directory to make entry visible
-                        if let Ok(dir) = std::fs::File::open(&lock_dir) {
-                            unsafe { libc::fsync(dir.as_raw_fd()); }
-                        }
+                    let _ = file.sync_all();
+                    // Also sync the directory to make entry visible
+                    if let Ok(dir) = std::fs::File::open(&lock_dir) {
+                        let _ = dir.sync_all();
                     }
                     drop(file);
                     eprintln!("[CLIENT] Claimed slot {}, waiting for buffers...", slot_id);

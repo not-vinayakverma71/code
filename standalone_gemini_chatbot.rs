@@ -22,8 +22,6 @@ fn gemini_model() -> String {
     env::var("GEMINI_MODEL").unwrap_or_else(|_| GEMINI_MODEL.to_string())
 }
 
-const TEST_MESSAGE: &str = "hi"; // Auto-send on launch
-
 #[derive(Clone, Debug)]
 struct Message {
     role: String,
@@ -33,12 +31,6 @@ struct Message {
 #[derive(Clone, Debug)]
 enum StreamEvent {
     Chunk(String),
-    Done,
-}
-
-#[derive(Clone, Debug)]
-enum TypewriterEvent {
-    Char(char),
     Done,
 }
 
@@ -69,13 +61,12 @@ fn start_stream_session(
     let queue: Arc<Mutex<VecDeque<StreamEvent>>> = Arc::new(Mutex::new(VecDeque::new()));
     let trigger = ExtSendTrigger::new();
 
-
     let messages_for_effect = messages;
     let typing_for_effect = typing;
     let auto_mode = env::var("GEMINI_UI_TEST").ok().is_some();
     let queue_effect = queue.clone();
     
-    // Simplified effect: Process network chunks and display immediately
+    // Simplified effect: Process network chunks and display immediately (no typewriter to prevent garbling)
     create_effect(move |_| {
         trigger.track();
 
@@ -92,8 +83,8 @@ fn start_stream_session(
                         println!("[UI @{}ms] chunk {} bytes - displaying immediately", ts, chunk.len());
                         chunk_count.update(|c| *c += 1);
                         
-                        // Display chunk directly in typing area
-                        typing.update(|t| t.push_str(&chunk));
+                        // Display chunk immediately to prevent garbling
+                        typing_for_effect.update(|t| t.push_str(&chunk));
                     }
                     StreamEvent::Done => {
                         println!("[UI] stream complete - moving to messages");
@@ -126,8 +117,6 @@ fn start_stream_session(
             register_ext_trigger(trigger);
         }
     });
-
-    // Typewriter effect removed - was causing character interleaving
 
     // Spawn background thread to stream SSE and send chunks
     let prompt_clone = prompt.clone();
@@ -174,7 +163,7 @@ fn app_view() -> impl IntoView {
     v_stack((
         // Header
         container(
-            label(|| "Gemini 2.5 Flash - Click Send Button".to_string())
+            label(|| "Gemini 2.5 Flash - Fixed Version".to_string())
                 .style(|s| {
                     s.font_size(16.0)
                         .font_weight(floem::text::Weight::BOLD)
@@ -355,7 +344,7 @@ fn stream_gemini_sse(
     });
     // Retry send on transient failures (timeout/connect/429/5xx)
     let mut attempt = 0u32;
-    let mut response = loop {
+    let response = loop {
         attempt += 1;
         println!("[SSE] Sending request, attempt {}...", attempt);
         let send_res = client

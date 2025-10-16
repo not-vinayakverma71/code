@@ -8,7 +8,8 @@ use std::time::{Duration, Instant};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 use tokio::time::timeout;
-use lapce_ai_rust::ipc::ipc_client::IpcClient;
+#[cfg(unix)]
+use lapce_ai_rust::ipc::ipc_client_volatile::IpcClientVolatile;
 use lapce_ai_rust::ipc::binary_codec::MessageType;
 
 const TEST_SOCKET: &str = "/tmp/test_comprehensive_multiprocess_ipc.sock";
@@ -22,15 +23,13 @@ fn spawn_server_process() -> Result<Child, std::io::Error> {
     
     eprintln!("[TEST] Spawning IPC server in separate process...");
     
-    // Try to use pre-built binary first (for CI), fall back to cargo run
-    // Test binary is in target/debug/deps/, server binary is in target/debug/
+    // Try to use pre-built volatile binary first
     let binary_path = std::env::current_exe()
         .ok()
         .and_then(|test_exe| {
-            // Go from target/debug/deps/test_binary to target/debug/ipc_test_server
-            test_exe.parent()  // target/debug/deps/
-                .and_then(|deps| deps.parent())  // target/debug/
-                .map(|debug| debug.join("ipc_test_server"))
+            test_exe.parent()
+                .and_then(|deps| deps.parent())
+                .map(|debug| debug.join("ipc_test_server_volatile"))
         })
         .filter(|p| p.exists());
     
@@ -44,7 +43,7 @@ fn spawn_server_process() -> Result<Child, std::io::Error> {
     } else {
         eprintln!("[TEST] Building and running with cargo...");
         Command::new("cargo")
-            .args(&["run", "--bin", "ipc_test_server", "--", TEST_SOCKET])
+            .args(&["run", "--bin", "ipc_test_server_volatile", "--", TEST_SOCKET])
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()?
@@ -75,8 +74,8 @@ async fn test_comprehensive_multiprocess_ipc() {
     // Step 2: Connect client
     println!("\n[TEST] Connecting client to server...");
     let client = match timeout(
-        Duration::from_secs(10),  // Longer timeout for CI environments
-        IpcClient::connect(TEST_SOCKET)
+        Duration::from_secs(10),
+        IpcClientVolatile::connect(TEST_SOCKET)
     ).await {
         Ok(Ok(c)) => {
             println!("✅ Client connected successfully");
@@ -110,7 +109,7 @@ async fn test_comprehensive_multiprocess_ipc() {
     // Step 5: Test concurrent messages
     println!("\n[TEST 3] Concurrent Messages");
     println!("─────────────────────────────────────");
-    test_concurrent_messages(Arc::new(client.clone())).await;
+    test_concurrent_messages(&client).await;
     
     // Step 6: Test different message types
     println!("\n[TEST 4] Different Message Types");
@@ -146,7 +145,7 @@ async fn test_comprehensive_multiprocess_ipc() {
     println!("╚═══════════════════════════════════════════════════════════╝\n");
 }
 
-async fn test_basic_roundtrip(client: &IpcClient) {
+async fn test_basic_roundtrip(client: &IpcClientVolatile) {
     let data = b"Hello from multi-process test!";
     
     println!("  → Sending: {:?}", std::str::from_utf8(data).unwrap());
@@ -163,7 +162,7 @@ async fn test_basic_roundtrip(client: &IpcClient) {
     println!("  ✅ Basic round-trip: PASSED");
 }
 
-async fn test_sequential_messages(client: &IpcClient) {
+async fn test_sequential_messages(client: &IpcClientVolatile) {
     const NUM_MESSAGES: usize = 100;
     
     println!("  → Sending {} sequential messages...", NUM_MESSAGES);
@@ -202,8 +201,8 @@ async fn test_sequential_messages(client: &IpcClient) {
     println!("  ✅ Sequential messages: PASSED");
 }
 
-async fn test_concurrent_messages(client: Arc<IpcClient>) {
-    const NUM_CONCURRENT: usize = 50;
+async fn test_concurrent_messages(client: &IpcClientVolatile) {
+    const NUM_CONCURRENT: usize = 1000;
     
     println!("  → Sending {} concurrent messages...", NUM_CONCURRENT);
     let success_count = Arc::new(AtomicU32::new(0));
@@ -213,7 +212,7 @@ async fn test_concurrent_messages(client: Arc<IpcClient>) {
     
     let mut handles = vec![];
     for i in 0..NUM_CONCURRENT {
-        let client_clone = Arc::clone(&client);
+        let client_clone = client.clone();
         let success = success_count.clone();
         let failed = failed_count.clone();
         
@@ -253,7 +252,7 @@ async fn test_concurrent_messages(client: Arc<IpcClient>) {
     println!("  ✅ Concurrent messages: PASSED");
 }
 
-async fn test_message_types(client: &IpcClient) {
+async fn test_message_types(client: &IpcClientVolatile) {
     let types = vec![
         MessageType::CompletionRequest,
         MessageType::CompletionResponse,
@@ -282,7 +281,7 @@ async fn test_message_types(client: &IpcClient) {
     println!("  ✅ Message types: {}/4 PASSED", success);
 }
 
-async fn test_large_messages(client: &IpcClient) {
+async fn test_large_messages(client: &IpcClientVolatile) {
     let sizes = vec![1024, 10 * 1024, 100 * 1024, 1024 * 1024];
     
     println!("  → Testing large messages...");
@@ -307,7 +306,7 @@ async fn test_large_messages(client: &IpcClient) {
     println!("  ✅ Large messages: PASSED");
 }
 
-async fn test_error_handling(client: &IpcClient) {
+async fn test_error_handling(client: &IpcClientVolatile) {
     println!("  → Testing error handling...");
     
     // Test with empty message
@@ -330,7 +329,7 @@ async fn test_error_handling(client: &IpcClient) {
     println!("  ✅ Error handling: PASSED");
 }
 
-async fn test_performance_benchmark(client: &IpcClient) {
+async fn test_performance_benchmark(client: &IpcClientVolatile) {
     const WARMUP: usize = 100;
     const BENCHMARK_COUNT: usize = 1000;
     

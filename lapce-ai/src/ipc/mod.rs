@@ -14,6 +14,38 @@ pub mod shm_namespace;
 pub mod shm_permissions;
 #[cfg(unix)]
 pub mod shm_notifier;
+
+// New cross-process safe modules
+pub mod ring_header_volatile;
+#[cfg(unix)]
+pub mod control_socket;
+#[cfg(unix)]
+pub mod shm_buffer_volatile;
+#[cfg(target_os = "linux")]
+pub mod shm_buffer_futex;
+#[cfg(target_os = "macos")]
+pub mod shm_buffer_macos;
+pub mod platform_buffer;
+#[cfg(unix)]
+pub mod eventfd_doorbell;
+#[cfg(target_os = "linux")]
+pub mod futex;
+#[cfg(target_os = "macos")]
+pub mod kqueue_doorbell;
+#[cfg(unix)]
+pub mod posix_sem_sync;
+#[cfg(windows)]
+pub mod windows_event;
+#[cfg(windows)]
+pub mod windows_sync;
+#[cfg(windows)]
+pub mod shm_buffer_windows;
+#[cfg(unix)]
+pub mod fd_pass;
+#[cfg(unix)]
+pub mod ipc_server_volatile;
+#[cfg(unix)]
+pub mod ipc_client_volatile;
 pub mod spsc_shm_ring;
 pub mod shm_waiter_cross_os;
 pub mod shm_stream_optimized;
