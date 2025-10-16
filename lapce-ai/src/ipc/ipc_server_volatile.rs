@@ -121,8 +121,8 @@ impl IpcServerVolatile {
         let recv_shm_name = format!("/{}_{}_recv", base_name, slot_id);
         
         // Create buffers
-        let mut send_buffer = SharedMemoryBuffer::create(&send_shm_name, RING_CAPACITY)?;
-        let mut recv_buffer = SharedMemoryBuffer::create(&recv_shm_name, RING_CAPACITY)?;
+        let send_buffer = SharedMemoryBuffer::create(&send_shm_name, RING_CAPACITY)?;
+        let recv_buffer = SharedMemoryBuffer::create(&recv_shm_name, RING_CAPACITY)?;
         
         // Attach doorbells to buffers
         send_buffer.attach_doorbell(Arc::new(send_doorbell));

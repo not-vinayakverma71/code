@@ -1,6 +1,8 @@
 /// Volatile IPC Test Server - for comprehensive_multiprocess_ipc test
 /// Uses control socket + volatile buffers instead of directory watching
 
+#![cfg(unix)]
+
 use std::sync::Arc;
 use lapce_ai_rust::ipc::ipc_server_volatile::IpcServerVolatile;
 use lapce_ai_rust::ipc::binary_codec::MessageType;

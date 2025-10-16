@@ -8,6 +8,7 @@ use crate::ipc::ring_header_volatile::VolatileRingHeader;
 use crate::ipc::eventfd_doorbell::EventFdDoorbell;
 use std::os::unix::io::RawFd;
 use crate::ipc::shm_namespace::create_namespaced_path;
+use std::sync::{Arc, Mutex};
 
 const SLOT_SIZE: usize = 1024;
 const NUM_SLOTS: usize = 1024;
@@ -21,7 +22,7 @@ pub struct VolatileSharedMemoryBuffer {
     header: *mut VolatileRingHeader,
     data: *mut u8,
     // Optional doorbell for efficient notifications
-    doorbell: Option<Arc<EventFdDoorbell>>,
+    doorbell: Mutex<Option<Arc<EventFdDoorbell>>>,
 }
 
 impl VolatileSharedMemoryBuffer {
@@ -117,7 +118,7 @@ impl VolatileSharedMemoryBuffer {
             shm_name: shm_name_str,
             header,
             data,
-            doorbell: None,
+            doorbell: Mutex::new(None),
         }))
     }
     
@@ -200,7 +201,7 @@ impl VolatileSharedMemoryBuffer {
             shm_name: shm_name_str,
             header,
             data,
-            doorbell: None,
+            doorbell: Mutex::new(None),
         }))
     }
     
@@ -347,28 +348,28 @@ impl VolatileSharedMemoryBuffer {
     }
     
     /// Attach an eventfd doorbell for notifications
-    pub fn attach_doorbell(&mut self, doorbell: Arc<EventFdDoorbell>) {
+    pub fn attach_doorbell(&self, doorbell: Arc<EventFdDoorbell>) {
         eprintln!("[BUF] Attached doorbell to {}", self.shm_name);
-        self.doorbell = Some(doorbell);
+        *self.doorbell.lock().unwrap() = Some(doorbell);
     }
     
     /// Attach doorbell from raw fd
-    pub fn attach_doorbell_fd(&mut self, fd: RawFd) {
+    pub fn attach_doorbell_fd(&self, fd: RawFd) {
         let doorbell = EventFdDoorbell::from_fd(fd);
-        self.doorbell = Some(Arc::new(doorbell));
+        *self.doorbell.lock().unwrap() = Some(Arc::new(doorbell));
         eprintln!("[BUF] Attached doorbell fd={} to {}", fd, self.shm_name);
     }
     
     /// Ring the doorbell (notify reader)
     fn ring_doorbell(&self) {
-        if let Some(ref doorbell) = self.doorbell {
+        if let Some(ref doorbell) = *self.doorbell.lock().unwrap() {
             let _ = doorbell.ring();
         }
     }
     
     /// Wait for doorbell notification
     pub fn wait_doorbell(&self, timeout_ms: i32) -> Result<bool> {
-        if let Some(ref doorbell) = self.doorbell {
+        if let Some(ref doorbell) = *self.doorbell.lock().unwrap() {
             doorbell.wait_timeout(timeout_ms)
         } else {
             // No doorbell, just return false (timeout)
