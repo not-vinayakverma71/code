@@ -133,14 +133,46 @@ impl PosixSemaphore {
             abs_timeout.tv_nsec -= 1_000_000_000;
         }
         
-        let ret = unsafe { sem_timedwait(self.sem, &abs_timeout) };
+        #[cfg(target_os = "linux")]
+        {
+            let ret = unsafe { sem_timedwait(self.sem, &abs_timeout) };
+            
+            if ret != 0 {
+                let err = std::io::Error::last_os_error();
+                match err.raw_os_error() {
+                    Some(libc::ETIMEDOUT) => return Ok(false), // Timeout
+                    Some(libc::EINTR) => return Ok(false), // Interrupted
+                    _ => bail!("sem_timedwait failed: {}", err),
+                }
+            }
+        }
         
-        if ret != 0 {
-            let err = std::io::Error::last_os_error();
-            match err.raw_os_error() {
-                Some(libc::ETIMEDOUT) => return Ok(false), // Timeout
-                Some(libc::EINTR) => return Ok(false), // Interrupted
-                _ => bail!("sem_timedwait failed: {}", err),
+        #[cfg(target_os = "macos")]
+        {
+            // macOS doesn't have sem_timedwait, use polling with sem_trywait
+            let start = std::time::Instant::now();
+            let timeout_duration = std::time::Duration::from_millis(timeout_ms as u64);
+            
+            loop {
+                let ret = unsafe { sem_trywait(self.sem) };
+                if ret == 0 {
+                    return Ok(true); // Acquired
+                }
+                
+                let err = std::io::Error::last_os_error();
+                match err.raw_os_error() {
+                    Some(libc::EAGAIN) => {
+                        // Not available, check timeout
+                        if start.elapsed() >= timeout_duration {
+                            return Ok(false); // Timeout
+                        }
+                        // Sleep briefly before retry
+                        std::thread::sleep(std::time::Duration::from_micros(100));
+                        continue;
+                    }
+                    Some(libc::EINTR) => continue, // Interrupted, retry
+                    _ => bail!("sem_trywait failed: {}", err),
+                }
             }
         }
         

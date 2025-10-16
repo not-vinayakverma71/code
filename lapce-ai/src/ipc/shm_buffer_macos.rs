@@ -4,7 +4,7 @@
 use std::os::unix::io::{AsRawFd, RawFd};
 use std::ptr;
 use std::sync::Arc;
-use std::ptr;
+use anyhow::{Result, bail};
 
 #[cfg(target_os = "macos")]
 use crate::ipc::kqueue_doorbell::KqueueDoorbell;
