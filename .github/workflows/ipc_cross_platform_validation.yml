@@ -93,7 +93,7 @@ jobs:
       - name: Run IPC stress test (Linux)
         if: matrix.platform == 'linux'
         working-directory: lapce-ai
-        timeout-minutes: 15
+        timeout-minutes: 10
         run: |
           # Clean up any existing shared memory
           rm -f /dev/shm/stress_test_ipc.sock* 2>/dev/null || true
@@ -104,8 +104,8 @@ jobs:
           echo "Server PID: $SERVER_PID"
           sleep 3
           
-          # Run stress test
-          timeout 600 ./target/release/production_stress_test 2>&1 | tee /tmp/stress_test.log || true
+          # Run stress test with shorter timeout
+          timeout 300 ./target/release/production_stress_test 2>&1 | tee /tmp/stress_test.log || echo "Test timed out or failed"
           
           # Kill server
           kill -9 $SERVER_PID 2>/dev/null || true

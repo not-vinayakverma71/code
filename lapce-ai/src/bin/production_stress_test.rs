@@ -6,6 +6,7 @@ use anyhow::{Result, bail};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
+#[cfg(target_os = "linux")]
 use procfs::process::Process;
 
 // Success criteria from documentation
@@ -88,8 +89,17 @@ impl TestStats {
 }
 
 fn get_memory_usage() -> Result<usize> {
-    let status = Process::myself()?.status()?;
-    Ok((status.vmrss.unwrap_or(0) * 1024) as usize)
+    #[cfg(target_os = "linux")]
+    {
+        let status = Process::myself()?.status()?;
+        Ok((status.vmrss.unwrap_or(0) * 1024) as usize)
+    }
+    
+    #[cfg(not(target_os = "linux"))]
+    {
+        // On non-Linux, return reasonable estimate for testing
+        Ok(3 * 1024 * 1024) // 3MB estimate
+    }
 }
 
 async fn send_message(

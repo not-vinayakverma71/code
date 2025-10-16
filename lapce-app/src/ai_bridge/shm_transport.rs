@@ -63,7 +63,7 @@ impl Transport for ShmTransport {
     }
     
     fn status(&self) -> ConnectionStatusType {
-        *self.status.lock().unwrap()
+        self.status.lock().unwrap().clone()
     }
     
     fn connect(&mut self) -> Result<(), BridgeError> {
