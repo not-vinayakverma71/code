@@ -30,7 +30,14 @@ pub fn send_fds(sock: &UnixStream, fds: &[RawFd], data: &[u8]) -> Result<()> {
     msg.msg_iov = &mut iov as *mut iovec;
     msg.msg_iovlen = 1;
     msg.msg_control = cmsg_buf.as_mut_ptr() as *mut libc::c_void;
-    msg.msg_controllen = cmsg_space as u32;
+    #[cfg(target_os = "macos")]
+    {
+        msg.msg_controllen = cmsg_space as u32;
+    }
+    #[cfg(target_os = "linux")]
+    {
+        msg.msg_controllen = cmsg_space;
+    }
     
     // Fill in control message
     let cmsg = unsafe { &mut *(msg.msg_control as *mut cmsghdr) };
@@ -81,7 +88,14 @@ pub fn recv_fds(sock: &UnixStream, max_fds: usize) -> Result<(Vec<RawFd>, Vec<u8
     msg.msg_iov = &mut iov as *mut iovec;
     msg.msg_iovlen = 1;
     msg.msg_control = cmsg_buf.as_mut_ptr() as *mut libc::c_void;
-    msg.msg_controllen = cmsg_space as u32;
+    #[cfg(target_os = "macos")]
+    {
+        msg.msg_controllen = cmsg_space as u32;
+    }
+    #[cfg(target_os = "linux")]
+    {
+        msg.msg_controllen = cmsg_space;
+    }
     
     let ret = unsafe { recvmsg(sock_fd, &mut msg, 0) };
     

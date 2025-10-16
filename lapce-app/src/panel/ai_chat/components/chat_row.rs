@@ -3,6 +3,7 @@
 
 use std::sync::Arc;
 
+use super::windsurf_ui;
 use floem::{
     reactive::RwSignal,
     views::{Decorators, container, h_stack, label, v_stack},
@@ -98,48 +99,12 @@ fn say_message_simple(
             ).style(|s| s.padding(12.0)))
         },
         SayType::Text => Box::new({
-            // Regular assistant text - EXACT Windsurf prose styling from ui.json
-            let text = text.clone();
-            container(
-                label(move || text.clone())
-                    .style(move |s| {
-                        let cfg = config();
-                        s.padding(16.0)
-                            .color(cfg.color("editor.foreground"))
-                            .font_size(14.0)   // Exact from ui.json
-                            .line_height(1.6)  // 22.4px / 14px = 1.6
-                            .width_full()
-                    })
-            )
-            .style(move |s| {
-                let cfg = config();
-                s.width_full()
-                    .background(cfg.color("panel.background"))
-                    .border_radius(6.0)
-                    .margin_bottom(12.0)
-            })
+            // Clean Windsurf AI message
+            windsurf_ui::ai_message(text.clone(), false)
         }),
         SayType::User => Box::new({
-            // User message - Windsurf style (more prominent)
-            let text = text.clone();
-            container(
-                label(move || text.clone())
-                    .style(move |s| {
-                        let cfg = config();
-                        s.padding(16.0)
-                            .color(cfg.color("editor.foreground"))
-                            .font_size(14.0)
-                    })
-            )
-            .style(move |s| {
-                let cfg = config();
-                s.width_full()
-                    .background(cfg.color("panel.background"))
-                    .border_radius(8.0)
-                    .margin_bottom(16.0)
-                    .border(1.0)
-                    .border_color(cfg.color("lapce.button_primary"))
-            })
+            // Clean Windsurf user message
+            windsurf_ui::user_message(text.clone())
         }),
         SayType::ApiReqStarted => Box::new({
             // API request indicator - thinking state

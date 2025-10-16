@@ -14,7 +14,7 @@ use crate::{
     ai_bridge::messages::{MessageType as BridgeMessageType},
     config::LapceConfig,
     panel::ai_chat::components::{
-        chat_text_area::{ChatTextAreaProps, chat_text_area},
+        windsurf_ui,
         chat_row::{ChatMessage, ChatRowProps, MessageType, SayType, AskType, chat_row},
         welcome_screen::welcome_screen,
     },
@@ -99,27 +99,15 @@ pub fn chat_view(
                 .background(cfg.color("editor.background"))
         }),
         
-        // Input area
-        container(
-            chat_text_area(
-                ChatTextAreaProps {
-                    input_value,
-                    sending_disabled: props.sending_disabled,
-                    placeholder_text: "Ask AI...".to_string(),
-                    on_send: props.on_send.clone(),
-                    current_model,
-                    is_model_open,
-                },
-                config,
+        // Clean Windsurf input bar
+        {
+            let on_send_clone = props.on_send.clone();
+            windsurf_ui::input_bar(
+                input_value,
+                move || (on_send_clone)(),
+                props.sending_disabled,
             )
-        )
-        .style(move |s| {
-            let cfg = config();
-            s.width_full()
-                .border_top(1.0)
-                .border_color(cfg.color("lapce.border"))
-                .background(cfg.color("panel.background"))
-        }),
+        },
     ))
     .style(|s| s.width_full().height_full().flex_col())
 }

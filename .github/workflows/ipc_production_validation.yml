@@ -158,12 +158,26 @@ jobs:
         working-directory: lapce-ai
         run: cargo build --bin ipc_test_server_volatile --features unix-bins
 
-      - name: Run Comprehensive Multi-Process IPC Test (Unix only)
-        if: runner.os != 'Windows'
+      - name: Run Comprehensive Multi-Process IPC Test (Unix volatile)
+        if: runner.os == 'Linux'
         working-directory: lapce-ai
         run: |
           cargo test --test comprehensive_multiprocess_ipc -- --nocapture --test-threads=1
-        timeout-minutes: 10
+        timeout-minutes: 5
+
+      - name: Run Comprehensive Multi-Process IPC Test (macOS)
+        if: runner.os == 'macOS'
+        working-directory: lapce-ai
+        run: |
+          cargo test --test comprehensive_multiprocess_ipc_macos -- --nocapture --test-threads=1
+        timeout-minutes: 5
+
+      - name: Run Comprehensive Multi-Process IPC Test (Windows)
+        if: runner.os == 'Windows'
+        working-directory: lapce-ai
+        run: |
+          cargo test --test comprehensive_multiprocess_ipc_windows -- --nocapture --test-threads=1
+        timeout-minutes: 5
 
       - name: Upload test results on failure
         if: failure()

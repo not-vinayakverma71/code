@@ -1,6 +1,9 @@
 // Chat Components - Phase 4+
 // Main UI components for chat interface
 
+// Clean Windsurf-style UI components (production)
+pub mod windsurf_ui;
+
 pub mod approval_dialog;
 pub mod chat_row;
 pub mod chat_text_area;

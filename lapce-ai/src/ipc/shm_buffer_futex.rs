@@ -1,9 +1,10 @@
 /// Futex-based shared memory ring buffer for cross-process IPC
 /// Uses Linux futex for proper cache-coherent atomics between processes
 
-use anyhow::{Result, bail};
-use std::sync::Arc;
+use std::os::unix::io::RawFd;
 use std::ptr;
+use std::sync::{Arc, Mutex};
+use anyhow::{Result, bail};
 
 #[cfg(target_os = "linux")]
 use crate::ipc::futex::{atomic_load, atomic_store, atomic_cas, futex_wait, futex_wake};
@@ -82,7 +83,7 @@ pub struct FutexSharedMemoryBuffer {
     shm_name: String,
     shm_fd: i32,
     shm_size: usize,
-    doorbell: Option<Arc<EventFdDoorbell>>,
+    doorbell: Mutex<Option<Arc<EventFdDoorbell>>>,
 }
 
 unsafe impl Send for FutexSharedMemoryBuffer {}
@@ -91,7 +92,7 @@ unsafe impl Sync for FutexSharedMemoryBuffer {}
 impl FutexSharedMemoryBuffer {
     /// Create a new shared memory buffer with futex synchronization
     #[cfg(target_os = "linux")]
-    pub fn create(name: &str, capacity: u32) -> Result<Self> {
+    pub fn create(name: &str, capacity: u32) -> Result<Arc<Self>> {
         use std::ffi::CString;
         use libc::{shm_open, ftruncate, mmap, O_CREAT, O_RDWR, PROT_READ, PROT_WRITE, MAP_SHARED};
         
@@ -138,19 +139,19 @@ impl FutexSharedMemoryBuffer {
         eprintln!("[BUFFER CREATE] '{}' fd={} size={} header@{:p} data@{:p}",
             name, fd, total_size, header, data);
         
-        Ok(Self {
+        Ok(Arc::new(Self {
             header,
             data,
             shm_name: name.to_string(),
             shm_fd: fd,
             shm_size: total_size,
-            doorbell: None,
-        })
+            doorbell: Mutex::new(None),
+        }))
     }
     
     /// Open existing shared memory buffer
     #[cfg(target_os = "linux")]
-    pub fn open(name: &str) -> Result<Self> {
+    pub fn open(name: &str, _capacity: u32) -> Result<Arc<Self>> {
         use std::ffi::CString;
         use libc::{shm_open, mmap, O_RDWR, PROT_READ, PROT_WRITE, MAP_SHARED};
         
@@ -193,39 +194,39 @@ impl FutexSharedMemoryBuffer {
         eprintln!("[BUFFER OPEN] '{}' fd={} size={} header@{:p} data@{:p}",
             name, fd, total_size, header, data);
         
-        Ok(Self {
+        Ok(Arc::new(Self {
             header,
             data,
             shm_name: name.to_string(),
             shm_fd: fd,
             shm_size: total_size,
-            doorbell: None,
-        })
+            doorbell: Mutex::new(None),
+        }))
     }
     
     /// Attach an eventfd doorbell for notifications
-    pub fn attach_doorbell(&mut self, doorbell: Arc<EventFdDoorbell>) {
+    pub fn attach_doorbell(&self, doorbell: Arc<EventFdDoorbell>) {
         eprintln!("[BUF] Attached doorbell fd={} to {}", doorbell.as_raw_fd(), self.shm_name);
-        self.doorbell = Some(doorbell);
+        *self.doorbell.lock().unwrap() = Some(doorbell);
     }
     
     /// Attach an eventfd doorbell from raw fd (for client use)
-    pub fn attach_doorbell_fd(&mut self, fd: i32) {
+    pub fn attach_doorbell_fd(&self, fd: i32) {
         let doorbell = EventFdDoorbell::from_fd(fd);
         eprintln!("[BUF] Attached doorbell fd={} to {}", fd, self.shm_name);
-        self.doorbell = Some(Arc::new(doorbell));
+        *self.doorbell.lock().unwrap() = Some(Arc::new(doorbell));
     }
     
-    /// Ring the doorbell to notify reader
+    /// Ring the doorbell (notify reader)
     fn ring_doorbell(&self) {
-        if let Some(ref doorbell) = self.doorbell {
+        if let Some(ref doorbell) = *self.doorbell.lock().unwrap() {
             let _ = doorbell.ring();
         }
     }
     
     /// Wait on doorbell with timeout
     pub fn wait_doorbell(&self, timeout_ms: i32) -> Result<bool> {
-        if let Some(ref doorbell) = self.doorbell {
+        if let Some(ref doorbell) = *self.doorbell.lock().unwrap() {
             doorbell.wait_timeout(timeout_ms)
         } else {
             Ok(false)
