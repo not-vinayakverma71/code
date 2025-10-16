@@ -52,6 +52,11 @@ name = "memory_fixed_standalone"
 path = "src/bin/memory_fixed_standalone.rs"
 required-features = ["unix-bins"]
 
+[[bin]]
+name = "ipc_test_server_volatile"
+path = "src/bin/ipc_test_server_volatile.rs"
+required-features = ["unix-bins"]
+
 [[bench]]
 name = "benchmarks"
 harness = false

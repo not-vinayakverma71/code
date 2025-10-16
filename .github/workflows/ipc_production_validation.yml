@@ -153,11 +153,17 @@ jobs:
         working-directory: lapce-ai
         run: cargo build --bin ipc_test_server
 
-      - name: Run Comprehensive Multi-Process IPC Test
+      - name: Build volatile IPC test server binary (Unix only)
+        if: runner.os != 'Windows'
+        working-directory: lapce-ai
+        run: cargo build --bin ipc_test_server_volatile --features unix-bins
+
+      - name: Run Comprehensive Multi-Process IPC Test (Unix only)
+        if: runner.os != 'Windows'
         working-directory: lapce-ai
         run: |
           cargo test --test comprehensive_multiprocess_ipc -- --nocapture --test-threads=1
-        timeout-minutes: 60
+        timeout-minutes: 10
 
       - name: Upload test results on failure
         if: failure()
