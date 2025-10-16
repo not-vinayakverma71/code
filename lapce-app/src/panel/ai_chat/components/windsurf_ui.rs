@@ -291,6 +291,8 @@ pub fn input_bar<F>(
     input_value: RwSignal<String>,
     on_send: F,
     sending_disabled: bool,
+    selected_model: RwSignal<String>,
+    selected_mode: RwSignal<String>,
 ) -> impl View 
 where
     F: Fn() + 'static + Clone,
@@ -360,10 +362,10 @@ where
                 }),
                 
                 // Mode selector (Code/Chat)
-                mode_selector_dropdown(),
+                mode_selector_dropdown(selected_mode),
                 
                 // Model selector with dropdown
-                model_selector_dropdown(),
+                model_selector_dropdown(selected_model),
                 
                 // Spacer
                 container(label(|| "".to_string()))
@@ -444,9 +446,8 @@ where
 }
 
 // Model selector dropdown from demo
-fn model_selector_dropdown() -> impl View {
+fn model_selector_dropdown(selected_model: RwSignal<String>) -> impl View {
     let is_open = create_rw_signal(false);
-    let selected_model = create_rw_signal("Claude Sonnet 4.5 Thinking ".to_string());
     
     container(
         v_stack((
@@ -499,6 +500,7 @@ fn model_selector_dropdown() -> impl View {
                                 .style(|s| s.width_full())
                             )
                             .on_click_stop(move |_| {
+                                println!("[Model Selector] Selected: Claude Sonnet 4.5 Thinking");
                                 selected_model.set("Claude Sonnet 4.5 Thinking ".to_string());
                                 is_open.set(false);
                             })
@@ -512,11 +514,63 @@ fn model_selector_dropdown() -> impl View {
                             }),
                             // Claude Sonnet 4
                             container(
-                                label(|| "Claude Sonnet 4".to_string())
-                                    .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc)))
+                                h_stack((
+                                    label(|| "Claude Sonnet 4".to_string())
+                                        .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc)).flex_grow(1.0)),
+                                    label(move || if selected_model.get() == "Claude Sonnet 4" { "✓" } else { "" }.to_string())
+                                        .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc).multiply_alpha(0.5))),
+                                ))
+                                .style(|s| s.width_full())
                             )
                             .on_click_stop(move |_| {
+                                println!("[Model Selector] Selected: Claude Sonnet 4");
                                 selected_model.set("Claude Sonnet 4".to_string());
+                                is_open.set(false);
+                            })
+                            .style(|s| {
+                                s.width_full()
+                                    .padding_horiz(8.0)
+                                    .padding_vert(4.0)
+                                    .border_radius(6.0)
+                                    .cursor(floem::style::CursorStyle::Pointer)
+                                    .hover(|s| s.background(Color::from_rgb8(0x80, 0x80, 0x80).multiply_alpha(0.1)))
+                            }),
+                            // GPT-4
+                            container(
+                                h_stack((
+                                    label(|| "GPT-4".to_string())
+                                        .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc)).flex_grow(1.0)),
+                                    label(move || if selected_model.get() == "GPT-4" { "✓" } else { "" }.to_string())
+                                        .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc).multiply_alpha(0.5))),
+                                ))
+                                .style(|s| s.width_full())
+                            )
+                            .on_click_stop(move |_| {
+                                println!("[Model Selector] Selected: GPT-4");
+                                selected_model.set("GPT-4".to_string());
+                                is_open.set(false);
+                            })
+                            .style(|s| {
+                                s.width_full()
+                                    .padding_horiz(8.0)
+                                    .padding_vert(4.0)
+                                    .border_radius(6.0)
+                                    .cursor(floem::style::CursorStyle::Pointer)
+                                    .hover(|s| s.background(Color::from_rgb8(0x80, 0x80, 0x80).multiply_alpha(0.1)))
+                            }),
+                            // Gemini Pro
+                            container(
+                                h_stack((
+                                    label(|| "Gemini Pro".to_string())
+                                        .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc)).flex_grow(1.0)),
+                                    label(move || if selected_model.get() == "Gemini Pro" { "✓" } else { "" }.to_string())
+                                        .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc).multiply_alpha(0.5))),
+                                ))
+                                .style(|s| s.width_full())
+                            )
+                            .on_click_stop(move |_| {
+                                println!("[Model Selector] Selected: Gemini Pro");
+                                selected_model.set("Gemini Pro".to_string());
                                 is_open.set(false);
                             })
                             .style(|s| {
@@ -554,7 +608,11 @@ fn model_selector_dropdown() -> impl View {
             // Trigger button
             container(
                 h_stack((
-                    label(move || selected_model.get())
+                    label(move || {
+                        let model = selected_model.get();
+                        println!("[Model Trigger] Current model: {}", model);
+                        model
+                    })
                         .style(|s| {
                             s.font_size(12.0)
                                 .color(Color::from_rgb8(0xcc, 0xcc, 0xcc))
@@ -568,6 +626,7 @@ fn model_selector_dropdown() -> impl View {
                 .style(|s| s.items_center().gap(4.0))
             )
             .on_click_stop(move |_| {
+                println!("[Model Trigger] Toggling dropdown");
                 is_open.update(|v| *v = !*v);
             })
             .style(|s| {
@@ -583,10 +642,9 @@ fn model_selector_dropdown() -> impl View {
     .style(|s| s.position(floem::style::Position::Relative))
 }
 
-// Mode selector dropdown (Code/Chat)
-fn mode_selector_dropdown() -> impl View {
+// Mode selector dropdown (Code/Chat) - same styling as model selector
+fn mode_selector_dropdown(selected_mode: RwSignal<String>) -> impl View {
     let is_open = create_rw_signal(false);
-    let selected_mode = create_rw_signal("Code".to_string());
     
     container(
         v_stack((
@@ -594,57 +652,89 @@ fn mode_selector_dropdown() -> impl View {
             container(
                 container(
                     v_stack((
-                        // Code option
+                        // Search bar
                         container(
                             h_stack((
-                                label(|| "Code".to_string())
-                                    .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc)).flex_grow(1.0)),
-                                label(move || if selected_mode.get() == "Code" { "✓" } else { "" }.to_string())
-                                    .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc).multiply_alpha(0.5))),
+                                label(|| "🔍".to_string())
+                                    .style(|s| s.font_size(12.0)),
+                                label(|| "Search modes".to_string())
+                                    .style(|s| {
+                                        s.font_size(12.0)
+                                            .color(Color::from_rgb8(0xcc, 0xcc, 0xcc).multiply_alpha(0.5))
+                                            .flex_grow(1.0)
+                                    }),
+                                label(|| "⚙".to_string())
+                                    .style(|s| s.font_size(12.0)),
+                                label(|| "?".to_string())
+                                    .style(|s| s.font_size(12.0)),
                             ))
-                            .style(|s| s.width_full())
+                            .style(|s| s.width_full().items_center().gap(4.0))
                         )
-                        .on_click_stop(move |_| {
-                            selected_mode.set("Code".to_string());
-                            is_open.set(false);
-                            println!("[Mode] Selected: Code");
-                        })
                         .style(|s| {
                             s.width_full()
-                                .padding_horiz(8.0)
-                                .padding_vert(4.0)
+                                .padding(4.0)
+                                .background(Color::from_rgb8(0x80, 0x80, 0x80).multiply_alpha(0.1))
                                 .border_radius(6.0)
-                                .cursor(floem::style::CursorStyle::Pointer)
-                                .hover(|s| s.background(Color::from_rgb8(0x80, 0x80, 0x80).multiply_alpha(0.1)))
                         }),
-                        // Chat option
-                        container(
-                            h_stack((
+                        
+                        // Available Modes section
+                        v_stack((
+                            label(|| "Available Modes".to_string())
+                                .style(|s| {
+                                    s.font_size(12.0)
+                                        .color(Color::from_rgb8(0xcc, 0xcc, 0xcc).multiply_alpha(0.5))
+                                        .padding_horiz(8.0)
+                                        .padding_vert(4.0)
+                                }),
+                            // Code option
+                            container(
+                                h_stack((
+                                    label(|| "Code".to_string())
+                                        .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc)).flex_grow(1.0)),
+                                    label(move || if selected_mode.get() == "Code" { "✓" } else { "" }.to_string())
+                                        .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc).multiply_alpha(0.5))),
+                                ))
+                                .style(|s| s.width_full())
+                            )
+                            .on_click_stop(move |_| {
+                                selected_mode.set("Code".to_string());
+                                is_open.set(false);
+                                println!("[Mode] Selected: Code");
+                            })
+                            .style(|s| {
+                                s.width_full()
+                                    .padding_horiz(8.0)
+                                    .padding_vert(4.0)
+                                    .border_radius(6.0)
+                                    .cursor(floem::style::CursorStyle::Pointer)
+                                    .hover(|s| s.background(Color::from_rgb8(0x80, 0x80, 0x80).multiply_alpha(0.1)))
+                            }),
+                            // Chat option
+                            container(
                                 label(|| "Chat".to_string())
-                                    .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc)).flex_grow(1.0)),
-                                label(move || if selected_mode.get() == "Chat" { "✓" } else { "" }.to_string())
-                                    .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc).multiply_alpha(0.5))),
-                            ))
-                            .style(|s| s.width_full())
-                        )
-                        .on_click_stop(move |_| {
-                            selected_mode.set("Chat".to_string());
-                            is_open.set(false);
-                            println!("[Mode] Selected: Chat");
-                        })
-                        .style(|s| {
-                            s.width_full()
-                                .padding_horiz(8.0)
-                                .padding_vert(4.0)
-                                .border_radius(6.0)
-                                .cursor(floem::style::CursorStyle::Pointer)
-                                .hover(|s| s.background(Color::from_rgb8(0x80, 0x80, 0x80).multiply_alpha(0.1)))
-                        }),
+                                    .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc)))
+                            )
+                            .on_click_stop(move |_| {
+                                selected_mode.set("Chat".to_string());
+                                is_open.set(false);
+                                println!("[Mode] Selected: Chat");
+                            })
+                            .style(|s| {
+                                s.width_full()
+                                    .padding_horiz(8.0)
+                                    .padding_vert(4.0)
+                                    .border_radius(6.0)
+                                    .cursor(floem::style::CursorStyle::Pointer)
+                                    .hover(|s| s.background(Color::from_rgb8(0x80, 0x80, 0x80).multiply_alpha(0.1)))
+                            }),
+                        ))
+                        .style(|s| s.width_full().gap(2.0)),
                     ))
-                    .style(|s| s.width_full().gap(2.0).padding(8.0))
+                    .style(|s| s.width_full().gap(4.0).padding(8.0))
                 )
                 .style(|s| {
-                    s.width(120.0)
+                    s.width(200.0)
+                        .max_height(400.0)
                         .background(Color::from_rgb8(0x25, 0x25, 0x25))
                         .border(1.0)
                         .border_color(Color::from_rgb8(0x45, 0x45, 0x45))
@@ -664,12 +754,6 @@ fn mode_selector_dropdown() -> impl View {
             // Trigger button
             container(
                 h_stack((
-                    label(|| "</>".to_string())
-                        .style(|s| {
-                            s.font_size(12.0)
-                                .color(Color::from_rgb8(0xcc, 0xcc, 0xcc))
-                                .margin_right(4.0)
-                        }),
                     label(move || selected_mode.get())
                         .style(|s| {
                             s.font_size(12.0)
@@ -679,10 +763,9 @@ fn mode_selector_dropdown() -> impl View {
                         .style(|s| {
                             s.font_size(8.0)
                                 .color(Color::from_rgb8(0xcc, 0xcc, 0xcc).multiply_alpha(0.5))
-                                .margin_left(4.0)
                         }),
                 ))
-                .style(|s| s.items_center())
+                .style(|s| s.items_center().gap(4.0))
             )
             .on_click_stop(move |_| {
                 is_open.update(|v| *v = !*v);

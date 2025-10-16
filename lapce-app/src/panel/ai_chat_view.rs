@@ -32,12 +32,18 @@ pub fn ai_chat_panel(
     let input_value = create_rw_signal(String::new());
     let sending_disabled = false;
     
+    // Model and mode selection state
+    let selected_model = create_rw_signal("Claude Sonnet 4.5 Thinking ".to_string());
+    let selected_mode = create_rw_signal("Code".to_string());
+    
     // Message handler
     let ai_state_clone = ai_state.clone();
     let on_send = Rc::new(move || {
         let msg = input_value.get();
         if !msg.trim().is_empty() {
-            println!("[AI Chat] Sending: {}", msg);
+            let model = selected_model.get();
+            let mode = selected_mode.get();
+            println!("[AI Chat] Sending: {} (model: {}, mode: {})", msg, model, mode);
             
             // Add user message to state
             ai_state_clone.messages.update(|msgs| {
@@ -53,7 +59,12 @@ pub fn ai_chat_panel(
             });
             
             // TODO: Send via IPC bridge when ready
-            // ai_state.bridge.send(OutboundMessage::NewTask { text: msg, images: vec![] });
+            // ai_state.bridge.send(OutboundMessage::NewTask { 
+            //     text: msg, 
+            //     images: vec![], 
+            //     model: Some(model),
+            //     mode: Some(mode),
+            // });
             
             input_value.set(String::new());
         }
@@ -72,6 +83,8 @@ pub fn ai_chat_panel(
                         sending_disabled,
                         on_send,
                         messages_signal,
+                        selected_model,
+                        selected_mode,
                     },
                     move || config.get_untracked(),
                 )

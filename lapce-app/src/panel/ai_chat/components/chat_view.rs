@@ -25,6 +25,8 @@ pub struct ChatViewProps {
     pub sending_disabled: bool,
     pub on_send: Rc<dyn Fn()>,
     pub messages_signal: RwSignal<Vec<crate::ai_state::ChatMessage>>,
+    pub selected_model: RwSignal<String>,
+    pub selected_mode: RwSignal<String>,
 }
 
 /// Simplified ChatView for Phase 4
@@ -99,13 +101,15 @@ pub fn chat_view(
                 .background(cfg.color("editor.background"))
         }),
         
-        // Clean Windsurf input bar
+        // Clean Windsurf input bar with model/mode selection
         {
             let on_send_clone = props.on_send.clone();
             windsurf_ui::input_bar(
                 input_value,
                 move || (on_send_clone)(),
                 props.sending_disabled,
+                props.selected_model,
+                props.selected_mode,
             )
         },
     ))

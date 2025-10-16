@@ -20,6 +20,8 @@ pub enum OutboundMessage {
     NewTask {
         text: String,
         images: Vec<String>, // Base64 or file paths
+        model: Option<String>, // e.g. "Claude Sonnet 4.5 Thinking"
+        mode: Option<String>,  // "Code" or "Chat"
     },
 
     /// User responds to an ask (approval/rejection/input)

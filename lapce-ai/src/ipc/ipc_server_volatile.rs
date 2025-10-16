@@ -96,21 +96,10 @@ impl IpcServerVolatile {
     }
     
     async fn accept_connection(&self) -> Result<(u32, Arc<SharedMemoryBuffer>, Arc<SharedMemoryBuffer>)> {
-        // Create eventfd doorbells for this connection
-        let send_doorbell = EventFdDoorbell::new()?;
-        let recv_doorbell = EventFdDoorbell::new()?;
-        
-        // Duplicate FDs to pass to client (client gets its own copy)
-        // The originals will be attached to buffers and kept alive
-        let send_doorbell_fd_for_client = send_doorbell.duplicate()?;
-        let recv_doorbell_fd_for_client = recv_doorbell.duplicate()?;
-        
-        eprintln!("[SERVER] Created doorbells: send_fd={} (dup={}), recv_fd={} (dup={})",
-            send_doorbell_fd_for_client, send_doorbell_fd_for_client,
-            recv_doorbell_fd_for_client, recv_doorbell_fd_for_client);
-        
-        // Allocate slot
+        // Allocate slot FIRST
         let slot_id = self.next_slot_id.fetch_add(1, Ordering::Relaxed);
+        
+        eprintln!("[SERVER] Accepting connection for slot {}...", slot_id);
         
         // POSIX shm names must start with / and have no other slashes
         let base_name = std::path::Path::new(&self.base_path)
@@ -120,6 +109,17 @@ impl IpcServerVolatile {
         let send_shm_name = format!("/{}_{}_send", base_name, slot_id);
         let recv_shm_name = format!("/{}_{}_recv", base_name, slot_id);
         
+        // Create eventfd doorbells for this connection
+        let send_doorbell = EventFdDoorbell::new()?;
+        let recv_doorbell = EventFdDoorbell::new()?;
+        
+        // Duplicate FDs to pass to client (client gets its own copy)
+        let send_doorbell_fd_for_client = send_doorbell.duplicate()?;
+        let recv_doorbell_fd_for_client = recv_doorbell.duplicate()?;
+        
+        eprintln!("[SERVER] Created doorbells for slot {}: send_fd={}, recv_fd={}",
+            slot_id, send_doorbell_fd_for_client, recv_doorbell_fd_for_client);
+        
         // Create buffers
         let send_buffer = SharedMemoryBuffer::create(&send_shm_name, RING_CAPACITY)?;
         let recv_buffer = SharedMemoryBuffer::create(&recv_shm_name, RING_CAPACITY)?;
@@ -127,6 +127,8 @@ impl IpcServerVolatile {
         // Attach doorbells to buffers
         send_buffer.attach_doorbell(Arc::new(send_doorbell));
         recv_buffer.attach_doorbell(Arc::new(recv_doorbell));
+        
+        eprintln!("[SERVER] Created buffers for slot {}, calling accept_handshake...", slot_id);
         
         // Accept handshake with DUPLICATED doorbell fds
         self.control_server.lock().await.accept_handshake(
@@ -137,6 +139,8 @@ impl IpcServerVolatile {
             send_doorbell_fd_for_client,
             recv_doorbell_fd_for_client,
         ).await?;
+        
+        eprintln!("[SERVER] Completed handshake for slot {}", slot_id);
         
         Ok((slot_id, send_buffer, recv_buffer))
     }
