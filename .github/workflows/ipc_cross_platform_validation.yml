@@ -99,11 +99,37 @@ jobs:
           # Clean up any existing shared memory
           rm -f /dev/shm/stress_test_ipc.sock* 2>/dev/null || true
           
+          # Start server in foreground first to see immediate errors
+          echo "[CI] Testing server startup..."
+          timeout 2 ./target/release/ipc_test_server_volatile /tmp/stress_test_ipc.sock 2>&1 | head -20 || echo "[CI] Server test completed (timeout expected)"
+          
+          # Clean up test socket
+          rm -f /tmp/stress_test_ipc.sock* 2>/dev/null || true
+          
           # Start server in background
+          echo "[CI] Starting server in background..."
           ./target/release/ipc_test_server_volatile /tmp/stress_test_ipc.sock > /tmp/server.log 2>&1 &
           SERVER_PID=$!
-          echo "Server PID: $SERVER_PID"
-          sleep 3
+          echo "[CI] Server PID: $SERVER_PID"
+          
+          # Check if process is running
+          sleep 1
+          if ! ps -p $SERVER_PID > /dev/null; then
+            echo "[CI] ERROR: Server process died immediately!"
+            cat /tmp/server.log
+            exit 1
+          fi
+          
+          # Check if control socket was created
+          sleep 2
+          if [ ! -S /tmp/stress_test_ipc.sock.ctl ]; then
+            echo "[CI] ERROR: Control socket not created!"
+            cat /tmp/server.log
+            ps aux | grep ipc_test_server
+            exit 1
+          fi
+          
+          echo "[CI] Server running, control socket exists"
           
           # Run stress test with shorter timeout
           timeout 300 ./target/release/production_stress_test 2>&1 | tee /tmp/stress_test.log || echo "Test timed out or failed"
@@ -123,11 +149,37 @@ jobs:
           # Clean up any existing shared memory
           rm -f /tmp/stress_test_ipc.sock* 2>/dev/null || true
           
+          # Start server in foreground first to see immediate errors
+          echo "[CI] Testing server startup..."
+          gtimeout 2 ./target/release/ipc_test_server_volatile /tmp/stress_test_ipc.sock 2>&1 | head -20 || echo "[CI] Server test completed (timeout expected)"
+          
+          # Clean up test socket
+          rm -f /tmp/stress_test_ipc.sock* 2>/dev/null || true
+          
           # Start server in background
+          echo "[CI] Starting server in background..."
           ./target/release/ipc_test_server_volatile /tmp/stress_test_ipc.sock > /tmp/server.log 2>&1 &
           SERVER_PID=$!
-          echo "Server PID: $SERVER_PID"
-          sleep 3
+          echo "[CI] Server PID: $SERVER_PID"
+          
+          # Check if process is running
+          sleep 1
+          if ! ps -p $SERVER_PID > /dev/null; then
+            echo "[CI] ERROR: Server process died immediately!"
+            cat /tmp/server.log
+            exit 1
+          fi
+          
+          # Check if control socket was created
+          sleep 2
+          if [ ! -S /tmp/stress_test_ipc.sock.ctl ]; then
+            echo "[CI] ERROR: Control socket not created!"
+            cat /tmp/server.log
+            ps aux | grep ipc_test_server
+            exit 1
+          fi
+          
+          echo "[CI] Server running, control socket exists"
           
           # Run stress test with timeout
           gtimeout 600 ./target/release/production_stress_test 2>&1 | tee /tmp/stress_test.log || true
