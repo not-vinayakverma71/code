@@ -1,7 +1,8 @@
 /// macOS shared memory ring buffer with POSIX semaphore synchronization
 /// Uses kqueue for notifications and POSIX semaphores for atomics
 
-use anyhow::{Result, bail};
+use std::os::unix::io::{AsRawFd, RawFd};
+use std::ptr;
 use std::sync::Arc;
 use std::ptr;
 
@@ -268,7 +269,7 @@ impl MacOsSharedMemoryBuffer {
         // Update write position
         self.write_sem.wait()?;
         let new_write_pos = end_pos % capacity;
-        unsafe { ptr::write_volatile(&(*self.header).write_pos, new_write_pos) };
+        unsafe { ptr::write_volatile(&mut (*self.header).write_pos as *mut u32, new_write_pos) };
         self.write_sem.post()?;
         
         // Ring doorbell to notify reader
@@ -344,7 +345,7 @@ impl MacOsSharedMemoryBuffer {
         // Update read position
         self.read_sem.wait()?;
         let new_read_pos = end_pos % capacity;
-        unsafe { ptr::write_volatile(&(*self.header).read_pos, new_read_pos) };
+        unsafe { ptr::write_volatile(&mut (*self.header).read_pos as *mut u32, new_read_pos) };
         self.read_sem.post()?;
         
         Ok(to_read)

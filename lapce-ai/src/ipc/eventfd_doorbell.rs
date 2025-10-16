@@ -165,10 +165,6 @@ impl EventFdDoorbell {
         bail!("EventFd only supported on Linux");
     }
     
-    pub fn as_raw_fd(&self) -> RawFd {
-        -1
-    }
-    
     pub fn duplicate(&self) -> Result<RawFd> {
         bail!("EventFd only supported on Linux");
     }

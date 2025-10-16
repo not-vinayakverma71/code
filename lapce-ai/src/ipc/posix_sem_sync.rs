@@ -6,7 +6,11 @@ use std::ptr;
 use std::ffi::CString;
 
 #[cfg(unix)]
+#[cfg(target_os = "linux")]
 use libc::{sem_t, sem_open, sem_close, sem_unlink, sem_post, sem_wait, sem_timedwait};
+
+#[cfg(target_os = "macos")]
+use libc::{sem_t, sem_open, sem_close, sem_unlink, sem_post, sem_wait, sem_trywait};
 #[cfg(unix)]
 use libc::{O_CREAT, O_EXCL, timespec, CLOCK_REALTIME};
 
@@ -106,7 +110,7 @@ impl PosixSemaphore {
             let mut tv: libc::timeval = std::mem::zeroed();
             libc::gettimeofday(&mut tv, ptr::null_mut());
             now.tv_sec = tv.tv_sec;
-            now.tv_nsec = tv.tv_usec * 1000;
+            now.tv_nsec = (tv.tv_usec * 1000) as i64;
         }
         
         #[cfg(target_os = "linux")]

@@ -72,7 +72,7 @@ impl IpcServerVolatile {
                             
                             // Spawn connection handler
                             let handlers = self.handlers.clone();
-                            let mut shutdown = self.shutdown.subscribe();
+                            let shutdown = self.shutdown.subscribe();
                             
                             tokio::spawn(async move {
                                 if let Err(e) = Self::handle_connection(
@@ -106,8 +106,8 @@ impl IpcServerVolatile {
         let recv_doorbell_fd_for_client = recv_doorbell.duplicate()?;
         
         eprintln!("[SERVER] Created doorbells: send_fd={} (dup={}), recv_fd={} (dup={})",
-            send_doorbell.as_raw_fd(), send_doorbell_fd_for_client,
-            recv_doorbell.as_raw_fd(), recv_doorbell_fd_for_client);
+            send_doorbell_fd_for_client, send_doorbell_fd_for_client,
+            recv_doorbell_fd_for_client, recv_doorbell_fd_for_client);
         
         // Allocate slot
         let slot_id = self.next_slot_id.fetch_add(1, Ordering::Relaxed);
@@ -138,7 +138,7 @@ impl IpcServerVolatile {
             recv_doorbell_fd_for_client,
         ).await?;
         
-        Ok((slot_id, Arc::new(send_buffer), Arc::new(recv_buffer)))
+        Ok((slot_id, send_buffer, recv_buffer))
     }
     
     async fn handle_connection(

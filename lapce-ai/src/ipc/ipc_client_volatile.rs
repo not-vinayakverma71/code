@@ -30,8 +30,8 @@ impl IpcClientVolatile {
         eprintln!("[CLIENT VOLATILE] Got slot {}", response.slot_id);
         
         // Open buffers (note: reversed perspective - client writes to recv, reads from send)
-        let mut send_buffer = SharedMemoryBuffer::open(&response.recv_shm_name)?;
-        let mut recv_buffer = SharedMemoryBuffer::open(&response.send_shm_name)?;
+        let send_buffer = SharedMemoryBuffer::open(&response.recv_shm_name, response.ring_capacity)?;
+        let recv_buffer = SharedMemoryBuffer::open(&response.send_shm_name, response.ring_capacity)?;
         
         // Attach eventfd doorbells
         eprintln!("[CLIENT VOLATILE] Received doorbell fds: send={}, recv={}", handshake.send_doorbell_fd, handshake.recv_doorbell_fd);
@@ -43,8 +43,8 @@ impl IpcClientVolatile {
         eprintln!("[CLIENT VOLATILE] Opened buffers with doorbells");
         
         Ok(Self {
-            send_buffer: Arc::new(send_buffer),
-            recv_buffer: Arc::new(recv_buffer),
+            send_buffer,
+            recv_buffer,
             codec: Arc::new(Mutex::new(BinaryCodec::new())),
             slot_id: response.slot_id,
         })

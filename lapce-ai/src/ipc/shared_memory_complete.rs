@@ -97,7 +97,7 @@ impl SharedMemoryBuffer {
                     let chars: Vec<char> = full_name.chars().collect();
                     let prefix: String = chars.iter().take(15).collect();
                     let suffix: String = chars.iter().skip(chars.len().saturating_sub(15)).collect();
-                    format!("{}_", prefix) + &suffix
+                    format!("{}_", prefix) + suffix.as_str()
                 } else {
                     full_name
                 }
@@ -254,7 +254,7 @@ impl SharedMemoryBuffer {
                     let chars: Vec<char> = full_name.chars().collect();
                     let prefix: String = chars.iter().take(15).collect();
                     let suffix: String = chars.iter().skip(chars.len().saturating_sub(15)).collect();
-                    format!("{}_", prefix) + &suffix
+                    format!("{}_", prefix) + suffix.as_str()
                 } else {
                     full_name
                 }
