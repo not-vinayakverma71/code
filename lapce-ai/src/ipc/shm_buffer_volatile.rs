@@ -1,14 +1,13 @@
 /// Cross-process safe shared memory buffer using volatile ring header
 /// Replaces shared_memory_complete.rs atomic-based approach
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::ptr;
 use anyhow::{Result, bail};
 use crate::ipc::ring_header_volatile::VolatileRingHeader;
 use crate::ipc::eventfd_doorbell::EventFdDoorbell;
 use std::os::unix::io::RawFd;
 use crate::ipc::shm_namespace::create_namespaced_path;
-use std::sync::{Arc, Mutex};
 
 const SLOT_SIZE: usize = 1024;
 const NUM_SLOTS: usize = 1024;
