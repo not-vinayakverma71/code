@@ -81,9 +81,10 @@ jobs:
           protoc --version
       
       # Build Phase
-      - name: Build IPC server
+      - name: Build IPC server (Unix only)
+        if: matrix.platform != 'windows'
         working-directory: lapce-ai
-        run: cargo build --release --bin ipc_test_server_volatile
+        run: cargo build --release --bin ipc_test_server_volatile --features unix-bins
       
       - name: Build stress test
         working-directory: lapce-ai
