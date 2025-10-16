@@ -62,7 +62,17 @@ jobs:
         if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libprocfs-dev || echo "procfs not needed, will use manual parsing"
+          sudo apt-get install -y protobuf-compiler libprocfs-dev || echo "procfs not needed, will use manual parsing"
+      
+      - name: Install macOS dependencies
+        if: matrix.platform == 'macos'
+        run: |
+          brew install protobuf coreutils
+      
+      - name: Install Windows dependencies
+        if: matrix.platform == 'windows'
+        run: |
+          choco install protoc -y
       
       # Build Phase
       - name: Build IPC server
