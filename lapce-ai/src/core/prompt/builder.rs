@@ -88,6 +88,7 @@ impl PromptBuilder {
     ///
     /// Translation of generatePrompt() from system.ts (lines 52-145)
     async fn generate_prompt(&self) -> PromptResult<String> {
+        let start = std::time::Instant::now();
         use crate::core::prompt::sections::*;
         use crate::core::prompt::tools::{get_tool_descriptions_for_mode, ToolDescriptionContext};
         
@@ -159,6 +160,20 @@ impl PromptBuilder {
             .collect::<Vec<_>>()
             .join("\n\n");
         
+        // Observability: log prompt build metrics
+        let duration = start.elapsed();
+        let char_count = prompt.len();
+        let token_estimate = char_count / 4; // Approximate token count
+        
+        tracing::info!(
+            mode = %self.mode.slug,
+            duration_ms = duration.as_millis(),
+            char_count = char_count,
+            token_estimate = token_estimate,
+            has_custom_instructions = self.custom_instructions.is_some(),
+            "Prompt build completed"
+        );
+        
         Ok(prompt)
     }
     
@@ -166,26 +181,57 @@ impl PromptBuilder {
     ///
     /// Translation of build_with_retry pattern from CHUNK-01 Part 5
     pub async fn build_with_retry(&self) -> PromptResult<String> {
-        match self.build().await {
+        let start = std::time::Instant::now();
+        let mut retry_count = 0;
+        let mut used_fallback = false;
+        
+        let result = match self.build().await {
             Ok(prompt) if prompt.len() > MAX_PROMPT_SIZE => {
                 tracing::warn!(
-                    "Prompt too large: {} > {} chars, attempting condensed build",
-                    prompt.len(),
-                    MAX_PROMPT_SIZE
+                    mode = %self.mode.slug,
+                    char_count = prompt.len(),
+                    max_size = MAX_PROMPT_SIZE,
+                    "Prompt too large, attempting condensed build"
                 );
+                used_fallback = true;
+                retry_count += 1;
                 self.build_condensed().await
             }
             Ok(prompt) => Ok(prompt),
             Err(PromptError::RuleLoadError(e)) => {
-                tracing::warn!("Rules failed to load: {}, continuing without rules", e);
+                tracing::warn!(
+                    mode = %self.mode.slug,
+                    error = %e,
+                    "Rules failed to load, continuing without rules"
+                );
+                used_fallback = true;
+                retry_count += 1;
                 self.build_without_rules().await
             }
             Err(e) => Err(e),
+        };
+        
+        // Log retry metrics
+        if used_fallback {
+            let duration = start.elapsed();
+            tracing::info!(
+                mode = %self.mode.slug,
+                retry_count = retry_count,
+                used_fallback = used_fallback,
+                total_duration_ms = duration.as_millis(),
+                "Prompt build with retry completed"
+            );
         }
+        
+        result
     }
     
     /// Build condensed version (reduce custom instructions)
     async fn build_condensed(&self) -> PromptResult<String> {
+        tracing::debug!(
+            mode = %self.mode.slug,
+            "Building condensed prompt"
+        );
         // TODO: Implement condensing strategy
         // For now, just skip custom instructions
         let (role_definition, _) = crate::core::prompt::modes::get_mode_selection(&self.mode);
@@ -200,6 +246,10 @@ impl PromptBuilder {
     
     /// Build without rules (fallback for rule load errors)
     async fn build_without_rules(&self) -> PromptResult<String> {
+        tracing::debug!(
+            mode = %self.mode.slug,
+            "Building prompt without rules"
+        );
         // Build normally but skip rule loading
         let (role_definition, base_instructions) = crate::core::prompt::modes::get_mode_selection(&self.mode);
         

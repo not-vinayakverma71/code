@@ -10,17 +10,46 @@ use floem::{
     View,
 };
 
-// Simple working dropdown - EXACT TEST STRUCTURE
+// Model selector dropdown - WORKING FLAT STRUCTURE
 fn simple_model_dropdown(selected_model: RwSignal<String>) -> impl View {
     let is_open = create_rw_signal(false);
     
     v_stack((
         // Dropdown panel
         v_stack((
-                // GPT-4 option
+                label(|| "Recently Used".to_string())
+                    .style(|s| s.font_size(10.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc).multiply_alpha(0.5)).padding(8.0)),
+                // Claude Sonnet 4.5 Thinking
+                container(label(|| "Claude Sonnet 4.5 Thinking".to_string()))
+                    .on_click_stop(move |_| {
+                        println!("[CLICK] Claude Sonnet 4.5 Thinking");
+                        selected_model.set("Claude Sonnet 4.5 Thinking".to_string());
+                        is_open.set(false);
+                    })
+                    .style(|s| {
+                        s.padding(8.0)
+                            .width_full()
+                            .background(Color::from_rgb8(0x40, 0x40, 0x40))
+                            .cursor(floem::style::CursorStyle::Pointer)
+                            .hover(|s| s.background(Color::from_rgb8(0x60, 0x60, 0x60)))
+                    }),
+                // Claude Sonnet 4
+                container(label(|| "Claude Sonnet 4".to_string()))
+                    .on_click_stop(move |_| {
+                        selected_model.set("Claude Sonnet 4".to_string());
+                        is_open.set(false);
+                    })
+                    .style(|s| {
+                        s.padding(8.0)
+                            .width_full()
+                            .background(Color::from_rgb8(0x40, 0x40, 0x40))
+                            .cursor(floem::style::CursorStyle::Pointer)
+                            .hover(|s| s.background(Color::from_rgb8(0x60, 0x60, 0x60)))
+                    }),
+                // GPT-4
                 container(label(|| "GPT-4".to_string()))
                     .on_click_stop(move |_| {
-                        println!("[Dropdown] Selected GPT-4");
+                        println!("[CLICK] GPT-4");
                         selected_model.set("GPT-4".to_string());
                         is_open.set(false);
                     })
@@ -31,11 +60,10 @@ fn simple_model_dropdown(selected_model: RwSignal<String>) -> impl View {
                             .cursor(floem::style::CursorStyle::Pointer)
                             .hover(|s| s.background(Color::from_rgb8(0x60, 0x60, 0x60)))
                     }),
-                // Claude option
-                container(label(|| "Claude Sonnet 4".to_string()))
+                // Gemini Pro
+                container(label(|| "Gemini Pro".to_string()))
                     .on_click_stop(move |_| {
-                        println!("[Dropdown] Selected Claude");
-                        selected_model.set("Claude Sonnet 4".to_string());
+                        selected_model.set("Gemini Pro".to_string());
                         is_open.set(false);
                     })
                     .style(|s| {
@@ -48,8 +76,10 @@ fn simple_model_dropdown(selected_model: RwSignal<String>) -> impl View {
         ))
         .style(move |s| {
             if is_open.get() {
-                s.padding(10.0)
+                s.width(240.0)
                     .background(Color::from_rgb8(0x30, 0x30, 0x30))
+                    .border_radius(8.0)
+                    .padding(8.0)
             } else {
                 s.hide()
             }
@@ -59,13 +89,15 @@ fn simple_model_dropdown(selected_model: RwSignal<String>) -> impl View {
             label(move || format!("{} ▼", selected_model.get()))
         )
         .on_click_stop(move |_| {
-            println!("[Dropdown] Toggle");
             is_open.update(|v| *v = !*v);
         })
         .style(|s| {
-            s.padding(8.0)
-                .background(Color::from_rgb8(0xff, 0x00, 0x00))  // BRIGHT RED TEST
+            s.padding(6.0)
+                .padding_horiz(8.0)
+                .background(Color::from_rgb8(0x50, 0x50, 0x50))
+                .border_radius(4.0)
                 .cursor(floem::style::CursorStyle::Pointer)
+                .hover(|s| s.background(Color::from_rgb8(0x60, 0x60, 0x60)))
         }),
     ))
     .style(|s| s.position(floem::style::Position::Relative))

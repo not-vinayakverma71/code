@@ -77,6 +77,10 @@ rstest = "0.18"
 name = "tool_benchmarks"
 harness = false
 
+[[bench]]
+name = "prompt_benchmarks"
+harness = false
+
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", features = ["handleapi", "memoryapi", "winnt", "minwindef"] }
 windows = { version = "0.58", features = [

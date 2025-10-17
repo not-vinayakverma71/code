@@ -65,24 +65,19 @@ impl IpcServerVolatile {
                     return Ok(());
                 }
                 
-                result = self.accept_connection() => {
+                // Accept connection (fast, just TCP accept)
+                result = async {
+                    let mut guard = self.control_server.lock().await;
+                    guard.listener.accept().await
+                } => {
                     match result {
-                        Ok((slot_id, send_buffer, recv_buffer)) => {
-                            eprintln!("[SERVER VOLATILE] Accepted connection slot {}", slot_id);
-                            
-                            // Spawn connection handler
-                            let handlers = self.handlers.clone();
-                            let shutdown = self.shutdown.subscribe();
-                            
+                        Ok((stream, _addr)) => {
+                            // Spawn task to handle this connection
+                            // This allows us to immediately accept the NEXT client
+                            let server = self.clone();
                             tokio::spawn(async move {
-                                if let Err(e) = Self::handle_connection(
-                                    slot_id,
-                                    send_buffer,
-                                    recv_buffer,
-                                    handlers,
-                                    shutdown,
-                                ).await {
-                                    eprintln!("[HANDLER {}] Error: {}", slot_id, e);
+                                if let Err(e) = server.handle_new_connection(stream).await {
+                                    eprintln!("[SERVER] Connection setup error: {}", e);
                                 }
                             });
                         }
@@ -95,15 +90,11 @@ impl IpcServerVolatile {
         }
     }
     
-    async fn accept_connection(&self) -> Result<(u32, Arc<SharedMemoryBuffer>, Arc<SharedMemoryBuffer>)> {
-        // WAIT FOR CLIENT CONNECTION FIRST
-        eprintln!("[SERVER] Waiting for client connection...");
-        let (stream, _addr) = self.control_server.lock().await.listener.accept().await?;
-        
-        eprintln!("[SERVER] Client connected, allocating resources...");
-        
-        // NOW allocate slot and create resources
+    /// Handle a new connection: create resources, perform handshake, spawn handler
+    async fn handle_new_connection(&self, stream: tokio::net::UnixStream) -> Result<()> {
+        // Allocate slot
         let slot_id = self.next_slot_id.fetch_add(1, Ordering::Relaxed);
+        eprintln!("[SERVER] Slot {}: client connected", slot_id);
         
         // POSIX shm names must start with / and have no other slashes
         let base_name = std::path::Path::new(&self.base_path)
@@ -113,28 +104,21 @@ impl IpcServerVolatile {
         let send_shm_name = format!("/{}_{}_send", base_name, slot_id);
         let recv_shm_name = format!("/{}_{}_recv", base_name, slot_id);
         
-        // Create eventfd doorbells for this connection
+        // Create eventfd doorbells
         let send_doorbell = EventFdDoorbell::new()?;
         let recv_doorbell = EventFdDoorbell::new()?;
-        
-        // Duplicate FDs to pass to client (client gets its own copy)
-        let send_doorbell_fd_for_client = send_doorbell.duplicate()?;
-        let recv_doorbell_fd_for_client = recv_doorbell.duplicate()?;
-        
-        eprintln!("[SERVER] Slot {}: created doorbells send_fd={}, recv_fd={}",
-            slot_id, send_doorbell_fd_for_client, recv_doorbell_fd_for_client);
+        let send_doorbell_fd = send_doorbell.duplicate()?;
+        let recv_doorbell_fd = recv_doorbell.duplicate()?;
         
         // Create buffers
         let send_buffer = SharedMemoryBuffer::create(&send_shm_name, RING_CAPACITY)?;
         let recv_buffer = SharedMemoryBuffer::create(&recv_shm_name, RING_CAPACITY)?;
-        
-        // Attach doorbells to buffers
         send_buffer.attach_doorbell(Arc::new(send_doorbell));
         recv_buffer.attach_doorbell(Arc::new(recv_doorbell));
         
-        eprintln!("[SERVER] Slot {}: reading handshake request...", slot_id);
+        eprintln!("[SERVER] Slot {}: created resources", slot_id);
         
-        // Read handshake request from the stream we already accepted
+        // Read handshake request
         let mut buf = vec![0u8; 4096];
         let stream_std = stream.into_std()?;
         stream_std.set_nonblocking(false)?;
@@ -143,23 +127,29 @@ impl IpcServerVolatile {
         let n = (&stream_std).read(&mut buf)?;
         let _request: crate::ipc::control_socket::HandshakeRequest = bincode::deserialize(&buf[..n])?;
         
-        eprintln!("[SERVER] Slot {}: sending handshake response...", slot_id);
-        
         // Send response
         let response = crate::ipc::control_socket::HandshakeResponse {
             slot_id,
-            send_shm_name: send_shm_name.clone(),
-            recv_shm_name: recv_shm_name.clone(),
+            send_shm_name,
+            recv_shm_name,
             ring_capacity: RING_CAPACITY,
             protocol_version: 1,
         };
-        
         let response_bytes = bincode::serialize(&response)?;
-        crate::ipc::fd_pass::send_fds(&stream_std, &[send_doorbell_fd_for_client, recv_doorbell_fd_for_client], &response_bytes)?;
+        crate::ipc::fd_pass::send_fds(&stream_std, &[send_doorbell_fd, recv_doorbell_fd], &response_bytes)?;
         
         eprintln!("[SERVER] Slot {}: handshake complete", slot_id);
         
-        Ok((slot_id, send_buffer, recv_buffer))
+        // Spawn handler
+        let handlers = self.handlers.clone();
+        let shutdown = self.shutdown.subscribe();
+        tokio::spawn(async move {
+            if let Err(e) = Self::handle_connection(slot_id, send_buffer, recv_buffer, handlers, shutdown).await {
+                eprintln!("[HANDLER {}] Error: {}", slot_id, e);
+            }
+        });
+        
+        Ok(())
     }
     
     async fn handle_connection(
