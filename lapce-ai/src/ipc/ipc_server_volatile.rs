@@ -55,6 +55,12 @@ impl IpcServerVolatile {
         }));
     }
     
+    /// Accept a connection without holding lock across await (prevents macOS deadlock)
+    async fn accept_connection(&self) -> Result<(tokio::net::UnixStream, tokio::net::unix::SocketAddr)> {
+        let mut guard = self.control_server.lock().await;
+        guard.listener.accept().await.map_err(|e| e.into())
+    }
+    
     pub async fn serve(self: Arc<Self>) -> Result<()> {
         let mut shutdown_rx = self.shutdown.subscribe();
         
@@ -66,10 +72,8 @@ impl IpcServerVolatile {
                 }
                 
                 // Accept connection (fast, just TCP accept)
-                result = async {
-                    let mut guard = self.control_server.lock().await;
-                    guard.listener.accept().await
-                } => {
+                // CRITICAL: Don't hold lock across .await to prevent macOS deadlock
+                result = self.accept_connection() => {
                     match result {
                         Ok((stream, _addr)) => {
                             eprintln!("[SERVER] Accepted connection from client");

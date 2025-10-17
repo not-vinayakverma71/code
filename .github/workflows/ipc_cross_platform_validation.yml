@@ -86,9 +86,10 @@ jobs:
         working-directory: lapce-ai
         run: cargo build --release --bin ipc_test_server_volatile --features unix-bins
       
-      - name: Build stress test
+      - name: Build stress test (Unix only)
+        if: matrix.platform != 'windows'
         working-directory: lapce-ai
-        run: cargo build --release --bin production_stress_test
+        run: cargo build --release --bin production_stress_test --features unix-bins
       
       # Test Phase
       - name: Run IPC stress test (Linux)
