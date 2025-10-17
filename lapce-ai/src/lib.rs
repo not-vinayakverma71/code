@@ -12,6 +12,8 @@ pub mod ai_tools;
 pub mod assistant_message_parser;
 pub mod buffer_management;
 pub mod core;
+pub mod dispatcher;  // Message dispatcher for IPC bridge
+pub mod integration; // Tool and provider bridges
 pub mod handlers;  // P1-1: Tool execution handlers
 pub mod auto_reconnection;
 pub mod backoff_util;

@@ -33,7 +33,7 @@ primary-background = "#141414"
 secondary-background = "#181818"
 current-background = "#2A2D2E"
 text = "$white"
-dim-text = "#8C8C8C"
+dim-text = "#E4E4E48C"
 
 [color-theme.syntax]
 "comment" = "$dim-text"
@@ -134,8 +134,8 @@ dim-text = "#8C8C8C"
 
 "lapce.tab.separator" = "#E4E4E412"  # rgba(228, 228, 228, 0.07)
 
-"lapce.icon.active" = "$text"
-"lapce.icon.inactive" = "$dim-text"
+"lapce.icon.active" = "#E4E4E4"
+"lapce.icon.inactive" = "#E4E4E48C"
 
 "lapce.remote.icon" = "$black"
 "lapce.remote.local" = "#4078F2"
