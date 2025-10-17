@@ -57,6 +57,31 @@ name = "ipc_test_server_volatile"
 path = "src/bin/ipc_test_server_volatile.rs"
 required-features = ["unix-bins"]
 
+[[bin]]
+name = "production_stress_test"
+path = "src/bin/production_stress_test.rs"
+required-features = ["unix-bins"]
+
+[[bin]]
+name = "nuclear_stress_test"
+path = "src/bin/nuclear_stress_test.rs"
+required-features = ["unix-bins"]
+
+[[bin]]
+name = "stress_test_ipc"
+path = "src/bin/stress_test_ipc.rs"
+required-features = ["unix-bins"]
+
+[[bin]]
+name = "test_single_futex"
+path = "src/bin/test_single_futex.rs"
+required-features = ["unix-bins"]
+
+[[bin]]
+name = "test_volatile_ipc"
+path = "src/bin/test_volatile_ipc.rs"
+required-features = ["unix-bins"]
+
 [[bench]]
 name = "benchmarks"
 harness = false

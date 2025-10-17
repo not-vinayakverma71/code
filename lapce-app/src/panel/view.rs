@@ -447,7 +447,9 @@ pub fn panel_container_view(
             })
             .apply_if(!is_bottom, |s| s.flex_col())
             .border_color(config.color(LapceColor::LAPCE_BORDER))
-            .color(config.color(LapceColor::PANEL_FOREGROUND))
+            // Default to dim foreground for side panels, override for bottom panel
+            .color(config.color(LapceColor::PANEL_FOREGROUND_DIM))
+            .apply_if(is_bottom, |s| s.color(config.color(LapceColor::PANEL_FOREGROUND)))
     })
     .debug_name(format!("{:?} Pannel Container View", position))
 }

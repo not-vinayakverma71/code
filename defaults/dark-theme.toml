@@ -198,7 +198,7 @@ dim-text = "#E4E4E48C"
 "debug.breakpoint.hover" = "#E06C7566"
 
 "panel.background" = "$primary-background"  # rgb(20, 20, 20)
-"panel.foreground" = "#E4E4E4"
+"panel.foreground" = "#E4E4E4EB"  # rgba(228,228,228,0.92)
 "panel.foreground.dim" = "#E4E4E48C"  # rgba(228,228,228,0.55)
 "panel.current.background" = "#2A2D2E"
 "panel.current.foreground" = "$text"
