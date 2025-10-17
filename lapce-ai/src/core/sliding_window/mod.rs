@@ -16,7 +16,7 @@ use std::collections::HashMap;
 use crate::core::condense::{
     summarize_conversation, SummarizeResponse, MIN_CONDENSE_THRESHOLD, MAX_CONDENSE_THRESHOLD,
 };
-use crate::core::model_limits::{get_model_limits, get_reserved_tokens};
+use crate::core::model_limits::get_reserved_tokens;
 use crate::core::token_counter;
 
 /// Default percentage of the context window to use as a buffer when deciding when to truncate

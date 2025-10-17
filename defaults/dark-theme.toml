@@ -1,7 +1,7 @@
 #:schema ../extra/schemas/color-theme.json
 
 [color-theme]
-name = "Lapce Dark Modern"
+name = "Impulsive Dark"
 
 [ui]
 font-family = ""
@@ -14,8 +14,8 @@ scroll-width = 10
 drop-shadow-width = 0
 
 [color-theme.base]
-# VSCode Dark Modern colors - deeper blacks, better contrast
-black = "#0D0D0D"
+# VS Code Dark Modern - Exact colors from theme
+black = "#141414"
 blue = "#569CD6"
 cyan = "#4EC9B0"
 green = "#6A9955"
@@ -24,15 +24,16 @@ magenta = "#C586C0"
 orange = "#CE9178"
 purple = "#C586C0"
 red = "#F48771"
-white = "#CCCCCC"
+white = "#E4E4E4"
 yellow = "#DCDCAA"
 
-primary-background = "#181818"
-# Background for 'secondary' elements: panels, palette, status bar, completion, hover
-secondary-background = "#1F1F1F"
+# Primary = Sidebar, panels, status bar (#141414 = rgb(20,20,20))
+primary-background = "#141414"
+# Secondary = Editor background (#181818 = rgb(24,24,24))
+secondary-background = "#181818"
 current-background = "#2A2D2E"
 text = "$white"
-dim-text = "#858585"
+dim-text = "#8C8C8C"
 
 [color-theme.syntax]
 "comment" = "$dim-text"
@@ -86,19 +87,49 @@ dim-text = "#858585"
 "lapce.error" = "$red"
 "lapce.warn" = "$yellow"
 "lapce.dropdown_shadow" = "#000000"
-"lapce.border" = "$grey"
-"lapce.scroll_bar" = "#3C3C3C"
+"lapce.border" = "#E4E4E412"  # rgba(228, 228, 228, 0.07)
+"lapce.scroll_bar" = "#E4E4E412"  # rgba(228, 228, 228, 0.07)
 
 "lapce.button.primary.background" = "#0E639C"
 "lapce.button.primary.foreground" = "#FFFFFF"
 
+# Secondary buttons (like empty screen buttons)
+"lapce.button.secondary.background" = "#3A3D41"
+"lapce.button.secondary.foreground" = "#E4E4E4"
+"lapce.button.secondary.hover" = "#45494E"
+
+# Input fields and widgets
+"lapce.input.background" = "#313131"
+"lapce.input.foreground" = "#E4E4E4"
+"lapce.input.border" = "#3C3C3C"
+"lapce.input.placeholder" = "#8C8C8C"
+
+# Dropdown and quick input
+"lapce.dropdown.background" = "#313131"
+"lapce.dropdown.foreground" = "#E4E4E4"
+"lapce.dropdown.border" = "#3C3C3C"
+
+# List/tree colors
+"lapce.list.hover.background" = "#2A2D2E"
+"lapce.list.focus.background" = "#04395E"
+"lapce.list.focus.foreground" = "#E4E4E4"
+"lapce.list.active.selection.background" = "#04395E"
+"lapce.list.active.selection.foreground" = "#E4E4E4"
+"lapce.list.inactive.selection.background" = "#37373D"
+"lapce.list.inactive.selection.foreground" = "#E4E4E4"
+
+# Sidebar section headers
+"lapce.sidebar.section.header.background" = "$primary-background"
+"lapce.sidebar.section.header.foreground" = "#E4E4E4"
+"lapce.sidebar.section.header.border" = "#E4E4E412"
+
 # tab
-"lapce.tab.active.background" = "$secondary-background"
-"lapce.tab.active.foreground" = "#FFFFFF"
+"lapce.tab.active.background" = "$primary-background"
+"lapce.tab.active.foreground" = "#E4E4E4"
 "lapce.tab.active.underline" = "#0078D4"
 
 "lapce.tab.inactive.background" = "$primary-background"
-"lapce.tab.inactive.foreground" = "#9D9D9D"
+"lapce.tab.inactive.foreground" = "#E4E4E48C"  # rgba(228, 228, 228, 0.55)
 "lapce.tab.inactive.underline" = "#0078D477"
 
 "lapce.tab.separator" = ""
@@ -116,10 +147,10 @@ dim-text = "#858585"
 "lapce.plugin.description" = "$text"
 "lapce.plugin.author" = "#B0B0B0"
 
-"editor.background" = "$secondary-background"
+"editor.background" = "$secondary-background"  # rgb(24, 24, 24)
 "editor.foreground" = "$text"
 "editor.dim" = "$dim-text"
-"editor.focus" = "#CCCCCC"
+"editor.focus" = "#E4E4E4"
 "editor.caret" = "#AEAFAD"
 "editor.selection" = "#264F78"
 "editor.current_line" = "#282828"
@@ -147,18 +178,18 @@ dim-text = "#858585"
 "source_control.removed" = "#FF5266CC"
 "source_control.modified" = "#0184BCCC"
 
-"tooltip.background" = "#202020"
+"tooltip.background" = "#252526"
 "tooltip.foreground" = "$text"
 
-"palette.background" = "#222222"
+"palette.background" = "#252526"  # Slightly lighter than sidebar
 "palette.foreground" = "$text"
 "palette.current.background" = "$current-background"
 "palette.current.foreground" = "$text"
 
-"completion.background" = "#202020"
+"completion.background" = "#252526"
 "completion.current" = "$current-background"
 
-"hover.background" = "#202020"
+"hover.background" = "#252526"
 
 "activity.background" = "$primary-background"
 "activity.current" = "$primary-background"
@@ -166,19 +197,19 @@ dim-text = "#858585"
 "debug.breakpoint" = "$red"
 "debug.breakpoint.hover" = "#E06C7566"
 
-"panel.background" = "$primary-background"
-"panel.foreground" = "$text"
-"panel.foreground.dim" = "$dim-text"
+"panel.background" = "$primary-background"  # rgb(20, 20, 20)
+"panel.foreground" = "#E4E4E4"
+"panel.foreground.dim" = "#E4E4E48C"  # rgba(228,228,228,0.55)
 "panel.current.background" = "#2A2D2E"
 "panel.current.foreground" = "$text"
 "panel.current.foreground.dim" = "$dim-text"
 "panel.hovered.background" = "#2A2D2E"
-"panel.hovered.active.background" = "$dim-text"
+"panel.hovered.active.background" = "#2A2D2E"
 "panel.hovered.foreground" = "$text"
 "panel.hovered.foreground.dim" = "$dim-text"
 
 "status.background" = "$primary-background"
-"status.foreground" = "$text"
+"status.foreground" = "#E4E4E45E"  # rgba(228, 228, 228, 0.37)
 "status.modal.normal.background" = "$blue"
 "status.modal.normal.foreground" = "$black"
 "status.modal.insert.background" = "$red"
@@ -192,7 +223,7 @@ dim-text = "#858585"
 
 "terminal.cursor" = "$text"
 "terminal.foreground" = "$text"
-"terminal.background" = "$secondary-background"
+"terminal.background" = "$primary-background"
 "terminal.white" = "$white"
 "terminal.black" = "$black"
 "terminal.red" = "$red"

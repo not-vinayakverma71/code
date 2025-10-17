@@ -31,19 +31,20 @@ impl ContextTrackerAdapter {
     /// Track diff apply operation
     pub async fn track_diff_apply(&self, file_path: &str) -> Result<(), String> {
         let mut tracker = self.tracker.write().await;
-        tracker.track_file_context(file_path, RecordSource::DiffApply).await
+        tracker.track_file_context(file_path.to_string(), RecordSource::DiffApply).await
     }
     
     /// Track file mention (e.g., in search results)
     pub async fn track_mention(&self, file_path: &str) -> Result<(), String> {
         let mut tracker = self.tracker.write().await;
-        tracker.track_file_context(file_path, RecordSource::Mention).await
+        tracker.track_file_context(file_path.to_string(), RecordSource::Mention).await
     }
     
     /// Mark file as edited by AI (prevents false user-edit detection)
     pub async fn mark_ai_edited(&self, file_path: &str) -> Result<(), String> {
         let mut tracker = self.tracker.write().await;
-        tracker.mark_file_as_edited_by_ai(file_path).await
+        tracker.mark_file_as_edited_by_roo(file_path.to_string());
+        Ok(())
     }
 }
 

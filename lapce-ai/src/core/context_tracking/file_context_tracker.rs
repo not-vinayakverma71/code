@@ -259,6 +259,27 @@ impl FileContextTracker {
                 self.mark_file_as_edited_by_roo(file_path);
             }
             
+            // write_tool: Roo has written to the file via a tool
+            RecordSource::WriteTool => {
+                new_entry.roo_read_date = Some(now);
+                new_entry.roo_edit_date = Some(now);
+                self.checkpoint_possible_files.write().unwrap().insert(file_path.clone());
+                self.mark_file_as_edited_by_roo(file_path);
+            }
+            
+            // diff_apply: Roo has applied a diff to the file
+            RecordSource::DiffApply => {
+                new_entry.roo_read_date = Some(now);
+                new_entry.roo_edit_date = Some(now);
+                self.checkpoint_possible_files.write().unwrap().insert(file_path.clone());
+                self.mark_file_as_edited_by_roo(file_path);
+            }
+            
+            // mention: File mentioned in conversation/search results
+            RecordSource::Mention => {
+                new_entry.roo_read_date = Some(now);
+            }
+            
             // read_tool/file_mentioned: Roo has read the file via a tool or file mention
             RecordSource::ReadTool | RecordSource::FileMentioned => {
                 new_entry.roo_read_date = Some(now);

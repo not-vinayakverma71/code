@@ -8,6 +8,7 @@
 
 use std::path::Path;
 use tokio::fs;
+use trash;
 
 /// Helper: Check if path exists (async wrapper)
 async fn file_exists(path: &Path) -> bool {
@@ -60,9 +61,12 @@ pub async fn ensure_local_kilorules_dir_exists(
             let target_file = kilorule_path.join(default_rule_filename);
             fs::write(&target_file, content).await?;
             
-            // Delete backup - DO NOT use rm, use trash
-            // In production, call: trash_put(&temp_path).await
-            let _ = fs::remove_file(&temp_path).await; // TODO: Replace with trash_put
+            // Delete backup using trash (safe, recoverable deletion)
+            // Using blocking trash::delete in tokio context is acceptable for this use case
+            if let Err(e) = trash::delete(&temp_path) {
+                // Non-fatal: backup deletion failure doesn't affect conversion success
+                eprintln!("Warning: Failed to move backup to trash: {}", e);
+            }
             
             Ok::<(), std::io::Error>(())
         }

@@ -10,6 +10,106 @@ use floem::{
     View,
 };
 
+// Model selector dropdown - WORKING FLAT STRUCTURE
+fn simple_model_dropdown(selected_model: RwSignal<String>) -> impl View {
+    let is_open = create_rw_signal(false);
+    
+    v_stack((
+        // Trigger button
+        container(
+            label(move || format!("{} ▼", selected_model.get()))
+        )
+        .on_click_stop(move |_| {
+            is_open.update(|v| *v = !*v);
+        })
+        .style(|s| {
+            s.padding(6.0).padding_horiz(8.0)
+                .background(Color::from_rgb8(0x50, 0x50, 0x50))
+                .border_radius(4.0)
+                .cursor(floem::style::CursorStyle::Pointer)
+                .hover(|s| s.background(Color::from_rgb8(0x60, 0x60, 0x60)))
+        }),
+        // Dropdown panel - wrapped in height-0 container
+        container(
+            v_stack((
+                label(|| "Recently Used".to_string())
+                    .style(|s| s.font_size(10.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc).multiply_alpha(0.5)).padding(8.0)),
+                // Claude Sonnet 4.5 Thinking
+                container(label(|| "Claude Sonnet 4.5 Thinking".to_string()))
+                    .on_click_stop(move |_| {
+                        println!("[CLICK] Claude Sonnet 4.5 Thinking");
+                        selected_model.set("Claude Sonnet 4.5 Thinking".to_string());
+                        is_open.set(false);
+                    })
+                    .style(|s| {
+                        s.padding(8.0)
+                            .width_full()
+                            .background(Color::from_rgb8(0x40, 0x40, 0x40))
+                            .cursor(floem::style::CursorStyle::Pointer)
+                            .hover(|s| s.background(Color::from_rgb8(0x60, 0x60, 0x60)))
+                    }),
+                // Claude Sonnet 4
+                container(label(|| "Claude Sonnet 4".to_string()))
+                    .on_click_stop(move |_| {
+                        selected_model.set("Claude Sonnet 4".to_string());
+                        is_open.set(false);
+                    })
+                    .style(|s| {
+                        s.padding(8.0)
+                            .width_full()
+                            .background(Color::from_rgb8(0x40, 0x40, 0x40))
+                            .cursor(floem::style::CursorStyle::Pointer)
+                            .hover(|s| s.background(Color::from_rgb8(0x60, 0x60, 0x60)))
+                    }),
+                // GPT-4
+                container(label(|| "GPT-4".to_string()))
+                    .on_click_stop(move |_| {
+                        println!("[CLICK] GPT-4");
+                        selected_model.set("GPT-4".to_string());
+                        is_open.set(false);
+                    })
+                    .style(|s| {
+                        s.padding(8.0)
+                            .width_full()
+                            .background(Color::from_rgb8(0x40, 0x40, 0x40))
+                            .cursor(floem::style::CursorStyle::Pointer)
+                            .hover(|s| s.background(Color::from_rgb8(0x60, 0x60, 0x60)))
+                    }),
+                // Gemini Pro
+                container(label(|| "Gemini Pro".to_string()))
+                    .on_click_stop(move |_| {
+                        selected_model.set("Gemini Pro".to_string());
+                        is_open.set(false);
+                    })
+                    .style(|s| {
+                        s.padding(8.0)
+                            .width_full()
+                            .background(Color::from_rgb8(0x40, 0x40, 0x40))
+                            .cursor(floem::style::CursorStyle::Pointer)
+                            .hover(|s| s.background(Color::from_rgb8(0x60, 0x60, 0x60)))
+                    }),
+            ))
+            .style(move |s| {
+                if is_open.get() {
+                    s.position(floem::style::Position::Absolute)
+                        .inset_bottom(0.0)
+                        .inset_left(0.0)
+                        .z_index(9999)
+                        .width(240.0)
+                        .max_height(300.0)
+                        .background(Color::from_rgb8(0x30, 0x30, 0x30))
+                        .border_radius(8.0)
+                        .padding(8.0)
+                } else {
+                    s.hide()
+                }
+            }),
+        )
+        .style(|s| s.height(0.0)),
+    ))
+    .style(|s| s.position(floem::style::Position::Relative))
+}
+
 // EXACT Windsurf user message from outerHTML
 // Right-aligned: flex justify-end, rounded-[8px] border bg-ide-input-background px-[9px] py-[6px]
 pub fn user_message(text: String) -> impl View {
@@ -298,8 +398,6 @@ where
     F: Fn() + 'static + Clone,
 {
     use floem::views::text_input;
-    let _ = selected_model;
-    let _ = selected_mode;
     
     container(
         v_stack((
@@ -362,6 +460,12 @@ where
                         .cursor(floem::style::CursorStyle::Pointer)
                         .hover(|s| s.background(Color::from_rgb8(0x80, 0x80, 0x80).multiply_alpha(0.1)))
                 }),
+                
+                // Mode selector (Code/Chat)
+                mode_selector_dropdown(selected_mode),
+                
+                // Model selector with dropdown
+                model_selector_dropdown(selected_model),
                 
                 // Spacer
                 container(label(|| "".to_string()))
@@ -434,16 +538,340 @@ where
         s.width_full()
             .padding(8.0)
             .padding_horiz(12.0)
-            .background(Color::from_rgb8(0x1f, 0x1f, 0x1f))
+            .background(Color::from_rgb8(0x1a, 0x1a, 0x1a))
             .border(1.0)
-            .border_color(Color::from_rgb8(0x33, 0x33, 0x33))
-            .border_radius(12.0)
+            .border_color(Color::from_rgb8(0x45, 0x45, 0x45))
+            .border_radius(15.0)
             .margin(16.0)
+    })
+    .on_click_stop(|_| {
+        println!("[INPUT_BAR] *** OUTER CONTAINER CLICKED ***");
     })
 }
 
+// Model selector dropdown from demo
+fn model_selector_dropdown(selected_model: RwSignal<String>) -> impl View {
+    let is_open = create_rw_signal(false);
+    
+    v_stack((
+        // Trigger button FIRST
+        container(
+            h_stack((
+                label(move || selected_model.get())
+                    .style(|s| {
+                        s.font_size(12.0)
+                            .color(Color::from_rgb8(0xcc, 0xcc, 0xcc))
+                    }),
+                label(|| "▼".to_string())
+                    .style(|s| {
+                        s.font_size(8.0)
+                            .color(Color::from_rgb8(0xcc, 0xcc, 0xcc).multiply_alpha(0.5))
+                    }),
+            ))
+            .style(|s| s.items_center().gap(4.0))
+        )
+        .on_click_stop(move |_| {
+            is_open.update(|v| *v = !*v);
+        })
+        .style(|s| {
+            s.padding(2.0)
+                .padding_left(4.0)
+                .padding_right(4.0)
+                .border_radius(4.0)
+                .cursor(floem::style::CursorStyle::Pointer)
+                .hover(|s| s.background(Color::from_rgb8(0x80, 0x80, 0x80).multiply_alpha(0.1)))
+        }),
+        // Dropdown panel wrapped in height-0 container
+        container(
+            v_stack((
+                        // Search bar
+                        container(
+                            h_stack((
+                                label(|| "🔍".to_string())
+                                    .style(|s| s.font_size(12.0)),
+                                label(|| "Search all models".to_string())
+                                    .style(|s| {
+                                        s.font_size(12.0)
+                                            .color(Color::from_rgb8(0xcc, 0xcc, 0xcc).multiply_alpha(0.5))
+                                            .flex_grow(1.0)
+                                    }),
+                                label(|| "⚙".to_string())
+                                    .style(|s| s.font_size(12.0)),
+                                label(|| "?".to_string())
+                                    .style(|s| s.font_size(12.0)),
+                            ))
+                            .style(|s| s.width_full().items_center().gap(4.0))
+                        )
+                        .style(|s| {
+                            s.width_full()
+                                .padding(4.0)
+                                .background(Color::from_rgb8(0x80, 0x80, 0x80).multiply_alpha(0.1))
+                                .border_radius(6.0)
+                        }),
+                        
+                        // Recently Used section
+                        v_stack((
+                            label(|| "Recently Used".to_string())
+                                .style(|s| {
+                                    s.font_size(12.0)
+                                        .color(Color::from_rgb8(0xcc, 0xcc, 0xcc).multiply_alpha(0.5))
+                                        .padding_horiz(8.0)
+                                        .padding_vert(4.0)
+                                }),
+                            // Claude Sonnet 4.5 Thinking
+                            container(
+                                h_stack((
+                                    label(|| "Claude Sonnet 4.5 Thinking ".to_string())
+                                        .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc)).flex_grow(1.0)),
+                                    label(move || if selected_model.get() == "Claude Sonnet 4.5 Thinking " { "✓" } else { "" }.to_string())
+                                        .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc).multiply_alpha(0.5))),
+                                ))
+                                .style(|s| s.width_full())
+                            )
+                            .on_click_stop(move |_| {
+                                println!("[Model Selector] Selected: Claude Sonnet 4.5 Thinking");
+                                selected_model.set("Claude Sonnet 4.5 Thinking ".to_string());
+                                is_open.set(false);
+                            })
+                            .style(|s| {
+                                s.width_full()
+                                    .padding_horiz(8.0)
+                                    .padding_vert(4.0)
+                                    .border_radius(6.0)
+                                    .cursor(floem::style::CursorStyle::Pointer)
+                                    .hover(|s| s.background(Color::from_rgb8(0x80, 0x80, 0x80).multiply_alpha(0.1)))
+                            }),
+                            // Claude Sonnet 4
+                            container(
+                                h_stack((
+                                    label(|| "Claude Sonnet 4".to_string())
+                                        .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc)).flex_grow(1.0)),
+                                    label(move || if selected_model.get() == "Claude Sonnet 4" { "✓" } else { "" }.to_string())
+                                        .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc).multiply_alpha(0.5))),
+                                ))
+                                .style(|s| s.width_full())
+                            )
+                            .on_click_stop(move |_| {
+                                println!("[Model Selector] Selected: Claude Sonnet 4");
+                                selected_model.set("Claude Sonnet 4".to_string());
+                                is_open.set(false);
+                            })
+                            .style(|s| {
+                                s.width_full()
+                                    .padding_horiz(8.0)
+                                    .padding_vert(4.0)
+                                    .border_radius(6.0)
+                                    .cursor(floem::style::CursorStyle::Pointer)
+                                    .hover(|s| s.background(Color::from_rgb8(0x80, 0x80, 0x80).multiply_alpha(0.1)))
+                            }),
+                            // GPT-4
+                            container(
+                                h_stack((
+                                    label(|| "GPT-4".to_string())
+                                        .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc)).flex_grow(1.0)),
+                                    label(move || if selected_model.get() == "GPT-4" { "✓" } else { "" }.to_string())
+                                        .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc).multiply_alpha(0.5))),
+                                ))
+                                .style(|s| s.width_full())
+                            )
+                            .on_click_stop(move |_| {
+                                println!("[Model Selector] Selected: GPT-4");
+                                selected_model.set("GPT-4".to_string());
+                                is_open.set(false);
+                            })
+                            .style(|s| {
+                                s.width_full()
+                                    .padding_horiz(8.0)
+                                    .padding_vert(4.0)
+                                    .border_radius(6.0)
+                                    .cursor(floem::style::CursorStyle::Pointer)
+                                    .hover(|s| s.background(Color::from_rgb8(0x80, 0x80, 0x80).multiply_alpha(0.1)))
+                            }),
+                            // Gemini Pro
+                            container(
+                                h_stack((
+                                    label(|| "Gemini Pro".to_string())
+                                        .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc)).flex_grow(1.0)),
+                                    label(move || if selected_model.get() == "Gemini Pro" { "✓" } else { "" }.to_string())
+                                        .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc).multiply_alpha(0.5))),
+                                ))
+                                .style(|s| s.width_full())
+                            )
+                            .on_click_stop(move |_| {
+                                println!("[Model Selector] Selected: Gemini Pro");
+                                selected_model.set("Gemini Pro".to_string());
+                                is_open.set(false);
+                            })
+                            .style(|s| {
+                                s.width_full()
+                                    .padding_horiz(8.0)
+                                    .padding_vert(4.0)
+                                    .border_radius(6.0)
+                                    .cursor(floem::style::CursorStyle::Pointer)
+                                    .hover(|s| s.background(Color::from_rgb8(0x80, 0x80, 0x80).multiply_alpha(0.1)))
+                            }),
+                        ))
+                    .style(|s| s.width_full().gap(2.0)),
+            ))
+            .style(move |s| {
+                if is_open.get() {
+                    s.position(floem::style::Position::Absolute)
+                        .inset_bottom(0.0)
+                        .inset_left(0.0)
+                        .z_index(9999)
+                        .width(280.0)
+                        .max_height(400.0)
+                        .background(Color::from_rgb8(0x25, 0x25, 0x25))
+                        .border(1.0)
+                        .border_color(Color::from_rgb8(0x45, 0x45, 0x45))
+                        .border_radius(8.0)
+                        .padding(8.0)
+                } else {
+                    s.hide()
+                }
+            }),
+        )
+        .style(|s| s.height(0.0)),
+    ))
+}
+
+// Mode selector dropdown (Code/Chat) - same styling as model selector
+fn mode_selector_dropdown(selected_mode: RwSignal<String>) -> impl View {
+    let is_open = create_rw_signal(false);
+    
+    container(
+        v_stack((
+            // Dropdown panel (shown above when open)
+            container(
+                container(
+                    v_stack((
+                        // Search bar
+                        container(
+                            h_stack((
+                                label(|| "🔍".to_string())
+                                    .style(|s| s.font_size(12.0)),
+                                label(|| "Search modes".to_string())
+                                    .style(|s| {
+                                        s.font_size(12.0)
+                                            .color(Color::from_rgb8(0xcc, 0xcc, 0xcc).multiply_alpha(0.5))
+                                            .flex_grow(1.0)
+                                    }),
+                                label(|| "⚙".to_string())
+                                    .style(|s| s.font_size(12.0)),
+                                label(|| "?".to_string())
+                                    .style(|s| s.font_size(12.0)),
+                            ))
+                            .style(|s| s.width_full().items_center().gap(4.0))
+                        )
+                        .style(|s| {
+                            s.width_full()
+                                .padding(4.0)
+                                .background(Color::from_rgb8(0x80, 0x80, 0x80).multiply_alpha(0.1))
+                                .border_radius(6.0)
+                        }),
+                        
+                        // Available Modes section
+                        v_stack((
+                            label(|| "Available Modes".to_string())
+                                .style(|s| {
+                                    s.font_size(12.0)
+                                        .color(Color::from_rgb8(0xcc, 0xcc, 0xcc).multiply_alpha(0.5))
+                                        .padding_horiz(8.0)
+                                        .padding_vert(4.0)
+                                }),
+                            // Code option
+                            container(
+                                h_stack((
+                                    label(|| "Code".to_string())
+                                        .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc)).flex_grow(1.0)),
+                                    label(move || if selected_mode.get() == "Code" { "✓" } else { "" }.to_string())
+                                        .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc).multiply_alpha(0.5))),
+                                ))
+                                .style(|s| s.width_full())
+                            )
+                            .on_click_stop(move |_| {
+                                selected_mode.set("Code".to_string());
+                                is_open.set(false);
+                                println!("[Mode] Selected: Code");
+                            })
+                            .style(|s| {
+                                s.width_full()
+                                    .padding_horiz(8.0)
+                                    .padding_vert(4.0)
+                                    .border_radius(6.0)
+                                    .cursor(floem::style::CursorStyle::Pointer)
+                                    .hover(|s| s.background(Color::from_rgb8(0x80, 0x80, 0x80).multiply_alpha(0.1)))
+                            }),
+                            // Chat option
+                            container(
+                                label(|| "Chat".to_string())
+                                    .style(|s| s.font_size(12.0).color(Color::from_rgb8(0xcc, 0xcc, 0xcc)))
+                            )
+                            .on_click_stop(move |_| {
+                                selected_mode.set("Chat".to_string());
+                                is_open.set(false);
+                                println!("[Mode] Selected: Chat");
+                            })
+                            .style(|s| {
+                                s.width_full()
+                                    .padding_horiz(8.0)
+                                    .padding_vert(4.0)
+                                    .border_radius(6.0)
+                                    .cursor(floem::style::CursorStyle::Pointer)
+                                    .hover(|s| s.background(Color::from_rgb8(0x80, 0x80, 0x80).multiply_alpha(0.1)))
+                            }),
+                        ))
+                        .style(|s| s.width_full().gap(2.0)),
+                    ))
+                    .style(|s| s.width_full().gap(4.0).padding(8.0))
+                )
+                .style(|s| {
+                    s.width(200.0)
+                        .max_height(400.0)
+                        .background(Color::from_rgb8(0x25, 0x25, 0x25))
+                        .border(1.0)
+                        .border_color(Color::from_rgb8(0x45, 0x45, 0x45))
+                        .border_radius(8.0)
+                })
+            )
+            .style(move |s| {
+                if is_open.get() {
+                    s.position(floem::style::Position::Absolute)
+                        .inset_bottom(100.0)
+                        .inset_left(0.0)
+                } else {
+                    s.hide()
+                }
+            }),
+            
+            // Trigger button
+            container(
+                h_stack((
+                    label(move || selected_mode.get())
+                        .style(|s| {
+                            s.font_size(12.0)
+                                .color(Color::from_rgb8(0xcc, 0xcc, 0xcc))
+                        }),
+                    label(|| "▼".to_string())
+                        .style(|s| {
+                            s.font_size(8.0)
+                                .color(Color::from_rgb8(0xcc, 0xcc, 0xcc).multiply_alpha(0.5))
+                        }),
+                ))
+                .style(|s| s.items_center().gap(4.0))
+            )
+            .on_click_stop(move |_| {
+                is_open.update(|v| *v = !*v);
+            })
+            .style(|s| {
+                s.padding(2.0)
+                    .padding_left(4.0)
+                    .padding_right(4.0)
+                    .border_radius(4.0)
+                    .cursor(floem::style::CursorStyle::Pointer)
                     .hover(|s| s.background(Color::from_rgb8(0x80, 0x80, 0x80).multiply_alpha(0.1)))
             }),
         ))
     )
     .style(|s| s.position(floem::style::Position::Relative))
+}
