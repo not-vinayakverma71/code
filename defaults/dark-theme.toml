@@ -132,7 +132,7 @@ dim-text = "#8C8C8C"
 "lapce.tab.inactive.foreground" = "#E4E4E48C"  # rgba(228, 228, 228, 0.55)
 "lapce.tab.inactive.underline" = "#0078D477"
 
-"lapce.tab.separator" = ""
+"lapce.tab.separator" = "#E4E4E412"  # rgba(228, 228, 228, 0.07)
 
 "lapce.icon.active" = "$text"
 "lapce.icon.inactive" = "$dim-text"

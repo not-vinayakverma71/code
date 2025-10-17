@@ -6,6 +6,9 @@ pub mod messages;
 pub mod transport;
 pub mod shm_transport;
 
+#[cfg(feature = "examples")]
+pub mod examples;
+
 pub use bridge::{BridgeClient, BridgeError, ConnectionState};
 pub use messages::{InboundMessage, OutboundMessage};
 pub use transport::{NoTransport, Transport};

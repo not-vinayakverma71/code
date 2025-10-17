@@ -67,7 +67,7 @@ pub fn foldable_panel_section(
                 .padding_vert(6.0)
                 .width_pct(100.0)
                 .cursor(CursorStyle::Pointer)
-                .background(config.get().color(LapceColor::EDITOR_BACKGROUND))
+                .background(config.get().color(LapceColor::PANEL_BACKGROUND))
         })
         .on_click_stop(move |_| {
             open.update(|open| *open = !*open);
@@ -427,6 +427,7 @@ pub fn panel_container_view(
         s.apply_if(!panel.is_container_shown(&position, true), |s| s.hide())
             .apply_if(position == PanelContainerPosition::Bottom, |s| {
                 s.width_pct(100.0)
+                    .background(config.color(LapceColor::PANEL_BACKGROUND))
                     .apply_if(!is_maximized, |s| {
                         s.border_top(1.0).height(size as f32)
                     })
@@ -532,7 +533,7 @@ pub fn panel_header(
         s.padding_horiz(10.0)
             .padding_vert(6.0)
             .width_pct(100.0)
-            .background(config.get().color(LapceColor::EDITOR_BACKGROUND))
+            .background(config.get().color(LapceColor::PANEL_BACKGROUND))
     })
 }
 

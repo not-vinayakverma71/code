@@ -105,7 +105,10 @@ fn simple_model_dropdown(selected_model: RwSignal<String>) -> impl View {
                 }
             }),
         )
-        .style(|s| s.height(0.0)),
+        .style(|s| {
+            s.height(0.0)
+                .position(floem::style::Position::Relative)
+        }),
     ))
     .style(|s| s.position(floem::style::Position::Relative))
 }

@@ -7,52 +7,68 @@ use super::bridge::BridgeError;
 use super::messages::{ConnectionStatusType, InboundMessage, OutboundMessage};
 use super::transport::Transport;
 
+// TODO: Import from lapce-ai-rust once Cargo dependency is added
+// For now, we'll use a runtime handle pattern
+// use lapce_ai_rust::ipc::ipc_client_volatile::IpcClientVolatile;
+
 /// ShmTransport: Real IPC connection to lapce-ai backend
 pub struct ShmTransport {
-    client: Arc<Mutex<Option<IpcClientWrapper>>>,
+    client: Arc<Mutex<Option<IpcClientHandle>>>,
     inbound_queue: Arc<Mutex<VecDeque<InboundMessage>>>,
     status: Arc<Mutex<ConnectionStatusType>>,
     socket_path: String,
+    runtime: Arc<tokio::runtime::Runtime>,
 }
 
-/// Wrapper around the actual IPC client from lapce-ai
-struct IpcClientWrapper {
-    // TODO: This will be lapce_ai_rust::ipc::ipc_client_volatile::IpcClientVolatile
-    // For now, using a placeholder to avoid compilation errors
-    _phantom: std::marker::PhantomData<()>,
+/// Handle to IPC client with runtime
+struct IpcClientHandle {
+    // This will hold: lapce_ai_rust::ipc::ipc_client_volatile::IpcClientVolatile
+    // For now, using a type-erased approach
+    send_fn: Box<dyn Fn(&[u8]) -> Result<Vec<u8>, String> + Send>,
 }
 
 impl ShmTransport {
     /// Create new transport (disconnected initially)
     pub fn new(socket_path: impl Into<String>) -> Self {
+        // Create dedicated runtime for IPC operations
+        let runtime = tokio::runtime::Builder::new_multi_thread()
+            .worker_threads(2)
+            .thread_name("ai-bridge-ipc")
+            .enable_all()
+            .build()
+            .expect("Failed to create IPC runtime");
+        
         Self {
             client: Arc::new(Mutex::new(None)),
             inbound_queue: Arc::new(Mutex::new(VecDeque::new())),
             status: Arc::new(Mutex::new(ConnectionStatusType::Disconnected)),
             socket_path: socket_path.into(),
+            runtime: Arc::new(runtime),
         }
     }
 }
 
 impl Transport for ShmTransport {
     fn send(&self, message: OutboundMessage) -> Result<(), BridgeError> {
-        let client = self.client.lock().unwrap();
+        let client_guard = self.client.lock().unwrap();
         
-        if client.is_none() {
-            return Err(BridgeError::Disconnected);
+        let client = client_guard.as_ref()
+            .ok_or(BridgeError::Disconnected)?;
+        
+        // Serialize message to JSON (protocol format)
+        let serialized = serde_json::to_vec(&message)
+            .map_err(|e| BridgeError::SerializationError(e.to_string()))?;
+        
+        // Send through IPC client
+        let response = (client.send_fn)(&serialized)
+            .map_err(|e| BridgeError::SendFailed(e))?;
+        
+        // If we got a response, deserialize and queue it
+        if !response.is_empty() {
+            if let Ok(msg) = serde_json::from_slice::<InboundMessage>(&response) {
+                self.inbound_queue.lock().unwrap().push_back(msg);
+            }
         }
-        
-        // TODO Phase A: Implement actual IPC send
-        // let client_ref = client.as_ref().unwrap();
-        // let serialized = bincode::serialize(&message)
-        //     .map_err(|e| BridgeError::SerializationError(e.to_string()))?;
-        // 
-        // client_ref.send_bytes(&serialized)
-        //     .await
-        //     .map_err(|e| BridgeError::SendFailed(e.to_string()))?;
-        
-        // For now, just log
-        eprintln!("[SHM_TRANSPORT] Would send: {:?}", message);
         
         Ok(())
     }
@@ -67,22 +83,29 @@ impl Transport for ShmTransport {
     }
     
     fn connect(&mut self) -> Result<(), BridgeError> {
-        let mut status = self.status.lock().unwrap();
+        let socket_path = self.socket_path.clone();
+        let runtime = self.runtime.clone();
         
-        // Attempt connection
-        // TODO Phase A: Implement actual IPC connection
-        // let rt = tokio::runtime::Runtime::new()
-        //     .map_err(|e| BridgeError::ConnectionFailed(e.to_string()))?;
-        // 
-        // let client = rt.block_on(async {
-        //     lapce_ai_rust::ipc::ipc_client_volatile::IpcClientVolatile::connect(&self.socket_path).await
+        eprintln!("[SHM_TRANSPORT] Connecting to: {}", socket_path);
+        
+        // TODO: Once lapce-ai-rust is added as dependency, use:
+        // let ipc_client = runtime.block_on(async {
+        //     lapce_ai_rust::ipc::ipc_client_volatile::IpcClientVolatile::connect(&socket_path).await
         // }).map_err(|e| BridgeError::ConnectionFailed(e.to_string()))?;
-        // 
-        // *self.client.lock().unwrap() = Some(IpcClientWrapper { client });
         
-        *status = ConnectionStatusType::Connected;
-        eprintln!("[SHM_TRANSPORT] Connected to: {}", self.socket_path);
+        // For now, create a stub that will be replaced
+        let handle = IpcClientHandle {
+            send_fn: Box::new(move |data: &[u8]| {
+                // Placeholder: Echo back for testing
+                eprintln!("[SHM_TRANSPORT] Stub send: {} bytes", data.len());
+                Ok(vec![]) // Empty response
+            }),
+        };
         
+        *self.client.lock().unwrap() = Some(handle);
+        *self.status.lock().unwrap() = ConnectionStatusType::Connected;
+        
+        eprintln!("[SHM_TRANSPORT] Connected");
         Ok(())
     }
     
