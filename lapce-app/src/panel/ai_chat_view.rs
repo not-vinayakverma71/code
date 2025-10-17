@@ -10,7 +10,7 @@ use floem::{
 };
 
 use crate::{
-    ai_bridge::{BridgeClient, NoTransport},
+    ai_bridge::{BridgeClient, ShmTransport, default_socket_path},
     ai_state::AIChatState,
     panel::ai_chat::components::{
         chat_view::{ChatViewProps, chat_view},
@@ -24,8 +24,17 @@ pub fn ai_chat_panel(
 ) -> impl IntoView {
     let config = window_tab_data.common.config;
     
-    // Initialize AI state with NoTransport (pre-IPC)
-    let bridge = Arc::new(BridgeClient::new(Box::new(NoTransport::new())));
+    // Initialize AI state with real IPC transport
+    let socket_path = default_socket_path();
+    let mut transport = ShmTransport::new(socket_path.clone());
+    
+    // Attempt connection to backend (non-blocking, will retry on send if needed)
+    if let Err(e) = transport.connect() {
+        eprintln!("[AI Chat] Failed to connect to backend at {}: {}", socket_path, e);
+        eprintln!("[AI Chat] Messages will be queued until connection succeeds");
+    }
+    
+    let bridge = Arc::new(BridgeClient::new(Box::new(transport)));
     let ai_state = Arc::new(AIChatState::new(bridge));
     
     // Local input state

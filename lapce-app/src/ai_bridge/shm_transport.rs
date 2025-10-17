@@ -7,9 +7,12 @@ use super::bridge::BridgeError;
 use super::messages::{ConnectionStatusType, InboundMessage, OutboundMessage};
 use super::transport::Transport;
 
-// TODO: Import from lapce-ai-rust once Cargo dependency is added
-// For now, we'll use a runtime handle pattern
-// use lapce_ai_rust::ipc::ipc_client_volatile::IpcClientVolatile;
+// Platform-specific IPC clients - internal to ShmTransport only
+#[cfg(unix)]
+use lapce_ai_rust::ipc::ipc_client_volatile::IpcClientVolatile;
+
+#[cfg(windows)]
+use lapce_ai_rust::ipc::windows_shared_memory::SharedMemoryStream;
 
 /// ShmTransport: Real IPC connection to lapce-ai backend
 pub struct ShmTransport {
@@ -20,11 +23,13 @@ pub struct ShmTransport {
     runtime: Arc<tokio::runtime::Runtime>,
 }
 
-/// Handle to IPC client with runtime
+/// Handle to IPC client with runtime (platform-agnostic wrapper)
 struct IpcClientHandle {
-    // This will hold: lapce_ai_rust::ipc::ipc_client_volatile::IpcClientVolatile
-    // For now, using a type-erased approach
-    send_fn: Box<dyn Fn(&[u8]) -> Result<Vec<u8>, String> + Send>,
+    #[cfg(unix)]
+    client: IpcClientVolatile,
+    
+    #[cfg(windows)]
+    client: SharedMemoryStream,
 }
 
 impl ShmTransport {
@@ -50,27 +55,57 @@ impl ShmTransport {
 
 impl Transport for ShmTransport {
     fn send(&self, message: OutboundMessage) -> Result<(), BridgeError> {
-        let client_guard = self.client.lock().unwrap();
-        
-        let client = client_guard.as_ref()
-            .ok_or(BridgeError::Disconnected)?;
-        
-        // Serialize message to JSON (protocol format)
+        // Serialize message to JSON (UI protocol)
         let serialized = serde_json::to_vec(&message)
             .map_err(|e| BridgeError::SerializationError(e.to_string()))?;
-        
-        // Send through IPC client
-        let response = (client.send_fn)(&serialized)
-            .map_err(|e| BridgeError::SendFailed(e))?;
-        
-        // If we got a response, deserialize and queue it
-        if !response.is_empty() {
-            if let Ok(msg) = serde_json::from_slice::<InboundMessage>(&response) {
-                self.inbound_queue.lock().unwrap().push_back(msg);
+
+        let runtime = self.runtime.clone();
+        let client_guard = self.client.lock().unwrap();
+        let handle = client_guard.as_ref().ok_or(BridgeError::Disconnected)?;
+
+        #[cfg(unix)]
+        {
+            // Clone the IPC client (cheap; it holds Arcs internally)
+            let ipc_client = handle.client.clone();
+            // Send bytes to backend; backend echoes or responds per BinaryCodec handlers
+            let response = runtime
+                .block_on(async move { ipc_client.send_bytes(&serialized).await })
+                .map_err(|e| BridgeError::SendFailed(e.to_string()))?;
+
+            // If backend returned a UI message, enqueue it
+            if !response.is_empty() {
+                if let Ok(msg) = serde_json::from_slice::<InboundMessage>(&response) {
+                    self.inbound_queue.lock().unwrap().push_back(msg);
+                }
             }
+            Ok(())
         }
-        
-        Ok(())
+
+        #[cfg(windows)]
+        {
+            let ipc_client = handle.client.clone();
+            let response = runtime
+                .block_on(async move { 
+                    ipc_client.send(&serialized).await
+                        .and_then(|_| ipc_client.recv().await)
+                        .map(|opt| opt.unwrap_or_default())
+                })
+                .map_err(|e| BridgeError::SendFailed(format!("Windows IPC error: {}", e)))?;
+
+            if !response.is_empty() {
+                if let Ok(msg) = serde_json::from_slice::<InboundMessage>(&response) {
+                    self.inbound_queue.lock().unwrap().push_back(msg);
+                }
+            }
+            Ok(())
+        }
+
+        #[cfg(not(any(unix, windows)))]
+        {
+            Err(BridgeError::SendFailed(
+                "IPC transport not available on this platform".into(),
+            ))
+        }
     }
     
     fn try_receive(&self) -> Option<InboundMessage> {
@@ -87,26 +122,40 @@ impl Transport for ShmTransport {
         let runtime = self.runtime.clone();
         
         eprintln!("[SHM_TRANSPORT] Connecting to: {}", socket_path);
-        
-        // TODO: Once lapce-ai-rust is added as dependency, use:
-        // let ipc_client = runtime.block_on(async {
-        //     lapce_ai_rust::ipc::ipc_client_volatile::IpcClientVolatile::connect(&socket_path).await
-        // }).map_err(|e| BridgeError::ConnectionFailed(e.to_string()))?;
-        
-        // For now, create a stub that will be replaced
-        let handle = IpcClientHandle {
-            send_fn: Box::new(move |data: &[u8]| {
-                // Placeholder: Echo back for testing
-                eprintln!("[SHM_TRANSPORT] Stub send: {} bytes", data.len());
-                Ok(vec![]) // Empty response
-            }),
-        };
-        
-        *self.client.lock().unwrap() = Some(handle);
-        *self.status.lock().unwrap() = ConnectionStatusType::Connected;
-        
-        eprintln!("[SHM_TRANSPORT] Connected");
-        Ok(())
+
+        #[cfg(unix)]
+        {
+            // Real IPC connection to lapce-ai backend
+            let ipc_client = runtime
+                .block_on(async { IpcClientVolatile::connect(&socket_path).await })
+                .map_err(|e| BridgeError::ConnectionFailed(e.to_string()))?;
+
+            let handle = IpcClientHandle { client: ipc_client };
+            *self.client.lock().unwrap() = Some(handle);
+            *self.status.lock().unwrap() = ConnectionStatusType::Connected;
+            eprintln!("[SHM_TRANSPORT] Connected via real IPC");
+            Ok(())
+        }
+
+        #[cfg(windows)]
+        {
+            let ipc_client = runtime
+                .block_on(async { SharedMemoryStream::connect(&socket_path).await })
+                .map_err(|e| BridgeError::ConnectionFailed(e.to_string()))?;
+
+            let handle = IpcClientHandle { client: ipc_client };
+            *self.client.lock().unwrap() = Some(handle);
+            *self.status.lock().unwrap() = ConnectionStatusType::Connected;
+            eprintln!("[SHM_TRANSPORT] Connected via Windows IPC");
+            Ok(())
+        }
+
+        #[cfg(not(any(unix, windows)))]
+        {
+            Err(BridgeError::ConnectionFailed(
+                "IPC transport not available on this platform".into(),
+            ))
+        }
     }
     
     fn disconnect(&mut self) -> Result<(), BridgeError> {

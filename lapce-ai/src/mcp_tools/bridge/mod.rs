@@ -9,5 +9,5 @@ pub mod core_tool_adapter;
 mod tests;
 
 pub use result::core_output_to_mcp;
-pub use context::to_core_context;
+pub use context::{to_core_context, to_core_context_with_adapters, ContextConversionOptions};
 pub use core_tool_adapter::CoreToolAsMcp;

@@ -589,6 +589,125 @@ impl MessageType {
     }
 }
 
+// ============================================================================
+// Context System IPC Messages (PORT-IPC-ROUTES-26/27)
+// ============================================================================
+
+/// Request to truncate conversation with sliding window
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TruncateConversationRequest {
+    pub messages: Vec<serde_json::Value>,
+    pub model_id: String,
+    pub context_window: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_tokens: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reserved_output_tokens: Option<usize>,
+}
+
+/// Response from truncate conversation operation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TruncateConversationResponse {
+    pub messages: Vec<serde_json::Value>,
+    pub summary: String,
+    pub cost: f64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub new_context_tokens: Option<usize>,
+    pub prev_context_tokens: usize,
+}
+
+/// Request to condense conversation with LLM summarization
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CondenseConversationRequest {
+    pub messages: Vec<serde_json::Value>,
+    pub model_id: String,
+}
+
+/// Response from condense conversation operation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CondenseConversationResponse {
+    pub summary: String,
+    pub messages_condensed: usize,
+    pub cost: f64,
+}
+
+/// Event: File context changed (read/write/edit)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileContextEvent {
+    pub file_path: String,
+    pub event_type: FileContextEventType,
+    pub timestamp: u64,
+}
+
+/// Type of file context event
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum FileContextEventType {
+    Read,
+    Write,
+    DiffApply,
+    Mention,
+    UserEdit,
+    RooEdit,
+}
+
+/// Request to track file context
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrackFileContextRequest {
+    pub file_path: String,
+    pub source: FileContextEventType,
+}
+
+/// Response from track file context
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrackFileContextResponse {
+    pub success: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+/// Request for stale file detection
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetStaleFilesRequest {
+    pub task_id: String,
+}
+
+/// Response with stale files list
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetStaleFilesResponse {
+    pub stale_files: Vec<String>,
+}
+
+/// Context system commands (unified enum)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum ContextCommand {
+    TruncateConversation(TruncateConversationRequest),
+    CondenseConversation(CondenseConversationRequest),
+    TrackFileContext(TrackFileContextRequest),
+    GetStaleFiles(GetStaleFilesRequest),
+}
+
+/// Context system responses (unified enum)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum ContextResponse {
+    TruncateConversation(TruncateConversationResponse),
+    CondenseConversation(CondenseConversationResponse),
+    TrackFileContext(TrackFileContextResponse),
+    GetStaleFiles(GetStaleFilesResponse),
+    Error { message: String },
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

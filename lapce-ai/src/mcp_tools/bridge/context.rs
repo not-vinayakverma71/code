@@ -4,14 +4,41 @@ use crate::mcp_tools::core::ToolContext as McpToolContext;
 use crate::mcp_tools::config::McpServerConfig;
 use crate::core::tools::traits::{ToolContext as CoreToolContext, ToolPermissions};
 use crate::core::tools::RooIgnore;
+use crate::core::tools::adapters::ipc::IpcAdapter;
+use crate::core::tools::adapters::context_tracker_adapter::ContextTrackerAdapter;
 use std::sync::Arc;
 use serde_json::json;
 
-/// Convert MCP tool context to core tool context
+/// Options for attaching adapters during context conversion
+pub struct ContextConversionOptions {
+    pub ipc_adapter: Option<Arc<IpcAdapter>>,
+    pub context_tracker: Option<Arc<ContextTrackerAdapter>>,
+}
+
+impl Default for ContextConversionOptions {
+    fn default() -> Self {
+        Self {
+            ipc_adapter: None,
+            context_tracker: None,
+        }
+    }
+}
+
+/// Convert MCP tool context to core tool context (basic version)
 /// Maps workspace, permissions, user info, and attaches .rooignore
 pub fn to_core_context(
     mcp_ctx: McpToolContext,
     config: &McpServerConfig,
+) -> CoreToolContext {
+    to_core_context_with_adapters(mcp_ctx, config, ContextConversionOptions::default())
+}
+
+/// Convert MCP tool context to core tool context with optional adapters
+/// This allows attaching IPC adapter and context tracker for full integration
+pub fn to_core_context_with_adapters(
+    mcp_ctx: McpToolContext,
+    config: &McpServerConfig,
+    options: ContextConversionOptions,
 ) -> CoreToolContext {
     // Create permissions from MCP config
     let permissions = ToolPermissions {
@@ -43,6 +70,17 @@ pub fn to_core_context(
         ctx.metadata.insert("mcp_metadata".to_string(), mcp_metadata);
     }
     ctx.metadata.insert("mcp_request_id".to_string(), serde_json::json!(mcp_ctx.request_id));
+    
+    // Attach IPC adapter if provided
+    if let Some(ipc_adapter) = options.ipc_adapter {
+        ctx.add_adapter("ipc".to_string(), ipc_adapter.clone());
+        ctx.add_event_emitter(ipc_adapter);
+    }
+    
+    // Attach context tracker if provided
+    if let Some(context_tracker) = options.context_tracker {
+        ctx.add_adapter("context_tracker".to_string(), context_tracker);
+    }
     
     ctx
 }

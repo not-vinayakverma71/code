@@ -14,6 +14,12 @@ pub use messages::{InboundMessage, OutboundMessage};
 pub use transport::{NoTransport, Transport};
 pub use shm_transport::ShmTransport;
 
+// Default socket path - can be overridden by LAPCE_AI_SOCKET env var
+pub fn default_socket_path() -> String {
+    std::env::var("LAPCE_AI_SOCKET")
+        .unwrap_or_else(|_| "/tmp/lapce_ai.sock".to_string())
+}
+
 impl std::fmt::Debug for dyn Transport {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Transport")
