@@ -193,6 +193,7 @@ fn test_get_tool_descriptions_for_mode_code() {
     assert!(descriptions.contains("## execute_command"));
     assert!(descriptions.contains("## list_files"));
     assert!(descriptions.contains("## search_files"));
+    assert!(descriptions.contains("## fetch_instructions"));
     
     // Should NOT contain browser_action (supports_browser is false by default)
     assert!(!descriptions.contains("## browser_action"));

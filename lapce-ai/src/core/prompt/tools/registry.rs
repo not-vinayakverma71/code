@@ -203,7 +203,7 @@ mod tests {
         assert_eq!(groups.len(), 6);
         
         // Verify read group
-        let read_group = groups.iter().find(|(g, _)| *g == ToolGroup::Read).unwrap();
+        let read_group = groups.iter().find(|(g, _)| matches!(g, ExtendedToolGroup::Read)).unwrap();
         assert!(read_group.1.tools.contains(&"read_file"));
         assert!(read_group.1.tools.contains(&"search_files"));
     }

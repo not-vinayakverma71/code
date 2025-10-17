@@ -98,6 +98,7 @@ fn get_tool_description(
     
     match tool_name {
         "read_file" => Some(read_file_description(&args)),
+        "fetch_instructions" => Some(fetch_instructions_description(false)),
         "write_to_file" => Some(write_to_file_description(context.workspace)),
         "execute_command" => Some(execute_command_description(context.workspace)),
         "list_files" => Some(list_files_description(context.workspace)),

@@ -1,5 +1,6 @@
 // MCP Tools Module - Core infrastructure for Model Context Protocol tools
 pub mod ai_assistant_integration;
+pub mod bridge; // Bridge: wires core/tools production suite into MCP
 pub mod cache;
 pub mod cache_clean;
 pub mod cache_ttl;

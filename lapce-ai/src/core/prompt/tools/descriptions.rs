@@ -14,6 +14,41 @@ pub struct ToolDescriptionArgs<'a> {
     pub partial_reads_enabled: bool,
 }
 
+/// Generate fetch_instructions tool description
+///
+/// Translation from fetch-instructions.ts (lines 1-34)
+/// Pre-IPC: exclude MCP server creation task
+pub fn fetch_instructions_description(enable_mcp_server_creation: bool) -> String {
+    let tasks = if enable_mcp_server_creation {
+        "  create_mcp_server\n  create_mode"
+    } else {
+        "  create_mode"
+    };
+    let example = if enable_mcp_server_creation {
+        r#"Example: Requesting instructions to create an MCP Server
+
+<fetch_instructions>
+<task>create_mcp_server</task>
+</fetch_instructions>"#
+    } else {
+        r#"Example: Requesting instructions to create a Mode
+
+<fetch_instructions>
+<task>create_mode</task>
+</fetch_instructions>"#
+    };
+    format!(
+        r#"## fetch_instructions
+Description: Request to fetch instructions to perform a task
+Parameters:
+- task: (required) The task to get instructions for.  This can take the following values:
+{}
+
+{}"#,
+        tasks, example
+    )
+}
+
 /// Generate read_file tool description
 ///
 /// Translation from read-file.ts (lines 8-95)

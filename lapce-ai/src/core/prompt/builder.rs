@@ -108,12 +108,12 @@ impl PromptBuilder {
             codebase_search_available,
             fast_apply_available,
             max_concurrent_file_reads: self.settings.max_concurrent_file_reads as usize,
-            partial_reads_enabled: false, // TODO: Wire after IPC
+            partial_reads_enabled: true,
             todo_list_enabled: self.settings.todo_list_enabled,
             image_generation_enabled: false, // TODO: Wire after IPC
             run_slash_command_enabled: false, // TODO: Wire after IPC
             browser_viewport_size: self.settings.browser_viewport_size.clone().unwrap_or_else(|| "900x600".to_string()),
-            new_task_require_todos: false, // TODO: Wire from settings after IPC
+            new_task_require_todos: self.settings.new_task_require_todos,
         };
         let tool_descriptions = get_tool_descriptions_for_mode(&self.mode, &tool_context);
         

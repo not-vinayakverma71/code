@@ -72,14 +72,22 @@ impl IpcServerVolatile {
                 } => {
                     match result {
                         Ok((stream, _addr)) => {
+                            eprintln!("[SERVER] Accepted connection from client");
                             // Spawn task to handle this connection
                             // This allows us to immediately accept the NEXT client
                             let server = self.clone();
-                            tokio::spawn(async move {
-                                if let Err(e) = server.handle_new_connection(stream).await {
-                                    eprintln!("[SERVER] Connection setup error: {}", e);
+                            let handle = tokio::spawn(async move {
+                                eprintln!("[SERVER] Spawned task started");
+                                match server.handle_new_connection(stream).await {
+                                    Ok(_) => {
+                                        eprintln!("[SERVER] Connection setup successful");
+                                    }
+                                    Err(e) => {
+                                        eprintln!("[SERVER] Connection setup error: {:?}", e);
+                                    }
                                 }
                             });
+                            eprintln!("[SERVER] Task spawned: {:?}", handle);
                         }
                         Err(e) => {
                             eprintln!("[SERVER VOLATILE] Accept error: {}", e);

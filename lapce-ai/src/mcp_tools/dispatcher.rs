@@ -1,7 +1,6 @@
 /// MCP Tool System Dispatcher
 /// Central dispatcher for routing tool requests to appropriate implementations
 
-use crate::mcp_tools::tools::CodebaseSearchTool;
 use crate::mcp_tools::{
     core::{Tool, ToolContext, ToolResult},
     config::McpServerConfig,
@@ -57,14 +56,42 @@ impl McpToolSystem {
     pub fn new(config: McpServerConfig, workspace: PathBuf) -> Self {
         let mut tools: HashMap<String, Box<dyn Tool + Send + Sync>> = HashMap::new();
         
-        // Register all available tools
-        tools.insert("codebaseSearch".to_string(), Box::new(CodebaseSearchTool::new()));
-        tools.insert("readFile".to_string(), Box::new(crate::mcp_tools::tools::read_file::ReadFileTool::new()));
-        tools.insert("writeFile".to_string(), Box::new(crate::mcp_tools::tools::write_file::WriteFileTool::new()));
-        tools.insert("executeCommand".to_string(), Box::new(crate::mcp_tools::tools::execute_command::ExecuteCommandTool::new()));
-        tools.insert("listFiles".to_string(), Box::new(crate::mcp_tools::tools::list_files::ListFilesTool::new()));
-        tools.insert("searchFiles".to_string(), Box::new(crate::mcp_tools::tools::search_files::SearchFilesTool::new()));
-        tools.insert("editFile".to_string(), Box::new(crate::mcp_tools::tools::edit_file::EditFileTool::new()));
+        // Register all production core tools via bridge
+        let config_arc = Arc::new(config.clone());
+        let core_registry = crate::core::tools::expanded_tools_registry::TOOL_REGISTRY.clone();
+        
+        for tool_name in core_registry.list_tools() {
+            if let Some(core_tool) = core_registry.get_tool(&tool_name) {
+                // Wrap core tool with MCP adapter
+                let adapter = crate::mcp_tools::bridge::CoreToolAsMcp::new(
+                    core_tool.clone(),
+                    config_arc.clone(),
+                );
+                
+                // Register with primary name
+                tools.insert(tool_name.clone(), Box::new(adapter));
+                
+                // Add camelCase aliases for snake_case tools
+                let alias = match tool_name.as_str() {
+                    "git_status" => Some("gitStatus"),
+                    "git_diff" => Some("gitDiff"),
+                    "apply_diff" => Some("applyDiff"),
+                    "json_format" => Some("jsonFormat"),
+                    "file_size" => Some("fileSize"),
+                    "count_lines" => Some("countLines"),
+                    "process_list" => Some("processList"),
+                    _ => None,
+                };
+                
+                if let Some(alias_name) = alias {
+                    let adapter_alias = crate::mcp_tools::bridge::CoreToolAsMcp::new(
+                        core_registry.get_tool(&tool_name).unwrap(),
+                        config_arc.clone(),
+                    );
+                    tools.insert(alias_name.to_string(), Box::new(adapter_alias));
+                }
+            }
+        }
         
         let rate_limiter = Arc::new(RateLimiter::with_rate(config.rate_limits.requests_per_minute as u32));
         
@@ -210,10 +237,18 @@ mod tests {
         let workspace = tempdir().unwrap().path().to_path_buf();
         let system = McpToolSystem::new(config, workspace);
         
-        // Check tools are registered
-        assert!(system.get_tool("readFile").is_some());
-        assert!(system.get_tool("writeFile").is_some());
-        assert!(system.get_tool("executeCommand").is_some());
+        // Check core tools are registered via bridge
+        assert!(system.get_tool("readFile").is_some(), "readFile should be registered");
+        assert!(system.get_tool("writeFile").is_some(), "writeFile should be registered");
+        assert!(system.get_tool("executeCommand").is_some(), "executeCommand should be registered");
+        
+        // Check aliases work
+        assert!(system.get_tool("gitStatus").is_some(), "gitStatus alias should work");
+        assert!(system.get_tool("applyDiff").is_some(), "applyDiff alias should work");
+        
+        // Verify we have a good number of tools registered (19 core tools + aliases)
+        let tool_count = system.list_tools().len();
+        assert!(tool_count >= 19, "Should have at least 19 tools, got {}", tool_count);
     }
     
     #[tokio::test]
@@ -225,15 +260,22 @@ mod tests {
         
         // Create a test file
         let test_file = workspace.join("test.txt");
-        std::fs::write(&test_file, "Hello MCP").unwrap();
+        std::fs::write(&test_file, "Hello MCP Bridge").unwrap();
         
-        // Execute readFile tool
-        let args = json!({
-            "path": "test.txt"
-        });
+        // Execute readFile tool with XML format (core tools expect XML)
+        let args = json!(r#"
+            <tool>
+                <path>test.txt</path>
+            </tool>
+        "#);
         
         let result = system.execute_tool("readFile", args).await.unwrap();
-        assert!(result.success);
+        assert!(result.success, "readFile should succeed");
+        
+        // Verify content is present in result
+        let data = result.data.as_ref().expect("Should have data");
+        let content = data["content"].as_str().expect("Should have content field");
+        assert!(content.contains("Hello MCP Bridge"), "Content should match file");
         
         // Check metrics
         let metrics = system.get_metrics().await;
