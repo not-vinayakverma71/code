@@ -80,17 +80,13 @@ impl ControlServer {
         send_doorbell_fd: i32,
         recv_doorbell_fd: i32,
     ) -> Result<()> {
-        let stream = self.listener.accept().await?.0;
+        let mut stream = self.listener.accept().await?.0;
         
-        // Read request
+        // Read request using ASYNC I/O (don't block runtime)
         let mut buf = vec![0u8; MAX_MESSAGE_SIZE];
-        let stream_std = stream.into_std()?;
         
-        // Set to blocking mode for FD passing
-        stream_std.set_nonblocking(false)?;
-        
-        use std::io::Read;
-        let n = (&stream_std).read(&mut buf)?;
+        use tokio::io::AsyncReadExt;
+        let n = stream.read(&mut buf).await?;
         
         let _request: HandshakeRequest = bincode::deserialize(&buf[..n])?;
         eprintln!("[CONTROL] Received handshake request");
@@ -105,6 +101,10 @@ impl ControlServer {
         };
         
         let response_bytes = bincode::serialize(&response)?;
+        
+        // Convert to std::net::TcpStream for FD passing (SCM_RIGHTS needs blocking socket)
+        let stream_std = stream.into_std()?;
+        stream_std.set_nonblocking(false)?;
         
         // Send response WITH eventfd file descriptors via SCM_RIGHTS
         eprintln!("[CONTROL] Sending response with doorbell fds: send={}, recv={}", send_doorbell_fd, recv_doorbell_fd);
