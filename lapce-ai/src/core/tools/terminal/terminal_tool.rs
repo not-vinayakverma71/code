@@ -1,5 +1,6 @@
 // TerminalTool Backend - OSC 633/133 markers and command safety
 // Part of TerminalTool backend TODO #11
+// PARITY: CommandSource types added for IPC integration with lapce-app
 
 use std::io::{BufRead, BufReader, Write};
 use anyhow::{Result, bail, Context};
@@ -13,6 +14,7 @@ use crate::core::tools::security_hardening::{validate_command_security};
 use async_trait::async_trait;
 use chrono::Utc;
 use regex::Regex;
+
 // OSC sequences for command tracking
 const OSC_633_A: &str = "\x1b]633;A\x07";  // Prompt start
 const OSC_633_B: &str = "\x1b]633;B\x07";  // Prompt end  
@@ -20,6 +22,22 @@ const OSC_633_C: &str = "\x1b]633;C\x07";  // Command start
 const OSC_633_D: &str = "\x1b]633;D\x07";  // Command end
 const OSC_133_A: &str = "\x1b]133;A\x07";  // Alternative prompt start
 const OSC_133_B: &str = "\x1b]133;B\x07";  // Alternative prompt end
+
+/// Source of a terminal command (for IPC parity with lapce-app)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub enum CommandSource {
+    /// Command typed by user in terminal
+    User,
+    /// Command generated/injected by AI
+    Impulse,
+}
+
+impl Default for CommandSource {
+    fn default() -> Self {
+        CommandSource::User
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TerminalCommand {
@@ -31,6 +49,9 @@ pub struct TerminalCommand {
     pub use_osc_markers: bool,
     #[serde(default)]
     pub allow_dangerous: bool,
+    /// Source of the command (User or Cascade)
+    #[serde(default)]
+    pub source: CommandSource,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -42,6 +63,9 @@ pub struct TerminalOutput {
     pub segments: Vec<OutputSegment>,
     pub duration_ms: u64,
     pub was_sanitized: bool,
+    /// Source of the command (preserved from input)
+    #[serde(default)]
+    pub source: CommandSource,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -164,6 +188,7 @@ impl TerminalTool {
             segments: Vec::new(),
             duration_ms: start_time.elapsed().as_millis() as u64,
             was_sanitized: false,
+            source: config.source,
         })
     }
     
@@ -278,6 +303,7 @@ impl TerminalTool {
             segments,
             duration_ms: start_time.elapsed().as_millis() as u64,
             was_sanitized: command != config.command,
+            source: config.source,
         })
     }
     

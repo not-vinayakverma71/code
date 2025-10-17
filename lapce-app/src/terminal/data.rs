@@ -29,6 +29,7 @@ use url::Url;
 use super::{
     event::TermEvent,
     raw::{EventProxy, RawTerminal},
+    types::CommandHistory,  // NEW: Import CommandHistory
 };
 use crate::{
     command::{CommandExecuted, CommandKind, InternalCommand},
@@ -49,6 +50,7 @@ pub struct TerminalData {
     pub visual_mode: RwSignal<VisualMode>,
     pub raw: RwSignal<Arc<RwLock<RawTerminal>>>,
     pub run_debug: RwSignal<Option<RunDebugProcess>>,
+    pub command_history: RwSignal<CommandHistory>,  // NEW: Command history tracking
     pub common: Rc<CommonData>,
 }
 
@@ -344,6 +346,7 @@ impl TerminalData {
         let mode = cx.create_rw_signal(Mode::Terminal);
         let visual_mode = cx.create_rw_signal(VisualMode::Normal);
         let raw = cx.create_rw_signal(raw);
+        let command_history = cx.create_rw_signal(CommandHistory::default());  // NEW: Initialize command history
 
         Self {
             scope: cx,
@@ -354,6 +357,7 @@ impl TerminalData {
             run_debug,
             mode,
             visual_mode,
+            command_history,  // NEW: Add to struct initialization
             common,
             launch_error,
         }
@@ -367,12 +371,6 @@ impl TerminalData {
         common: Rc<CommonData>,
         launch_error: RwSignal<Option<String>>,
     ) -> Arc<RwLock<RawTerminal>> {
-        let raw = Arc::new(RwLock::new(RawTerminal::new(
-            term_id,
-            common.proxy.clone(),
-            common.term_notification_tx.clone(),
-        )));
-
         let mut profile = profile.unwrap_or_default();
 
         if profile.workdir.is_none() {
@@ -381,6 +379,19 @@ impl TerminalData {
             )
             .ok();
         }
+        
+        // Get CWD for command tracking
+        let cwd = profile.workdir
+            .as_ref()
+            .and_then(|url| url.to_file_path().ok())
+            .unwrap_or_else(|| workspace.path.as_ref().cloned().unwrap_or_default());
+        
+        let raw = Arc::new(RwLock::new(RawTerminal::new(
+            term_id,
+            common.proxy.clone(),
+            common.term_notification_tx.clone(),
+            cwd,  // NEW: Pass CWD for command tracking
+        )));
 
         let exp_run_debug = run_debug
             .as_ref()

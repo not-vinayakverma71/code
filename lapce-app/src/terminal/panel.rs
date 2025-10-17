@@ -267,6 +267,116 @@ impl TerminalPanelData {
         }
     }
 
+    pub fn process_user_input(&self, term_id: &TermId, data: &str) {
+        if let Some(terminal) = self.get_terminal(term_id) {
+            let raw = terminal.raw.get_untracked();
+            let mut raw = raw.write();
+            
+            // Process input through command capture
+            if let Some(record) = raw.command_capture.process_input(data.as_bytes()) {
+                // Command completed - add to history
+                terminal.command_history.update(|history| {
+                    history.push(record);
+                });
+            }
+        }
+    }
+
+    /// Inject a command into the terminal (AI-generated)
+    /// Returns Ok(()) if successful, Err if terminal not found or validation failed
+    pub fn inject_command(&self, term_id: &TermId, command: String) -> anyhow::Result<()> {
+        use super::injection::{InjectionRequest, CommandSafety};
+        use super::types::CommandSource;
+        use super::observability::CommandEvent;
+        
+        let terminal = self.get_terminal(term_id)
+            .ok_or_else(|| anyhow::anyhow!("Terminal not found: {:?}", term_id))?;
+        
+        // Get current working directory
+        let cwd = terminal.workspace.path.as_ref()
+            .cloned()
+            .unwrap_or_else(|| PathBuf::from("/"));
+        
+        // Create and validate injection request
+        let request = InjectionRequest::from_ai(command.clone(), cwd.clone());
+        
+        // Validate and emit event on failure
+        if let Err(e) = request.validate() {
+            let event = CommandEvent::injection_failed(
+                format!("{:?}", term_id),
+                command,
+            );
+            event.log();
+            return Err(e);
+        }
+        
+        // Check if safe to auto-execute
+        if !CommandSafety::is_safe_to_auto_execute(&command) {
+            if let Some(suggestion) = CommandSafety::suggest_safer_alternative(&command) {
+                tracing::warn!("Injecting potentially unsafe command: {} - {}", command, suggestion);
+            }
+        }
+        
+        // Format command for injection
+        let formatted = request.format_for_injection();
+        
+        // Send to terminal via proxy
+        self.common.proxy.terminal_write(
+            *term_id,
+            formatted.clone(),
+        );
+        
+        // Create command record for history
+        let record = super::types::CommandRecord::new(
+            command.clone(),
+            CommandSource::Cascade,
+            cwd,
+        );
+        
+        // Mark as injected (not yet completed)
+        terminal.command_history.update(|history| {
+            history.push(record);
+        });
+        
+        // Emit success event
+        let event = CommandEvent::injection_success(
+            format!("{:?}", term_id),
+            command,
+        );
+        event.log();
+        
+        Ok(())
+    }
+
+    /// Send a control signal to the terminal (e.g., Ctrl+C)
+    pub fn send_control_signal(
+        &self,
+        term_id: &TermId,
+        signal: super::injection::ControlSignal,
+    ) -> anyhow::Result<()> {
+        // Verify terminal exists
+        self.get_terminal(term_id)
+            .ok_or_else(|| anyhow::anyhow!("Terminal not found: {:?}", term_id))?;
+        
+        // Send control bytes to terminal
+        let bytes = signal.as_bytes();
+        let bytes_str = String::from_utf8_lossy(bytes).to_string();
+        
+        self.common.proxy.terminal_write(
+            *term_id,
+            bytes_str,
+        );
+        
+        tracing::info!("Sent {} to terminal {:?}", signal.name(), term_id);
+        
+        Ok(())
+    }
+
+    /// Send interrupt (Ctrl+C) to terminal
+    pub fn send_interrupt(&self, term_id: &TermId) -> anyhow::Result<()> {
+        self.send_control_signal(term_id, super::injection::ControlSignal::Interrupt)
+    }
+
     pub fn get_terminal(&self, term_id: &TermId) -> Option<TerminalData> {
         self.tab_info.with_untracked(|info| {
             for (_, tab) in &info.tabs {

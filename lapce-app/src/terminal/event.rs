@@ -16,6 +16,7 @@ use super::raw::RawTerminal;
 pub enum TermNotification {
     SetTitle { term_id: TermId, title: String },
     RequestPaint,
+    UserInput { term_id: TermId, data: String },  // NEW: User input for command tracking
 }
 
 pub enum TermEvent {

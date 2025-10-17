@@ -10,6 +10,67 @@ use floem::{
     View,
 };
 
+// Simple working dropdown - EXACT TEST STRUCTURE
+fn simple_model_dropdown(selected_model: RwSignal<String>) -> impl View {
+    let is_open = create_rw_signal(false);
+    
+    v_stack((
+        // Dropdown panel
+        v_stack((
+                // GPT-4 option
+                container(label(|| "GPT-4".to_string()))
+                    .on_click_stop(move |_| {
+                        println!("[Dropdown] Selected GPT-4");
+                        selected_model.set("GPT-4".to_string());
+                        is_open.set(false);
+                    })
+                    .style(|s| {
+                        s.padding(8.0)
+                            .width_full()
+                            .background(Color::from_rgb8(0x40, 0x40, 0x40))
+                            .cursor(floem::style::CursorStyle::Pointer)
+                            .hover(|s| s.background(Color::from_rgb8(0x60, 0x60, 0x60)))
+                    }),
+                // Claude option
+                container(label(|| "Claude Sonnet 4".to_string()))
+                    .on_click_stop(move |_| {
+                        println!("[Dropdown] Selected Claude");
+                        selected_model.set("Claude Sonnet 4".to_string());
+                        is_open.set(false);
+                    })
+                    .style(|s| {
+                        s.padding(8.0)
+                            .width_full()
+                            .background(Color::from_rgb8(0x40, 0x40, 0x40))
+                            .cursor(floem::style::CursorStyle::Pointer)
+                            .hover(|s| s.background(Color::from_rgb8(0x60, 0x60, 0x60)))
+                    }),
+        ))
+        .style(move |s| {
+            if is_open.get() {
+                s.padding(10.0)
+                    .background(Color::from_rgb8(0x30, 0x30, 0x30))
+            } else {
+                s.hide()
+            }
+        }),
+        // Trigger button
+        container(
+            label(move || format!("{} ▼", selected_model.get()))
+        )
+        .on_click_stop(move |_| {
+            println!("[Dropdown] Toggle");
+            is_open.update(|v| *v = !*v);
+        })
+        .style(|s| {
+            s.padding(8.0)
+                .background(Color::from_rgb8(0xff, 0x00, 0x00))  // BRIGHT RED TEST
+                .cursor(floem::style::CursorStyle::Pointer)
+        }),
+    ))
+    .style(|s| s.position(floem::style::Position::Relative))
+}
+
 // EXACT Windsurf user message from outerHTML
 // Right-aligned: flex justify-end, rounded-[8px] border bg-ide-input-background px-[9px] py-[6px]
 pub fn user_message(text: String) -> impl View {
@@ -301,6 +362,18 @@ where
     
     container(
         v_stack((
+            // DEBUG: Show signal values
+            container(
+                label(move || format!("DEBUG: Model={} | Mode={}", selected_model.get(), selected_mode.get()))
+            )
+            .style(|s| {
+                s.width_full()
+                    .padding(4.0)
+                    .background(Color::from_rgb8(0x80, 0x00, 0x00))
+                    .font_size(11.0)
+                    .color(Color::from_rgb8(0xff, 0xff, 0x00))
+            }),
+            
             // Text input area
             container(
                 v_stack((
@@ -341,6 +414,9 @@ where
             
             // Bottom toolbar
             h_stack((
+                // Simple dropdown - call function
+                simple_model_dropdown(selected_model),
+                
                 // Plus button
                 container(
                     label(|| "+".to_string())
@@ -436,12 +512,16 @@ where
     )
     .style(|s| {
         s.width_full()
-            .padding(6.0)
-            .background(Color::from_rgb8(0x25, 0x25, 0x25))
+            .padding(8.0)
+            .padding_horiz(12.0)
+            .background(Color::from_rgb8(0x1a, 0x1a, 0x1a))
             .border(1.0)
             .border_color(Color::from_rgb8(0x45, 0x45, 0x45))
             .border_radius(15.0)
             .margin(16.0)
+    })
+    .on_click_stop(|_| {
+        println!("[INPUT_BAR] *** OUTER CONTAINER CLICKED ***");
     })
 }
 

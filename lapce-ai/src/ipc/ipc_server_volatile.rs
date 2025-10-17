@@ -96,10 +96,14 @@ impl IpcServerVolatile {
     }
     
     async fn accept_connection(&self) -> Result<(u32, Arc<SharedMemoryBuffer>, Arc<SharedMemoryBuffer>)> {
-        // Allocate slot FIRST
-        let slot_id = self.next_slot_id.fetch_add(1, Ordering::Relaxed);
+        // WAIT FOR CLIENT CONNECTION FIRST
+        eprintln!("[SERVER] Waiting for client connection...");
+        let (stream, _addr) = self.control_server.lock().await.listener.accept().await?;
         
-        eprintln!("[SERVER] Accepting connection for slot {}...", slot_id);
+        eprintln!("[SERVER] Client connected, allocating resources...");
+        
+        // NOW allocate slot and create resources
+        let slot_id = self.next_slot_id.fetch_add(1, Ordering::Relaxed);
         
         // POSIX shm names must start with / and have no other slashes
         let base_name = std::path::Path::new(&self.base_path)
@@ -117,7 +121,7 @@ impl IpcServerVolatile {
         let send_doorbell_fd_for_client = send_doorbell.duplicate()?;
         let recv_doorbell_fd_for_client = recv_doorbell.duplicate()?;
         
-        eprintln!("[SERVER] Created doorbells for slot {}: send_fd={}, recv_fd={}",
+        eprintln!("[SERVER] Slot {}: created doorbells send_fd={}, recv_fd={}",
             slot_id, send_doorbell_fd_for_client, recv_doorbell_fd_for_client);
         
         // Create buffers
@@ -128,19 +132,32 @@ impl IpcServerVolatile {
         send_buffer.attach_doorbell(Arc::new(send_doorbell));
         recv_buffer.attach_doorbell(Arc::new(recv_doorbell));
         
-        eprintln!("[SERVER] Created buffers for slot {}, calling accept_handshake...", slot_id);
+        eprintln!("[SERVER] Slot {}: reading handshake request...", slot_id);
         
-        // Accept handshake with DUPLICATED doorbell fds
-        self.control_server.lock().await.accept_handshake(
+        // Read handshake request from the stream we already accepted
+        let mut buf = vec![0u8; 4096];
+        let stream_std = stream.into_std()?;
+        stream_std.set_nonblocking(false)?;
+        
+        use std::io::Read;
+        let n = (&stream_std).read(&mut buf)?;
+        let _request: crate::ipc::control_socket::HandshakeRequest = bincode::deserialize(&buf[..n])?;
+        
+        eprintln!("[SERVER] Slot {}: sending handshake response...", slot_id);
+        
+        // Send response
+        let response = crate::ipc::control_socket::HandshakeResponse {
             slot_id,
-            &send_shm_name,
-            &recv_shm_name,
-            RING_CAPACITY,
-            send_doorbell_fd_for_client,
-            recv_doorbell_fd_for_client,
-        ).await?;
+            send_shm_name: send_shm_name.clone(),
+            recv_shm_name: recv_shm_name.clone(),
+            ring_capacity: RING_CAPACITY,
+            protocol_version: 1,
+        };
         
-        eprintln!("[SERVER] Completed handshake for slot {}", slot_id);
+        let response_bytes = bincode::serialize(&response)?;
+        crate::ipc::fd_pass::send_fds(&stream_std, &[send_doorbell_fd_for_client, recv_doorbell_fd_for_client], &response_bytes)?;
+        
+        eprintln!("[SERVER] Slot {}: handshake complete", slot_id);
         
         Ok((slot_id, send_buffer, recv_buffer))
     }

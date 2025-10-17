@@ -534,6 +534,10 @@ impl WindowTabData {
                             TermNotification::RequestPaint => {
                                 view_id.get_untracked().request_paint();
                             }
+                            TermNotification::UserInput { term_id, data } => {
+                                // Process user input for command capture
+                                terminal.process_user_input(term_id, data);
+                            }
                         }
                     }
                 });

@@ -224,9 +224,7 @@ impl CustomInstructionsLoader {
                          │
                 ═════════▼═════════
                 SharedMemory IPC
-                /tmp/lapce-ai.sock
-                5.1μs latency ✅
-                1.38M msg/sec ✅
+               
                 ═════════│═════════
                          │
 ┌────────────────────────▼──────────────────────────────┐

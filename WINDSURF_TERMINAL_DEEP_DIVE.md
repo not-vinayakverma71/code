@@ -2,20 +2,25 @@
 
 **Research Date**: 2025-10-16  
 **Focus**: 100% Terminal Features  
-**Sources**: Extension code, package.json, xterm addons
+**Sources**: Extension code, package.json, xterm addons  
+**Implementation Status**: ✅ Completed in Lapce (2025-10-17)
+
+> **Note**: This document contains the original research on Windsurf's terminal features.  
+> **Lapce Implementation**: All core features have been implemented in Lapce pre-IPC.  
+> See `docs/TERMINAL_PRE_IPC.md` for the Lapce implementation guide.
 
 ---
 
 ## 📊 Executive Summary
 
 Windsurf's terminal is **NOT just a terminal emulator**. It's a **bidirectional AI-integrated shell interface** with:
-- ✅ Real-time command streaming to AI
-- ✅ AI-generated command suggestions
-- ✅ Interactive accept/reject workflow
-- ✅ Shell integration detection
-- ✅ Command completion tracking
-- ✅ Multi-terminal management
-- ✅ Full output capture & streaming
+- ✅ Real-time command streaming to AI → **Implemented in Lapce**
+- ✅ AI-generated command suggestions → **Injection APIs ready**
+- ✅ Interactive accept/reject workflow → **Safety validation ready**
+- ✅ Shell integration detection → **OSC 633/133 parser implemented**
+- ✅ Command completion tracking → **Force-exit timeout included**
+- ✅ Multi-terminal management → **Lifecycle tracking ready**
+- ✅ Full output capture & streaming → **Bounded streaming implemented**
 
 ---
 

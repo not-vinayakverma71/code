@@ -34,7 +34,7 @@ const MAX_MESSAGE_SIZE: usize = 4096;
 
 /// Control plane server
 pub struct ControlServer {
-    listener: UnixListener,
+    pub listener: UnixListener,
     control_path: String,
 }
 
