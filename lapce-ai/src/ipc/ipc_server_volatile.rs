@@ -130,25 +130,32 @@ impl IpcServerVolatile {
         
         eprintln!("[SERVER] Slot {}: created resources", slot_id);
         
-        // Read handshake request
-        let mut buf = vec![0u8; 4096];
+        // CRITICAL: Blocking I/O must use spawn_blocking to avoid blocking tokio runtime
         let stream_std = stream.into_std()?;
-        stream_std.set_nonblocking(false)?;
         
-        use std::io::Read;
-        let n = (&stream_std).read(&mut buf)?;
-        let _request: crate::ipc::control_socket::HandshakeRequest = bincode::deserialize(&buf[..n])?;
-        
-        // Send response
-        let response = crate::ipc::control_socket::HandshakeResponse {
-            slot_id,
-            send_shm_name,
-            recv_shm_name,
-            ring_capacity: RING_CAPACITY,
-            protocol_version: 1,
-        };
-        let response_bytes = bincode::serialize(&response)?;
-        crate::ipc::fd_pass::send_fds(&stream_std, &[send_doorbell_fd, recv_doorbell_fd], &response_bytes)?;
+        // Perform handshake in blocking context
+        let handshake_result = tokio::task::spawn_blocking(move || -> Result<()> {
+            stream_std.set_nonblocking(false)?;
+            
+            // Read handshake request
+            let mut buf = vec![0u8; 4096];
+            use std::io::Read;
+            let n = (&stream_std).read(&mut buf)?;
+            let _request: crate::ipc::control_socket::HandshakeRequest = bincode::deserialize(&buf[..n])?;
+            
+            // Send response
+            let response = crate::ipc::control_socket::HandshakeResponse {
+                slot_id,
+                send_shm_name: send_shm_name.clone(),
+                recv_shm_name: recv_shm_name.clone(),
+                ring_capacity: RING_CAPACITY,
+                protocol_version: 1,
+            };
+            let response_bytes = bincode::serialize(&response)?;
+            crate::ipc::fd_pass::send_fds(&stream_std, &[send_doorbell_fd, recv_doorbell_fd], &response_bytes)?;
+            
+            Ok(())
+        }).await??;
         
         eprintln!("[SERVER] Slot {}: handshake complete", slot_id);
         

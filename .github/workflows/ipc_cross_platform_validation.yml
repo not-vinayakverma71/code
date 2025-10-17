@@ -192,22 +192,19 @@ jobs:
           echo "=== TEST RESULTS ===" | tee -a $GITHUB_STEP_SUMMARY
           grep -E "(Messages succeeded|Success rate|Throughput|Avg latency)" /tmp/stress_test.log | tee -a $GITHUB_STEP_SUMMARY
       
+      - name: Build Windows IPC stress test
+        if: matrix.platform == 'windows'
+        working-directory: lapce-ai
+        run: cargo build --release --bin windows_ipc_stress_test
+      
       - name: Run IPC stress test (Windows)
         if: matrix.platform == 'windows'
         working-directory: lapce-ai
         timeout-minutes: 15
         shell: pwsh
         run: |
-          # Start server in background
-          $serverProcess = Start-Process -FilePath ".\target\release\ipc_test_server_volatile.exe" -ArgumentList "stress_test_ipc.sock" -NoNewWindow -PassThru -RedirectStandardOutput "server.log" -RedirectStandardError "server_err.log"
-          Write-Host "Server PID: $($serverProcess.Id)"
-          Start-Sleep -Seconds 3
-          
-          # Run stress test
-          & ".\target\release\production_stress_test.exe" 2>&1 | Tee-Object -FilePath "stress_test.log"
-          
-          # Kill server
-          Stop-Process -Id $serverProcess.Id -Force -ErrorAction SilentlyContinue
+          # Run Windows-specific stress test
+          & ".\target\release\windows_ipc_stress_test.exe" 2>&1 | Tee-Object -FilePath "stress_test.log"
           
           # Extract metrics
           Write-Host "=== TEST RESULTS ===" | Tee-Object -Append -FilePath $env:GITHUB_STEP_SUMMARY

@@ -82,6 +82,11 @@ name = "test_volatile_ipc"
 path = "src/bin/test_volatile_ipc.rs"
 required-features = ["unix-bins"]
 
+# Windows-only binaries
+[[bin]]
+name = "windows_ipc_stress_test"
+path = "src/bin/windows_ipc_stress_test.rs"
+
 [[bench]]
 name = "benchmarks"
 harness = false
