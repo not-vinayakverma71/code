@@ -103,7 +103,7 @@ impl IpcServerVolatile {
     }
     
     /// Handle a new connection: create resources, perform handshake, spawn handler
-    async fn handle_new_connection(&self, stream: tokio::net::UnixStream) -> Result<()> {
+    async fn handle_new_connection(&self, mut stream: tokio::net::UnixStream) -> Result<()> {
         // Allocate slot
         let slot_id = self.next_slot_id.fetch_add(1, Ordering::Relaxed);
         eprintln!("[SERVER] Slot {}: client connected", slot_id);
@@ -130,31 +130,28 @@ impl IpcServerVolatile {
         
         eprintln!("[SERVER] Slot {}: created resources", slot_id);
         
-        // CRITICAL: Blocking I/O must use spawn_blocking to avoid blocking tokio runtime
-        let stream_std = stream.into_std()?;
+        // Perform handshake with async I/O for scalability
+        // Read handshake request
+        let mut buf = vec![0u8; 4096];
+        use tokio::io::AsyncReadExt;
+        let n = stream.read(&mut buf).await?;
+        let _request: crate::ipc::control_socket::HandshakeRequest = bincode::deserialize(&buf[..n])?;
         
-        // Perform handshake in blocking context
-        let handshake_result = tokio::task::spawn_blocking(move || -> Result<()> {
+        // Send response with FD passing (requires sync call)
+        let response = crate::ipc::control_socket::HandshakeResponse {
+            slot_id,
+            send_shm_name: send_shm_name.clone(),
+            recv_shm_name: recv_shm_name.clone(),
+            ring_capacity: RING_CAPACITY,
+            protocol_version: 1,
+        };
+        let response_bytes = bincode::serialize(&response)?;
+        
+        // FD passing requires sync I/O - do it in spawn_blocking but very briefly
+        let stream_std = stream.into_std()?;
+        tokio::task::spawn_blocking(move || {
             stream_std.set_nonblocking(false)?;
-            
-            // Read handshake request
-            let mut buf = vec![0u8; 4096];
-            use std::io::Read;
-            let n = (&stream_std).read(&mut buf)?;
-            let _request: crate::ipc::control_socket::HandshakeRequest = bincode::deserialize(&buf[..n])?;
-            
-            // Send response
-            let response = crate::ipc::control_socket::HandshakeResponse {
-                slot_id,
-                send_shm_name: send_shm_name.clone(),
-                recv_shm_name: recv_shm_name.clone(),
-                ring_capacity: RING_CAPACITY,
-                protocol_version: 1,
-            };
-            let response_bytes = bincode::serialize(&response)?;
-            crate::ipc::fd_pass::send_fds(&stream_std, &[send_doorbell_fd, recv_doorbell_fd], &response_bytes)?;
-            
-            Ok(())
+            crate::ipc::fd_pass::send_fds(&stream_std, &[send_doorbell_fd, recv_doorbell_fd], &response_bytes)
         }).await??;
         
         eprintln!("[SERVER] Slot {}: handshake complete", slot_id);
