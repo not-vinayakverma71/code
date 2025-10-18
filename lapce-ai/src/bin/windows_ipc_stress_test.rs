@@ -215,7 +215,8 @@ async fn test_windows_ipc() -> Result<()> {
         }
     });
     
-    tokio::time::sleep(Duration::from_millis(100)).await;
+    // Wait for server to fully initialize (create control buffer and start accept loop)
+    tokio::time::sleep(Duration::from_millis(500)).await;
     
     let start = Instant::now();
     

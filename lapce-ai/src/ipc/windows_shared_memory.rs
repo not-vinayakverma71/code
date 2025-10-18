@@ -403,8 +403,21 @@ impl SharedMemoryStream {
     pub async fn connect(path: &str) -> Result<Self> {
         let control_path = format!("{}_control", path);
         
-        // Open control channel
-        let mut control = SharedMemoryBuffer::open(&control_path, CONTROL_SIZE)?;
+        // Open control channel with retries (server may still be initializing)
+        let mut control = {
+            let mut retries = 0;
+            loop {
+                match SharedMemoryBuffer::open(&control_path, CONTROL_SIZE) {
+                    Ok(buf) => break buf,
+                    Err(e) if retries < 50 => {
+                        retries += 1;
+                        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+                        continue;
+                    }
+                    Err(e) => bail!("Failed to open control buffer after {} retries: {}", retries, e),
+                }
+            }
+        };
         
         // Generate connection ID
         let conn_id = std::process::id() as u64 + 
