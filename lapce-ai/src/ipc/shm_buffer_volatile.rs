@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 use std::ptr;
 use anyhow::{Result, bail};
 use crate::ipc::ring_header_volatile::VolatileRingHeader;
-use crate::ipc::eventfd_doorbell::EventFdDoorbell;
+use crate::ipc::platform_buffer::PlatformDoorbell;
 use std::os::unix::io::RawFd;
 use crate::ipc::shm_namespace::create_namespaced_path;
 
@@ -20,8 +20,8 @@ pub struct VolatileSharedMemoryBuffer {
     shm_name: String,
     header: *mut VolatileRingHeader,
     data: *mut u8,
-    // Optional doorbell for efficient notifications
-    doorbell: Mutex<Option<Arc<EventFdDoorbell>>>,
+    // Optional platform doorbell for efficient notifications
+    doorbell: Mutex<Option<Arc<PlatformDoorbell>>>,
 }
 
 impl VolatileSharedMemoryBuffer {
@@ -346,15 +346,15 @@ impl VolatileSharedMemoryBuffer {
         unsafe { &*self.header }
     }
     
-    /// Attach an eventfd doorbell for notifications
-    pub fn attach_doorbell(&self, doorbell: Arc<EventFdDoorbell>) {
+    /// Attach a platform doorbell for notifications
+    pub fn attach_doorbell(&self, doorbell: Arc<PlatformDoorbell>) {
         eprintln!("[BUF] Attached doorbell to {}", self.shm_name);
         *self.doorbell.lock().unwrap() = Some(doorbell);
     }
     
     /// Attach doorbell from raw fd
     pub fn attach_doorbell_fd(&self, fd: RawFd) {
-        let doorbell = EventFdDoorbell::from_fd(fd);
+        let doorbell = PlatformDoorbell::from_fd(fd);
         *self.doorbell.lock().unwrap() = Some(Arc::new(doorbell));
         eprintln!("[BUF] Attached doorbell fd={} to {}", fd, self.shm_name);
     }

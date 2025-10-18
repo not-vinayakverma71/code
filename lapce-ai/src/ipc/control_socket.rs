@@ -7,7 +7,7 @@ use std::path::Path;
 use std::os::unix::io::AsRawFd;
 use tokio::net::{UnixListener, UnixStream};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use crate::ipc::eventfd_doorbell::EventFdDoorbell;
+use crate::ipc::platform_buffer::PlatformDoorbell;
 use crate::ipc::fd_pass;
 
 /// Handshake request from client

@@ -183,7 +183,8 @@ async fn main() -> Result<()> {
         
         bail!("Test validation failed")
     }
-}
+    } // Close #[cfg(not(windows))] block
+} // Close main()
 
 #[cfg(windows)]
 async fn test_windows_ipc() -> Result<()> {

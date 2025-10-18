@@ -14,7 +14,7 @@ use crate::ipc::shm_buffer_futex::FutexSharedMemoryBuffer as SharedMemoryBuffer;
 #[cfg(not(target_os = "linux"))]
 use crate::ipc::shm_buffer_volatile::VolatileSharedMemoryBuffer as SharedMemoryBuffer;
 use crate::ipc::binary_codec::{BinaryCodec, MessageType};
-use crate::ipc::eventfd_doorbell::EventFdDoorbell;
+use crate::ipc::platform_buffer::PlatformDoorbell;
 use crate::ipc::errors::IpcResult;
 
 const RING_CAPACITY: u32 = 1024 * 1024; // 1MB per ring
@@ -116,9 +116,9 @@ impl IpcServerVolatile {
         let send_shm_name = format!("/{}_{}_send", base_name, slot_id);
         let recv_shm_name = format!("/{}_{}_recv", base_name, slot_id);
         
-        // Create eventfd doorbells
-        let send_doorbell = EventFdDoorbell::new()?;
-        let recv_doorbell = EventFdDoorbell::new()?;
+        // Create platform doorbells (eventfd on Linux, kqueue on macOS, Event on Windows)
+        let send_doorbell = PlatformDoorbell::new()?;
+        let recv_doorbell = PlatformDoorbell::new()?;
         let send_doorbell_fd = send_doorbell.duplicate()?;
         let recv_doorbell_fd = recv_doorbell.duplicate()?;
         
