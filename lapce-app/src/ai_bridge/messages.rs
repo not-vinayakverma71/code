@@ -91,6 +91,23 @@ pub enum AskResponseType {
 pub enum TerminalOp {
     Continue,
     Abort,
+    /// Inject a command (from AI)
+    InjectCommand {
+        command: String,
+        source: CommandSource,
+    },
+    /// Send interrupt signal (Ctrl+C)
+    SendInterrupt,
+    /// Send control signal
+    SendControlSignal { signal: String },
+}
+
+/// Command source (matches lapce-app terminal types)
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub enum CommandSource {
+    User,
+    Cascade,
 }
 
 // ============================================================================
@@ -131,6 +148,31 @@ pub enum InboundMessage {
         terminal_id: String,
         data: String,
         markers: Vec<OscMarker>,
+    },
+
+    /// Terminal command started
+    TerminalCommandStarted {
+        terminal_id: String,
+        command: String,
+        source: CommandSource,
+        cwd: String,
+    },
+
+    /// Terminal command completed
+    TerminalCommandCompleted {
+        terminal_id: String,
+        command: String,
+        exit_code: i32,
+        duration_ms: u64,
+        forced_exit: bool,
+    },
+
+    /// Terminal command injection result
+    TerminalCommandInjected {
+        terminal_id: String,
+        command: String,
+        success: bool,
+        error: Option<String>,
     },
 
     /// History results

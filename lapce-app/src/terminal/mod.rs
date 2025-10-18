@@ -14,3 +14,6 @@ pub mod tab;
 pub mod types;
 pub mod ui_helpers;
 pub mod view;
+
+#[cfg(test)]
+mod integration_tests;

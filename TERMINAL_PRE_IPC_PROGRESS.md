@@ -374,5 +374,63 @@ Following IPC-first architecture per project memories:
 **Documentation: 100% COMPLETE** ✅  
 **Backend Parity: 100% COMPLETE** ✅  
 **Backend (lapce-ai): 100% COMPLETE** ✅  
+**Phase B IPC Integration: 100% COMPLETE** ✅ **NEW**
 
-**🎉 ALL PRE-IPC WORK COMPLETE - READY FOR PHASE B/C INTEGRATION 🎉**
+**🎉 PHASE A+B COMPLETE - READY FOR PHASE C (UI WIRING) 🎉**
+
+---
+
+## 🔗 PHASE B: IPC INTEGRATION (4/4 Complete)
+
+**Completed**: 2025-10-17
+
+### **IPC-1: Message Schemas** ✅
+- Extended `TerminalOp` enum with `InjectCommand`, `SendInterrupt`, `SendControlSignal`
+- Added `CommandSource` enum (User/Cascade) with PascalCase serialization
+- Added inbound terminal events:
+  - `TerminalCommandStarted` (command, source, cwd)
+  - `TerminalCommandCompleted` (exit_code, duration, forced_exit)
+  - `TerminalCommandInjected` (success, error)
+  - `TerminalOutput` (data, markers)
+- **File**: `lapce-app/src/ai_bridge/messages.rs` (+70 lines)
+
+### **IPC-2: TerminalBridge** ✅
+- Created `TerminalBridge` struct with event emission methods
+- Event APIs:
+  - `send_command_started()` - Emit when command starts
+  - `send_command_completed()` - Emit when command finishes
+  - `send_output_chunk()` - Stream terminal output
+  - `send_injection_result()` - Report injection success/failure
+- CommandSource conversion (terminal types ↔ IPC types)
+- Comprehensive unit tests for serialization
+- **File**: `lapce-app/src/ai_bridge/terminal_bridge.rs` (120 lines)
+
+### **IPC-3: Backend Parity** ✅
+- Added `CommandSource` enum to `lapce-ai` TerminalTool
+- Extended `TerminalCommand` with `source` field
+- Extended `TerminalOutput` with `source` field
+- Updated execution methods to preserve command source
+- **File**: `lapce-ai/src/core/tools/terminal/terminal_tool.rs` (+40 lines)
+
+### **IPC-4: Integration Documentation** ✅
+- Complete Phase B/C integration guide
+- Architecture diagrams (UI ↔ IPC ↔ Backend)
+- Message flow examples (AI inject, user command, forced-exit)
+- Step-by-step Phase C wiring instructions
+- Testing strategies and performance expectations
+- Security validation and error handling patterns
+- **File**: `docs/TERMINAL_IPC_INTEGRATION.md` (600 lines)
+
+---
+
+## 🚀 NEXT: PHASE C (UI WIRING)
+
+See `docs/TERMINAL_IPC_INTEGRATION.md` for complete wiring instructions.
+
+**Remaining Tasks (6 items)**:
+1. Add `terminal_bridge` field to `TerminalPanelData`
+2. Emit command lifecycle events in terminal panel
+3. Stream terminal output chunks to backend
+4. Create `TerminalRouteHandler` in lapce-ai
+5. Add UI indicators (badges, warnings)
+6. End-to-end integration testing

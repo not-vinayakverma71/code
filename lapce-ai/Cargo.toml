@@ -345,7 +345,6 @@ html-escape = "0.2"
 hdrhistogram = "7.5.4"
 trash = "5.2.3"
 
-[workspace]
-members = [".", "optimized_ipc"]
-
+# This is a workspace member of the parent /home/verma/lapce workspace
+# Workspace configuration is in /home/verma/lapce/Cargo.toml
 

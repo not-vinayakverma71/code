@@ -61,6 +61,13 @@ pub fn send_fds(sock: &UnixStream, fds: &[RawFd], data: &[u8]) -> Result<()> {
         bail!("Failed to send fds: {}", std::io::Error::last_os_error());
     }
     
+    // macOS: Ensure FDs are flushed by forcing a shutdown+reopen pattern isn't needed,
+    // but we do need to ensure the send completes. Add a small delay.
+    #[cfg(target_os = "macos")]
+    {
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    }
+    
     eprintln!("[FD_PASS] Sent {} fds with {} bytes data", fds.len(), data.len());
     Ok(())
 }
@@ -115,10 +122,17 @@ pub fn recv_fds(sock: &UnixStream, max_fds: usize) -> Result<(Vec<RawFd>, Vec<u8
             let cmsg_data = CMSG_DATA(cmsg);
             let fd_count = ((*cmsg).cmsg_len as usize - mem::size_of::<cmsghdr>()) / mem::size_of::<RawFd>();
             
+            eprintln!("[FD_PASS] cmsg_len={}, fd_count={}", (*cmsg).cmsg_len, fd_count);
+            
             for i in 0..fd_count {
                 let fd_ptr = cmsg_data.add(i * mem::size_of::<RawFd>()) as *const RawFd;
                 fds.push(*fd_ptr);
             }
+        } else {
+            eprintln!("[FD_PASS] No control message: cmsg={:?}, level={}, type={}", 
+                     cmsg, 
+                     if !cmsg.is_null() { (*cmsg).cmsg_level } else { -1 },
+                     if !cmsg.is_null() { (*cmsg).cmsg_type } else { -1 });
         }
     }
     
