@@ -354,7 +354,13 @@ impl VolatileSharedMemoryBuffer {
     
     /// Attach doorbell from raw fd
     pub fn attach_doorbell_fd(&self, fd: RawFd) {
+        // from_fd may return Result on some platforms (kqueue), Self on others (eventfd)
+        #[cfg(target_os = "macos")]
+        let doorbell = PlatformDoorbell::from_fd(fd).expect("Failed to open doorbell from fd");
+        
+        #[cfg(not(target_os = "macos"))]
         let doorbell = PlatformDoorbell::from_fd(fd);
+        
         *self.doorbell.lock().unwrap() = Some(Arc::new(doorbell));
         eprintln!("[BUF] Attached doorbell fd={} to {}", fd, self.shm_name);
     }
