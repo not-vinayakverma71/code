@@ -45,40 +45,24 @@ unsafe impl Send for SharedMemoryBuffer {}
 unsafe impl Sync for SharedMemoryBuffer {}
 
 impl SharedMemoryBuffer {
-    /// Sanitize name for Windows object namespace
+    /// Sanitize name for Windows object namespace (deterministic across processes)
     fn sanitize_name(path: &str) -> String {
-        // Get process ID for namespace isolation
-        let process_id = unsafe { GetCurrentProcessId() };
-        // Use process ID as session identifier (Windows will handle session isolation)
-        let session_id = process_id;
-        
-        // Generate random suffix for collision avoidance
-        use std::collections::hash_map::RandomState;
-        use std::hash::{BuildHasher, Hasher};
-        let hasher = RandomState::new();
-        let mut h = hasher.build_hasher();
-        h.write_u64(std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos() as u64);
-        let random_suffix = format!("{:016x}", h.finish());
-        
         // Sanitize path: keep only alphanumeric, underscore, dash
-        let sanitized = path.chars()
+        let sanitized = path
+            .chars()
             .map(|c| if c.is_ascii_alphanumeric() || c == '_' || c == '-' { c } else { '_' })
             .collect::<String>();
         
-        // Build Windows object name with Local namespace
-        // Format: Local\LapceAI_<session>_<random>_<sanitized_path>
-        let name = format!("Local\\LapceAI_{}_{}_{}_{}", 
-            session_id, process_id, random_suffix, sanitized);
+        // Deterministic object name under the Session-local namespace.
+        // Important: No PID or time-based randomness so both processes open the SAME mapping.
+        // Use a single component after Local\\ to avoid nested object directories.
+        let mut name = format!("Local\\LapceAI_{}", sanitized);
         
-        // Cap at 200 chars to avoid Windows limits
-        if name.len() > 200 {
-            name.chars().take(200).collect()
-        } else {
-            name
+        // Cap length to be conservative for kernel object names
+        if name.len() > 240 {
+            name.truncate(240);
         }
+        name
     }
     
     /// Convert string to wide string for Windows API
