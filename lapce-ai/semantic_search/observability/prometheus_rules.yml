@@ -1,0 +1,146 @@
+groups:
+  - name: semantic_search_alerts
+    interval: 30s
+    rules:
+      # High latency alerts
+      - alert: HighSearchLatency
+        expr: histogram_quantile(0.95, rate(semantic_search_latency_seconds_bucket[5m])) > 0.2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High search latency detected"
+          description: "95th percentile search latency is {{ $value }}s (threshold: 200ms)"
+      
+      - alert: VeryHighSearchLatency
+        expr: histogram_quantile(0.99, rate(semantic_search_latency_seconds_bucket[5m])) > 0.5
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Very high search latency detected"
+          description: "99th percentile search latency is {{ $value }}s (threshold: 500ms)"
+      
+      # Cache hit rate alerts
+      - alert: LowCacheHitRate
+        expr: |
+          rate(semantic_search_cache_hits_total[5m]) / 
+          (rate(semantic_search_cache_hits_total[5m]) + rate(semantic_search_cache_misses_total[5m])) < 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low cache hit rate"
+          description: "Cache hit rate is {{ $value | humanizePercentage }} (threshold: 50%)"
+      
+      - alert: VeryLowCacheHitRate
+        expr: |
+          rate(semantic_search_cache_hits_total[5m]) / 
+          (rate(semantic_search_cache_hits_total[5m]) + rate(semantic_search_cache_misses_total[5m])) < 0.2
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Very low cache hit rate"
+          description: "Cache hit rate is {{ $value | humanizePercentage }} (threshold: 20%)"
+      
+      # Error rate alerts
+      - alert: HighSearchErrorRate
+        expr: rate(semantic_search_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High search error rate"
+          description: "Search error rate is {{ $value }} errors/sec"
+      
+      - alert: HighAWSTitanErrorRate
+        expr: rate(aws_titan_errors_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High AWS Titan error rate"
+          description: "AWS Titan error rate is {{ $value }} errors/sec"
+      
+      # AWS Titan latency
+      - alert: HighAWSTitanLatency
+        expr: histogram_quantile(0.95, rate(aws_titan_request_latency_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High AWS Titan latency"
+          description: "95th percentile AWS Titan latency is {{ $value }}s (threshold: 1s)"
+      
+      # Memory alerts
+      - alert: HighMemoryUsage
+        expr: semantic_search_memory_rss_bytes > 500000000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "RSS memory usage is {{ $value | humanize1024 }}B (threshold: 500MB)"
+      
+      - alert: VeryHighMemoryUsage
+        expr: semantic_search_memory_rss_bytes > 1000000000
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Very high memory usage"
+          description: "RSS memory usage is {{ $value | humanize1024 }}B (threshold: 1GB)"
+      
+      # Index operation alerts
+      - alert: SlowIndexOperations
+        expr: histogram_quantile(0.95, rate(semantic_search_index_latency_seconds_bucket[5m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow index operations"
+          description: "95th percentile index operation latency is {{ $value }}s (threshold: 10s)"
+      
+      # Cache size alert
+      - alert: LargeCacheSize
+        expr: semantic_search_cache_size > 100000
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "Large cache size"
+          description: "Cache contains {{ $value }} entries (threshold: 100k)"
+
+  - name: semantic_search_recording_rules
+    interval: 30s
+    rules:
+      # Pre-compute percentiles for dashboards
+      - record: search_latency_p50
+        expr: histogram_quantile(0.5, rate(semantic_search_latency_seconds_bucket[5m]))
+      
+      - record: search_latency_p95
+        expr: histogram_quantile(0.95, rate(semantic_search_latency_seconds_bucket[5m]))
+      
+      - record: search_latency_p99
+        expr: histogram_quantile(0.99, rate(semantic_search_latency_seconds_bucket[5m]))
+      
+      - record: aws_titan_latency_p50
+        expr: histogram_quantile(0.5, rate(aws_titan_request_latency_seconds_bucket[5m]))
+      
+      - record: aws_titan_latency_p95
+        expr: histogram_quantile(0.95, rate(aws_titan_request_latency_seconds_bucket[5m]))
+      
+      - record: aws_titan_latency_p99
+        expr: histogram_quantile(0.99, rate(aws_titan_request_latency_seconds_bucket[5m]))
+      
+      - record: cache_hit_rate_5m
+        expr: |
+          rate(semantic_search_cache_hits_total[5m]) / 
+          (rate(semantic_search_cache_hits_total[5m]) + rate(semantic_search_cache_misses_total[5m]))
+      
+      - record: search_qps
+        expr: rate(semantic_search_cache_hits_total[1m]) + rate(semantic_search_cache_misses_total[1m])
+      
+      - record: index_operations_rate
+        expr: rate(semantic_search_index_operations_total[5m])

@@ -8,7 +8,7 @@ use floem::{
     reactive::{
         ReadSignal, RwSignal, SignalGet, SignalUpdate, SignalWith, create_rw_signal,
     },
-    style::{AlignItems, CursorStyle, Position, Style},
+    style::{AlignItems, CursorStyle, OverflowX, OverflowY, Position, Style},
     text::Style as FontStyle,
     views::{
         Container, Decorators, container, dyn_stack, label, scroll, stack, svg,
@@ -144,12 +144,10 @@ fn file_node_text_color(
     });
 
     let color = match diff {
-        Some(FileDiffKind::Modified | FileDiffKind::Renamed) => {
-            LapceColor::SOURCE_CONTROL_MODIFIED
-        }
-        Some(FileDiffKind::Added) => LapceColor::SOURCE_CONTROL_ADDED,
+        // Only deleted files get red color
         Some(FileDiffKind::Deleted) => LapceColor::SOURCE_CONTROL_REMOVED,
-        None => LapceColor::PANEL_FOREGROUND,
+        // All other files (modified, renamed, added) are white
+        _ => LapceColor::EDITOR_FOREGROUND,
     };
 
     config.get().color(color)
@@ -180,6 +178,7 @@ fn file_node_text_view(
                                 node.clone(),
                                 source_control.clone(),
                             ))
+                            .font_size(13.0)
                             .padding_right(5.0)
                             .selectable(false)
                     }),
@@ -209,6 +208,7 @@ fn file_node_text_view(
                                 node.clone(),
                                 source_control.clone(),
                             ))
+                            .font_size(13.0)
                             .selectable(false)
                     }),
                 )
@@ -358,15 +358,29 @@ fn file_explorer_view(
                     {
                         let kind = kind.clone();
                         let kind_for_style = kind.clone();
+                        let kind_for_size = kind.clone();
                         // TODO: use the current naming input as the path for the file svg
                         svg(move || {
                             let config = config.get();
                             if is_dir {
-                                let svg_str = match open {
-                                    true => LapceIcons::DIRECTORY_OPENED,
-                                    false => LapceIcons::DIRECTORY_CLOSED,
-                                };
-                                config.ui_svg(svg_str)
+                                // Check if folder has custom icon in theme
+                                if let Some(path) = kind.path() {
+                                    if let Some((folder_svg, _)) = config.folder_svg(path) {
+                                        folder_svg
+                                    } else {
+                                        let svg_str = match open {
+                                            true => LapceIcons::DIRECTORY_OPENED,
+                                            false => LapceIcons::DIRECTORY_CLOSED,
+                                        };
+                                        config.ui_svg(svg_str)
+                                    }
+                                } else {
+                                    let svg_str = match open {
+                                        true => LapceIcons::DIRECTORY_OPENED,
+                                        false => LapceIcons::DIRECTORY_CLOSED,
+                                    };
+                                    config.ui_svg(svg_str)
+                                }
                             } else if let Some(path) = kind.path() {
                                 config.file_svg(path).0
                             } else {
@@ -375,15 +389,34 @@ fn file_explorer_view(
                         })
                         .style(move |s| {
                             let config = config.get();
-                            let size = config.ui.icon_size() as f32;
+                            let base_size = config.ui.icon_size() as f32;
+                            // Directories: 1.0x, Custom language icons: 1.5x, Default generic icon: 0.8x
+                            let size = if is_dir {
+                                base_size * 1.0
+                            } else if let Some(path) = kind_for_size.path() {
+                                // Check if file has custom icon by checking the SVG content
+                                let (svg_content, _) = config.file_svg(path);
+                                let default_file_svg = config.ui_svg(LapceIcons::FILE);
+                                let is_default_icon = svg_content == default_file_svg;
+                                if is_default_icon { base_size * 0.8 } else { base_size * 1.5 }
+                            } else {
+                                base_size * 0.8 // Default icon = 0.8x
+                            };
 
                             s.size(size, size)
                                 .flex_shrink(0.0)
                                 .margin_horiz(6.0)
                                 .apply_if(is_dir, |s| {
-                                    s.color(
-                                        config.color(LapceColor::LAPCE_ICON_ACTIVE),
-                                    )
+                                    // Only apply color if it's a default folder (not custom)
+                                    let has_custom_folder = kind_for_style
+                                        .path()
+                                        .and_then(|p| config.folder_svg(p))
+                                        .is_some();
+                                    if has_custom_folder {
+                                        s // No color override for custom folders
+                                    } else {
+                                        s.color(config.color(LapceColor::LAPCE_ICON_ACTIVE))
+                                    }
                                 })
                                 .apply_if(!is_dir, |s| {
                                     s.apply_opt(
@@ -466,7 +499,13 @@ fn file_explorer_view(
         .item_size_fixed(move || ui_line_height.get())
         .style(|s| s.absolute().flex_col().min_width_full()),
     )
-    .style(|s| s.absolute().size_full().line_height(1.8))
+    .style(|s| {
+        s.absolute()
+            .size_full()
+            .line_height(1.8)
+            .set(OverflowX, floem::taffy::Overflow::Hidden)
+            .set(OverflowY, floem::taffy::Overflow::Scroll)
+    })
     .on_secondary_click_stop(move |_| {
         if let Naming::None = naming.get_untracked() {
             if let Some(path) = &secondary_click_data.common.workspace.path {

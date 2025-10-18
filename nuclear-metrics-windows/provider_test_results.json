@@ -1,0 +1,58 @@
+[
+  {
+    "provider": "OpenAI",
+    "status": "FAIL",
+    "latency_ms": 2061.223030090332,
+    "error": "{\n    \"error\": {\n        \"message\": \"Incorrect API key provided: test_key. You can find your API key at https://platform.openai.com/account/api-keys.\",\n        \"type\": \"invalid_request_error\",\n        \"param\": null,\n        \"code\": \"invalid_api_key\"\n    }\n}\n",
+    "reason": null,
+    "timestamp": "2025-10-05T10:00:39.133426"
+  },
+  {
+    "provider": "Anthropic",
+    "status": "SKIP",
+    "latency_ms": null,
+    "error": null,
+    "reason": "No API key",
+    "timestamp": "2025-10-05T10:00:39.133484"
+  },
+  {
+    "provider": "Gemini",
+    "status": "SKIP",
+    "latency_ms": null,
+    "error": null,
+    "reason": "No API key",
+    "timestamp": "2025-10-05T10:00:39.133499"
+  },
+  {
+    "provider": "Azure OpenAI",
+    "status": "SKIP",
+    "latency_ms": null,
+    "error": null,
+    "reason": "Missing API key or endpoint",
+    "timestamp": "2025-10-05T10:00:39.133510"
+  },
+  {
+    "provider": "Vertex AI",
+    "status": "SKIP",
+    "latency_ms": null,
+    "error": null,
+    "reason": "Missing project ID or credentials",
+    "timestamp": "2025-10-05T10:00:39.133521"
+  },
+  {
+    "provider": "OpenRouter",
+    "status": "SKIP",
+    "latency_ms": null,
+    "error": null,
+    "reason": "No API key",
+    "timestamp": "2025-10-05T10:00:39.133531"
+  },
+  {
+    "provider": "AWS Bedrock",
+    "status": "ERROR",
+    "latency_ms": null,
+    "error": "An error occurred (AccessDeniedException) when calling the InvokeModel operation: Your account does not have an agreement to this model.",
+    "reason": null,
+    "timestamp": "2025-10-05T10:00:39.133541"
+  }
+]

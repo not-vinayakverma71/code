@@ -1,0 +1,374 @@
+name: IPC Cross-Platform Validation
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'lapce-ai/src/ipc/**'
+      - 'lapce-ai/src/bin/production_stress_test.rs'
+      - 'lapce-ai/src/bin/ipc_test_server_volatile.rs'
+      - '.github/workflows/ipc_cross_platform_validation.yml'
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  ipc-validation:
+    name: IPC Validation - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            expected_latency: 200  # µs
+            expected_throughput: 50000  # msg/sec
+          - os: macos-latest
+            platform: macos
+            expected_latency: 500  # µs (kqueue slower than futex)
+            expected_throughput: 30000  # msg/sec
+          - os: windows-latest
+            platform: windows
+            expected_latency: 1000  # µs (Windows Events slower)
+            expected_throughput: 20000  # msg/sec
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      
+      - name: Cache Cargo
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            lapce-ai/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+      
+      - name: Install Linux dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler libprotobuf-dev
+          which protoc
+          protoc --version
+      
+      - name: Install macOS dependencies
+        if: matrix.platform == 'macos'
+        run: |
+          brew install protobuf coreutils
+          which protoc
+          protoc --version
+      
+      - name: Install Windows dependencies
+        if: matrix.platform == 'windows'
+        run: |
+          choco install protoc -y
+          where protoc
+          protoc --version
+      
+      # Build Phase
+      - name: Build IPC server (Unix only)
+        if: matrix.platform != 'windows'
+        working-directory: lapce-ai
+        run: cargo build --release --bin ipc_test_server_volatile --features unix-bins
+      
+      - name: Build stress test (Unix only)
+        if: matrix.platform != 'windows'
+        working-directory: lapce-ai
+        run: cargo build --release --bin production_stress_test --features unix-bins
+      
+      # Test Phase
+      - name: Run IPC stress test (Linux)
+        if: matrix.platform == 'linux'
+        working-directory: lapce-ai
+        timeout-minutes: 10
+        run: |
+          # Clean up any existing shared memory
+          rm -f /dev/shm/stress_test_ipc.sock* 2>/dev/null || true
+          
+          # Start server in foreground first to see immediate errors
+          echo "[CI] Testing server startup..."
+          timeout 2 ./target/release/ipc_test_server_volatile /tmp/stress_test_ipc.sock 2>&1 | head -20 || echo "[CI] Server test completed (timeout expected)"
+          
+          # Clean up test socket
+          rm -f /tmp/stress_test_ipc.sock* 2>/dev/null || true
+          
+          # Start server in background
+          echo "[CI] Starting server in background..."
+          ./target/release/ipc_test_server_volatile /tmp/stress_test_ipc.sock > /tmp/server.log 2>&1 &
+          SERVER_PID=$!
+          echo "[CI] Server PID: $SERVER_PID"
+          
+          # Check if process is running
+          sleep 1
+          if ! ps -p $SERVER_PID > /dev/null; then
+            echo "[CI] ERROR: Server process died immediately!"
+            cat /tmp/server.log
+            exit 1
+          fi
+          
+          # Check if control socket was created
+          sleep 2
+          if [ ! -S /tmp/stress_test_ipc.sock.ctl ]; then
+            echo "[CI] ERROR: Control socket not created!"
+            cat /tmp/server.log
+            ps aux | grep ipc_test_server
+            exit 1
+          fi
+          
+          echo "[CI] Server running, control socket exists"
+          
+          # Run stress test with shorter timeout
+          timeout 300 ./target/release/production_stress_test 2>&1 | tee /tmp/stress_test.log || echo "Test timed out or failed"
+          
+          # Kill server
+          kill -9 $SERVER_PID 2>/dev/null || true
+          
+          # Extract metrics
+          echo "=== TEST RESULTS ===" | tee -a $GITHUB_STEP_SUMMARY
+          grep -E "(Messages succeeded|Success rate|Throughput|Avg latency)" /tmp/stress_test.log | tee -a $GITHUB_STEP_SUMMARY
+      
+      - name: Run IPC stress test (macOS)
+        if: matrix.platform == 'macos'
+        working-directory: lapce-ai
+        timeout-minutes: 15
+        run: |
+          # Clean up any existing shared memory
+          rm -f /tmp/stress_test_ipc.sock* 2>/dev/null || true
+          
+          # Start server in foreground first to see immediate errors
+          echo "[CI] Testing server startup..."
+          gtimeout 2 ./target/release/ipc_test_server_volatile /tmp/stress_test_ipc.sock 2>&1 | head -20 || echo "[CI] Server test completed (timeout expected)"
+          
+          # Clean up test socket
+          rm -f /tmp/stress_test_ipc.sock* 2>/dev/null || true
+          
+          # Start server in background
+          echo "[CI] Starting server in background..."
+          ./target/release/ipc_test_server_volatile /tmp/stress_test_ipc.sock > /tmp/server.log 2>&1 &
+          SERVER_PID=$!
+          echo "[CI] Server PID: $SERVER_PID"
+          
+          # Check if process is running
+          sleep 1
+          if ! ps -p $SERVER_PID > /dev/null; then
+            echo "[CI] ERROR: Server process died immediately!"
+            cat /tmp/server.log
+            exit 1
+          fi
+          
+          # Check if control socket was created
+          sleep 2
+          if [ ! -S /tmp/stress_test_ipc.sock.ctl ]; then
+            echo "[CI] ERROR: Control socket not created!"
+            cat /tmp/server.log
+            ps aux | grep ipc_test_server
+            exit 1
+          fi
+          
+          echo "[CI] Server running, control socket exists"
+          
+          # Run stress test with timeout
+          gtimeout 600 ./target/release/production_stress_test 2>&1 | tee /tmp/stress_test.log || true
+          
+          # Kill server
+          kill -9 $SERVER_PID 2>/dev/null || true
+          
+          # Extract metrics
+          echo "=== TEST RESULTS ===" | tee -a $GITHUB_STEP_SUMMARY
+          grep -E "(Messages succeeded|Success rate|Throughput|Avg latency)" /tmp/stress_test.log | tee -a $GITHUB_STEP_SUMMARY
+      
+      - name: Build Windows IPC binaries
+        if: matrix.platform == 'windows'
+        working-directory: lapce-ai
+        run: |
+          cargo build --release --bin windows_ipc_server
+          cargo build --release --bin windows_ipc_stress_test
+      
+      - name: Run IPC stress test (Windows)
+        if: matrix.platform == 'windows'
+        working-directory: lapce-ai
+        timeout-minutes: 10
+        shell: pwsh
+        run: |
+          # Start server in separate process (CRITICAL for shared memory atomics)
+          Write-Host "[CI] Starting server in background process..."
+          $serverProcess = Start-Process -FilePath ".\target\release\windows_ipc_server.exe" -ArgumentList "LapceAI_StressTest" -PassThru -RedirectStandardOutput "server.log" -RedirectStandardError "server_err.log" -NoNewWindow
+          Write-Host "[CI] Server PID: $($serverProcess.Id)"
+          
+          # Wait for server initialization
+          Start-Sleep -Milliseconds 1000
+          
+          # Verify server is running
+          if ($serverProcess.HasExited) {
+            Write-Error "[CI] Server died immediately!"
+            Get-Content server.log
+            Get-Content server_err.log
+            exit 1
+          }
+          
+          # Run client stress test
+          & ".\target\release\windows_ipc_stress_test.exe" 2>&1 | Tee-Object -FilePath "stress_test.log"
+          
+          # Kill server
+          Stop-Process -Id $serverProcess.Id -Force
+          
+          # Extract metrics
+          Write-Host "=== TEST RESULTS ===" | Tee-Object -Append -FilePath $env:GITHUB_STEP_SUMMARY
+          Select-String -Path "stress_test.log" -Pattern "(Messages succeeded|Success rate|Throughput|Avg latency)" | Tee-Object -Append -FilePath $env:GITHUB_STEP_SUMMARY
+          
+          # Check for minimum success
+          $succeeded = Select-String -Path "stress_test.log" -Pattern "Messages succeeded:\s+(\d+)" | ForEach-Object { $_.Matches.Groups[1].Value }
+          if ([int]$succeeded -lt 900000) {
+            Write-Error "Not enough messages succeeded: $succeeded"
+            exit 1
+          }
+      
+      # Validation Phase
+      - name: Parse and validate results
+        shell: bash
+        run: |
+          cd lapce-ai
+          
+          # Extract key metrics from log
+          LOG_FILE="/tmp/stress_test.log"
+          if [ "${{ matrix.platform }}" == "windows" ]; then
+            LOG_FILE="stress_test.log"
+          fi
+          
+          if [ ! -f "$LOG_FILE" ]; then
+            echo "❌ Test log not found"
+            exit 1
+          fi
+          
+          # Extract metrics
+          THROUGHPUT=$(grep "Throughput:" "$LOG_FILE" | tail -1 | awk '{print $2}' | tr -d ',')
+          AVG_LATENCY=$(grep "Avg latency:" "$LOG_FILE" | tail -1 | awk '{print $3}' | sed 's/µs//')
+          SUCCESS_RATE=$(grep "Success rate:" "$LOG_FILE" | tail -1 | awk '{print $3}' | sed 's/%//')
+          MESSAGES=$(grep "Messages succeeded:" "$LOG_FILE" | tail -1 | awk '{print $3}' | tr -d ',')
+          
+          echo "Extracted metrics:"
+          echo "  Throughput: $THROUGHPUT msg/sec"
+          echo "  Avg Latency: $AVG_LATENCY µs"
+          echo "  Success Rate: $SUCCESS_RATE %"
+          echo "  Messages: $MESSAGES"
+          
+          # Validate against platform expectations
+          EXPECTED_THROUGHPUT=${{ matrix.expected_throughput }}
+          EXPECTED_LATENCY=${{ matrix.expected_latency }}
+          
+          PASS=true
+          
+          # Check success rate (must be 100%)
+          if [ "$SUCCESS_RATE" != "100.00" ]; then
+            echo "❌ Success rate $SUCCESS_RATE% < 100%"
+            PASS=false
+          else
+            echo "✅ Success rate: 100%"
+          fi
+          
+          # Check throughput (allow 50% below expected)
+          MIN_THROUGHPUT=$((EXPECTED_THROUGHPUT / 2))
+          if [ "$THROUGHPUT" -lt "$MIN_THROUGHPUT" ]; then
+            echo "❌ Throughput $THROUGHPUT < $MIN_THROUGHPUT msg/sec"
+            PASS=false
+          else
+            echo "✅ Throughput: $THROUGHPUT msg/sec (expected >$MIN_THROUGHPUT)"
+          fi
+          
+          # Check latency (allow 2x above expected)
+          MAX_LATENCY=$((EXPECTED_LATENCY * 2))
+          if (( $(echo "$AVG_LATENCY > $MAX_LATENCY" | bc -l) )); then
+            echo "❌ Latency $AVG_LATENCY µs > $MAX_LATENCY µs"
+            PASS=false
+          else
+            echo "✅ Latency: $AVG_LATENCY µs (expected <$MAX_LATENCY)"
+          fi
+          
+          # Check message count (must process at least 100K)
+          if [ "$MESSAGES" -lt "100000" ]; then
+            echo "❌ Messages $MESSAGES < 100,000"
+            PASS=false
+          else
+            echo "✅ Messages processed: $MESSAGES"
+          fi
+          
+          if [ "$PASS" = false ]; then
+            echo "❌ Validation FAILED on ${{ matrix.platform }}"
+            exit 1
+          fi
+          
+          echo "✅ All validations PASSED on ${{ matrix.platform }}"
+      
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ipc-test-results-${{ matrix.platform }}
+          path: |
+            lapce-ai/stress_test.log
+            lapce-ai/server.log
+            /tmp/stress_test.log
+            /tmp/server.log
+          retention-days: 7
+  
+  # Aggregate results across platforms
+  compare-platforms:
+    name: Compare Platform Performance
+    needs: ipc-validation
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+      
+      - name: Generate performance comparison
+        run: |
+          echo "# IPC Cross-Platform Performance Comparison" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Platform | Throughput | Avg Latency | Success Rate | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|------------|-------------|--------------|--------|" >> $GITHUB_STEP_SUMMARY
+          
+          for platform in linux macos windows; do
+            LOG_DIR="ipc-test-results-${platform}"
+            if [ -d "$LOG_DIR" ]; then
+              LOG_FILE=$(find "$LOG_DIR" -name "stress_test.log" | head -1)
+              if [ -f "$LOG_FILE" ]; then
+                THROUGHPUT=$(grep "Throughput:" "$LOG_FILE" | tail -1 | awk '{print $2}' | tr -d ',')
+                LATENCY=$(grep "Avg latency:" "$LOG_FILE" | tail -1 | awk '{print $3}')
+                SUCCESS=$(grep "Success rate:" "$LOG_FILE" | tail -1 | awk '{print $3}')
+                
+                STATUS="✅ Pass"
+                if [ "$SUCCESS" != "100.00%" ]; then
+                  STATUS="❌ Fail"
+                fi
+                
+                echo "| $platform | $THROUGHPUT msg/sec | $LATENCY | $SUCCESS | $STATUS |" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "| $platform | - | - | - | ⚠️ No data |" >> $GITHUB_STEP_SUMMARY
+              fi
+            else
+              echo "| $platform | - | - | - | ⚠️ Skipped |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Expected Performance" >> $GITHUB_STEP_SUMMARY
+          echo "- **Linux**: >50K msg/sec, <200µs latency (futex + eventfd)" >> $GITHUB_STEP_SUMMARY
+          echo "- **macOS**: >30K msg/sec, <500µs latency (kqueue + semaphores)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Windows**: >20K msg/sec, <1ms latency (Events + Mutexes)" >> $GITHUB_STEP_SUMMARY

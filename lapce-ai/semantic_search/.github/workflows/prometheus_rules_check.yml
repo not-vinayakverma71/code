@@ -1,0 +1,65 @@
+name: Prometheus Rules Validation
+
+on:
+  push:
+    paths:
+      - 'observability/prometheus_rules.yml'
+      - '.github/workflows/prometheus_rules_check.yml'
+  pull_request:
+    paths:
+      - 'observability/prometheus_rules.yml'
+      - '.github/workflows/prometheus_rules_check.yml'
+
+jobs:
+  validate-prometheus-rules:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Download promtool
+        run: |
+          PROM_VERSION="2.47.0"
+          wget https://github.com/prometheus/prometheus/releases/download/v${PROM_VERSION}/prometheus-${PROM_VERSION}.linux-amd64.tar.gz
+          tar xzf prometheus-${PROM_VERSION}.linux-amd64.tar.gz
+          sudo mv prometheus-${PROM_VERSION}.linux-amd64/promtool /usr/local/bin/
+          rm -rf prometheus-${PROM_VERSION}.linux-amd64*
+      
+      - name: Validate Prometheus rules syntax
+        run: |
+          echo "Validating Prometheus rules..."
+          promtool check rules observability/prometheus_rules.yml
+          
+      - name: Check for duplicate rule names
+        run: |
+          echo "Checking for duplicate rule names..."
+          # Extract rule names and check for duplicates
+          if grep -E "^\s*- alert:" observability/prometheus_rules.yml | \
+             sed 's/.*alert:\s*//' | \
+             sort | uniq -d | grep .; then
+            echo "ERROR: Duplicate alert names found!"
+            exit 1
+          else
+            echo "✅ No duplicate alert names found"
+          fi
+      
+      - name: Validate metric names exist
+        run: |
+          echo "Checking that referenced metrics follow naming conventions..."
+          # Check that all metrics follow the semantic_search_ or aws_titan_ prefix
+          if grep -E "expr:" observability/prometheus_rules.yml | \
+             grep -v -E "(semantic_search_|aws_titan_|rate\(|histogram_quantile\()" | \
+             grep -E "[a-z_]+_[a-z_]+"; then
+            echo "WARNING: Some metrics may not follow naming conventions"
+          else
+            echo "✅ All metrics follow naming conventions"
+          fi
+      
+      - name: Test rules with sample data (optional)
+        run: |
+          echo "Rules validation completed successfully!"
+          echo "Summary:"
+          echo "- Total groups: $(grep -c "^  - name:" observability/prometheus_rules.yml || echo 0)"
+          echo "- Total alerts: $(grep -c "^\s*- alert:" observability/prometheus_rules.yml || echo 0)"
+          echo "- Total recording rules: $(grep -c "^\s*- record:" observability/prometheus_rules.yml || echo 0)"

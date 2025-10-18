@@ -121,18 +121,30 @@ fn terminal_tab_header(window_tab_data: Rc<WindowTabData>) -> impl View {
                                         let size = config.ui.icon_size() as f32;
                                         s.size(size, size).color(
                                             config.color(
-                                                LapceColor::LAPCE_ICON_ACTIVE,
+                                                if active_index() == index.get() {
+                                                    LapceColor::PANEL_FOREGROUND
+                                                } else {
+                                                    LapceColor::PANEL_FOREGROUND_DIM
+                                                },
                                             ),
                                         )
                                     }),
                             )
                             .style(|s| s.padding_horiz(10.0).padding_vert(12.0)),
-                            label(title).style(|s| {
+                            label(title).style(move |s| {
+                                let config = config.get();
                                 s.min_width(0.0)
                                     .flex_basis(0.0)
                                     .flex_grow(1.0)
                                     .text_ellipsis()
                                     .selectable(false)
+                                    .color(config.color(
+                                        if active_index() == index.get() {
+                                            LapceColor::PANEL_FOREGROUND
+                                        } else {
+                                            LapceColor::PANEL_FOREGROUND_DIM
+                                        },
+                                    ))
                             }),
                             clickable_icon(
                                 || LapceIcons::CLOSE,

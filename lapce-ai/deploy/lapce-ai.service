@@ -1,0 +1,87 @@
+[Unit]
+Description=Lapce AI IPC Server - High Performance Shared Memory Communication
+Documentation=https://github.com/lapce/lapce-ai-rust
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+NotifyAccess=main
+User=lapce
+Group=lapce
+
+# Environment
+Environment="RUST_LOG=info"
+Environment="RUST_BACKTRACE=1"
+EnvironmentFile=-/etc/default/lapce-ai
+
+# Execution
+ExecStartPre=/usr/bin/mkdir -p /var/run/lapce-ai /dev/shm/lapce
+ExecStartPre=/usr/bin/chown lapce:lapce /var/run/lapce-ai /dev/shm/lapce
+ExecStart=/usr/local/bin/lapce-ai-server --config /etc/lapce-ai/config.toml
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStop=/bin/kill -TERM $MAINPID
+
+# Restart policy
+Restart=always
+RestartSec=5
+StartLimitBurst=5
+StartLimitInterval=10
+
+# Timeouts
+TimeoutStartSec=30
+TimeoutStopSec=30
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+LimitMEMLOCK=infinity
+TasksMax=4096
+
+# Performance
+CPUWeight=200
+IOWeight=200
+MemoryMax=3G
+MemorySwapMax=0
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=lapce-ai
+SyslogLevel=info
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RemoveIPC=false  # Important: We need IPC for shared memory
+
+# Filesystem access
+ReadWritePaths=/var/run/lapce-ai /dev/shm/lapce /var/log/lapce-ai
+ReadOnlyPaths=/etc/lapce-ai
+LimitNPROC=4096
+LimitMEMLOCK=infinity
+
+# Performance tuning
+CPUSchedulingPolicy=fifo
+CPUSchedulingPriority=99
+IOSchedulingClass=realtime
+IOSchedulingPriority=0
+Nice=-20
+
+# Environment
+Environment="RUST_LOG=info"
+Environment="RUST_BACKTRACE=1"
+
+[Install]
+WantedBy=multi-user.target

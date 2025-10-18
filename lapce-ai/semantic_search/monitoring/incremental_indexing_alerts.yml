@@ -1,0 +1,376 @@
+# Prometheus Alert Rules for Incremental Indexing (CST-MON01)
+#
+# Deploy to Prometheus AlertManager with:
+#   kubectl apply -f incremental_indexing_alerts.yml
+#
+# Or add to prometheus.yml:
+#   rule_files:
+#     - "incremental_indexing_alerts.yml"
+
+groups:
+  - name: incremental_indexing
+    interval: 30s
+    rules:
+      # Cache Performance Alerts
+      
+      - alert: LowCacheHitRate
+        expr: |
+          (
+            rate(indexing_embedding_cache_hits_total[5m]) / 
+            (rate(indexing_embedding_cache_hits_total[5m]) + 
+             rate(indexing_embedding_cache_misses_total[5m]))
+          ) < 0.5
+        for: 10m
+        labels:
+          severity: warning
+          component: incremental_indexer
+          category: performance
+        annotations:
+          summary: "Low embedding cache hit rate"
+          description: |
+            Cache hit rate is {{ $value | humanizePercentage }} for {{ $labels.file_type }}.
+            Expected >50% for typical workloads.
+            This may indicate:
+            - Cache eviction policy too aggressive
+            - Files changing too frequently
+            - Stable IDs not persisting correctly
+          runbook: "https://docs.example.com/runbooks/low-cache-hit-rate"
+      
+      - alert: CacheHitRateDegrading
+        expr: |
+          (
+            rate(indexing_embedding_cache_hits_total[5m]) / 
+            (rate(indexing_embedding_cache_hits_total[5m]) + 
+             rate(indexing_embedding_cache_misses_total[5m]))
+          ) < 0.3
+        for: 5m
+        labels:
+          severity: critical
+          component: incremental_indexer
+          category: performance
+        annotations:
+          summary: "Critical: Cache hit rate below 30%"
+          description: |
+            Cache hit rate has dropped to {{ $value | humanizePercentage }}.
+            Incremental indexing is providing minimal benefit.
+            Action required: Investigate cache invalidation patterns.
+      
+      - alert: CacheSizeAnomalous
+        expr: indexing_stable_id_cache_size > 1000000
+        for: 5m
+        labels:
+          severity: warning
+          component: incremental_indexer
+          category: memory
+        annotations:
+          summary: "Cache size anomalously high"
+          description: |
+            Stable ID cache has {{ $value }} entries (>1M).
+            This may cause memory pressure.
+            Consider:
+            - Reducing cache TTL
+            - Implementing LRU eviction
+            - Increasing eviction frequency
+      
+      - alert: CacheEvictionRateHigh
+        expr: rate(indexing_embedding_cache_evictions_total[5m]) > 100
+        for: 10m
+        labels:
+          severity: warning
+          component: incremental_indexer
+          category: performance
+        annotations:
+          summary: "High cache eviction rate"
+          description: |
+            Cache evicting {{ $value }} entries/sec.
+            Reason: {{ $labels.reason }}
+            This indicates:
+            - Cache size too small for workload
+            - Memory pressure
+            - TTL too short
+      
+      # Change Detection Alerts
+      
+      - alert: NoUnchangedNodesDetected
+        expr: |
+          rate(indexing_nodes_unchanged_total[5m]) == 0 
+          AND 
+          rate(indexing_nodes_modified_total[5m]) > 0
+        for: 15m
+        labels:
+          severity: warning
+          component: incremental_indexer
+          category: correctness
+        annotations:
+          summary: "Incremental detector finding no unchanged nodes"
+          description: |
+            No unchanged nodes detected for {{ $labels.language }} despite modifications.
+            This suggests stable IDs are not being reused correctly.
+            Possible causes:
+            - CstApi not generating stable IDs
+            - Hash computation changing
+            - Cache invalidation too aggressive
+      
+      - alert: ExcessiveNodeModifications
+        expr: |
+          (
+            rate(indexing_nodes_modified_total[10m]) / 
+            (rate(indexing_nodes_unchanged_total[10m]) + 
+             rate(indexing_nodes_modified_total[10m]) + 
+             rate(indexing_nodes_added_total[10m]))
+          ) > 0.8
+        for: 15m
+        labels:
+          severity: info
+          component: incremental_indexer
+          category: usage
+        annotations:
+          summary: "Most nodes marked as modified"
+          description: |
+            {{ $value | humanizePercentage }} of nodes marked as modified for {{ $labels.language }}.
+            This is normal for major refactors but sustained high modification rate
+            reduces incremental indexing benefits.
+      
+      # Stable ID Metrics Alerts
+      
+      - alert: StableIDGenerationFailing
+        expr: rate(indexing_stable_ids_generated_total[5m]) == 0
+        for: 10m
+        labels:
+          severity: critical
+          component: incremental_indexer
+          category: correctness
+        annotations:
+          summary: "No stable IDs being generated"
+          description: |
+            Stable ID generation has stopped for {{ $labels.language }}.
+            Incremental indexing will not function.
+            Check:
+            - CstApi integration
+            - CST-tree-sitter availability
+            - Feature flag cst_ts enabled
+      
+      - alert: LowStableIDReuseRate
+        expr: |
+          (
+            rate(indexing_stable_ids_reused_total[5m]) / 
+            (rate(indexing_stable_ids_generated_total[5m]) + 
+             rate(indexing_stable_ids_reused_total[5m]))
+          ) < 0.3
+        for: 15m
+        labels:
+          severity: warning
+          component: incremental_indexer
+          category: performance
+        annotations:
+          summary: "Low stable ID reuse rate"
+          description: |
+            Only {{ $value | humanizePercentage }} of stable IDs are being reused.
+            Most IDs are new, reducing incremental benefits.
+      
+      # Performance Alerts
+      
+      - alert: SlowParseLatency
+        expr: |
+          histogram_quantile(0.95, 
+            rate(indexing_parse_duration_seconds_bucket{strategy="incremental"}[5m])
+          ) > 5.0
+        for: 10m
+        labels:
+          severity: warning
+          component: incremental_indexer
+          category: performance
+        annotations:
+          summary: "P95 parse latency high"
+          description: |
+            P95 parse latency is {{ $value }}s for incremental strategy on {{ $labels.language }}.
+            Expected <1s for typical files.
+            May indicate:
+            - Very large files
+            - Slow I/O
+            - Parser bottleneck
+      
+      - alert: SlowChangeDetection
+        expr: |
+          histogram_quantile(0.95, 
+            rate(indexing_change_detection_duration_seconds_bucket[5m])
+          ) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          component: incremental_indexer
+          category: performance
+        annotations:
+          summary: "P95 change detection latency high"
+          description: |
+            P95 change detection taking {{ $value }}s for {{ $labels.language }}.
+            Target is <10ms. Large CSTs or inefficient comparison logic.
+      
+      - alert: IncrementalSlowerThanFull
+        expr: |
+          histogram_quantile(0.50, 
+            rate(indexing_incremental_speedup_ratio_bucket[10m])
+          ) < 1.0
+        for: 15m
+        labels:
+          severity: critical
+          component: incremental_indexer
+          category: performance
+        annotations:
+          summary: "Incremental indexing slower than full re-index"
+          description: |
+            Median speedup ratio is {{ $value }}x (should be >1).
+            Incremental indexing overhead exceeds benefits.
+            Consider disabling for this workload.
+      
+      # Async Indexer Alerts
+      
+      - alert: IndexerQueueBacklog
+        expr: indexing_queue_length > 500
+        for: 5m
+        labels:
+          severity: warning
+          component: async_indexer
+          category: throughput
+        annotations:
+          summary: "Indexer queue has significant backlog"
+          description: |
+            {{ $value }} tasks queued. Indexing falling behind.
+            Consider:
+            - Increasing max_concurrent_tasks
+            - Scaling horizontally
+            - Reducing ingestion rate
+      
+      - alert: IndexerQueueFull
+        expr: indexing_queue_length >= 1000
+        for: 2m
+        labels:
+          severity: critical
+          component: async_indexer
+          category: throughput
+        annotations:
+          summary: "Indexer queue at capacity"
+          description: |
+            Queue at {{ $value }} entries (capacity limit).
+            Back-pressure active. New submissions will block/fail.
+            Immediate action required.
+      
+      - alert: HighBackpressureRate
+        expr: rate(indexing_backpressure_events_total[5m]) > 10
+        for: 10m
+        labels:
+          severity: warning
+          component: async_indexer
+          category: throughput
+        annotations:
+          summary: "Frequent back-pressure events"
+          description: |
+            {{ $value }} back-pressure events/sec due to {{ $labels.reason }}.
+            Indexer cannot keep up with submission rate.
+      
+      - alert: HighTimeoutRate
+        expr: |
+          (
+            rate(indexing_tasks_completed_total{status="timeout"}[5m]) / 
+            rate(indexing_tasks_completed_total[5m])
+          ) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          component: async_indexer
+          category: reliability
+        annotations:
+          summary: "High indexing task timeout rate"
+          description: |
+            {{ $value | humanizePercentage }} of tasks timing out on {{ $labels.operation }}.
+            May need to:
+            - Increase timeout thresholds
+            - Optimize slow operations
+            - Investigate resource contention
+      
+      - alert: TaskFailureRateHigh
+        expr: |
+          (
+            rate(indexing_tasks_completed_total{status="failure"}[5m]) / 
+            rate(indexing_tasks_completed_total[5m])
+          ) > 0.05
+        for: 10m
+        labels:
+          severity: critical
+          component: async_indexer
+          category: reliability
+        annotations:
+          summary: "High task failure rate"
+          description: |
+            {{ $value | humanizePercentage }} of indexing tasks failing.
+            Check logs for error patterns.
+      
+      # Resource Alerts
+      
+      - alert: NoActiveIndexingTasks
+        expr: indexing_active_tasks == 0 AND indexing_queue_length > 0
+        for: 5m
+        labels:
+          severity: critical
+          component: async_indexer
+          category: availability
+        annotations:
+          summary: "Indexer stalled with queued tasks"
+          description: |
+            {{ $labels.queue_length }} tasks queued but no active workers.
+            Indexer may be deadlocked or crashed.
+            Immediate investigation required.
+      
+      - alert: AllWorkersStuck
+        expr: |
+          indexing_active_tasks >= 4 
+          AND 
+          rate(indexing_tasks_completed_total[5m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: async_indexer
+          category: availability
+        annotations:
+          summary: "All indexer workers appear stuck"
+          description: |
+            {{ $value }} tasks active but no completions in 5m.
+            Workers may be deadlocked or blocked on I/O.
+
+  # Recording Rules for derived metrics
+  
+  - name: incremental_indexing_recording
+    interval: 30s
+    rules:
+      - record: indexing:cache_hit_rate:5m
+        expr: |
+          rate(indexing_embedding_cache_hits_total[5m]) / 
+          (rate(indexing_embedding_cache_hits_total[5m]) + 
+           rate(indexing_embedding_cache_misses_total[5m]))
+      
+      - record: indexing:stable_id_reuse_rate:5m
+        expr: |
+          rate(indexing_stable_ids_reused_total[5m]) / 
+          (rate(indexing_stable_ids_generated_total[5m]) + 
+           rate(indexing_stable_ids_reused_total[5m]))
+      
+      - record: indexing:task_failure_rate:5m
+        expr: |
+          rate(indexing_tasks_completed_total{status="failure"}[5m]) / 
+          rate(indexing_tasks_completed_total[5m])
+      
+      - record: indexing:task_timeout_rate:5m
+        expr: |
+          rate(indexing_tasks_completed_total{status="timeout"}[5m]) / 
+          rate(indexing_tasks_completed_total[5m])
+      
+      - record: indexing:unchanged_node_percentage:5m
+        expr: |
+          rate(indexing_nodes_unchanged_total[5m]) / 
+          (rate(indexing_nodes_unchanged_total[5m]) + 
+           rate(indexing_nodes_modified_total[5m]) + 
+           rate(indexing_nodes_added_total[5m]) + 
+           rate(indexing_nodes_deleted_total[5m]))
+      
+      - record: indexing:throughput:1m
+        expr: rate(indexing_tasks_completed_total{status="success"}[1m])

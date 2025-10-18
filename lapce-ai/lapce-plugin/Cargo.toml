@@ -1,0 +1,21 @@
+[package]
+name = "lapce-ai-plugin"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+lapce-plugin = "0.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+
+[dependencies.lapce-ai-rust]
+path = ".."
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1

@@ -1,0 +1,191 @@
+name: Code Coverage
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  coverage:
+    name: Generate Coverage Report
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+      
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+      
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+      
+      - name: Generate coverage (default features)
+        run: |
+          cargo llvm-cov --all-features --workspace --lcov --output-path lcov-default.info
+      
+      - name: Generate coverage (cst_ts feature)
+        run: |
+          cargo llvm-cov --no-default-features --features cst_ts --lcov --output-path lcov-cst.info
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: lcov-default.info,lcov-cst.info
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+      
+      - name: Generate HTML report
+        run: |
+          cargo llvm-cov --no-default-features --features cst_ts --html
+      
+      - name: Archive coverage report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: target/llvm-cov/html/
+  
+  coverage-modules:
+    name: Module-Specific Coverage
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        module:
+          - stable_id_cache
+          - incremental_detector
+          - cached_embedder
+          - async_indexer
+          - indexing_metrics
+          - feature_flags
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+      
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+      
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.module }}
+      
+      - name: Run coverage for ${{ matrix.module }}
+        run: |
+          cargo llvm-cov --no-default-features --features cst_ts \
+            --lib indexing::${{ matrix.module }} \
+            --lcov --output-path lcov-${{ matrix.module }}.info
+      
+      - name: Upload module coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: lcov-${{ matrix.module }}.info
+          flags: ${{ matrix.module }}
+          fail_ci_if_error: false
+      
+      - name: Check coverage threshold
+        run: |
+          coverage=$(cargo llvm-cov --no-default-features --features cst_ts \
+            --lib indexing::${{ matrix.module }} --summary-only | \
+            grep -oP 'TOTAL.*?\K[0-9.]+(?=%)')
+          echo "Coverage for ${{ matrix.module }}: ${coverage}%"
+          
+          # Fail if coverage is below 80%
+          if (( $(echo "$coverage < 80" | bc -l) )); then
+            echo "ERROR: Coverage below 80% threshold"
+            exit 1
+          fi
+
+  integration-coverage:
+    name: Integration Test Coverage
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+      
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+      
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+      
+      - name: Run integration tests with coverage
+        run: |
+          cargo llvm-cov --no-default-features --features cst_ts \
+            --test integration_tests \
+            --lcov --output-path lcov-integration.info
+      
+      - name: Run large file tests with coverage
+        run: |
+          cargo llvm-cov --no-default-features --features cst_ts \
+            --test large_file_tests \
+            --lcov --output-path lcov-large-files.info
+      
+      - name: Upload integration coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: lcov-integration.info,lcov-large-files.info
+          flags: integration
+          fail_ci_if_error: false
+
+  benchmark-coverage:
+    name: Benchmark Coverage
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+      
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+      
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+      
+      - name: Run benchmarks in test mode with coverage
+        run: |
+          cargo llvm-cov --no-default-features --features cst_ts \
+            --bench incremental_indexing_bench -- --test
+      
+      - name: Generate benchmark coverage report
+        run: |
+          cargo llvm-cov report --no-default-features --features cst_ts \
+            --lcov --output-path lcov-benchmarks.info
+      
+      - name: Upload benchmark coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: lcov-benchmarks.info
+          flags: benchmarks
+          fail_ci_if_error: false

@@ -1,0 +1,1 @@
+&std::sync::MutexGuard<'_, Vec<f64>>

@@ -1,0 +1,3269 @@
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/verma/lapce/lapce-ai/optimized_ipc/Cargo.toml
+workspace: /home/verma/lapce/lapce-ai/Cargo.toml
+    Blocking waiting for file lock on build directory
+warning: unused import: `bytes::Bytes`
+ --> src/ai_providers/streaming_integration.rs:6:5
+  |
+6 | use bytes::Bytes;
+  |     ^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `Stream`
+ --> src/ai_providers/streaming_integration.rs:7:23
+  |
+7 | use futures::stream::{Stream, StreamExt, BoxStream};
+  |                       ^^^^^^
+
+warning: unused imports: `ContentFilter` and `TokenAccumulator`
+  --> src/ai_providers/streaming_integration.rs:13:19
+   |
+13 |     transformer::{ContentFilter, TokenAccumulator},
+   |                   ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^
+
+warning: unused import: `CompletionChoice`
+  --> src/ai_providers/openai_exact.rs:17:30
+   |
+17 |     ChatMessage, ChatChoice, CompletionChoice
+   |                              ^^^^^^^^^^^^^^^^
+
+warning: unused import: `self`
+ --> src/ai_providers/anthropic_exact.rs:8:23
+  |
+8 | use futures::stream::{self, StreamExt, BoxStream};
+  |                       ^^^^
+
+warning: unused import: `CompletionChoice`
+  --> src/ai_providers/anthropic_exact.rs:16:30
+   |
+16 |     ChatMessage, ChatChoice, CompletionChoice
+   |                              ^^^^^^^^^^^^^^^^
+
+warning: unused import: `SseDecoder`
+  --> src/ai_providers/anthropic_exact.rs:18:40
+   |
+18 | use crate::ai_providers::sse_decoder::{SseDecoder, SseEvent};
+   |                                        ^^^^^^^^^^
+
+warning: unused import: `self`
+ --> src/ai_providers/gemini_exact.rs:8:23
+  |
+8 | use futures::stream::{self, StreamExt, BoxStream};
+  |                       ^^^^
+
+warning: unused import: `CompletionChoice`
+  --> src/ai_providers/gemini_exact.rs:16:30
+   |
+16 |     ChatMessage, ChatChoice, CompletionChoice
+   |                              ^^^^^^^^^^^^^^^^
+
+warning: unused import: `SseDecoder`
+  --> src/ai_providers/gemini_exact.rs:18:40
+   |
+18 | use crate::ai_providers::sse_decoder::{SseDecoder, JsonStreamParser};
+   |                                        ^^^^^^^^^^
+
+warning: unused import: `Usage`
+  --> src/ai_providers/gemini_optimized.rs:13:65
+   |
+13 |     AiProvider, ProviderCapabilities, HealthStatus, RateLimits, Usage,
+   |                                                                 ^^^^^
+
+warning: unused import: `Usage`
+  --> src/ai_providers/gemini_ultra_optimized.rs:18:59
+   |
+18 |     Model, ProviderCapabilities, RateLimits, StreamToken, Usage, ChatMessage,
+   |                                                           ^^^^^
+
+warning: unused import: `std::pin::Pin`
+   --> src/ai_providers/gemini_ultra_optimized.rs:317:13
+    |
+317 |         use std::pin::Pin;
+    |             ^^^^^^^^^^^^^
+
+warning: unused import: `std::pin::Pin`
+   --> src/ai_providers/gemini_ultra_optimized.rs:334:13
+    |
+334 |         use std::pin::Pin;
+    |             ^^^^^^^^^^^^^
+
+warning: unused imports: `CompletionChoice` and `Usage`
+  --> src/ai_providers/bedrock_exact.rs:18:73
+   |
+18 |     StreamToken, HealthStatus, Model, ProviderCapabilities, RateLimits, Usage,
+   |                                                                         ^^^^^
+19 |     ChatMessage, ChatChoice, CompletionChoice
+   |                              ^^^^^^^^^^^^^^^^
+
+warning: unused imports: `SseDecoder` and `SseEvent`
+  --> src/ai_providers/bedrock_exact.rs:21:40
+   |
+21 | use crate::ai_providers::sse_decoder::{SseDecoder, SseEvent};
+   |                                        ^^^^^^^^^^  ^^^^^^^^
+
+warning: unused imports: `ProviderType` and `process_sse_response`
+  --> src/ai_providers/bedrock_exact.rs:23:5
+   |
+23 |     process_sse_response, ProviderType
+   |     ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^
+
+warning: unused import: `CompletionChoice`
+  --> src/ai_providers/azure_exact.rs:16:30
+   |
+16 |     ChatMessage, ChatChoice, CompletionChoice
+   |                              ^^^^^^^^^^^^^^^^
+
+warning: unused imports: `ProviderType` and `process_sse_response`
+  --> src/ai_providers/azure_exact.rs:19:5
+   |
+19 |     process_sse_response, ProviderType
+   |     ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^
+
+warning: unused import: `std::collections::HashMap`
+ --> src/ai_providers/xai_exact.rs:3:5
+  |
+3 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `ChatChoice`, `ChatMessage`, `CompletionChoice`, and `Usage`
+  --> src/ai_providers/xai_exact.rs:12:73
+   |
+12 |     StreamToken, HealthStatus, Model, ProviderCapabilities, RateLimits, Usage,
+   |                                                                         ^^^^^
+13 |     ChatMessage, ChatChoice, CompletionChoice
+   |     ^^^^^^^^^^^  ^^^^^^^^^^  ^^^^^^^^^^^^^^^^
+
+warning: unused import: `SseEvent`
+  --> src/ai_providers/xai_exact.rs:15:52
+   |
+15 | use crate::ai_providers::sse_decoder::{SseDecoder, SseEvent};
+   |                                                    ^^^^^^^^
+
+warning: unused imports: `ProviderType` and `process_sse_response`
+  --> src/ai_providers/xai_exact.rs:17:5
+   |
+17 |     process_sse_response, ProviderType
+   |     ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^
+
+warning: unused imports: `Deserialize` and `Serialize`
+ --> src/ai_providers/vertex_ai_exact.rs:9:13
+  |
+9 | use serde::{Deserialize, Serialize};
+  |             ^^^^^^^^^^^  ^^^^^^^^^
+
+warning: unused import: `Value`
+  --> src/ai_providers/vertex_ai_exact.rs:10:24
+   |
+10 | use serde_json::{json, Value};
+   |                        ^^^^^
+
+warning: unused import: `CompletionChoice`
+  --> src/ai_providers/vertex_ai_exact.rs:17:30
+   |
+17 |     ChatMessage, ChatChoice, CompletionChoice
+   |                              ^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::ai_providers::sse_decoder::parsers::parse_gemini_stream`
+  --> src/ai_providers/vertex_ai_exact.rs:19:5
+   |
+19 | use crate::ai_providers::sse_decoder::parsers::parse_gemini_stream;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `ProviderType` and `process_response_with_pipeline`
+  --> src/ai_providers/vertex_ai_exact.rs:21:5
+   |
+21 |     process_response_with_pipeline, ProviderType
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^
+
+warning: unexpected `cfg` condition value: `mcp`
+   --> src/cache_integration.rs:256:7
+    |
+256 | #[cfg(feature = "mcp")]
+    |       ^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `candle-core`, `candle-nn`, `candle-transformers`, `default`, `jemalloc`, `jemallocator`, `local_models`, `nuclear-tests`, and `ort`
+    = help: consider adding `mcp` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: variant `ADD_TO_CONTEXT` should have an upper camel case name
+  --> src/types_vscode.rs:24:5
+   |
+24 |     ADD_TO_CONTEXT,
+   |     ^^^^^^^^^^^^^^ help: convert the identifier to upper camel case: `AddToContext`
+   |
+   = note: `#[warn(non_camel_case_types)]` on by default
+
+warning: variant `NEW_TASK` should have an upper camel case name
+  --> src/types_vscode.rs:25:5
+   |
+25 |     NEW_TASK,
+   |     ^^^^^^^^ help: convert the identifier to upper camel case: `NewTask`
+
+warning: variant `ADD_TO_CONTEXT` should have an upper camel case name
+  --> src/types_vscode.rs:42:5
+   |
+42 |     ADD_TO_CONTEXT,
+   |     ^^^^^^^^^^^^^^ help: convert the identifier to upper camel case: `AddToContext`
+
+warning: use of deprecated function `aws_config::load_from_env`: Use the `aws_config::load_defaults` function. If you don't care about future default behavior changes, you can continue to use this function by enabling the `behavior-version-latest` feature. Doing so will make this deprecation notice go away.
+  --> src/semantic_engine.rs:55:34
+   |
+55 |         let config = aws_config::load_from_env().await;
+   |                                  ^^^^^^^^^^^^^
+   |
+   = note: `#[warn(deprecated)]` on by default
+
+warning: unused variable: `after`
+  --> src/ai_completion.rs:46:56
+   |
+46 |     async fn generate_completions(&self, before: &str, after: &str) -> Vec<CompletionSuggestion> {
+   |                                                        ^^^^^ help: if this is intentional, prefix it with an underscore: `_after`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `provider`
+   --> src/ai_providers/streaming_integration.rs:124:5
+    |
+124 |     provider: ProviderType,
+    |     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_provider`
+
+warning: unused variable: `model_id`
+   --> src/ai_providers/openai_exact.rs:215:9
+    |
+215 |         model_id: &str,
+    |         ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_model_id`
+
+warning: unused variable: `language`
+   --> src/bug_detection_ai.rs:380:49
+    |
+380 |     pub async fn detect_bugs(&self, code: &str, language: &str) -> Vec<DetectedBug> {
+    |                                                 ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_language`
+
+warning: unused variable: `key`
+  --> src/cache/adaptive_cache.rs:13:29
+   |
+13 |     pub async fn get(&self, key: &CacheKey) -> Option<CacheValue> {
+   |                             ^^^ help: if this is intentional, prefix it with an underscore: `_key`
+
+warning: unused variable: `key`
+  --> src/cache/adaptive_cache.rs:17:29
+   |
+17 |     pub async fn put(&self, key: CacheKey, value: CacheValue) {
+   |                             ^^^ help: if this is intentional, prefix it with an underscore: `_key`
+
+warning: unused variable: `value`
+  --> src/cache/adaptive_cache.rs:17:44
+   |
+17 |     pub async fn put(&self, key: CacheKey, value: CacheValue) {
+   |                                            ^^^^^ help: if this is intentional, prefix it with an underscore: `_value`
+
+warning: unused variable: `pattern`
+  --> src/cache/real_l1_cache.rs:80:44
+   |
+80 |     pub async fn invalidate_pattern(&self, pattern: &str) -> Result<usize> {
+   |                                            ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_pattern`
+
+warning: variable `l1_written` is assigned to, but never used
+  --> src/cache/cache_coordinator.rs:81:17
+   |
+81 |         let mut l1_written = false;
+   |                 ^^^^^^^^^^
+   |
+   = note: consider using `_l1_written` instead
+
+warning: value assigned to `l1_written` is never read
+  --> src/cache/cache_coordinator.rs:85:17
+   |
+85 |                 l1_written = true;
+   |                 ^^^^^^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+   = note: `#[warn(unused_assignments)]` on by default
+
+warning: unused variable: `pattern`
+   --> src/cache_integration.rs:158:13
+    |
+158 |         let pattern = regex::Regex::new(key_pattern)?;
+    |             ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_pattern`
+
+warning: unused variable: `config`
+   --> src/cache_integration.rs:243:32
+    |
+243 | pub async fn init_global_cache(config: CacheConfig) -> Result<()> {
+    |                                ^^^^^^ help: if this is intentional, prefix it with an underscore: `_config`
+
+warning: unused variable: `table`
+   --> src/complete_engine.rs:255:21
+    |
+255 |         if let Some(table) = table_lock.as_ref() {
+    |                     ^^^^^ help: if this is intentional, prefix it with an underscore: `_table`
+
+warning: unused variable: `results`
+   --> src/complete_engine.rs:313:54
+    |
+313 |     async fn record_search(&self, latency: Duration, results: usize) {
+    |                                                      ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_results`
+
+warning: unused variable: `embedding`
+   --> src/complete_engine.rs:563:29
+    |
+563 |                         let embedding = self.search_engine.embedder.embed(&chunk.content).await?;
+    |                             ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_embedding`
+
+warning: unused variable: `filters`
+   --> src/semantic_engine.rs:145:59
+    |
+145 |     pub async fn search(&self, query: &str, limit: usize, filters: Option<SearchFilters>) -> Result<Vec<SearchResult>> {
+    |                                                           ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_filters`
+
+warning: unused variable: `file_paths`
+   --> src/semantic_engine.rs:162:17
+    |
+162 |             let file_paths = batch.column_by_name("file_path")
+    |                 ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_file_paths`
+
+warning: unused variable: `shards`
+  --> src/distributed_search.rs:69:13
+   |
+69 |         let shards = self.shards.read().await;
+   |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_shards`
+
+warning: unused variable: `retry_attempt`
+  --> src/error_handling_patterns.rs:30:9
+   |
+30 |         retry_attempt: u32,
+   |         ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_retry_attempt`
+
+warning: unused variable: `auto_approval_enabled`
+  --> src/error_handling_patterns.rs:33:13
+   |
+33 |         let auto_approval_enabled = self.api_configuration.auto_approval_enabled.unwrap_or(false);
+   |             ^^^^^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_auto_approval_enabled`
+
+warning: unused variable: `always_approve_resubmit`
+  --> src/error_handling_patterns.rs:34:13
+   |
+34 |         let always_approve_resubmit = self.api_configuration.always_approve_resubmit.unwrap_or(false);
+   |             ^^^^^^^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_always_approve_resubmit`
+
+warning: unused variable: `request_delay_seconds`
+  --> src/error_handling_patterns.rs:35:13
+   |
+35 |         let request_delay_seconds = self.api_configuration.request_delay_seconds.unwrap_or(5);
+   |             ^^^^^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_request_delay_seconds`
+
+warning: unused variable: `rate_limit_delay`
+  --> src/error_handling_patterns.rs:36:13
+   |
+36 |         let rate_limit_delay = 0; // Would come from rate limiter
+   |             ^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_rate_limit_delay`
+
+warning: unused variable: `api_configuration`
+  --> src/error_handling_patterns.rs:42:13
+   |
+42 |         let api_configuration = &self.api_configuration;
+   |             ^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_api_configuration`
+
+warning: unused variable: `visible_provider`
+   --> src/handler_registration.rs:171:29
+    |
+171 |                 if let Some(visible_provider) = Self::get_visible_provider_or_log(&output_channel) {
+    |                             ^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_visible_provider`
+
+warning: unused variable: `callback`
+   --> src/handler_registration.rs:284:44
+    |
+284 | pub async fn register_human_relay_callback(callback: Box<dyn Fn() + Send + Sync>) {
+    |                                            ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_callback`
+
+warning: unused variable: `response`
+   --> src/handler_registration.rs:292:42
+    |
+292 | pub async fn handle_human_relay_response(response: String) {
+    |                                          ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_response`
+
+warning: unused variable: `provider`
+   --> src/handler_registration.rs:297:30
+    |
+297 | pub async fn handle_new_task(provider: Arc<ClineProvider>, task: String) {
+    |                              ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_provider`
+
+warning: unused variable: `task`
+   --> src/handler_registration.rs:297:60
+    |
+297 | pub async fn handle_new_task(provider: Arc<ClineProvider>, task: String) {
+    |                                                            ^^^^ help: if this is intentional, prefix it with an underscore: `_task`
+
+warning: unused variable: `i`
+   --> src/hybrid_search.rs:126:14
+    |
+126 |         for (i, (score, doc_address)) in top_docs.into_iter().enumerate() {
+    |              ^ help: if this is intentional, prefix it with an underscore: `_i`
+
+warning: unused variable: `id`
+   --> src/hybrid_search.rs:129:17
+    |
+129 |             let id = doc.get_first(self.id_field)
+    |                 ^^ help: if this is intentional, prefix it with an underscore: `_id`
+
+warning: unused variable: `filters`
+   --> src/hybrid_search.rs:167:9
+    |
+167 |         filters: SearchFilters
+    |         ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_filters`
+
+warning: unused variable: `query`
+  --> src/lancedb_semantic_search.rs:35:32
+   |
+35 |     pub async fn search(&self, query: &str, limit: usize, filters: Option<SearchFilters>) -> Result<Vec<SearchResult>> {
+   |                                ^^^^^ help: if this is intentional, prefix it with an underscore: `_query`
+
+warning: unused variable: `limit`
+  --> src/lancedb_semantic_search.rs:35:45
+   |
+35 |     pub async fn search(&self, query: &str, limit: usize, filters: Option<SearchFilters>) -> Result<Vec<SearchResult>> {
+   |                                             ^^^^^ help: if this is intentional, prefix it with an underscore: `_limit`
+
+warning: unused variable: `filters`
+  --> src/lancedb_semantic_search.rs:35:59
+   |
+35 |     pub async fn search(&self, query: &str, limit: usize, filters: Option<SearchFilters>) -> Result<Vec<SearchResult>> {
+   |                                                           ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_filters`
+
+warning: unused variable: `query_embedding`
+  --> src/lancedb_semantic_search.rs:41:47
+   |
+41 |     pub async fn search_with_embedding(&self, query_embedding: Vec<f32>, limit: usize) -> Result<Vec<SearchResult>> {
+   |                                               ^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_query_embedding`
+
+warning: unused variable: `limit`
+  --> src/lancedb_semantic_search.rs:41:74
+   |
+41 |     pub async fn search_with_embedding(&self, query_embedding: Vec<f32>, limit: usize) -> Result<Vec<SearchResult>> {
+   |                                                                          ^^^^^ help: if this is intentional, prefix it with an underscore: `_limit`
+
+warning: unused variable: `doc`
+  --> src/lancedb_semantic_search.rs:47:40
+   |
+47 |     pub async fn index_document(&self, doc: Document) -> Result<()> {
+   |                                        ^^^ help: if this is intentional, prefix it with an underscore: `_doc`
+
+warning: unused variable: `stream`
+   --> src/ipc_server_complete.rs:390:38
+    |
+390 |     async fn attempt_recovery(&self, stream: &mut SharedMemoryStream, conn_id: uuid::Uuid) -> Result<()> {
+    |                                      ^^^^^^ help: if this is intentional, prefix it with an underscore: `_stream`
+
+warning: unused variable: `pid`
+   --> src/lapce_plugin_protocol.rs:288:25
+    |
+288 |             if let Some(pid) = state.pid {
+    |                         ^^^ help: if this is intentional, prefix it with an underscore: `_pid`
+
+warning: unused variable: `session_id`
+   --> src/mcp_tools/ai_assistant_integration.rs:287:36
+    |
+287 |             AiMessage::UserQuery { session_id, query } => {
+    |                                    ^^^^^^^^^^ help: try ignoring the field: `session_id: _`
+
+warning: unused variable: `e`
+   --> src/mcp_tools/circuit_breaker.rs:227:21
+    |
+227 |                 Err(e) if attempts < 3 => {
+    |                     ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: unused variable: `err`
+  --> src/mcp_tools/error_recovery.rs:92:21
+   |
+92 |                 Err(err) if attempt < policy.max_retries => {
+   |                     ^^^ help: if this is intentional, prefix it with an underscore: `_err`
+
+warning: unused variable: `resource`
+   --> src/mcp_tools/mcp_hub.rs:230:13
+    |
+230 |         let resource = resources.get(uri)
+    |             ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_resource`
+
+warning: unused variable: `result`
+   --> src/mcp_tools/mcp_system.rs:126:17
+    |
+126 |             let result = self.sandbox.execute_sandboxed(
+    |                 ^^^^^^ help: if this is intentional, prefix it with an underscore: `_result`
+
+warning: unused variable: `matcher`
+  --> src/mcp_tools/ripgrep_search.rs:33:13
+   |
+33 |         let matcher = if case_sensitive {
+   |             ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_matcher`
+
+warning: unused variable: `args`
+   --> src/mcp_tools/tools/git.rs:303:31
+    |
+303 |     async fn git_reset(&self, args: &Value, context: &ToolContext) -> Result<ToolResult> {
+    |                               ^^^^ help: if this is intentional, prefix it with an underscore: `_args`
+
+warning: unused variable: `request`
+  --> src/openai_provider_handler.rs:23:41
+   |
+23 |     pub async fn process_request(&self, request: Request) -> Result<Response> {
+   |                                         ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_request`
+
+warning: unused variable: `is_outside_workspace`
+  --> src/search_files_tool.rs:45:13
+   |
+45 |         let is_outside_workspace = !absolute_path.starts_with(&self.workspace_path);
+   |             ^^^^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_is_outside_workspace`
+
+warning: unused variable: `content`
+  --> src/services/code_index_manager_simple.rs:19:53
+   |
+19 |     pub async fn index_file(&self, file_path: &str, content: &str) -> Result<()> {
+   |                                                     ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_content`
+
+warning: unused variable: `metadata`
+  --> src/streaming_pipeline/streaming_response.rs:51:9
+   |
+51 |         metadata: Option<ApiHandlerCreateMessageMetadata>,
+   |         ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_metadata`
+
+warning: unused variable: `reasoning`
+  --> src/streaming_pipeline/streaming_response.rs:54:26
+   |
+54 |         let (model_info, reasoning) = self.get_model(&*options).await;
+   |                          ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_reasoning`
+
+warning: unused variable: `is_azure_ai_inference`
+  --> src/streaming_pipeline/streaming_response.rs:60:13
+   |
+60 |         let is_azure_ai_inference = options.openai_base_url
+   |             ^^^^^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_is_azure_ai_inference`
+
+warning: unused variable: `request`
+   --> src/streaming_pipeline/streaming_response.rs:109:17
+    |
+109 |             let request = ChatCompletionRequest {
+    |                 ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_request`
+
+warning: unused variable: `provider`
+   --> src/task_connection_handling.rs:135:21
+    |
+135 |         if let Some(provider) = self.provider_ref.upgrade() {
+    |                     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_provider`
+
+warning: unused variable: `provider`
+   --> src/task_connection_handling.rs:158:21
+    |
+158 |         if let Some(provider) = self.provider_ref.upgrade() {
+    |                     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_provider`
+
+warning: unused variable: `ask_type`
+   --> src/task_connection_handling.rs:216:9
+    |
+216 |         ask_type: ClineAsk,
+    |         ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_ask_type`
+
+warning: unused variable: `text`
+   --> src/task_connection_handling.rs:217:9
+    |
+217 |         text: Option<String>,
+    |         ^^^^ help: if this is intentional, prefix it with an underscore: `_text`
+
+warning: unused variable: `partial`
+   --> src/task_connection_handling.rs:218:9
+    |
+218 |         partial: Option<bool>,
+    |         ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_partial`
+
+warning: unused variable: `progress_status`
+   --> src/task_connection_handling.rs:219:9
+    |
+219 |         progress_status: Option<ToolProgressStatus>,
+    |         ^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_progress_status`
+
+warning: unused variable: `is_protected`
+   --> src/task_connection_handling.rs:220:9
+    |
+220 |         is_protected: Option<bool>,
+    |         ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_is_protected`
+
+warning: unused variable: `ask_ts`
+   --> src/task_connection_handling.rs:227:13
+    |
+227 |         let ask_ts = get_current_timestamp();
+    |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_ask_ts`
+
+warning: unused variable: `task`
+   --> src/task_connection_handling.rs:239:36
+    |
+239 |     pub async fn start_task(&self, task: Option<String>, images: Option<Vec<String>>) {
+    |                                    ^^^^ help: if this is intentional, prefix it with an underscore: `_task`
+
+warning: unused variable: `images`
+   --> src/task_connection_handling.rs:239:58
+    |
+239 |     pub async fn start_task(&self, task: Option<String>, images: Option<Vec<String>>) {
+    |                                                          ^^^^^^ help: if this is intentional, prefix it with an underscore: `_images`
+
+warning: unused variable: `task_id`
+   --> src/task_connection_handling.rs:296:28
+    |
+296 | async fn read_api_messages(task_id: &str, storage_path: &PathBuf) -> Vec<ApiMessage> {
+    |                            ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_task_id`
+
+warning: unused variable: `storage_path`
+   --> src/task_connection_handling.rs:296:43
+    |
+296 | async fn read_api_messages(task_id: &str, storage_path: &PathBuf) -> Vec<ApiMessage> {
+    |                                           ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_storage_path`
+
+warning: unused variable: `messages`
+   --> src/task_connection_handling.rs:301:28
+    |
+301 | async fn save_api_messages(messages: &[ApiMessage], task_id: &str, storage_path: &PathBuf) -> Result<(), String> {
+    |                            ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_messages`
+
+warning: unused variable: `task_id`
+   --> src/task_connection_handling.rs:301:53
+    |
+301 | async fn save_api_messages(messages: &[ApiMessage], task_id: &str, storage_path: &PathBuf) -> Result<(), String> {
+    |                                                     ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_task_id`
+
+warning: unused variable: `storage_path`
+   --> src/task_connection_handling.rs:301:68
+    |
+301 | async fn save_api_messages(messages: &[ApiMessage], task_id: &str, storage_path: &PathBuf) -> Result<(), String> {
+    |                                                                    ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_storage_path`
+
+warning: unused variable: `task_id`
+   --> src/task_connection_handling.rs:306:29
+    |
+306 | async fn read_task_messages(task_id: &str, storage_path: &PathBuf) -> Vec<ClineMessage> {
+    |                             ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_task_id`
+
+warning: unused variable: `storage_path`
+   --> src/task_connection_handling.rs:306:44
+    |
+306 | async fn read_task_messages(task_id: &str, storage_path: &PathBuf) -> Vec<ClineMessage> {
+    |                                            ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_storage_path`
+
+warning: unused variable: `messages`
+   --> src/task_connection_handling.rs:311:29
+    |
+311 | async fn save_task_messages(messages: &[ClineMessage], task_id: &str, storage_path: &PathBuf) -> Result<(), String> {
+    |                             ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_messages`
+
+warning: unused variable: `task_id`
+   --> src/task_connection_handling.rs:311:56
+    |
+311 | async fn save_task_messages(messages: &[ClineMessage], task_id: &str, storage_path: &PathBuf) -> Result<(), String> {
+    |                                                        ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_task_id`
+
+warning: unused variable: `storage_path`
+   --> src/task_connection_handling.rs:311:71
+    |
+311 | async fn save_task_messages(messages: &[ClineMessage], task_id: &str, storage_path: &PathBuf) -> Result<(), String> {
+    |                                                                       ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_storage_path`
+
+warning: unused variable: `messages`
+   --> src/task_connection_handling.rs:317:5
+    |
+317 |     messages: &[ClineMessage],
+    |     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_messages`
+
+warning: unused variable: `task_number`
+   --> src/task_connection_handling.rs:319:5
+    |
+319 |     task_number: i32,
+    |     ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_task_number`
+
+warning: unused variable: `storage_path`
+   --> src/task_connection_handling.rs:320:5
+    |
+320 |     storage_path: &PathBuf,
+    |     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_storage_path`
+
+warning: unused variable: `workspace`
+   --> src/task_connection_handling.rs:321:5
+    |
+321 |     workspace: &str,
+    |     ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_workspace`
+
+warning: unused variable: `mode`
+   --> src/task_connection_handling.rs:322:5
+    |
+322 |     mode: &str,
+    |     ^^^^ help: if this is intentional, prefix it with an underscore: `_mode`
+
+warning: unused variable: `task`
+   --> src/task_connection_handling.rs:351:37
+    |
+351 | async fn restore_todo_list_for_task(task: &Task) {
+    |                                     ^^^^ help: if this is intentional, prefix it with an underscore: `_task`
+
+warning: unused variable: `message`
+   --> src/task_connection_handling.rs:369:49
+    |
+369 |     pub async fn post_message_to_webview(&self, message: WebviewMessage) {
+    |                                                 ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_message`
+
+warning: unused variable: `history_item`
+   --> src/task_connection_handling.rs:373:45
+    |
+373 |     pub async fn update_task_history(&self, history_item: HistoryItem) {
+    |                                             ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_history_item`
+
+warning: unused variable: `message`
+   --> src/task_exact_translation.rs:409:49
+    |
+409 |     pub async fn post_message_to_webview(&self, message: crate::task_connection_handling::WebviewMessage) -> Result<(), String> {
+    |                                                 ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_message`
+
+warning: unused variable: `text`
+  --> src/titan_embedder.rs:34:31
+   |
+34 |     pub async fn embed(&self, text: &str) -> Result<Vec<f32>> {
+   |                               ^^^^ help: if this is intentional, prefix it with an underscore: `_text`
+
+warning: unused variable: `region`
+  --> src/titan_embedding_client.rs:64:9
+   |
+64 |         region: Option<String>,
+   |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_region`
+
+warning: unused variable: `creds`
+  --> src/titan_embedding_client.rs:76:13
+   |
+76 |         let creds = Credentials::new(
+   |             ^^^^^ help: if this is intentional, prefix it with an underscore: `_creds`
+
+warning: unused variable: `e`
+   --> src/connection_reuse.rs:135:35
+    |
+135 |         pool.get().await.map_err(|e| anyhow::anyhow!("Connection pool error"))
+    |                                   ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: unused variable: `conn`
+  --> src/geo_routing.rs:69:23
+   |
+69 |             if let Ok(conn) = pool.get_https_connection().await {
+   |                       ^^^^ help: if this is intentional, prefix it with an underscore: `_conn`
+
+warning: unused import: `StreamExt`
+ --> src/ai_providers/openai_exact.rs:8:29
+  |
+8 | use futures::stream::{self, StreamExt, BoxStream};
+  |                             ^^^^^^^^^
+
+warning: unused import: `StreamExt`
+ --> src/ai_providers/anthropic_exact.rs:8:29
+  |
+8 | use futures::stream::{self, StreamExt, BoxStream};
+  |                             ^^^^^^^^^
+
+warning: unused import: `StreamExt`
+ --> src/ai_providers/gemini_exact.rs:8:29
+  |
+8 | use futures::stream::{self, StreamExt, BoxStream};
+  |                             ^^^^^^^^^
+
+warning: unused import: `StreamExt`
+   --> src/ai_providers/gemini_optimized.rs:302:37
+    |
+302 |         use futures::stream::{self, StreamExt};
+    |                                     ^^^^^^^^^
+
+warning: unused import: `StreamExt`
+   --> src/ai_providers/gemini_optimized.rs:366:37
+    |
+366 |         use futures::stream::{self, StreamExt};
+    |                                     ^^^^^^^^^
+
+warning: unused import: `std::io::Write`
+ --> src/ai_providers/gemini_ultra_optimized.rs:6:5
+  |
+6 | use std::io::Write;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `StreamExt`
+   --> src/ai_providers/gemini_ultra_optimized.rs:316:37
+    |
+316 |         use futures::stream::{self, StreamExt};
+    |                                     ^^^^^^^^^
+
+warning: unused import: `StreamExt`
+   --> src/ai_providers/gemini_ultra_optimized.rs:333:37
+    |
+333 |         use futures::stream::{self, StreamExt};
+    |                                     ^^^^^^^^^
+
+warning: unused import: `notify::Watcher`
+  --> src/complete_engine.rs:26:5
+   |
+26 | use notify::Watcher;
+   |     ^^^^^^^^^^^^^^^
+
+warning: unused import: `Write`
+ --> src/cross_platform_ipc.rs:4:21
+  |
+4 | use std::io::{Read, Write};
+  |                     ^^^^^
+
+warning: unused import: `Read`
+ --> src/cross_platform_ipc.rs:4:15
+  |
+4 | use std::io::{Read, Write};
+  |               ^^^^
+
+warning: unused import: `AsyncWriteExt`
+ --> src/ipc_server.rs:8:31
+  |
+8 | use tokio::io::{AsyncReadExt, AsyncWriteExt};
+  |                               ^^^^^^^^^^^^^
+
+warning: unused import: `AsyncReadExt`
+ --> src/ipc_server.rs:8:17
+  |
+8 | use tokio::io::{AsyncReadExt, AsyncWriteExt};
+  |                 ^^^^^^^^^^^^
+
+warning: unused import: `AsyncWriteExt`
+  --> src/ipc_server_complete.rs:12:31
+   |
+12 | use tokio::io::{AsyncReadExt, AsyncWriteExt};
+   |                               ^^^^^^^^^^^^^
+
+warning: unused import: `AsyncReadExt`
+  --> src/ipc_server_complete.rs:12:17
+   |
+12 | use tokio::io::{AsyncReadExt, AsyncWriteExt};
+   |                 ^^^^^^^^^^^^
+
+warning: unused import: `std::error::Error`
+  --> src/mcp_tools/dispatcher.rs:13:5
+   |
+13 | use std::error::Error as StdError;
+   |     ^^^^^^^^^^^^^^^^^
+
+warning: unused import: `matcher::Matcher`
+ --> src/mcp_tools/ripgrep_search.rs:7:5
+  |
+7 |     matcher::Matcher,
+  |     ^^^^^^^^^^^^^^^^
+
+warning: unused import: `StreamExt`
+ --> src/streaming_pipeline/stream_transform.rs:4:31
+  |
+4 | use futures::stream::{Stream, StreamExt};
+  |                               ^^^^^^^^^
+
+warning: unused import: `ConfigBuilderExt`
+  --> src/https_connection_manager_real.rs:11:59
+   |
+11 | use hyper_rustls::{HttpsConnectorBuilder, HttpsConnector, ConfigBuilderExt};
+   |                                                           ^^^^^^^^^^^^^^^^
+
+warning: unused variable: `request`
+   --> src/ai_providers/gemini_optimized.rs:300:33
+    |
+300 |     async fn chat_stream(&self, request: ChatRequest) -> Result<BoxStream<'static, Result<StreamToken>>> {
+    |                                 ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_request`
+
+warning: unused variable: `request`
+   --> src/ai_providers/gemini_optimized.rs:363:9
+    |
+363 |         request: CompletionRequest,
+    |         ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_request`
+
+warning: unused variable: `request`
+   --> src/ai_providers/gemini_ultra_optimized.rs:314:9
+    |
+314 |         request: CompletionRequest,
+    |         ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_request`
+
+warning: unused variable: `request`
+   --> src/ai_providers/gemini_ultra_optimized.rs:331:9
+    |
+331 |         request: ChatRequest,
+    |         ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_request`
+
+warning: unused variable: `response`
+   --> src/ai_providers/xai_exact.rs:217:13
+    |
+217 |         let response = self.chat(request).await?;
+    |             ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_response`
+
+warning: unused variable: `supports_embeddings`
+   --> src/ai_providers/openrouter_exact.rs:244:13
+    |
+244 |         let supports_embeddings = info
+    |             ^^^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_supports_embeddings`
+
+warning: unused variable: `duration`
+  --> src/cache/cache_metrics.rs:66:43
+   |
+66 |     pub fn record_l1_write_latency(&self, duration: Duration) {
+   |                                           ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_duration`
+
+warning: unused variable: `duration`
+  --> src/cache/cache_metrics.rs:75:43
+   |
+75 |     pub fn record_l2_write_latency(&self, duration: Duration) {
+   |                                           ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_duration`
+
+warning: unused variable: `duration`
+  --> src/cache/cache_metrics.rs:84:43
+   |
+84 |     pub fn record_l3_write_latency(&self, duration: Duration) {
+   |                                           ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_duration`
+
+warning: unused variable: `duration`
+  --> src/cache/cache_metrics.rs:88:43
+   |
+88 |     pub fn record_l3_batch_latency(&self, duration: Duration) {
+   |                                           ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_duration`
+
+warning: unused variable: `value`
+  --> src/cache/l1_cache.rs:29:38
+   |
+29 |             .eviction_listener(|key, value, cause| {
+   |                                      ^^^^^ help: if this is intentional, prefix it with an underscore: `_value`
+
+warning: unused variable: `path`
+   --> src/complete_engine.rs:693:15
+    |
+693 | fn parse_file(path: &Path, content: &str) -> Result<Vec<CodeChunk>> {
+    |               ^^^^ help: if this is intentional, prefix it with an underscore: `_path`
+
+warning: unused variable: `attempt`
+  --> src/error_handling/retry_policy.rs:72:55
+   |
+72 |     fn calculate_next_delay(&self, current: Duration, attempt: u32) -> Duration {
+   |                                                       ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_attempt`
+
+warning: unused variable: `tool_name`
+   --> src/error_handling_patterns.rs:102:37
+    |
+102 |     pub fn record_tool_usage(&self, tool_name: String) {
+    |                                     ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_tool_name`
+
+warning: unused variable: `tool_name`
+   --> src/error_handling_patterns.rs:107:37
+    |
+107 |     pub fn record_tool_error(&self, tool_name: String, error: Option<String>) {
+    |                                     ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_tool_name`
+
+warning: unused variable: `error`
+   --> src/error_handling_patterns.rs:107:56
+    |
+107 |     pub fn record_tool_error(&self, tool_name: String, error: Option<String>) {
+    |                                                        ^^^^^ help: if this is intentional, prefix it with an underscore: `_error`
+
+warning: unused variable: `messages`
+   --> src/error_handling_patterns.rs:341:20
+    |
+341 | fn get_api_metrics(messages: Vec<ClineMessage>) -> TokenUsage {
+    |                    ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_messages`
+
+warning: unused variable: `language`
+   --> src/file_watcher.rs:250:28
+    |
+250 | fn tokenize(content: &str, language: &Language) -> Vec<Token> {
+    |                            ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_language`
+
+warning: unused variable: `pool`
+   --> src/ipc_server_complete.rs:181:41
+    |
+181 |     pub fn set_provider_pool(&mut self, pool: Arc<dyn std::any::Any + Send + Sync>) {
+    |                                         ^^^^ help: if this is intentional, prefix it with an underscore: `_pool`
+
+warning: unused variable: `command`
+   --> src/lapce_plugin.rs:225:41
+    |
+225 | pub extern "C" fn plugin_handle_command(command: *const i8) -> i32 {
+    |                                         ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_command`
+
+warning: unused variable: `args`
+   --> src/mcp_tools/core.rs:134:30
+    |
+134 |     async fn validate(&self, args: &Value) -> Result<()> {
+    |                              ^^^^ help: if this is intentional, prefix it with an underscore: `_args`
+
+warning: unused variable: `config`
+  --> src/mcp_tools/mcp_system.rs:57:13
+   |
+57 |         let config = Arc::new(RwLock::new(crate::mcp_tools::config::McpServerConfig::default()));
+   |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_config`
+
+warning: unused variable: `quota`
+  --> src/mcp_tools/rate_limiter.rs:67:57
+   |
+67 |     pub fn set_tool_quota(&mut self, tool_name: String, quota: Quota) {
+   |                                                         ^^^^^ help: if this is intentional, prefix it with an underscore: `_quota`
+
+warning: unused variable: `enable_user_namespace`
+  --> src/mcp_tools/sandbox_real.rs:50:13
+   |
+50 |         let enable_user_namespace = false;
+   |             ^^^^^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_enable_user_namespace`
+
+warning: unused variable: `enable_mount_namespace`
+  --> src/mcp_tools/sandbox_real.rs:51:13
+   |
+51 |         let enable_mount_namespace = false;
+   |             ^^^^^^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_enable_mount_namespace`
+
+warning: unused variable: `config`
+  --> src/mcp_tools/sandbox_real.rs:44:52
+   |
+44 |     pub fn execute_sandboxed(&self, command: &str, config: crate::mcp_tools::sandbox::SandboxConfig) -> Result<crate::mcp_tools::sandbox:...
+   |                                                    ^^^^^^ help: if this is intentional, prefix it with an underscore: `_config`
+
+warning: unused variable: `limits`
+   --> src/mcp_tools/sandbox_real.rs:109:30
+    |
+109 |     fn apply_resource_limits(limits: &ResourceLimits) -> std::io::Result<()> {
+    |                              ^^^^^^ help: if this is intentional, prefix it with an underscore: `_limits`
+
+warning: unused variable: `metrics`
+   --> src/mcp_tools/telemetry.rs:242:31
+    |
+242 |     async fn write(&mut self, metrics: &MetricsSnapshot) -> Result<(), Box<dyn std::error::Error>> {
+    |                               ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_metrics`
+
+warning: unused variable: `metrics`
+   --> src/mcp_tools/telemetry.rs:263:31
+    |
+263 |     async fn write(&mut self, metrics: &MetricsSnapshot) -> Result<(), Box<dyn std::error::Error>> {
+    |                               ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_metrics`
+
+warning: unused variable: `args`
+  --> src/mcp_tools/tools/filesystem.rs:83:29
+   |
+83 |     async fn execute(&self, args: Value, _context: ToolContext) -> Result<ToolResult> {
+   |                             ^^^^ help: if this is intentional, prefix it with an underscore: `_args`
+
+warning: unused variable: `custom_max_tokens`
+   --> src/model_params.rs:143:9
+    |
+143 |     let custom_max_tokens = settings.model_max_tokens;
+    |         ^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_custom_max_tokens`
+
+warning: unused variable: `model_id`
+   --> src/model_params.rs:207:5
+    |
+207 |     model_id: &str,
+    |     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_model_id`
+
+warning: unused variable: `original`
+   --> src/refactoring_engine.rs:175:20
+    |
+175 |             test: |original, refactored| refactored.contains("extracted_method"),
+    |                    ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_original`
+
+warning: unused variable: `original`
+   --> src/refactoring_engine.rs:188:20
+    |
+188 |             test: |original, refactored| !refactored.contains("UNUSED"),
+    |                    ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_original`
+
+warning: unused variable: `original`
+   --> src/refactoring_engine.rs:202:20
+    |
+202 |             test: |original, refactored| refactored.contains("const "),
+    |                    ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_original`
+
+warning: value assigned to `start_line` is never read
+  --> src/register_code_actions.rs:65:17
+   |
+65 |         let mut start_line: Option<u32> = None;
+   |                 ^^^^^^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+
+warning: value assigned to `end_line` is never read
+  --> src/register_code_actions.rs:66:17
+   |
+66 |         let mut end_line: Option<u32> = None;
+   |                 ^^^^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+
+warning: unused variable: `buf`
+   --> src/shared_memory_complete.rs:182:28
+    |
+182 |     pub fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
+    |                            ^^^ help: if this is intentional, prefix it with an underscore: `_buf`
+
+warning: unused variable: `size`
+   --> src/shared_memory_complete.rs:235:29
+    |
+235 |     pub fn open(path: &str, size: usize) -> Result<Self> {
+    |                             ^^^^ help: if this is intentional, prefix it with an underscore: `_size`
+
+warning: unused variable: `path_clone`
+   --> src/shared_memory_complete.rs:359:13
+    |
+359 |         let path_clone = path.to_string();
+    |             ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_path_clone`
+
+warning: unused variable: `request`
+   --> src/streaming_pipeline/streaming_response.rs:230:13
+    |
+230 |         let request = ChatCompletionRequest {
+    |             ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_request`
+
+warning: unused variable: `payload`
+   --> src/task_connection_handling.rs:249:34
+    |
+249 |     fn emit_message_event(&self, payload: MessageEventPayload) {
+    |                                  ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_payload`
+
+warning: unused variable: `token_usage`
+   --> src/task_connection_handling.rs:253:40
+    |
+253 |     fn emit_token_usage_updated(&self, token_usage: TokenUsage) {
+    |                                        ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_token_usage`
+
+warning: unused variable: `conn`
+  --> src/connection_reuse.rs:91:21
+   |
+91 |         if let Some(conn) = self.connection.take() {
+   |                     ^^^^ help: if this is intentional, prefix it with an underscore: `_conn`
+
+warning: fields `context_window` and `model_cache` are never read
+ --> src/ai_completion.rs:7:5
+  |
+6 | pub struct AICompletionEngine {
+  |            ------------------ fields in this struct
+7 |     context_window: usize,
+  |     ^^^^^^^^^^^^^^
+8 |     model_cache: Arc<RwLock<HashMap<String, Vec<f32>>>>,
+  |     ^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` on by default
+
+warning: method `parse_stream_chunk` is never used
+   --> src/ai_providers/openai_exact.rs:289:14
+    |
+132 | impl OpenAiHandler {
+    | ------------------ method in this implementation
+...
+289 |     async fn parse_stream_chunk(&self, chunk: Bytes) -> Vec<StreamToken> {
+    |              ^^^^^^^^^^^^^^^^^^
+
+warning: function `parse_gemini_stream` is never used
+   --> src/ai_providers/gemini_exact.rs:529:4
+    |
+529 | fn parse_gemini_stream(chunk: &str) -> Vec<StreamToken> {
+    |    ^^^^^^^^^^^^^^^^^^^
+
+warning: field `prompt_caching` is never read
+   --> src/ai_providers/openrouter_exact.rs:113:5
+    |
+103 | struct CapabilitiesInfo {
+    |        ---------------- field in this struct
+...
+113 |     prompt_caching: Option<bool>,
+    |     ^^^^^^^^^^^^^^
+    |
+    = note: `CapabilitiesInfo` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `detectors` and `realtime_monitor` are never read
+  --> src/bug_detection_ai.rs:8:5
+   |
+ 7 | pub struct BugDetectionEngine {
+   |            ------------------ fields in this struct
+ 8 |     detectors: Arc<RwLock<HashMap<String, Box<dyn BugDetector>>>>,
+   |     ^^^^^^^^^
+...
+11 |     realtime_monitor: Arc<RwLock<RealtimeMonitor>>,
+   |     ^^^^^^^^^^^^^^^^
+
+warning: fields `feature_extractor` and `training_data` are never read
+  --> src/bug_detection_ai.rs:37:5
+   |
+35 | pub struct MLBugModel {
+   |            ---------- fields in this struct
+36 |     model_weights: Vec<f32>,
+37 |     feature_extractor: FeatureExtractor,
+   |     ^^^^^^^^^^^^^^^^^
+38 |     confidence_threshold: f32,
+39 |     training_data: Vec<TrainingExample>,
+   |     ^^^^^^^^^^^^^
+
+warning: fields `code_complexity`, `cyclomatic_complexity`, `nesting_depth`, `variable_count`, `function_length`, and `comment_ratio` are never read
+  --> src/bug_detection_ai.rs:43:5
+   |
+42 | pub struct FeatureExtractor {
+   |            ---------------- fields in this struct
+43 |     code_complexity: f32,
+   |     ^^^^^^^^^^^^^^^
+44 |     cyclomatic_complexity: usize,
+   |     ^^^^^^^^^^^^^^^^^^^^^
+45 |     nesting_depth: usize,
+   |     ^^^^^^^^^^^^^
+46 |     variable_count: usize,
+   |     ^^^^^^^^^^^^^^
+47 |     function_length: usize,
+   |     ^^^^^^^^^^^^^^^
+48 |     comment_ratio: f32,
+   |     ^^^^^^^^^^^^^
+
+warning: fields `code`, `has_bug`, `bug_type`, and `confidence` are never read
+  --> src/bug_detection_ai.rs:52:5
+   |
+51 | pub struct TrainingExample {
+   |            --------------- fields in this struct
+52 |     code: String,
+   |     ^^^^
+53 |     has_bug: bool,
+   |     ^^^^^^^
+54 |     bug_type: Option<BugPattern>,
+   |     ^^^^^^^^
+55 |     confidence: f32,
+   |     ^^^^^^^^^^
+
+warning: fields `ast_parser`, `data_flow_analyzer`, `control_flow_graph`, and `taint_analyzer` are never read
+  --> src/bug_detection_ai.rs:60:5
+   |
+59 | pub struct StaticAnalyzer {
+   |            -------------- fields in this struct
+60 |     ast_parser: ASTParser,
+   |     ^^^^^^^^^^
+61 |     data_flow_analyzer: DataFlowAnalyzer,
+   |     ^^^^^^^^^^^^^^^^^^
+62 |     control_flow_graph: ControlFlowGraph,
+   |     ^^^^^^^^^^^^^^^^^^
+63 |     taint_analyzer: TaintAnalyzer,
+   |     ^^^^^^^^^^^^^^
+
+warning: field `syntax_tree` is never read
+  --> src/bug_detection_ai.rs:67:5
+   |
+66 | pub struct ASTParser {
+   |            --------- field in this struct
+67 |     syntax_tree: HashMap<String, ASTNode>,
+   |     ^^^^^^^^^^^
+
+warning: fields `node_type`, `children`, and `attributes` are never read
+  --> src/bug_detection_ai.rs:71:5
+   |
+70 | pub struct ASTNode {
+   |            ------- fields in this struct
+71 |     node_type: String,
+   |     ^^^^^^^^^
+72 |     children: Vec<Box<ASTNode>>,
+   |     ^^^^^^^^
+73 |     attributes: HashMap<String, String>,
+   |     ^^^^^^^^^^
+
+warning: fields `def_use_chains` and `reaching_definitions` are never read
+  --> src/bug_detection_ai.rs:77:5
+   |
+76 | pub struct DataFlowAnalyzer {
+   |            ---------------- fields in this struct
+77 |     def_use_chains: HashMap<String, Vec<String>>,
+   |     ^^^^^^^^^^^^^^
+78 |     reaching_definitions: HashMap<usize, HashSet<String>>,
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: fields `nodes` and `edges` are never read
+  --> src/bug_detection_ai.rs:82:5
+   |
+81 | pub struct ControlFlowGraph {
+   |            ---------------- fields in this struct
+82 |     nodes: Vec<CFGNode>,
+   |     ^^^^^
+83 |     edges: Vec<(usize, usize)>,
+   |     ^^^^^
+
+warning: fields `id`, `instruction`, `predecessors`, and `successors` are never read
+  --> src/bug_detection_ai.rs:87:5
+   |
+86 | pub struct CFGNode {
+   |            ------- fields in this struct
+87 |     id: usize,
+   |     ^^
+88 |     instruction: String,
+   |     ^^^^^^^^^^^
+89 |     predecessors: Vec<usize>,
+   |     ^^^^^^^^^^^^
+90 |     successors: Vec<usize>,
+   |     ^^^^^^^^^^
+
+warning: fields `tainted_variables`, `sinks`, and `sources` are never read
+  --> src/bug_detection_ai.rs:94:5
+   |
+93 | pub struct TaintAnalyzer {
+   |            ------------- fields in this struct
+94 |     tainted_variables: HashSet<String>,
+   |     ^^^^^^^^^^^^^^^^^
+95 |     sinks: Vec<String>,
+   |     ^^^^^
+96 |     sources: Vec<String>,
+   |     ^^^^^^^
+
+warning: fields `execution_traces`, `memory_profiler`, and `performance_monitor` are never read
+   --> src/bug_detection_ai.rs:101:5
+    |
+100 | pub struct DynamicAnalyzer {
+    |            --------------- fields in this struct
+101 |     execution_traces: Vec<ExecutionTrace>,
+    |     ^^^^^^^^^^^^^^^^
+102 |     memory_profiler: MemoryProfiler,
+    |     ^^^^^^^^^^^^^^^
+103 |     performance_monitor: PerformanceMonitor,
+    |     ^^^^^^^^^^^^^^^^^^^
+
+warning: fields `thread_id`, `stack_trace`, `variables`, and `timestamp` are never read
+   --> src/bug_detection_ai.rs:107:5
+    |
+106 | pub struct ExecutionTrace {
+    |            -------------- fields in this struct
+107 |     thread_id: usize,
+    |     ^^^^^^^^^
+108 |     stack_trace: Vec<String>,
+    |     ^^^^^^^^^^^
+109 |     variables: HashMap<String, String>,
+    |     ^^^^^^^^^
+110 |     timestamp: u64,
+    |     ^^^^^^^^^
+
+warning: fields `allocations`, `deallocations`, `peak_memory`, and `leaks` are never read
+   --> src/bug_detection_ai.rs:114:5
+    |
+113 | pub struct MemoryProfiler {
+    |            -------------- fields in this struct
+114 |     allocations: Vec<Allocation>,
+    |     ^^^^^^^^^^^
+115 |     deallocations: Vec<Deallocation>,
+    |     ^^^^^^^^^^^^^
+116 |     peak_memory: usize,
+    |     ^^^^^^^^^^^
+117 |     leaks: Vec<MemoryLeak>,
+    |     ^^^^^
+
+warning: fields `address`, `size`, `timestamp`, and `stack_trace` are never read
+   --> src/bug_detection_ai.rs:121:5
+    |
+120 | pub struct Allocation {
+    |            ---------- fields in this struct
+121 |     address: usize,
+    |     ^^^^^^^
+122 |     size: usize,
+    |     ^^^^
+123 |     timestamp: u64,
+    |     ^^^^^^^^^
+124 |     stack_trace: Vec<String>,
+    |     ^^^^^^^^^^^
+
+warning: fields `address` and `timestamp` are never read
+   --> src/bug_detection_ai.rs:128:5
+    |
+127 | pub struct Deallocation {
+    |            ------------ fields in this struct
+128 |     address: usize,
+    |     ^^^^^^^
+129 |     timestamp: u64,
+    |     ^^^^^^^^^
+
+warning: fields `address`, `size`, and `allocated_at` are never read
+   --> src/bug_detection_ai.rs:133:5
+    |
+132 | pub struct MemoryLeak {
+    |            ---------- fields in this struct
+133 |     address: usize,
+    |     ^^^^^^^
+134 |     size: usize,
+    |     ^^^^
+135 |     allocated_at: Vec<String>,
+    |     ^^^^^^^^^^^^
+
+warning: fields `cpu_usage`, `memory_usage`, and `io_operations` are never read
+   --> src/bug_detection_ai.rs:139:5
+    |
+138 | pub struct PerformanceMonitor {
+    |            ------------------ fields in this struct
+139 |     cpu_usage: Vec<f32>,
+    |     ^^^^^^^^^
+140 |     memory_usage: Vec<usize>,
+    |     ^^^^^^^^^^^^
+141 |     io_operations: Vec<IOOperation>,
+    |     ^^^^^^^^^^^^^
+
+warning: fields `operation_type`, `duration_ms`, and `bytes` are never read
+   --> src/bug_detection_ai.rs:145:5
+    |
+144 | pub struct IOOperation {
+    |            ----------- fields in this struct
+145 |     operation_type: String,
+    |     ^^^^^^^^^^^^^^
+146 |     duration_ms: f32,
+    |     ^^^^^^^^^^^
+147 |     bytes: usize,
+    |     ^^^^^
+
+warning: fields `rules` and `ml_classifier` are never read
+   --> src/bug_detection_ai.rs:161:5
+    |
+160 | pub struct SeverityClassifier {
+    |            ------------------ fields in this struct
+161 |     rules: HashMap<String, BugSeverity>,
+    |     ^^^^^
+162 |     ml_classifier: Option<Box<dyn Fn(&BugPattern) -> BugSeverity>>,
+    |     ^^^^^^^^^^^^^
+
+warning: multiple fields are never read
+   --> src/bug_detection_ai.rs:167:5
+    |
+166 | pub struct FixSuggestion {
+    |            ------------- fields in this struct
+167 |     bug_id: String,
+    |     ^^^^^^
+168 |     description: String,
+    |     ^^^^^^^^^^^
+169 |     code_before: String,
+    |     ^^^^^^^^^^^
+170 |     code_after: String,
+    |     ^^^^^^^^^^
+171 |     confidence: f32,
+    |     ^^^^^^^^^^
+172 |     explanation: String,
+    |     ^^^^^^^^^^^
+173 |     references: Vec<String>,
+    |     ^^^^^^^^^^
+
+warning: fields `fix_patterns` and `code_generator` are never read
+   --> src/bug_detection_ai.rs:177:5
+    |
+176 | pub struct AutoFixer {
+    |            --------- fields in this struct
+177 |     fix_patterns: HashMap<String, FixPattern>,
+    |     ^^^^^^^^^^^^
+178 |     code_generator: CodeGenerator,
+    |     ^^^^^^^^^^^^^^
+
+warning: fields `pattern_name`, `detector`, `fixer`, and `validator` are never read
+   --> src/bug_detection_ai.rs:182:5
+    |
+181 | pub struct FixPattern {
+    |            ---------- fields in this struct
+182 |     pattern_name: String,
+    |     ^^^^^^^^^^^^
+183 |     detector: fn(&str) -> bool,
+    |     ^^^^^^^^
+184 |     fixer: fn(&str) -> String,
+    |     ^^^^^
+185 |     validator: fn(&str) -> bool,
+    |     ^^^^^^^^^
+
+warning: fields `templates` and `context` are never read
+   --> src/bug_detection_ai.rs:189:5
+    |
+188 | pub struct CodeGenerator {
+    |            ------------- fields in this struct
+189 |     templates: HashMap<String, String>,
+    |     ^^^^^^^^^
+190 |     context: HashMap<String, String>,
+    |     ^^^^^^^
+
+warning: fields `active_sessions`, `alert_rules`, and `notification_channels` are never read
+   --> src/bug_detection_ai.rs:195:5
+    |
+194 | pub struct RealtimeMonitor {
+    |            --------------- fields in this struct
+195 |     active_sessions: HashMap<String, MonitorSession>,
+    |     ^^^^^^^^^^^^^^^
+196 |     alert_rules: Vec<AlertRule>,
+    |     ^^^^^^^^^^^
+197 |     notification_channels: Vec<NotificationChannel>,
+    |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: fields `session_id`, `start_time`, `bugs_detected`, and `performance_metrics` are never read
+   --> src/bug_detection_ai.rs:201:5
+    |
+200 | pub struct MonitorSession {
+    |            -------------- fields in this struct
+201 |     session_id: String,
+    |     ^^^^^^^^^^
+202 |     start_time: u64,
+    |     ^^^^^^^^^^
+203 |     bugs_detected: Vec<DetectedBug>,
+    |     ^^^^^^^^^^^^^
+204 |     performance_metrics: PerformanceMetrics,
+    |     ^^^^^^^^^^^^^^^^^^^
+
+warning: fields `location` and `fixed` are never read
+   --> src/bug_detection_ai.rs:211:5
+    |
+207 | pub struct DetectedBug {
+    |            ----------- fields in this struct
+...
+211 |     location: BugLocation,
+    |     ^^^^^^^^
+212 |     detected_at: u64,
+213 |     fixed: bool,
+    |     ^^^^^
+
+warning: fields `file`, `line`, `column`, and `function` are never read
+   --> src/bug_detection_ai.rs:217:5
+    |
+216 | pub struct BugLocation {
+    |            ----------- fields in this struct
+217 |     file: String,
+    |     ^^^^
+218 |     line: usize,
+    |     ^^^^
+219 |     column: usize,
+    |     ^^^^^^
+220 |     function: Option<String>,
+    |     ^^^^^^^^
+
+warning: fields `condition`, `severity_threshold`, and `action` are never read
+   --> src/bug_detection_ai.rs:224:5
+    |
+223 | pub struct AlertRule {
+    |            --------- fields in this struct
+224 |     condition: String,
+    |     ^^^^^^^^^
+225 |     severity_threshold: BugSeverity,
+    |     ^^^^^^^^^^^^^^^^^^
+226 |     action: AlertAction,
+    |     ^^^^^^
+
+warning: fields `scan_time_ms`, `bugs_per_kloc`, `false_positive_rate`, and `true_positive_rate` are never read
+   --> src/bug_detection_ai.rs:245:5
+    |
+244 | pub struct PerformanceMetrics {
+    |            ------------------ fields in this struct
+245 |     scan_time_ms: f32,
+    |     ^^^^^^^^^^^^
+246 |     bugs_per_kloc: f32,
+    |     ^^^^^^^^^^^^^
+247 |     false_positive_rate: f32,
+    |     ^^^^^^^^^^^^^^^^^^^
+248 |     true_positive_rate: f32,
+    |     ^^^^^^^^^^^^^^^^^^
+
+warning: field `history` is never read
+   --> src/bug_detection_ai.rs:254:5
+    |
+252 | pub struct BugDatabase {
+    |            ----------- field in this struct
+253 |     bugs: HashMap<String, BugRecord>,
+254 |     history: Vec<BugHistoryEntry>,
+    |     ^^^^^^^
+
+warning: multiple fields are never read
+   --> src/bug_detection_ai.rs:259:5
+    |
+258 | pub struct BugRecord {
+    |            --------- fields in this struct
+259 |     id: String,
+    |     ^^
+260 |     pattern: BugPattern,
+    |     ^^^^^^^
+261 |     severity: BugSeverity,
+262 |     first_detected: u64,
+    |     ^^^^^^^^^^^^^^
+263 |     last_seen: u64,
+    |     ^^^^^^^^^
+264 |     occurrences: usize,
+    |     ^^^^^^^^^^^
+265 |     status: BugStatus,
+    |     ^^^^^^
+266 |     assigned_to: Option<String>,
+    |     ^^^^^^^^^^^
+267 |     fix_commits: Vec<String>,
+    |     ^^^^^^^^^^^
+
+warning: fields `bug_id`, `timestamp`, `action`, `user`, and `details` are never read
+   --> src/bug_detection_ai.rs:282:5
+    |
+281 | pub struct BugHistoryEntry {
+    |            --------------- fields in this struct
+282 |     bug_id: String,
+    |     ^^^^^^
+283 |     timestamp: u64,
+    |     ^^^^^^^^^
+284 |     action: String,
+    |     ^^^^^^
+285 |     user: String,
+    |     ^^^^
+286 |     details: String,
+    |     ^^^^^^^
+
+warning: fields `bugs_by_severity`, `bugs_by_pattern`, `mean_time_to_fix_hours`, and `detection_rate` are never read
+   --> src/bug_detection_ai.rs:291:5
+    |
+289 | pub struct BugStatistics {
+    |            ------------- fields in this struct
+290 |     total_bugs: usize,
+291 |     bugs_by_severity: HashMap<BugSeverity, usize>,
+    |     ^^^^^^^^^^^^^^^^
+292 |     bugs_by_pattern: HashMap<String, usize>,
+    |     ^^^^^^^^^^^^^^^
+293 |     mean_time_to_fix_hours: f64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+294 |     detection_rate: f64,
+    |     ^^^^^^^^^^^^^^
+
+warning: fields `summary`, `detailed_findings`, `recommendations`, and `metrics` are never read
+   --> src/bug_detection_ai.rs:299:5
+    |
+298 | pub struct BugReport {
+    |            --------- fields in this struct
+299 |     summary: ReportSummary,
+    |     ^^^^^^^
+300 |     detailed_findings: Vec<DetailedFinding>,
+    |     ^^^^^^^^^^^^^^^^^
+301 |     recommendations: Vec<Recommendation>,
+    |     ^^^^^^^^^^^^^^^
+302 |     metrics: ReportMetrics,
+    |     ^^^^^^^
+
+warning: fields `scan_date`, `total_files`, `total_lines`, `bugs_found`, `critical_bugs`, and `auto_fixed` are never read
+   --> src/bug_detection_ai.rs:306:5
+    |
+305 | pub struct ReportSummary {
+    |            ------------- fields in this struct
+306 |     scan_date: String,
+    |     ^^^^^^^^^
+307 |     total_files: usize,
+    |     ^^^^^^^^^^^
+308 |     total_lines: usize,
+    |     ^^^^^^^^^^^
+309 |     bugs_found: usize,
+    |     ^^^^^^^^^^
+310 |     critical_bugs: usize,
+    |     ^^^^^^^^^^^^^
+311 |     auto_fixed: usize,
+    |     ^^^^^^^^^^
+
+warning: fields `bug`, `code_snippet`, `fix_suggestion`, and `similar_bugs` are never read
+   --> src/bug_detection_ai.rs:315:5
+    |
+314 | pub struct DetailedFinding {
+    |            --------------- fields in this struct
+315 |     bug: DetectedBug,
+    |     ^^^
+316 |     code_snippet: String,
+    |     ^^^^^^^^^^^^
+317 |     fix_suggestion: Option<FixSuggestion>,
+    |     ^^^^^^^^^^^^^^
+318 |     similar_bugs: Vec<String>,
+    |     ^^^^^^^^^^^^
+
+warning: fields `priority`, `category`, `description`, and `estimated_impact` are never read
+   --> src/bug_detection_ai.rs:322:5
+    |
+321 | pub struct Recommendation {
+    |            -------------- fields in this struct
+322 |     priority: usize,
+    |     ^^^^^^^^
+323 |     category: String,
+    |     ^^^^^^^^
+324 |     description: String,
+    |     ^^^^^^^^^^^
+325 |     estimated_impact: String,
+    |     ^^^^^^^^^^^^^^^^
+
+warning: fields `scan_duration_seconds`, `memory_used_mb`, `coverage_percent`, and `confidence_score` are never read
+   --> src/bug_detection_ai.rs:329:5
+    |
+328 | pub struct ReportMetrics {
+    |            ------------- fields in this struct
+329 |     scan_duration_seconds: f32,
+    |     ^^^^^^^^^^^^^^^^^^^^^
+330 |     memory_used_mb: f32,
+    |     ^^^^^^^^^^^^^^
+331 |     coverage_percent: f32,
+    |     ^^^^^^^^^^^^^^^^
+332 |     confidence_score: f32,
+    |     ^^^^^^^^^^^^^^^^
+
+warning: function `random` is never used
+   --> src/bug_detection_ai.rs:627:12
+    |
+627 |     pub fn random<T>() -> T 
+    |            ^^^^^^
+
+warning: field `key` is never read
+ --> src/cache/aes_encryption.rs:7:5
+  |
+6 | pub struct AesEncryption {
+  |            ------------- field in this struct
+7 |     key: Vec<u8>,
+  |     ^^^
+
+warning: field `config` is never read
+  --> src/cache/real_l1_cache.rs:16:5
+   |
+13 | pub struct RealL1Cache {
+   |            ----------- field in this struct
+...
+16 |     config: L1Config,
+   |     ^^^^^^
+
+warning: field `l3` is never read
+  --> src/cache/optimized_hybrid.rs:73:5
+   |
+66 | pub struct OptimizedHybridCache {
+   |            -------------------- field in this struct
+...
+73 |     l3: Arc<tokio::sync::RwLock<Option<L3Cache>>>,
+   |     ^^
+
+warning: field `strategies` is never read
+  --> src/caching_strategy.rs:26:5
+   |
+25 | pub struct SmartCacheManager {
+   |            ----------------- field in this struct
+26 |     strategies: HashMap<String, CacheStrategy>,
+   |     ^^^^^^^^^^
+
+warning: field `config` is never read
+  --> src/circuit_breaker.rs:36:5
+   |
+31 | pub struct CircuitBreaker {
+   |            -------------- field in this struct
+...
+36 |     config: CircuitBreakerConfig,
+   |     ^^^^^^
+
+warning: field `max_chunk_size` is never read
+  --> src/code_parser.rs:35:5
+   |
+31 | pub struct CodeParser {
+   |            ---------- field in this struct
+...
+35 |     max_chunk_size: usize,
+   |     ^^^^^^^^^^^^^^
+
+warning: field `batch_size` is never read
+   --> src/code_parser.rs:303:5
+    |
+301 | pub struct ParallelProcessor {
+    |            ----------------- field in this struct
+302 |     parser: Arc<CodeParser>,
+303 |     batch_size: usize,
+    |     ^^^^^^^^^^
+
+warning: field `tantivy_index` is never read
+   --> src/complete_engine.rs:111:5
+    |
+ 98 | pub struct CompleteSearchEngine {
+    |            -------------------- field in this struct
+...
+111 |     tantivy_index: Arc<Index>,
+    |     ^^^^^^^^^^^^^
+
+warning: field `fusion_weight` is never read
+   --> src/complete_engine.rs:524:5
+    |
+522 | pub struct HybridSearcher {
+    |            -------------- field in this struct
+523 |     semantic_engine: Arc<CompleteSearchEngine>,
+524 |     fusion_weight: f32,
+    |     ^^^^^^^^^^^^^
+
+warning: field `addr` is never read
+   --> src/cross_platform_ipc.rs:149:5
+    |
+148 | pub struct TcpTransport {
+    |            ------------ field in this struct
+149 |     addr: String,
+    |     ^^^^
+
+warning: fields `id`, `node`, `doc_count`, and `size_bytes` are never read
+  --> src/distributed_search.rs:23:5
+   |
+22 | struct ShardInfo {
+   |        --------- fields in this struct
+23 |     id: usize,
+   |     ^^
+24 |     node: String,
+   |     ^^^^
+25 |     doc_count: usize,
+   |     ^^^^^^^^^
+26 |     size_bytes: usize,
+   |     ^^^^^^^^^^
+   |
+   = note: `ShardInfo` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `schemas` is never read
+ --> src/doc_generator_complete.rs:9:5
+  |
+7 | pub struct ApiDocGenerator {
+  |            --------------- field in this struct
+8 |     endpoints: Vec<ApiEndpoint>,
+9 |     schemas: HashMap<String, Schema>,
+  |     ^^^^^^^
+
+warning: field `examples` is never read
+  --> src/doc_generator_complete.rs:18:5
+   |
+12 | pub struct ApiEndpoint {
+   |            ----------- field in this struct
+...
+18 |     examples: Vec<Example>,
+   |     ^^^^^^^^
+
+warning: field `schema` is never read
+  --> src/doc_generator_complete.rs:31:5
+   |
+28 | pub struct Response {
+   |            -------- field in this struct
+...
+31 |     schema: String,
+   |     ^^^^^^
+
+warning: fields `title`, `request`, and `response` are never read
+  --> src/doc_generator_complete.rs:35:5
+   |
+34 | pub struct Example {
+   |            ------- fields in this struct
+35 |     title: String,
+   |     ^^^^^
+36 |     request: String,
+   |     ^^^^^^^
+37 |     response: String,
+   |     ^^^^^^^^
+
+warning: fields `name` and `properties` are never read
+  --> src/doc_generator_complete.rs:41:5
+   |
+40 | pub struct Schema {
+   |            ------ fields in this struct
+41 |     name: String,
+   |     ^^^^
+42 |     properties: HashMap<String, Property>,
+   |     ^^^^^^^^^^
+
+warning: fields `prop_type`, `description`, and `required` are never read
+  --> src/doc_generator_complete.rs:46:5
+   |
+45 | pub struct Property {
+   |            -------- fields in this struct
+46 |     prop_type: String,
+   |     ^^^^^^^^^
+47 |     description: String,
+   |     ^^^^^^^^^^^
+48 |     required: bool,
+   |     ^^^^^^^^
+
+warning: field `language` is never read
+  --> src/doc_generator_complete.rs:92:5
+   |
+91 | pub struct CommentGenerator {
+   |            ---------------- field in this struct
+92 |     language: String,
+   |     ^^^^^^^^
+
+warning: field `usage` is never read
+  --> src/embedding_api.rs:51:5
+   |
+49 | struct OpenAIResponse {
+   |        -------------- field in this struct
+50 |     data: Vec<OpenAIEmbedding>,
+51 |     usage: OpenAIUsage,
+   |     ^^^^^
+
+warning: fields `prompt_tokens` and `total_tokens` are never read
+  --> src/embedding_api.rs:62:5
+   |
+61 | struct OpenAIUsage {
+   |        ----------- fields in this struct
+62 |     prompt_tokens: u32,
+   |     ^^^^^^^^^^^^^
+63 |     total_tokens: u32,
+   |     ^^^^^^^^^^^^
+
+warning: fields `features`, `dependencies`, and `health_scores` are never read
+  --> src/error_handling/degradation_manager.rs:10:5
+   |
+ 8 | pub struct DegradationManager {
+   |            ------------------ fields in this struct
+ 9 |     /// Feature states
+10 |     features: DashMap<String, FeatureState>,
+   |     ^^^^^^^^
+...
+13 |     dependencies: HashMap<String, Vec<String>>,
+   |     ^^^^^^^^^^^^
+...
+16 |     health_scores: DashMap<String, f64>,
+   |     ^^^^^^^^^^^^^
+
+warning: fields `checkpoint_interval`, `state_file`, and `wal` are never read
+  --> src/error_handling/state_recovery.rs:12:5
+   |
+10 | pub struct StateRecovery {
+   |            ------------- fields in this struct
+11 |     /// Checkpoint interval
+12 |     checkpoint_interval: Duration,
+   |     ^^^^^^^^^^^^^^^^^^^
+...
+15 |     state_file: PathBuf,
+   |     ^^^^^^^^^^
+...
+18 |     wal: WriteAheadLog,
+   |     ^^^
+
+warning: field `path` is never read
+  --> src/error_handling/state_recovery.rs:23:5
+   |
+22 | pub struct WriteAheadLog {
+   |            ------------- field in this struct
+23 |     path: PathBuf,
+   |     ^^^^
+
+warning: fields `components`, `restart_policies`, and `health_monitor` are never read
+  --> src/error_handling/component_manager.rs:13:5
+   |
+11 | pub struct ComponentManager {
+   |            ---------------- fields in this struct
+12 |     /// Registered components
+13 |     components: DashMap<String, Arc<dyn Component>>,
+   |     ^^^^^^^^^^
+...
+16 |     restart_policies: HashMap<String, RestartPolicy>,
+   |     ^^^^^^^^^^^^^^^^
+...
+19 |     health_monitor: Arc<HealthMonitor>,
+   |     ^^^^^^^^^^^^^^
+
+warning: fields `collectors`, `aggregator`, and `rate_limiter` are never read
+  --> src/error_handling/error_reporter.rs:12:5
+   |
+10 | pub struct ErrorReporter {
+   |            ------------- fields in this struct
+11 |     /// Error collectors
+12 |     collectors: Vec<Box<dyn ErrorCollector>>,
+   |     ^^^^^^^^^^
+...
+15 |     aggregator: ErrorAggregator,
+   |     ^^^^^^^^^^
+...
+18 |     rate_limiter: RateLimiter,
+   |     ^^^^^^^^^^^^
+
+warning: field `reports` is never read
+  --> src/error_handling/error_reporter.rs:29:5
+   |
+28 | pub struct ErrorAggregator {
+   |            --------------- field in this struct
+29 |     reports: Vec<ErrorReport>,
+   |     ^^^^^^^
+
+warning: field `limits` is never read
+  --> src/error_handling/error_reporter.rs:34:5
+   |
+33 | pub struct RateLimiter {
+   |            ----------- field in this struct
+34 |     limits: HashMap<String, u32>,
+   |     ^^^^^^
+
+warning: constant `MAX_EXPONENTIAL_BACKOFF_SECONDS` is never used
+  --> src/error_handling_patterns.rs:14:7
+   |
+14 | const MAX_EXPONENTIAL_BACKOFF_SECONDS: u64 = 600;
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `persist_gpt5_metadata` and `say` are never used
+   --> src/error_handling_patterns.rs:112:14
+    |
+ 26 | impl Task {
+    | --------- methods in this implementation
+...
+112 |     async fn persist_gpt5_metadata(&self, reasoning_message: Option<String>) {
+    |              ^^^^^^^^^^^^^^^^^^^^^
+...
+206 |     async fn say(&self, say_type: &str, text: Option<String>, images: Option<Vec<String>>, partial: Option<bool>) {
+    |              ^^^
+
+warning: field `watcher_tx` is never read
+  --> src/file_watcher.rs:11:5
+   |
+ 9 | pub struct FileIndexer {
+   |            ----------- field in this struct
+10 |     index: Arc<RwLock<HashMap<String, FileInfo>>>,
+11 |     watcher_tx: mpsc::Sender<IndexCommand>,
+   |     ^^^^^^^^^^
+
+warning: variant `Reindex` is never constructed
+  --> src/file_watcher.rs:57:5
+   |
+54 | enum IndexCommand {
+   |      ------------ variant in this enum
+...
+57 |     Reindex,
+   |     ^^^^^^^
+   |
+   = note: `IndexCommand` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: fields `connection` and `table_name` are never read
+  --> src/lancedb_semantic_search.rs:20:5
+   |
+19 | pub struct LanceDBSearch {
+   |            ------------- fields in this struct
+20 |     connection: Arc<Connection>,
+   |     ^^^^^^^^^^
+21 |     table_name: String,
+   |     ^^^^^^^^^^
+
+warning: constant `MAX_CONNECTIONS` is never used
+  --> src/ipc_server.rs:19:7
+   |
+19 | const MAX_CONNECTIONS: usize = 1000;
+   |       ^^^^^^^^^^^^^^^
+
+warning: constant `BUFFER_POOL_SIZE` is never used
+  --> src/ipc_server.rs:20:7
+   |
+20 | const BUFFER_POOL_SIZE: usize = 100;
+   |       ^^^^^^^^^^^^^^^^
+
+warning: type alias `ConnectionId` is never used
+  --> src/ipc_server.rs:26:6
+   |
+26 | type ConnectionId = u64;
+   |      ^^^^^^^^^^^^
+
+warning: fields `total_bytes_in` and `total_bytes_out` are never read
+  --> src/ipc_server.rs:68:5
+   |
+66 | pub struct Metrics {
+   |            ------- fields in this struct
+67 |     total_requests: Arc<std::sync::atomic::AtomicU64>,
+68 |     total_bytes_in: Arc<std::sync::atomic::AtomicU64>,
+   |     ^^^^^^^^^^^^^^
+69 |     total_bytes_out: Arc<std::sync::atomic::AtomicU64>,
+   |     ^^^^^^^^^^^^^^^
+
+warning: field `connections` is never read
+   --> src/ipc_server.rs:184:5
+    |
+181 | pub struct IpcServer {
+    |            --------- field in this struct
+...
+184 |     connections: Arc<crate::connection_pool_manager::ConnectionPoolManager>,
+    |     ^^^^^^^^^^^
+
+warning: constant `MAX_MESSAGE_SIZE` is never used
+  --> src/ipc_server_complete.rs:23:7
+   |
+23 | const MAX_MESSAGE_SIZE: usize = 10 * 1024 * 1024; // 10MB
+   |       ^^^^^^^^^^^^^^^^
+
+warning: constant `MAX_CONNECTIONS` is never used
+  --> src/ipc_server_complete.rs:24:7
+   |
+24 | const MAX_CONNECTIONS: usize = 1000;
+   |       ^^^^^^^^^^^^^^^
+
+warning: field `provider_pool` is never read
+   --> src/ipc_server_complete.rs:103:5
+    |
+ 98 | pub struct IpcServerComplete {
+    |            ----------------- field in this struct
+...
+103 |     provider_pool: Option<Arc<dyn std::any::Any + Send + Sync>>,
+    |     ^^^^^^^^^^^^^
+
+warning: struct `BufferHeader` is never constructed
+  --> src/macos_shared_memory.rs:13:8
+   |
+13 | struct BufferHeader {
+   |        ^^^^^^^^^^^^
+
+warning: fields `max_size` and `metrics` are never read
+  --> src/mcp_tools/cache.rs:11:5
+   |
+ 8 | pub struct ToolCache {
+   |            --------- fields in this struct
+...
+11 |     max_size: usize,
+   |     ^^^^^^^^
+12 |     metrics: Arc<CacheMetrics>,
+   |     ^^^^^^^
+
+warning: fields `sandbox` and `retry_handler` are never read
+   --> src/mcp_tools/core.rs:155:5
+    |
+151 | pub struct McpToolSystem {
+    |            ------------- fields in this struct
+...
+155 |     sandbox: Arc<ProcessSandbox>,
+    |     ^^^^^^^
+...
+158 |     retry_handler: Arc<RetryHandler>,
+    |     ^^^^^^^^^^^^^
+
+warning: field `resource_templates` is never read
+   --> src/mcp_tools/mcp_hub.rs:143:5
+    |
+139 | pub struct McpHub {
+    |            ------ field in this struct
+...
+143 |     resource_templates: Arc<RwLock<Vec<McpResourceTemplate>>>,
+    |     ^^^^^^^^^^^^^^^^^^
+
+warning: field `circuit_breaker` is never read
+  --> src/mcp_tools/mcp_system.rs:38:5
+   |
+21 | pub struct McpToolSystem {
+   |            ------------- field in this struct
+...
+38 |     circuit_breaker: Arc<CircuitBreaker>,
+   |     ^^^^^^^^^^^^^^^
+
+warning: associated items `should_sandbox` and `should_sandbox_tool` are never used
+   --> src/mcp_tools/mcp_system.rs:157:8
+    |
+ 47 | impl McpToolSystem {
+    | ------------------ associated items in this implementation
+...
+157 |     fn should_sandbox(&self, tool_name: &str) -> bool {
+    |        ^^^^^^^^^^^^^^
+...
+161 |     fn should_sandbox_tool(tool_name: &str) -> bool {
+    |        ^^^^^^^^^^^^^^^^^^^
+
+warning: field `denied_operations` is never read
+  --> src/mcp_tools/permissions.rs:75:5
+   |
+71 | pub struct PermissionManager {
+   |            ----------------- field in this struct
+...
+75 |     denied_operations: HashSet<String>,
+   |     ^^^^^^^^^^^^^^^^^
+
+warning: field `windows` is never read
+  --> src/mcp_tools/rate_limiter.rs:20:5
+   |
+15 | pub struct GovernorRateLimiter {
+   |            ------------------- field in this struct
+...
+20 |     windows: DashMap<(String, String), Arc<RwLock<SlidingWindow>>>,
+   |     ^^^^^^^
+
+warning: fields `burst_multiplier` and `decay_rate` are never read
+  --> src/mcp_tools/rate_limiter.rs:81:5
+   |
+79 | struct AdaptiveConfig {
+   |        -------------- fields in this struct
+80 |     enabled: bool,
+81 |     burst_multiplier: f64,
+   |     ^^^^^^^^^^^^^^^^
+82 |     decay_rate: f64,
+   |     ^^^^^^^^^^
+   |
+   = note: `AdaptiveConfig` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: fields `cpu_limit`, `memory_limit`, and `file_limit` are never read
+ --> src/mcp_tools/resource_limits.rs:6:5
+  |
+5 | pub struct ResourceLimiter {
+  |            --------------- fields in this struct
+6 |     cpu_limit: Option<Duration>,
+  |     ^^^^^^^^^
+7 |     memory_limit: Option<usize>,
+  |     ^^^^^^^^^^^^
+8 |     file_limit: Option<usize>,
+  |     ^^^^^^^^^^
+
+warning: fields `max_retries` and `base_delay` are never read
+ --> src/mcp_tools/retry.rs:5:5
+  |
+4 | pub struct RetryHandler {
+  |            ------------ fields in this struct
+5 |     max_retries: u32,
+  |     ^^^^^^^^^^^
+6 |     base_delay: Duration,
+  |     ^^^^^^^^^^
+
+warning: fields `chroot_path`, `uid`, `gid`, `enable_namespaces`, `enable_seccomp`, and `resource_limits` are never read
+  --> src/mcp_tools/sandbox.rs:27:5
+   |
+26 | pub struct ProcessSandbox {
+   |            -------------- fields in this struct
+27 |     chroot_path: PathBuf,
+   |     ^^^^^^^^^^^
+28 |     uid: Option<Uid>,
+   |     ^^^
+29 |     gid: Option<Gid>,
+   |     ^^^
+30 |     enable_namespaces: bool,
+   |     ^^^^^^^^^^^^^^^^^
+31 |     enable_seccomp: bool,
+   |     ^^^^^^^^^^^^^^
+32 |     resource_limits: ResourceLimits,
+   |     ^^^^^^^^^^^^^^^
+
+warning: field `namespaces` is never read
+  --> src/mcp_tools/sandbox.rs:51:5
+   |
+50 | pub struct NamespaceManager {
+   |            ---------------- field in this struct
+51 |     namespaces: HashMap<String, u32>,
+   |     ^^^^^^^^^^
+
+warning: fields `chroot_path`, `uid`, `gid`, `enable_seccomp`, and `resource_limits` are never read
+  --> src/mcp_tools/sandbox_real.rs:9:5
+   |
+ 8 | pub struct ProcessSandbox {
+   |            -------------- fields in this struct
+ 9 |     chroot_path: PathBuf,
+   |     ^^^^^^^^^^^
+10 |     uid: Option<Uid>,
+   |     ^^^
+11 |     gid: Option<Gid>,
+   |     ^^^
+12 |     enable_namespaces: bool,
+13 |     enable_seccomp: bool,
+   |     ^^^^^^^^^^^^^^
+14 |     resource_limits: ResourceLimits,
+   |     ^^^^^^^^^^^^^^^
+
+warning: associated functions `setup_chroot` and `enable_seccomp_filter` are never used
+   --> src/mcp_tools/sandbox_real.rs:92:8
+    |
+ 26 | impl ProcessSandbox {
+    | ------------------- associated functions in this implementation
+...
+ 92 |     fn setup_chroot(chroot_path: &Path) -> std::io::Result<()> {
+    |        ^^^^^^^^^^^^
+...
+115 |     fn enable_seccomp_filter() -> std::io::Result<()> {
+    |        ^^^^^^^^^^^^^^^^^^^^^
+
+warning: fields `enable_isolation` and `drop_privileges` are never read
+  --> src/mcp_tools/sandboxing.rs:27:5
+   |
+25 | pub struct ProcessSandbox {
+   |            -------------- fields in this struct
+26 |     temp_dir: PathBuf,
+27 |     enable_isolation: bool,
+   |     ^^^^^^^^^^^^^^^^
+28 |     drop_privileges: bool,
+   |     ^^^^^^^^^^^^^^^
+
+warning: method `apply_sandbox_limits` is never used
+  --> src/mcp_tools/sandboxing.rs:80:8
+   |
+31 | impl ProcessSandbox {
+   | ------------------- method in this implementation
+...
+80 |     fn apply_sandbox_limits(&self, cmd: &mut Command, config: &SandboxConfig) -> Result<()> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: field `cgroup_path` is never read
+  --> src/mcp_tools/system.rs:66:5
+   |
+65 | pub struct CGroupManager {
+   |            ------------- field in this struct
+66 |     cgroup_path: PathBuf,
+   |     ^^^^^^^^^^^
+
+warning: field `namespaces` is never read
+  --> src/mcp_tools/system.rs:78:5
+   |
+77 | pub struct NamespaceManager {
+   |            ---------------- field in this struct
+78 |     namespaces: HashMap<String, u32>,
+   |     ^^^^^^^^^^
+
+warning: struct `ConsoleMetricsWriter` is never constructed
+   --> src/mcp_tools/telemetry.rs:273:8
+    |
+273 | struct ConsoleMetricsWriter {
+    |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: associated function `new` is never used
+   --> src/mcp_tools/telemetry.rs:278:8
+    |
+277 | impl ConsoleMetricsWriter {
+    | ------------------------- associated function in this implementation
+278 |     fn new() -> Self {
+    |        ^^^
+
+warning: field `registered_at` is never read
+   --> src/mcp_tools/tool_registry.rs:125:5
+    |
+121 | struct ToolMetadata {
+    |        ------------ field in this struct
+...
+125 |     registered_at: Instant,
+    |     ^^^^^^^^^^^^^
+    |
+    = note: `ToolMetadata` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: method `resolve_path_v2` is never used
+   --> src/mcp_tools/tools/filesystem.rs:261:8
+    |
+120 | impl FileSystemTool {
+    | ------------------- method in this implementation
+...
+261 |     fn resolve_path_v2(&self, path_value: &Value, workspace: &Path) -> Result<PathBuf> {
+    |        ^^^^^^^^^^^^^^^
+
+warning: function `is_interactive_ask` is never used
+  --> src/message_routing_dispatch.rs:26:4
+   |
+26 | fn is_interactive_ask(ask_type: &ClineAsk) -> bool {
+   |    ^^^^^^^^^^^^^^^^^^
+
+warning: function `is_resumable_ask` is never used
+  --> src/message_routing_dispatch.rs:30:4
+   |
+30 | fn is_resumable_ask(ask_type: &ClineAsk) -> bool {
+   |    ^^^^^^^^^^^^^^^^
+
+warning: function `is_idle_ask` is never used
+  --> src/message_routing_dispatch.rs:33:4
+   |
+33 | fn is_idle_ask(ask_type: &ClineAsk) -> bool {
+   |    ^^^^^^^^^^^
+
+warning: fields `api_key`, `base_url`, and `model` are never read
+ --> src/openai_provider_handler.rs:7:5
+  |
+6 | pub struct OpenAIProviderHandler {
+  |            --------------------- fields in this struct
+7 |     api_key: String,
+  |     ^^^^^^^
+8 |     base_url: String,
+  |     ^^^^^^^^
+9 |     model: String,
+  |     ^^^^^
+
+warning: fields `failure_threshold` and `success_threshold` are never read
+  --> src/production_hardening.rs:41:5
+   |
+39 | pub struct CircuitBreaker {
+   |            -------------- fields in this struct
+40 |     state: Arc<RwLock<CircuitState>>,
+41 |     failure_threshold: u32,
+   |     ^^^^^^^^^^^^^^^^^
+42 |     success_threshold: u32,
+   |     ^^^^^^^^^^^^^^^^^
+
+warning: variant `HalfOpen` is never constructed
+  --> src/production_hardening.rs:51:5
+   |
+48 | enum CircuitState {
+   |      ------------ variant in this enum
+...
+51 |     HalfOpen,
+   |     ^^^^^^^^
+   |
+   = note: `CircuitState` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `allowed_patterns` is never read
+   --> src/production_hardening.rs:332:5
+    |
+330 | pub struct InputValidator {
+    |            -------------- field in this struct
+331 |     max_size: usize,
+332 |     allowed_patterns: Vec<regex::Regex>,
+    |     ^^^^^^^^^^^^^^^^
+
+warning: fields `connection` and `table` are never read
+ --> src/services/code_index_manager_simple.rs:6:5
+  |
+5 | pub struct CodeIndexManager {
+  |            ---------------- fields in this struct
+6 |     connection: Connection,
+  |     ^^^^^^^^^^
+7 |     table: Option<Table>,
+  |     ^^^^^
+
+warning: fields `ptr`, `size`, `capacity`, `write_pos`, and `read_pos` are never read
+   --> src/shared_memory_complete.rs:167:5
+    |
+166 | pub struct SharedMemoryBuffer {
+    |            ------------------ fields in this struct
+167 |     ptr: *mut u8,
+    |     ^^^
+168 |     size: usize,
+    |     ^^^^
+169 |     capacity: usize,
+    |     ^^^^^^^^
+170 |     write_pos: Arc<AtomicUsize>,
+    |     ^^^^^^^^^
+171 |     read_pos: Arc<AtomicUsize>,
+    |     ^^^^^^^^
+
+warning: methods `write_request`, `read_request`, `set_ready`, and `is_ready` are never used
+   --> src/shared_memory_complete.rs:275:8
+    |
+187 | impl SharedMemoryBuffer {
+    | ----------------------- methods in this implementation
+...
+275 |     fn write_request(&self, conn_id: &str) -> Result<()> {
+    |        ^^^^^^^^^^^^^
+...
+292 |     fn read_request(&self) -> Option<String> {
+    |        ^^^^^^^^^^^^
+...
+314 |     fn set_ready(&self) {
+    |        ^^^^^^^^^
+...
+321 |     fn is_ready(&self) -> bool {
+    |        ^^^^^^^^
+
+warning: fields `path`, `coordination`, `accept_tx`, and `poll_thread` are never read
+   --> src/shared_memory_complete.rs:338:5
+    |
+337 | pub struct SharedMemoryListener {
+    |            -------------------- fields in this struct
+338 |     path: String,
+    |     ^^^^
+339 |     coordination: Arc<RwLock<CoordinationBuffer>>,
+    |     ^^^^^^^^^^^^
+340 |     accept_rx: Arc<tokio::sync::Mutex<mpsc::UnboundedReceiver<SharedMemoryStream>>>,
+341 |     accept_tx: mpsc::UnboundedSender<SharedMemoryStream>,
+    |     ^^^^^^^^^
+342 |     poll_thread: Option<std::thread::JoinHandle<()>>,
+    |     ^^^^^^^^^^^
+
+warning: field `conn_id` is never read
+   --> src/shared_memory_complete.rs:418:5
+    |
+415 | pub struct SharedMemoryStream {
+    |            ------------------ field in this struct
+...
+418 |     conn_id: String,
+    |     ^^^^^^^
+    |
+    = note: `SharedMemoryStream` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: associated function `new` is never used
+   --> src/shared_memory_complete.rs:426:8
+    |
+424 | impl SharedMemoryStream {
+    | ----------------------- associated function in this implementation
+425 |     /// Create new stream (not used directly anymore)
+426 |     fn new(conn_id: &str) -> Result<Self> {
+    |        ^^^
+
+warning: constant `MAP_ANONYMOUS` is never used
+   --> src/shared_memory_complete.rs:532:15
+    |
+532 |     pub const MAP_ANONYMOUS: usize = 0x20;
+    |               ^^^^^^^^^^^^^
+
+warning: function `shm_unlink` is never used
+   --> src/shared_memory_complete.rs:539:16
+    |
+539 |         pub fn shm_unlink(name: *const i8) -> i32;
+    |                ^^^^^^^^^^
+
+warning: variants `ParsingField`, `ParsingValue`, and `MessageComplete` are never constructed
+  --> src/streaming_pipeline/sse_parser.rs:12:5
+   |
+10 | enum ParseState {
+   |      ---------- variants in this enum
+11 |     WaitingForField,
+12 |     ParsingField,
+   |     ^^^^^^^^^^^^
+13 |     ParsingValue,
+   |     ^^^^^^^^^^^^
+14 |     MessageComplete,
+   |     ^^^^^^^^^^^^^^^
+   |
+   = note: `ParseState` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `buffer` is never read
+  --> src/streaming_pipeline/http_handler.rs:22:5
+   |
+17 | pub struct HttpStreamHandler {
+   |            ----------------- field in this struct
+...
+22 |     buffer: BytesMut,
+   |     ^^^^^^
+
+warning: fields `messages_processed`, `messages_dropped`, `last_adjustment`, and `capacity` are never read
+  --> src/streaming_pipeline/stream_backpressure.rs:21:5
+   |
+13 | pub struct StreamBackpressureController {
+   |            ---------------------------- fields in this struct
+...
+21 |     messages_processed: Arc<AtomicU64>,
+   |     ^^^^^^^^^^^^^^^^^^
+22 |     messages_dropped: Arc<AtomicU64>,
+   |     ^^^^^^^^^^^^^^^^
+...
+25 |     last_adjustment: Arc<RwLock<Instant>>,
+   |     ^^^^^^^^^^^^^^^
+26 |     capacity: Arc<AtomicUsize>,
+   |     ^^^^^^^^
+   |
+   = note: `StreamBackpressureController` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: field `max_chunk_size` is never read
+   --> src/streaming_pipeline/transformer.rs:116:5
+    |
+108 | pub struct TokenAccumulator {
+    |            ---------------- field in this struct
+...
+116 |     max_chunk_size: usize,
+    |     ^^^^^^^^^^^^^^
+
+warning: methods `handle_stream_response` and `process_usage_metrics` are never used
+   --> src/streaming_pipeline/streaming_response.rs:136:14
+    |
+ 45 | impl OpenAiHandler {
+    | ------------------ methods in this implementation
+...
+136 |     async fn handle_stream_response(
+    |              ^^^^^^^^^^^^^^^^^^^^^^
+...
+185 |     fn process_usage_metrics(&self, usage: ApiStreamUsageChunk, _model_info: &ModelInfo) -> ApiStreamChunk {
+    |        ^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `pending_tags` is never read
+ --> src/streaming_pipeline/xml_matcher.rs:6:5
+  |
+4 | pub struct XmlMatcher {
+  |            ---------- field in this struct
+5 |     buffer: String,
+6 |     pending_tags: VecDeque<String>,
+  |     ^^^^^^^^^^^^
+
+warning: methods `initialize_task_mode`, `get_saved_api_conversation_history`, `add_to_api_conversation_history`, and `get_saved_cline_messages` are never used
+   --> src/task_connection_handling.rs:16:14
+    |
+ 14 | impl Task {
+    | --------- methods in this implementation
+ 15 |     /// initializeTaskMode - exact translation from TypeScript
+ 16 |     async fn initialize_task_mode(&self, provider: Arc<ClineProvider>) {
+    |              ^^^^^^^^^^^^^^^^^^^^
+...
+ 88 |     async fn get_saved_api_conversation_history(&self) -> Vec<ApiMessage> {
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+ 93 |     async fn add_to_api_conversation_history(&self, message: serde_json::Value) {
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+127 |     async fn get_saved_cline_messages(&self) -> Vec<ClineMessage> {
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `read_api_messages` is never used
+   --> src/task_connection_handling.rs:296:10
+    |
+296 | async fn read_api_messages(task_id: &str, storage_path: &PathBuf) -> Vec<ApiMessage> {
+    |          ^^^^^^^^^^^^^^^^^
+
+warning: function `read_task_messages` is never used
+   --> src/task_connection_handling.rs:306:10
+    |
+306 | async fn read_task_messages(task_id: &str, storage_path: &PathBuf) -> Vec<ClineMessage> {
+    |          ^^^^^^^^^^^^^^^^^^
+
+warning: constant `MAX_EXPONENTIAL_BACKOFF_SECONDS` is never used
+  --> src/task_exact_translation.rs:70:7
+   |
+70 | const MAX_EXPONENTIAL_BACKOFF_SECONDS: u32 = 600; // 10 minutes
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `DEFAULT_USAGE_COLLECTION_TIMEOUT_MS` is never used
+  --> src/task_exact_translation.rs:73:7
+   |
+73 | const DEFAULT_USAGE_COLLECTION_TIMEOUT_MS: u32 = 5000; // 5 seconds
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `FORCED_CONTEXT_REDUCTION_PERCENT` is never used
+  --> src/task_exact_translation.rs:76:7
+   |
+76 | const FORCED_CONTEXT_REDUCTION_PERCENT: u32 = 75; // Keep 75% of context
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MAX_CONTEXT_WINDOW_RETRIES` is never used
+  --> src/task_exact_translation.rs:79:7
+   |
+79 | const MAX_CONTEXT_WINDOW_RETRIES: u32 = 3;
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `cwd` is never read
+   --> src/task_exact_translation.rs:377:5
+    |
+376 | pub struct RooIgnoreController {
+    |            ------------------- field in this struct
+377 |     cwd: PathBuf,
+    |     ^^^
+    |
+    = note: `RooIgnoreController` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: multiple fields are never read
+   --> src/task_exact_translation.rs:381:5
+    |
+380 | pub struct RooProtectedController {
+    |            ---------------------- fields in this struct
+381 |     cwd: PathBuf,
+    |     ^^^
+382 |     context: Option<ExtensionContext>,
+    |     ^^^^^^^
+383 |     task_id: String,
+    |     ^^^^^^^
+384 |     task_is_favorited: Option<bool>,
+    |     ^^^^^^^^^^^^^^^^^
+385 |     instance_id: String,
+    |     ^^^^^^^^^^^
+386 |     metadata: Option<serde_json::Value>,
+    |     ^^^^^^^^
+387 |     task_name: Option<String>,
+    |     ^^^^^^^^^
+388 |     task_image_url: Option<String>,
+    |     ^^^^^^^^^^^^^^
+    |
+    = note: `RooProtectedController` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: fields `max_workers` and `max_queue_size` are never read
+  --> src/token_counting.rs:69:5
+   |
+68 | pub struct WorkerPool {
+   |            ---------- fields in this struct
+69 |     max_workers: usize,
+   |     ^^^^^^^^^^^
+70 |     max_queue_size: usize,
+   |     ^^^^^^^^^^^^^^
+
+warning: struct `BufferHeader` is never constructed
+  --> src/windows_shared_memory.rs:22:8
+   |
+22 | struct BufferHeader {
+   |        ^^^^^^^^^^^^
+
+warning: fields `pools` and `config` are never read
+   --> src/connection_pool_manager.rs:100:5
+    |
+ 99 | pub struct WebSocketPoolManager {
+    |            -------------------- fields in this struct
+100 |     pools: Arc<RwLock<Vec<Pool<WebSocketPool>>>>,
+    |     ^^^^^
+101 |     config: Arc<PoolConfig>,
+    |     ^^^^^^
+
+warning: field `connections` is never read
+  --> src/http2_multiplexer.rs:49:5
+   |
+48 | pub struct Http2Multiplexer {
+   |            ---------------- field in this struct
+49 |     connections: Arc<RwLock<HashMap<String, Arc<MultiplexedConnection>>>>,
+   |     ^^^^^^^^^^^
+
+warning: fields `idle_connections` and `failed_connections` are never read
+  --> src/adaptive_scaler.rs:25:5
+   |
+22 | struct DetailedStats {
+   |        ------------- fields in this struct
+...
+25 |     idle_connections: u32,
+   |     ^^^^^^^^^^^^^^^^
+26 |     failed_connections: u64,
+   |     ^^^^^^^^^^^^^^^^^^
+   |
+   = note: `DetailedStats` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: unused implementer of `futures::Future` that must be used
+   --> src/cache/final_cache.rs:178:17
+    |
+178 |                 self.put_l1(key.clone(), value.clone());
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: futures do nothing unless you `.await` or poll them
+    = note: `#[warn(unused_must_use)]` on by default
+
+warning: unused implementer of `futures::Future` that must be used
+   --> src/cache/final_cache.rs:221:17
+    |
+221 |                 self.put_l1(key.clone(), value.clone());
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: futures do nothing unless you `.await` or poll them
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> src/error_handling/recovery_system.rs:235:32
+    |
+235 |     pub fn get_circuit_breaker(&self, component: &str) -> Option<dashmap::mapref::one::Ref<String, CircuitBreaker>> {
+    |                                ^^^^^ the lifetime is elided here ------------------------------------------------- the same lifetime is hidden here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+    = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+    |
+235 |     pub fn get_circuit_breaker(&self, component: &str) -> Option<dashmap::mapref::one::Ref<'_, String, CircuitBreaker>> {
+    |                                                                                            +++
+
+warning: creating a mutable reference to mutable static
+   --> src/error_handling_patterns.rs:361:13
+    |
+361 |             EMPTY_MAP.get_or_insert_with(HashMap::new)
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ mutable reference to mutable static
+    |
+    = note: for more information, see <https://doc.rust-lang.org/edition-guide/rust-2024/static-mut-references.html>
+    = note: mutable references to mutable statics are dangerous; it's undefined behavior if any other pointer to the static is used or if any other reference is created for the static while the mutable reference lives
+    = note: `#[warn(static_mut_refs)]` on by default
+
+warning: associated constant `PaymentRequired` should have an upper case name
+   --> src/error_handling_patterns.rs:373:15
+    |
+373 |     pub const PaymentRequired: ClineAsk = ClineAsk::RequestCostLimit;
+    |               ^^^^^^^^^^^^^^^ help: convert the identifier to upper case: `PAYMENT_REQUIRED`
+    |
+    = note: `#[warn(non_upper_case_globals)]` on by default
+
+warning: associated constant `ApiRequestFailed` should have an upper case name
+   --> src/error_handling_patterns.rs:374:15
+    |
+374 |     pub const ApiRequestFailed: ClineAsk = ClineAsk::ApiCostLimit;
+    |               ^^^^^^^^^^^^^^^^ help: convert the identifier to upper case: `API_REQUEST_FAILED`
+
+warning: unused implementer of `futures::Future` that must be used
+   --> src/mcp_tools/core.rs:220:21
+    |
+220 |                     self.metrics.record_cache_hit(tool_name);
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: futures do nothing unless you `.await` or poll them
+
+warning: method `Text` should have a snake case name
+  --> src/streaming_pipeline/stream_transform.rs:91:12
+   |
+91 |     pub fn Text(content: String) -> Self {
+   |            ^^^^ help: convert the identifier to snake case: `text`
+   |
+   = note: `#[warn(non_snake_case)]` on by default
+
+warning: method `Error` should have a snake case name
+  --> src/streaming_pipeline/stream_transform.rs:99:12
+   |
+99 |     pub fn Error(message: String) -> Self {
+   |            ^^^^^ help: convert the identifier to snake case: `error`
+
+warning: using `.clone()` on a double reference, which returns `&Arc<WebSocketManager>` instead of cloning the inner type
+   --> src/websocket_pool_manager.rs:240:26
+    |
+240 |                 let c = c.clone();
+    |                          ^^^^^^^^
+    |
+    = note: `#[warn(suspicious_double_ref_op)]` on by default
+
+warning: unused implementer of `futures::Future` that must be used
+   --> src/adaptive_scaler.rs:142:13
+    |
+142 |             self.pool.update_config(new_config);
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: futures do nothing unless you `.await` or poll them
+
+warning: unused implementer of `futures::Future` that must be used
+   --> src/adaptive_scaler.rs:164:13
+    |
+164 |             self.pool.update_config(new_config);
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: futures do nothing unless you `.await` or poll them
+
+warning: `lapce-ai-rust` (lib) generated 338 warnings (run `cargo fix --lib -p lapce-ai-rust` to apply 28 suggestions)
+warning: unused variable: `buffer`
+  --> src/bin/test_optimized_core.rs:34:9
+   |
+34 |     let buffer = SharedMemoryBuffer::create("test_opt", 1024 * 1024)?;
+   |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_buffer`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: unused import: `std::sync::Arc`
+ --> src/bin/test_connection_simple.rs:2:5
+  |
+2 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `connect::HttpConnector`
+ --> src/bin/test_connection_simple.rs:6:42
+  |
+6 | use hyper_util::client::legacy::{Client, connect::HttpConnector};
+  |                                          ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `HttpsConnector`
+ --> src/bin/test_connection_simple.rs:8:20
+  |
+8 | use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
+  |                    ^^^^^^^^^^^^^^
+
+warning: unnecessary parentheses around function argument
+   --> src/bin/test_stress_comprehensive.rs:176:25
+    |
+176 |         let data = vec![((i % 256) as u8); data_size];
+    |                         ^               ^
+    |
+    = note: `#[warn(unused_parens)]` on by default
+help: remove these parentheses
+    |
+176 -         let data = vec![((i % 256) as u8); data_size];
+176 +         let data = vec![(i % 256) as u8; data_size];
+    |
+
+warning: `lapce-ai-rust` (bin "test_optimized_core") generated 1 warning
+warning: `lapce-ai-rust` (bin "test_connection_simple") generated 3 warnings (run `cargo fix --bin "test_connection_simple"` to apply 3 suggestions)
+warning: `lapce-ai-rust` (bin "test_stress_comprehensive") generated 1 warning (run `cargo fix --bin "test_stress_comprehensive"` to apply 1 suggestion)
+warning: unused import: `lapce_ai_rust::global_settings_exact_translation::RooCodeSettings`
+ --> src/bin/test_ipc_translation.rs:3:5
+  |
+3 | use lapce_ai_rust::global_settings_exact_translation::RooCodeSettings;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+   Compiling lapce-ai-rust v1.0.0 (/home/verma/lapce/lapce-ai)
+warning: unused import: `futures::stream::StreamExt`
+ --> src/bin/test_gemini_1000.rs:4:5
+  |
+4 | use futures::stream::StreamExt;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `StreamToken`
+  --> src/bin/test_gemini_1000.rs:12:56
+   |
+12 |     core_trait::{AiProvider, ChatRequest, ChatMessage, StreamToken},
+   |                                                        ^^^^^^^^^^^
+
+warning: unused variable: `baseline`
+   --> src/bin/test_memory_profile.rs:497:9
+    |
+497 |     let baseline = memory_metrics.baseline_kb.load(Ordering::Relaxed);
+    |         ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_baseline`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: field `total_allocated_kb` is never read
+  --> src/bin/test_memory_profile.rs:27:5
+   |
+22 | struct MemoryMetrics {
+   |        ------------- field in this struct
+...
+27 |     total_allocated_kb: AtomicU64,
+   |     ^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: `lapce-ai-rust` (bin "test_ipc_translation") generated 1 warning (run `cargo fix --bin "test_ipc_translation"` to apply 1 suggestion)
+warning: `lapce-ai-rust` (bin "test_gemini_1000") generated 2 warnings (run `cargo fix --bin "test_gemini_1000"` to apply 2 suggestions)
+warning: `lapce-ai-rust` (bin "test_memory_profile") generated 2 warnings
+error[E0308]: arguments to this function are incorrect
+   --> src/bin/memory_fixed_standalone.rs:30:23
+    |
+ 30 |             let ptr = libc::mmap(
+    |                       ^^^^^^^^^^
+...
+ 33 |                 libc::PROT_READ | libc::PROT_WRITE,
+    |                 ---------------------------------- expected `i32`, found `usize`
+ 34 |                 libc::MAP_SHARED | libc::MAP_ANONYMOUS,
+    |                 -------------------------------------- expected `i32`, found `usize`
+    |
+note: function defined here
+   --> src/bin/memory_fixed_standalone.rs:241:16
+    |
+241 |         pub fn mmap(addr: *mut core::ffi::c_void, len: usize, prot: i32, flags: i32, fd: i32, offset: i64) -> *mut core::ffi::c_void;
+    |                ^^^^                                           ----       -----
+help: you can convert a `usize` to an `i32` and panic if the converted value doesn't fit
+    |
+ 33 |                 (libc::PROT_READ | libc::PROT_WRITE).try_into().unwrap(),
+    |                 +                                  +++++++++++++++++++++
+help: you can convert a `usize` to an `i32` and panic if the converted value doesn't fit
+    |
+ 34 |                 (libc::MAP_SHARED | libc::MAP_ANONYMOUS).try_into().unwrap(),
+    |                 +                                      +++++++++++++++++++++
+
+error[E0308]: mismatched types
+   --> src/bin/optimized_ipc_test.rs:53:17
+    |
+ 50 |             let ptr = libc::mmap(
+    |                       ---------- arguments to this function are incorrect
+...
+ 53 |                 libc::PROT_READ | libc::PROT_WRITE,
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `i32`, found `usize`
+    |
+note: function defined here
+   --> src/bin/optimized_ipc_test.rs:332:16
+    |
+332 |         pub fn mmap(addr: *mut core::ffi::c_void, len: usize, prot: i32, flags: i32, fd: i32, offset: i64) -> *mut core::ffi::c_void;
+    |                ^^^^                                           ----
+help: you can convert a `usize` to an `i32` and panic if the converted value doesn't fit
+    |
+ 53 |                 (libc::PROT_READ | libc::PROT_WRITE).try_into().unwrap(),
+    |                 +                                  +++++++++++++++++++++
+
+error[E0560]: struct `lapce_ai_rust::ai_providers::provider_manager::ProviderConfig` has no field named `enabled`
+   --> src/bin/test_requirements_validation.rs:244:9
+    |
+244 |         enabled: true,
+    |         ^^^^^^^ `lapce_ai_rust::ai_providers::provider_manager::ProviderConfig` does not have this field
+    |
+    = note: available fields are: `name`, `max_retries`, `timeout`, `rate_limit_override`
+
+For more information about this error, try `rustc --explain E0308`.
+error: could not compile `lapce-ai-rust` (bin "memory_fixed_standalone") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+warning: variable does not need to be mutable
+   --> src/bin/optimized_ipc_test.rs:287:9
+    |
+287 |     let mut total = 4;
+    |         ----^^^^^
+    |         |
+    |         help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+warning: `lapce-ai-rust` (bin "optimized_ipc_test" test) generated 1 warning
+error: could not compile `lapce-ai-rust` (bin "optimized_ipc_test" test) due to 1 previous error; 1 warning emitted
+error[E0308]: mismatched types
+   --> src/bin/test_requirements_validation.rs:245:18
+    |
+245 |         api_key: Some("test_key".to_string()),
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `String`, found `Option<String>`
+    |
+    = note: expected struct `String`
+                 found enum `Option<String>`
+
+error[E0560]: struct `lapce_ai_rust::ai_providers::provider_manager::ProviderConfig` has no field named `model`
+   --> src/bin/test_requirements_validation.rs:247:9
+    |
+247 |         model: None,
+    |         ^^^^^ `lapce_ai_rust::ai_providers::provider_manager::ProviderConfig` does not have this field
+    |
+    = note: available fields are: `name`, `max_retries`, `timeout`, `rate_limit_override`
+
+error[E0560]: struct `lapce_ai_rust::ai_providers::provider_manager::ProviderConfig` has no field named `organization`
+   --> src/bin/test_requirements_validation.rs:248:9
+    |
+248 |         organization: None,
+    |         ^^^^^^^^^^^^ `lapce_ai_rust::ai_providers::provider_manager::ProviderConfig` does not have this field
+    |
+    = note: available fields are: `name`, `max_retries`, `timeout`, `rate_limit_override`
+
+warning: unused import: `AtomicBool`
+ --> src/bin/ultimate_performance_test.rs:5:36
+  |
+5 | use std::sync::atomic::{AtomicU64, AtomicBool, Ordering};
+  |                                    ^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `std::collections::VecDeque`
+ --> src/bin/ultimate_performance_test.rs:7:5
+  |
+7 | use std::collections::VecDeque;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `tokio::sync::Mutex`
+ --> src/bin/ultimate_performance_test.rs:8:5
+  |
+8 | use tokio::sync::Mutex;
+  |     ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `SharedMemoryStream`
+  --> src/bin/ultimate_performance_test.rs:11:65
+   |
+11 | use lapce_ai_rust::shared_memory_complete::{SharedMemoryBuffer, SharedMemoryStream};
+   |                                                                 ^^^^^^^^^^^^^^^^^^
+
+error[E0432]: unresolved import `rocksdb`
+ --> examples/comprehensive_architecture_test.rs:6:5
+  |
+6 | use rocksdb::{DB, Options};
+  |     ^^^^^^^ use of unresolved module or unlinked crate `rocksdb`
+  |
+  = help: if you wanted to use a crate named `rocksdb`, use `cargo add rocksdb` to add it to your `Cargo.toml`
+
+error[E0432]: unresolved import `bloomfilter`
+ --> examples/comprehensive_architecture_test.rs:7:5
+  |
+7 | use bloomfilter::Bloom;
+  |     ^^^^^^^^^^^ use of unresolved module or unlinked crate `bloomfilter`
+  |
+  = help: if you wanted to use a crate named `bloomfilter`, use `cargo add bloomfilter` to add it to your `Cargo.toml`
+
+warning: unused import: `AtomicBool`
+ --> src/bin/test_ipc_production.rs:5:36
+  |
+5 | use std::sync::atomic::{AtomicU64, AtomicBool, Ordering};
+  |                                    ^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+error[E0599]: no variant or associated item named `FixedInterval` found for enum `ReconnectionStrategy` in the current scope
+  --> src/bin/lapce_ipc_server.rs:63:35
+   |
+63 |             ReconnectionStrategy::FixedInterval(std::time::Duration::from_secs(5))
+   |                                   ^^^^^^^^^^^^^ variant or associated item not found in `ReconnectionStrategy`
+
+error[E0432]: unresolved import `lapce_ai_rust::ai_providers::gemini`
+ --> examples/test_gemini_production.rs:4:34
+  |
+4 | use lapce_ai_rust::ai_providers::gemini::{GeminiProvider, GeminiConfig};
+  |                                  ^^^^^^ could not find `gemini` in `ai_providers`
+
+error[E0432]: unresolved import `lapce_ai_rust::ai_providers::Message`
+ --> examples/test_gemini_production.rs:5:66
+  |
+5 | use lapce_ai_rust::ai_providers::{AiProvider, CompletionRequest, Message};
+  |                                                                  ^^^^^^^ no `Message` in `ai_providers`
+  |
+  = help: consider importing one of these items instead:
+          aws_sdk_bedrockruntime::types::ConverseOutput::Message
+          aws_sdk_bedrockruntime::types::Message
+          axum::extract::path::ErrorKind::Message
+          hickory_resolver::error::ResolveErrorKind::Message
+          lapce_ai_rust::ai_providers::traits::Message
+          lapce_ai_rust::events_exact_translation::RooCodeEventName::Message
+          lapce_ai_rust::events_exact_translation::TaskEvent::Message
+          lapce_ai_rust::lapce_plugin_protocol::Message
+          lapce_ai_rust::openai_provider_handler::Message
+          lapce_ai_rust::r1_format::Message
+          lapce_ai_rust::simple_format::Message
+          lapce_ai_rust::streaming_pipeline::Message
+          lapce_ai_rust::types_events::RooCodeEventName::Message
+          lapce_ai_rust::types_events::TaskEvent::Message
+          lapce_ai_rust::types_ipc::Message
+          lsp_server::Message
+          prost::Message
+          rustls::internal::msgs::message::Message
+          tungstenite::Message
+          warp::ws::Message
+
+error[E0432]: unresolved imports `lapce_ai_rust::events_exact_translation::TaskStartedPayload`, `lapce_ai_rust::events_exact_translation::OutputFormat`, `lapce_ai_rust::events_exact_translation::ActionType`, `lapce_ai_rust::serialization_deserialization`
+ --> src/bin/test_events_translation.rs:4:20
+  |
+4 |         TaskEvent, TaskStartedPayload, OutputFormat, ActionType, MessageAction, 
+  |                    ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^ no `ActionType` in `events_exact_translation`
+  |                    |                   |
+  |                    |                   no `OutputFormat` in `events_exact_translation`
+  |                    no `TaskStartedPayload` in `events_exact_translation`
+  |                    help: a similar name exists in the module: `TaskCompletedPayload`
+...
+7 |     serialization_deserialization::ClineMessage,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ could not find `serialization_deserialization` in `lapce_ai_rust`
+
+error[E0560]: struct `lapce_ai_rust::ai_providers::CompletionRequest` has no field named `messages`
+  --> examples/test_gemini_production.rs:52:9
+   |
+52 |         messages: vec![
+   |         ^^^^^^^^ `lapce_ai_rust::ai_providers::CompletionRequest` does not have this field
+   |
+   = note: available fields are: `prompt`, `top_p`, `stream`, `stop`, `presence_penalty` ... and 7 others
+
+error[E0560]: struct `lapce_ai_rust::ai_providers::CompletionRequest` has no field named `messages`
+   --> examples/test_gemini_production.rs:108:13
+    |
+108 |             messages: vec![
+    |             ^^^^^^^^ `lapce_ai_rust::ai_providers::CompletionRequest` does not have this field
+    |
+    = note: available fields are: `prompt`, `temperature`, `top_p`, `stream`, `stop` ... and 8 others
+
+error[E0560]: struct `lapce_ai_rust::ai_providers::CompletionRequest` has no field named `messages`
+   --> examples/test_gemini_production.rs:137:9
+    |
+137 |         messages: vec![
+    |         ^^^^^^^^ `lapce_ai_rust::ai_providers::CompletionRequest` does not have this field
+    |
+    = note: available fields are: `prompt`, `temperature`, `top_p`, `stop`, `presence_penalty` ... and 7 others
+
+error[E0560]: struct `lapce_ai_rust::ai_providers::CompletionRequest` has no field named `messages`
+   --> examples/test_gemini_production.rs:183:9
+    |
+183 |         messages: vec![
+    |         ^^^^^^^^ `lapce_ai_rust::ai_providers::CompletionRequest` does not have this field
+    |
+    = note: available fields are: `prompt`, `max_tokens`, `temperature`, `top_p`, `stream` ... and 9 others
+
+error[E0433]: failed to resolve: use of undeclared type `RooCodeEventName`
+  --> src/bin/test_events_translation.rs:15:17
+   |
+15 |     let event = RooCodeEventName::TaskCreated;
+   |                 ^^^^^^^^^^^^^^^^ use of undeclared type `RooCodeEventName`
+   |
+help: consider importing one of these items
+   |
+ 1 + use lapce_ai_rust::error_handling_patterns::RooCodeEventName;
+   |
+ 1 + use lapce_ai_rust::events_exact_translation::RooCodeEventName;
+   |
+ 1 + use lapce_ai_rust::types_events::RooCodeEventName;
+   |
+
+error[E0422]: cannot find struct, variant or union type `TokenUsage` in this scope
+  --> src/bin/test_events_translation.rs:66:13
+   |
+66 |             TokenUsage {
+   |             ^^^^^^^^^^ not found in this scope
+   |
+help: consider importing one of these structs
+   |
+ 1 + use aws_sdk_bedrockruntime::types::TokenUsage;
+   |
+ 1 + use lapce_ai_rust::error_handling_patterns::TokenUsage;
+   |
+ 1 + use lapce_ai_rust::metrics_collection::TokenUsage;
+   |
+ 1 + use lapce_ai_rust::types_events::TokenUsage;
+   |
+   = and 2 other candidates
+
+error[E0422]: cannot find struct, variant or union type `ToolUsage` in this scope
+  --> src/bin/test_events_translation.rs:72:13
+   |
+72 |             ToolUsage {
+   |             ^^^^^^^^^ not found in this scope
+   |
+help: consider importing one of these items
+   |
+ 1 + use lapce_ai_rust::events_exact_translation::ToolUsage;
+   |
+ 1 + use lapce_ai_rust::tools_translation::ToolUsage;
+   |
+ 1 + use lapce_ai_rust::types_tool::ToolUsage;
+   |
+
+error[E0422]: cannot find struct, variant or union type `TaskCompletedMetadata` in this scope
+  --> src/bin/test_events_translation.rs:75:13
+   |
+75 |             TaskCompletedMetadata {
+   |             ^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+   |
+help: consider importing this struct
+   |
+ 1 + use lapce_ai_rust::events_exact_translation::TaskCompletedMetadata;
+   |
+
+error[E0433]: failed to resolve: use of undeclared type `CacheSystem`
+  --> examples/comprehensive_architecture_test.rs:24:17
+   |
+24 |     let cache = CacheSystem::new(
+   |                 ^^^^^^^^^^^ use of undeclared type `CacheSystem`
+   |
+help: consider importing one of these structs
+   |
+ 1 + use lapce_ai_rust::cache::CacheSystem;
+   |
+ 1 + use lapce_ai_rust::cache::cache_system::CacheSystem;
+   |
+ 1 + use lapce_ai_rust::mcp_tools::cache_ttl::CacheSystem;
+   |
+
+error[E0412]: cannot find type `CacheSystem` in this scope
+   --> examples/comprehensive_architecture_test.rs:285:6
+    |
+285 | impl CacheSystem {
+    |      ^^^^^^^^^^^ not found in this scope
+    |
+help: consider importing one of these structs
+    |
+  1 + use lapce_ai_rust::cache::CacheSystem;
+    |
+  1 + use lapce_ai_rust::cache::cache_system::CacheSystem;
+    |
+  1 + use lapce_ai_rust::mcp_tools::cache_ttl::CacheSystem;
+    |
+
+Some errors have detailed explanations: E0308, E0560.
+For more information about an error, try `rustc --explain E0308`.
+error: could not compile `lapce-ai-rust` (bin "test_requirements_validation") due to 4 previous errors
+Some errors have detailed explanations: E0432, E0560.
+For more information about an error, try `rustc --explain E0432`.
+warning: unused import: `std::sync::Arc`
+ --> examples/comprehensive_architecture_test.rs:3:5
+  |
+3 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `moka::future::Cache as MokaCache`
+ --> examples/comprehensive_architecture_test.rs:4:5
+  |
+4 | use moka::future::Cache as MokaCache;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `sled`
+ --> examples/comprehensive_architecture_test.rs:5:5
+  |
+5 | use sled;
+  |     ^^^^
+
+warning: unused import: `parking_lot::RwLock`
+ --> examples/comprehensive_architecture_test.rs:8:5
+  |
+8 | use parking_lot::RwLock;
+  |     ^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `dashmap::DashMap`
+ --> examples/comprehensive_architecture_test.rs:9:5
+  |
+9 | use dashmap::DashMap;
+  |     ^^^^^^^^^^^^^^^^
+
+error[E0433]: failed to resolve: use of undeclared type `ConnectionPool`
+   --> src/bin/test_ipc_production.rs:165:25
+    |
+165 |     let pool = Arc::new(ConnectionPool::new(1000, Duration::from_secs(60)));
+    |                         ^^^^^^^^^^^^^^ use of undeclared type `ConnectionPool`
+
+error[E0432]: unresolved import `lapce_ai_rust::working_shared_memory`
+ --> examples/rust_vs_nodejs_benchmark.rs:1:20
+  |
+1 | use lapce_ai_rust::working_shared_memory::WorkingSharedMemory;
+  |                    ^^^^^^^^^^^^^^^^^^^^^ could not find `working_shared_memory` in `lapce_ai_rust`
+
+error: could not compile `lapce-ai-rust` (example "test_gemini_production") due to 6 previous errors
+error[E0432]: unresolved import `lapce_ai_rust::working_connection_pool`
+ --> examples/rust_vs_nodejs_benchmark.rs:3:20
+  |
+3 | use lapce_ai_rust::working_connection_pool::{WorkingConnectionPool, ConnectionConfig};
+  |                    ^^^^^^^^^^^^^^^^^^^^^^^ could not find `working_connection_pool` in `lapce_ai_rust`
+
+error[E0599]: no method named `unwrap` found for struct `SharedMemoryBuffer` in the current scope
+   --> src/bin/ultimate_performance_test.rs:172:89
+    |
+172 |     let mut throughput_buffer = SharedMemoryBuffer::open("perf_test", 4 * 1024 * 1024)?.unwrap();
+    |                                                                                         ^^^^^^ method not found in `SharedMemoryBuffer`
+
+Some errors have detailed explanations: E0422, E0432, E0433.
+For more information about an error, try `rustc --explain E0422`.
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `lapce-ai-rust` (bin "lapce_ipc_server") due to 1 previous error
+error: could not compile `lapce-ai-rust` (bin "test_events_translation") due to 5 previous errors
+For more information about this error, try `rustc --explain E0433`.
+warning: `lapce-ai-rust` (bin "test_ipc_production") generated 1 warning
+error: could not compile `lapce-ai-rust` (bin "test_ipc_production") due to 1 previous error; 1 warning emitted
+error[E0599]: no method named `clone` found for struct `SharedMemoryBuffer` in the current scope
+   --> src/bin/ultimate_performance_test.rs:244:17
+    |
+244 |     drop(buffer.clone());
+    |                 ^^^^^ method not found in `SharedMemoryBuffer`
+
+warning: unused variable: `name`
+  --> src/bin/ultimate_performance_test.rs:14:26
+   |
+14 | fn cleanup_shared_memory(name: &str) {
+   |                          ^^^^ help: if this is intentional, prefix it with an underscore: `_name`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+error: could not compile `lapce-ai-rust` (bin "test_requirements_validation" test) due to 4 previous errors
+warning: `lapce-ai-rust` (bin "ultimate_performance_test") generated 5 warnings
+error: could not compile `lapce-ai-rust` (bin "ultimate_performance_test") due to 2 previous errors; 5 warnings emitted
+Some errors have detailed explanations: E0412, E0432, E0433.
+For more information about an error, try `rustc --explain E0412`.
+warning: `lapce-ai-rust` (example "comprehensive_architecture_test") generated 5 warnings
+error: could not compile `lapce-ai-rust` (example "comprehensive_architecture_test") due to 4 previous errors; 5 warnings emitted
+For more information about this error, try `rustc --explain E0432`.
+error: could not compile `lapce-ai-rust` (example "rust_vs_nodejs_benchmark") due to 2 previous errors

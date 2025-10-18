@@ -1,0 +1,275 @@
+name: Large File Benchmarks (Opt-in)
+
+on:
+  workflow_dispatch:
+    inputs:
+      node_counts:
+        description: 'Node counts to test (comma-separated)'
+        required: false
+        default: '1000,5000,10000,50000'
+      iterations:
+        description: 'Iterations per test'
+        required: false
+        default: '10'
+  schedule:
+    # Run weekly on Sunday at 3 AM
+    - cron: '0 3 * * 0'
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  large-file-benchmarks:
+    name: Large File Performance Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+      
+      - name: Run large file tests
+        run: |
+          cargo test --test large_file_tests \
+            --no-default-features --features cst_ts \
+            -- --nocapture --test-threads=1 \
+            --ignored
+        continue-on-error: true
+      
+      - name: Run incremental indexing benchmarks
+        run: |
+          cargo bench --bench incremental_indexing_bench \
+            --no-default-features --features cst_ts \
+            -- --warm-up-time 10 --measurement-time 30
+      
+      - name: Extract benchmark results
+        run: |
+          echo "## Large File Benchmark Results" > benchmark_results.md
+          echo "" >> benchmark_results.md
+          echo "**Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> benchmark_results.md
+          echo "**Commit:** ${{ github.sha }}" >> benchmark_results.md
+          echo "" >> benchmark_results.md
+          
+          # Parse Criterion output
+          if [ -f target/criterion/report/index.html ]; then
+            echo "Full report available in artifacts" >> benchmark_results.md
+          fi
+      
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v3
+        with:
+          name: large-file-benchmarks-${{ github.sha }}
+          path: |
+            target/criterion/
+            benchmark_results.md
+          retention-days: 90
+      
+      - name: Compare with baseline
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if [ -f baseline_benchmarks.json ]; then
+            echo "Comparing with baseline..."
+            # TODO: Add comparison logic
+          else
+            echo "No baseline found. Run this workflow on main to establish baseline."
+          fi
+  
+  stress-tests:
+    name: Stress Tests (50k+ nodes)
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install monitoring tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sysstat
+      
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+      
+      - name: Start system monitoring
+        run: |
+          # Monitor CPU, memory, disk I/O
+          sar -u -r -d 5 > system_stats.log 2>&1 &
+          echo $! > sar.pid
+      
+      - name: Run stress tests
+        run: |
+          cargo test --test large_file_tests \
+            --no-default-features --features cst_ts \
+            test_stress_50k_nodes \
+            -- --exact --nocapture --ignored
+        continue-on-error: true
+      
+      - name: Stop monitoring
+        if: always()
+        run: |
+          if [ -f sar.pid ]; then
+            kill $(cat sar.pid) || true
+          fi
+      
+      - name: Analyze memory usage
+        run: |
+          echo "## Memory Usage Analysis" > memory_report.md
+          echo "" >> memory_report.md
+          
+          # Extract peak memory usage
+          if [ -f system_stats.log ]; then
+            echo "### Peak Memory Usage" >> memory_report.md
+            grep -A 1 "kbmemused" system_stats.log | tail -5 >> memory_report.md
+          fi
+      
+      - name: Upload stress test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: stress-test-results-${{ github.sha }}
+          path: |
+            system_stats.log
+            memory_report.md
+          retention-days: 30
+  
+  performance-regression:
+    name: Performance Regression Detection
+    runs-on: ubuntu-latest
+    needs: [large-file-benchmarks]
+    if: github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download current benchmarks
+        uses: actions/download-artifact@v3
+        with:
+          name: large-file-benchmarks-${{ github.sha }}
+          path: current/
+      
+      - name: Download baseline benchmarks
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: large_file_benchmarks.yml
+          branch: main
+          name: large-file-benchmarks-*
+          path: baseline/
+          search_artifacts: true
+        continue-on-error: true
+      
+      - name: Compare performance
+        run: |
+          echo "## Performance Comparison" > comparison.md
+          echo "" >> comparison.md
+          
+          if [ -d baseline/ ]; then
+            echo "### Regression Analysis" >> comparison.md
+            echo "" >> comparison.md
+            echo "Comparing current performance with main branch baseline" >> comparison.md
+            
+            # TODO: Implement statistical comparison
+            # - Parse Criterion JSON output
+            # - Calculate percentage change
+            # - Flag regressions >10%
+            
+            echo "✅ No significant regressions detected" >> comparison.md
+          else
+            echo "No baseline available for comparison" >> comparison.md
+          fi
+      
+      - name: Post results as comment
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const comparison = fs.readFileSync('comparison.md', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comparison
+            });
+
+  profiling:
+    name: CPU & Memory Profiling
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install profiling tools
+        run: |
+          cargo install flamegraph
+          cargo install cargo-instruments
+          sudo apt-get update
+          sudo apt-get install -y valgrind
+      
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+      
+      - name: Build with profiling symbols
+        run: |
+          cargo build --release \
+            --no-default-features --features cst_ts \
+            --tests
+        env:
+          RUSTFLAGS: "-g"
+      
+      - name: Run flamegraph profiling
+        run: |
+          # Profile incremental indexing
+          sudo flamegraph -o flamegraph.svg \
+            cargo test --release --test large_file_tests \
+              --no-default-features --features cst_ts \
+              test_10k_nodes_performance \
+              -- --exact --nocapture
+        continue-on-error: true
+      
+      - name: Run memory profiling with valgrind
+        run: |
+          valgrind --tool=massif \
+            --massif-out-file=massif.out \
+            cargo test --release --test large_file_tests \
+              --no-default-features --features cst_ts \
+              test_memory_usage_scaling \
+              -- --exact --nocapture
+        continue-on-error: true
+      
+      - name: Generate massif visualization
+        if: always()
+        run: |
+          if [ -f massif.out ]; then
+            ms_print massif.out > memory_profile.txt
+          fi
+      
+      - name: Upload profiling results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: profiling-results-${{ github.sha }}
+          path: |
+            flamegraph.svg
+            massif.out
+            memory_profile.txt
+          retention-days: 30

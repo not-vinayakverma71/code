@@ -1,0 +1,13 @@
+{
+  "table_name": "production_table",
+  "index_name": "vector_idx",
+  "index_type": "IVF_PQ",
+  "columns": [
+    "vector"
+  ],
+  "num_partitions": 16,
+  "num_sub_vectors": 16,
+  "created_at": 1759038803,
+  "row_count": 300,
+  "index_uuid": "fa42d8fb-1277-4d2a-85d4-7d8de7fb65f5"
+}

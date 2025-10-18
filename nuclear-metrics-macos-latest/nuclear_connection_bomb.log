@@ -1,0 +1,19 @@
+
+running 1 test
+
+💣 NUCLEAR TEST 1: CONNECTION BOMB
+====================================
+Connections: 100
+Messages/conn: 500
+Total messages: 0M
+Target: >1M msg/sec sustained
+
+test nuclear_connection_bomb ... FAILED
+
+failures:
+
+failures:
+    nuclear_connection_bomb
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

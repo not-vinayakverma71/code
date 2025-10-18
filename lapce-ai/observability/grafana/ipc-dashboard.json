@@ -1,0 +1,217 @@
+{
+  "dashboard": {
+    "title": "Lapce-AI IPC System Dashboard",
+    "uid": "lapce-ipc-001",
+    "version": 1,
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "IPC Throughput",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "rate(ipc_messages_total[5m])",
+            "legendFormat": "Messages/sec"
+          }
+        ],
+        "yaxes": [{"format": "ops", "label": "msg/s"}]
+      },
+      {
+        "id": 2,
+        "title": "Latency Percentiles",
+        "type": "graph",
+        "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(ipc_latency_us_bucket[5m]))",
+            "legendFormat": "p50"
+          },
+          {
+            "expr": "histogram_quantile(0.90, rate(ipc_latency_us_bucket[5m]))",
+            "legendFormat": "p90"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(ipc_latency_us_bucket[5m]))",
+            "legendFormat": "p99"
+          }
+        ],
+        "yaxes": [{"format": "µs", "label": "latency"}]
+      },
+      {
+        "id": 3,
+        "title": "Error Rate",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "rate(ipc_errors_total[5m])",
+            "legendFormat": "{{error_type}}"
+          }
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [0.01], "type": "gt"},
+              "query": {"params": ["A", "5m", "now"]},
+              "reducer": {"params": [], "type": "avg"}
+            }
+          ],
+          "name": "High IPC Error Rate"
+        }
+      },
+      {
+        "id": 4,
+        "title": "Connection Pool Health",
+        "type": "stat",
+        "gridPos": {"x": 12, "y": 8, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "ipc_pool_connections_active / ipc_pool_connections_total",
+            "legendFormat": "Pool Utilization"
+          }
+        ],
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {"color": "green", "value": null},
+            {"color": "yellow", "value": 0.7},
+            {"color": "red", "value": 0.9}
+          ]
+        }
+      },
+      {
+        "id": 5,
+        "title": "Connection Reuse Rate",
+        "type": "stat",
+        "gridPos": {"x": 18, "y": 8, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "rate(ipc_pool_reuse_total[5m]) / (rate(ipc_pool_reuse_total[5m]) + rate(ipc_pool_new_connections_total[5m]))",
+            "legendFormat": "Reuse %"
+          }
+        ],
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {"color": "red", "value": null},
+            {"color": "yellow", "value": 0.9},
+            {"color": "green", "value": 0.95}
+          ]
+        }
+      },
+      {
+        "id": 6,
+        "title": "Memory Usage",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "ipc_memory_rss_bytes",
+            "legendFormat": "RSS"
+          },
+          {
+            "expr": "ipc_memory_heap_bytes",
+            "legendFormat": "Heap"
+          }
+        ],
+        "yaxes": [{"format": "bytes", "label": "memory"}],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [3145728], "type": "gt"},
+              "query": {"params": ["A", "5m", "now"]},
+              "reducer": {"params": [], "type": "avg"}
+            }
+          ],
+          "name": "IPC Memory Exceeds 3MB"
+        }
+      },
+      {
+        "id": 7,
+        "title": "Shared Memory Buffers",
+        "type": "graph",
+        "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "ipc_shm_buffer_usage_percent",
+            "legendFormat": "{{buffer_name}}"
+          }
+        ],
+        "yaxes": [{"format": "percent", "label": "usage", "max": 100}]
+      },
+      {
+        "id": 8,
+        "title": "Error Budget",
+        "type": "gauge",
+        "gridPos": {"x": 0, "y": 24, "w": 6, "h": 6},
+        "targets": [
+          {
+            "expr": "1 - (rate(ipc_errors_total[30d]) / rate(ipc_messages_total[30d]))",
+            "legendFormat": "Success Rate"
+          }
+        ],
+        "gauge": {
+          "maxValue": 1,
+          "minValue": 0.99,
+          "thresholdLabels": true,
+          "thresholdMarkers": true
+        },
+        "thresholds": "0.999,0.9999"
+      },
+      {
+        "id": 9,
+        "title": "Handshake Success Rate",
+        "type": "stat",
+        "gridPos": {"x": 6, "y": 24, "w": 6, "h": 6},
+        "targets": [
+          {
+            "expr": "rate(ipc_handshake_success_total[5m]) / rate(ipc_handshake_attempts_total[5m])",
+            "legendFormat": "Success %"
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Ring Buffer Overflow",
+        "type": "graph",
+        "gridPos": {"x": 12, "y": 24, "w": 12, "h": 6},
+        "targets": [
+          {
+            "expr": "rate(ipc_ring_buffer_overflow_total[5m])",
+            "legendFormat": "{{buffer_name}}"
+          }
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [0], "type": "gt"},
+              "query": {"params": ["A", "5m", "now"]}
+            }
+          ],
+          "name": "Ring Buffer Overflow Detected"
+        }
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "datasource",
+          "type": "datasource",
+          "query": "prometheus"
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "datasource": "prometheus",
+          "enable": true,
+          "expr": "changes(ipc_server_restart_total[5m]) > 0",
+          "name": "IPC Server Restarts"
+        }
+      ]
+    }
+  }
+}

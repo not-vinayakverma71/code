@@ -311,6 +311,7 @@ fn right(
     update_in_progress: RwSignal<bool>,
     num_window_tabs: Memo<usize>,
     window_maximized: RwSignal<bool>,
+    panel: crate::panel::data::PanelData,
     config: ReadSignal<Arc<LapceConfig>>,
 ) -> impl View {
     let latest_version = create_memo(move |_| {
@@ -332,6 +333,86 @@ fn right(
         drag_window_area(empty())
             .style(|s| s.height_pct(100.0).flex_basis(0.0).flex_grow(1.0)),
         stack((
+            {
+                let panel = panel.clone();
+                let icon = {
+                    let panel = panel.clone();
+                    move || {
+                        if panel
+                            .is_container_shown(&crate::panel::position::PanelContainerPosition::Left, true)
+                        {
+                            LapceIcons::SIDEBAR_LEFT
+                        } else {
+                            LapceIcons::SIDEBAR_LEFT_OFF
+                        }
+                    }
+                };
+                clickable_icon(
+                    icon,
+                    move || {
+                        panel.toggle_container_visual(&crate::panel::position::PanelContainerPosition::Left)
+                    },
+                    || false,
+                    || false,
+                    || "Toggle Left Panel",
+                    config,
+                )
+                .style(move |s| s.margin_right(6.0))
+            },
+            {
+                let panel = panel.clone();
+                let icon = {
+                    let panel = panel.clone();
+                    move || {
+                        if panel.is_container_shown(
+                            &crate::panel::position::PanelContainerPosition::Bottom,
+                            true,
+                        ) {
+                            LapceIcons::LAYOUT_PANEL
+                        } else {
+                            LapceIcons::LAYOUT_PANEL_OFF
+                        }
+                    }
+                };
+                clickable_icon(
+                    icon,
+                    move || {
+                        panel
+                            .toggle_container_visual(&crate::panel::position::PanelContainerPosition::Bottom)
+                    },
+                    || false,
+                    || false,
+                    || "Toggle Bottom Panel",
+                    config,
+                )
+                .style(move |s| s.margin_right(6.0))
+            },
+            {
+                let panel = panel.clone();
+                let icon = {
+                    let panel = panel.clone();
+                    move || {
+                        if panel
+                            .is_container_shown(&crate::panel::position::PanelContainerPosition::Right, true)
+                        {
+                            LapceIcons::SIDEBAR_RIGHT
+                        } else {
+                            LapceIcons::SIDEBAR_RIGHT_OFF
+                        }
+                    }
+                };
+                clickable_icon(
+                    icon,
+                    move || {
+                        panel.toggle_container_visual(&crate::panel::position::PanelContainerPosition::Right)
+                    },
+                    || false,
+                    || false,
+                    || "Toggle Right Panel",
+                    config,
+                )
+                .style(move |s| s.margin_right(10.0))
+            },
             not_clickable_icon(
                 || LapceIcons::SETTINGS,
                 || false,
@@ -400,7 +481,11 @@ fn right(
                     .apply_if(!has_update, |s| s.hide())
             }),
         ))
-        .style(move |s| s.margin_horiz(6.0)),
+        .style(move |s| {
+            s.height_pct(100.0)
+                .items_center()
+                .margin_horiz(6.0)
+        }),
         window_controls_view(
             window_command,
             true,
@@ -451,6 +536,7 @@ pub fn title(window_tab_data: Rc<WindowTabData>) -> impl View {
             update_in_progress,
             num_window_tabs,
             window_maximized,
+            window_tab_data.panel.clone(),
             config,
         ),
     ))

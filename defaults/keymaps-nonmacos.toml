@@ -308,3 +308,180 @@ command = "palette.workspace_symbol"
 [[keymaps]]
 key = "ctrl+g"
 command = "palette.line"
+
+# ==============================================================================
+# VS CODE KEYBINDINGS - Enhanced defaults for VS Code users
+# ==============================================================================
+# NOTE: These work without vim mode (modal = false in settings)
+# If you have modal = true, these will need mode = "i" added
+# ==============================================================================
+
+# Additional File Operations
+[[keymaps]]
+key = "ctrl+k s"
+command = "save_all"
+
+# Additional Search & Navigation
+[[keymaps]]
+key = "ctrl+g"
+command = "goto_line"
+
+[[keymaps]]
+key = "ctrl+shift+o"
+command = "palette.symbol"
+
+# Go Back/Forward (VS Code style)
+[[keymaps]]
+key = "alt+left"
+command = "jump_location_backward"
+
+[[keymaps]]
+key = "alt+right"
+command = "jump_location_forward"
+
+# Panel Toggles (VS Code style)
+[[keymaps]]
+key = "ctrl+b"
+command = "toggle_panel_left_visual"
+
+[[keymaps]]
+key = "ctrl+j"
+command = "toggle_panel_bottom_visual"
+
+[[keymaps]]
+key = "ctrl+shift+e"
+command = "toggle_file_explorer_focus"
+
+[[keymaps]]
+key = "ctrl+shift+x"
+command = "toggle_plugin_focus"
+
+[[keymaps]]
+key = "ctrl+shift+m"
+command = "toggle_problem_focus"
+
+[[keymaps]]
+key = "ctrl+shift+d"
+command = "toggle_debug_visual"
+
+# Line Operations
+[[keymaps]]
+key = "alt+up"
+command = "move_line_up"
+
+[[keymaps]]
+key = "alt+down"
+command = "move_line_down"
+
+[[keymaps]]
+key = "alt+shift+up"
+command = "duplicate_line_up"
+
+[[keymaps]]
+key = "alt+shift+down"
+command = "duplicate_line_down"
+
+[[keymaps]]
+key = "ctrl+enter"
+command = "new_line_below"
+
+[[keymaps]]
+key = "ctrl+shift+enter"
+command = "new_line_above"
+
+[[keymaps]]
+key = "ctrl+l"
+command = "select_current_line"
+
+# Word Navigation
+[[keymaps]]
+key = "ctrl+left"
+command = "word_backward"
+
+[[keymaps]]
+key = "ctrl+right"
+command = "word_forward"
+
+[[keymaps]]
+key = "ctrl+backspace"
+command = "delete_word_backward"
+
+[[keymaps]]
+key = "ctrl+delete"
+command = "delete_word_forward"
+
+# Multi-cursor
+[[keymaps]]
+key = "ctrl+alt+up"
+command = "insert_cursor_above"
+
+[[keymaps]]
+key = "ctrl+alt+down"
+command = "insert_cursor_below"
+
+[[keymaps]]
+key = "shift+alt+i"
+command = "select_all_current"
+
+[[keymaps]]
+key = "ctrl+u"
+command = "cursor_undo"
+
+[[keymaps]]
+key = "ctrl+k ctrl+d"
+command = "select_skip_current"
+
+# Tab Navigation (VS Code style)
+[[keymaps]]
+key = "ctrl+tab"
+command = "next_editor_tab"
+
+[[keymaps]]
+key = "ctrl+shift+tab"
+command = "previous_editor_tab"
+
+# Split Editor
+[[keymaps]]
+key = "ctrl+\\"
+command = "split_vertical"
+
+[[keymaps]]
+key = "ctrl+k ctrl+\\"
+command = "split_vertical"
+
+# Indentation
+[[keymaps]]
+key = "shift+tab"
+command = "outdent_line"
+
+# Comments (Additional)
+[[keymaps]]
+key = "shift+alt+a"
+command = "toggle_line_comment"
+
+# Code Actions
+[[keymaps]]
+key = "ctrl+."
+command = "show_code_actions"
+
+[[keymaps]]
+key = "shift+alt+f"
+command = "show_code_actions"
+
+[[keymaps]]
+key = "ctrl+k ctrl+i"
+command = "show_hover"
+
+# Bracket Navigation
+[[keymaps]]
+key = "ctrl+shift+\\"
+command = "jump_to_matching_pair"
+
+# Chord Keybindings (Ctrl+K prefix)
+[[keymaps]]
+key = "ctrl+k ctrl+o"
+command = "open_folder"
+
+[[keymaps]]
+key = "ctrl+k ctrl+f"
+command = "close_folder"

@@ -1,4 +1,12 @@
 pub mod about;
+pub mod ai_bridge;
+pub mod ai_chat_widgets;
+pub mod ai_input_widget;
+pub mod ai_i18n;
+// pub mod ai_mock_llm;  // Removed
+// pub mod ai_panel_example;  // Removed
+pub mod ai_state;
+pub mod ai_theme;
 pub mod alert;
 pub mod app;
 pub mod code_action;

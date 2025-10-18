@@ -797,6 +797,33 @@ pub enum InternalCommand {
     RestartTerminal {
         term_id: TermId,
     },
+    // P0-3: Tool execution commands
+    ToolExecutionStarted {
+        execution_id: String,
+        tool_name: String,
+    },
+    ToolExecutionCompleted {
+        execution_id: String,
+        success: bool,
+    },
+    ShowToolApprovalDialog {
+        execution_id: String,
+        tool_name: String,
+        operation: String,
+        target: String,
+        details: String,
+    },
+    HandleToolApprovalResponse {
+        execution_id: String,
+        approved: bool,
+        reason: Option<String>,
+    },
+    OpenTerminalForCommand {
+        command: String,
+        args: Vec<String>,
+        cwd: Option<PathBuf>,
+        execution_id: String,
+    },
 }
 
 #[derive(Clone)]

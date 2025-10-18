@@ -1,0 +1,399 @@
+name: LSP Gateway CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'lapce-ai/src/lsp_gateway/**'
+      - 'lapce-ai/CST-tree-sitter/**'
+      - 'lapce-app/src/ai_bridge/**'
+      - '.github/workflows/lsp_gateway_ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'lapce-ai/src/lsp_gateway/**'
+      - 'lapce-ai/CST-tree-sitter/**'
+      - 'lapce-app/src/ai_bridge/**'
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # Linux validation (primary platform)
+  linux-test:
+    name: Linux - Test & Validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Install Rust stable
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt, clippy
+    
+    - name: Cache cargo registry
+      uses: actions/cache@v3
+      with:
+        path: ~/.cargo/registry
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Cache cargo index
+      uses: actions/cache@v3
+      with:
+        path: ~/.cargo/git
+        key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Cache cargo build
+      uses: actions/cache@v3
+      with:
+        path: target
+        key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Check formatting
+      run: cargo fmt --all -- --check
+      working-directory: lapce-ai
+    
+    - name: Run clippy
+      run: cargo clippy --all-targets --features lsp_gateway -- -D warnings
+      working-directory: lapce-ai
+    
+    - name: Build LSP gateway
+      run: cargo build --features lsp_gateway --verbose
+      working-directory: lapce-ai
+    
+    - name: Run unit tests
+      run: cargo test --lib --features lsp_gateway -- --nocapture
+      working-directory: lapce-ai
+    
+    - name: Run integration tests
+      run: cargo test --test '*' --features lsp_gateway -- --nocapture
+      working-directory: lapce-ai
+    
+    - name: Run E2E tests
+      run: cargo test --test lsp_e2e_tests --features lsp_gateway -- --nocapture --test-threads=1
+      working-directory: lapce-ai
+    
+    - name: Verify IPC shared memory (Linux)
+      run: |
+        ls -la /dev/shm/ || echo "No shared memory objects yet"
+        # Check eventfd support
+        cat /proc/sys/fs/file-max
+    
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: linux-test-results
+        path: |
+          lapce-ai/target/debug/**/*.log
+          lapce-ai/target/debug/deps/*.log
+
+  # macOS validation (secondary platform)
+  macos-test:
+    name: macOS - Test & Validate
+    runs-on: macos-latest
+    timeout-minutes: 30
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Install Rust stable
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Cache cargo
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Build LSP gateway
+      run: cargo build --features lsp_gateway --verbose
+      working-directory: lapce-ai
+    
+    - name: Run unit tests
+      run: cargo test --lib --features lsp_gateway -- --nocapture
+      working-directory: lapce-ai
+    
+    - name: Verify IPC shared memory (macOS)
+      run: |
+        # Check POSIX shared memory support
+        ls -la /tmp/ | grep -i lapce || echo "No shared memory objects yet"
+        # Check kqueue support
+        sysctl kern.maxfiles
+    
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: macos-test-results
+        path: |
+          lapce-ai/target/debug/**/*.log
+
+  # Windows validation (secondary platform)
+  windows-test:
+    name: Windows - Test & Validate
+    runs-on: windows-latest
+    timeout-minutes: 30
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Install Rust stable
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Cache cargo
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Build LSP gateway
+      run: cargo build --features lsp_gateway --verbose
+      working-directory: lapce-ai
+    
+    - name: Run unit tests
+      run: cargo test --lib --features lsp_gateway -- --nocapture
+      working-directory: lapce-ai
+    
+    - name: Verify IPC shared memory (Windows)
+      run: |
+        # Check Windows named shared memory
+        Get-WmiObject -Class Win32_Process | Where-Object {$_.Name -like "*lapce*"} | Select-Object Name, ProcessId
+    
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: windows-test-results
+        path: |
+          lapce-ai/target/debug/**/*.log
+
+  # Security scans
+  security-audit:
+    name: Security & License Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust stable
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Install cargo-audit
+      run: cargo install cargo-audit
+    
+    - name: Install cargo-deny
+      run: cargo install cargo-deny
+    
+    - name: Run cargo-audit
+      run: cargo audit --deny warnings
+      working-directory: lapce-ai
+      continue-on-error: true
+    
+    - name: Run cargo-deny (licenses)
+      run: cargo deny check licenses
+      working-directory: lapce-ai
+      continue-on-error: true
+    
+    - name: Run cargo-deny (advisories)
+      run: cargo deny check advisories
+      working-directory: lapce-ai
+      continue-on-error: true
+    
+    - name: Run cargo-deny (bans)
+      run: cargo deny check bans
+      working-directory: lapce-ai
+      continue-on-error: true
+    
+    - name: Upload audit results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-audit-results
+        path: |
+          lapce-ai/target/deny-*.log
+
+  # Advanced validation (Linux only, long-running)
+  advanced-validation:
+    name: Advanced Validation (Miri, ASan)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    if: github.event_name == 'push'
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Install Rust nightly
+      uses: dtolnay/rust-toolchain@nightly
+      with:
+        components: miri, rust-src
+    
+    - name: Install LLVM/Clang for ASan
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang llvm
+    
+    - name: Run Miri (undefined behavior detection)
+      run: |
+        cargo +nightly miri test --lib --features lsp_gateway \
+          --package lapce-ai-rust \
+          -- --skip stress --skip chaos --skip e2e
+      working-directory: lapce-ai
+      continue-on-error: true
+    
+    - name: Build with ASan (AddressSanitizer)
+      env:
+        RUSTFLAGS: "-Z sanitizer=address"
+        ASAN_OPTIONS: "detect_leaks=1"
+      run: |
+        cargo +nightly build --features lsp_gateway \
+          -Z build-std --target x86_64-unknown-linux-gnu
+      working-directory: lapce-ai
+      continue-on-error: true
+    
+    - name: Run tests with ASan
+      env:
+        RUSTFLAGS: "-Z sanitizer=address"
+        ASAN_OPTIONS: "detect_leaks=1"
+      run: |
+        cargo +nightly test --lib --features lsp_gateway \
+          -Z build-std --target x86_64-unknown-linux-gnu \
+          -- --skip stress --skip chaos
+      working-directory: lapce-ai
+      continue-on-error: true
+    
+    - name: Upload validation results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: advanced-validation-results
+        path: |
+          lapce-ai/target/**/*.log
+          lapce-ai/miri-*.log
+
+  # Performance benchmarks
+  benchmarks:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name == 'push'
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Install Rust stable
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Cache cargo
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-bench-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Run benchmarks
+      run: cargo bench --features lsp_gateway -- --nocapture
+      working-directory: lapce-ai
+    
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v3
+      with:
+        name: benchmark-results
+        path: |
+          lapce-ai/target/criterion/**/*
+          lapce-ai/target/release/deps/*.bench
+
+  # Stress tests (long-running, nightly only)
+  stress-tests:
+    name: Stress & Chaos Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Install Rust stable
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Run stress tests (1000 documents)
+      run: |
+        cargo test --test '*' --features lsp_gateway \
+          -- --nocapture --test-threads=1 stress --ignored
+      working-directory: lapce-ai
+      timeout-minutes: 30
+    
+    - name: Run chaos tests (failure injection)
+      run: |
+        cargo test --test '*' --features lsp_gateway \
+          -- --nocapture --test-threads=1 chaos --ignored
+      working-directory: lapce-ai
+      timeout-minutes: 30
+    
+    - name: Run long-duration stability test (30 min)
+      run: |
+        cargo test --test '*' --features lsp_gateway \
+          -- --nocapture --test-threads=1 stability --ignored
+      working-directory: lapce-ai
+      timeout-minutes: 35
+    
+    - name: Upload stress test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: stress-test-results
+        path: |
+          lapce-ai/target/debug/**/*.log
+          lapce-ai/stress-*.log
+
+  # Report aggregation
+  report:
+    name: Aggregate Results
+    runs-on: ubuntu-latest
+    needs: [linux-test, macos-test, windows-test, security-audit]
+    if: always()
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+    
+    - name: Generate summary
+      run: |
+        echo "# LSP Gateway CI Summary" > summary.md
+        echo "" >> summary.md
+        echo "## Test Results" >> summary.md
+        echo "- Linux: ${{ needs.linux-test.result }}" >> summary.md
+        echo "- macOS: ${{ needs.macos-test.result }}" >> summary.md
+        echo "- Windows: ${{ needs.windows-test.result }}" >> summary.md
+        echo "- Security: ${{ needs.security-audit.result }}" >> summary.md
+        cat summary.md
+    
+    - name: Upload summary
+      uses: actions/upload-artifact@v3
+      with:
+        name: ci-summary
+        path: summary.md

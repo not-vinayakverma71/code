@@ -1,0 +1,230 @@
+/// IPC Server using volatile buffers and control socket
+/// Replaces atomic-based shared_memory_complete approach
+
+use std::sync::Arc;
+use tokio::sync::broadcast;
+use anyhow::Result;
+use bytes::Bytes;
+use dashmap::DashMap;
+use crate::ipc::control_socket::{ControlServer, HandshakeResponse};
+use crate::ipc::shm_buffer_volatile::VolatileSharedMemoryBuffer;
+use crate::ipc::binary_codec::{BinaryCodec, MessageType};
+use crate::ipc::eventfd_doorbell::EventFdDoorbell;
+use crate::ipc::errors::IpcResult;
+
+const RING_CAPACITY: u32 = 1024 * 1024; // 1MB per ring
+
+type Handler = Box<dyn Fn(Bytes) -> std::pin::Pin<Box<dyn std::future::Future<Output = IpcResult<Bytes>> + Send>> + Send + Sync>;
+
+pub struct IpcServerVolatile {
+    control_server: Arc<ControlServer>,
+    handlers: Arc<DashMap<MessageType, Handler>>,
+    shutdown: broadcast::Sender<()>,
+    base_path: String,
+    next_slot_id: std::sync::atomic::AtomicU32,
+}
+
+impl IpcServerVolatile {
+    pub async fn new(base_path: &str) -> Result<Arc<Self>> {
+        let control_server = Arc::new(ControlServer::bind(base_path).await?);
+        let (shutdown_tx, _) = broadcast::channel(1);
+        
+        eprintln!("[SERVER VOLATILE] Created server on {}", base_path);
+        
+        Ok(Arc::new(Self {
+            control_server,
+            handlers: Arc::new(DashMap::new()),
+            shutdown: shutdown_tx,
+            base_path: base_path.to_string(),
+            next_slot_id: std::sync::atomic::AtomicU32::new(0),
+        }))
+    }
+    
+    pub fn register_handler<F, Fut>(&self, msg_type: MessageType, handler: F)
+    where
+        F: Fn(Bytes) -> Fut + Send + Sync + 'static,
+        Fut: std::future::Future<Output = IpcResult<Bytes>> + Send + 'static,
+    {
+        self.handlers.insert(msg_type, Box::new(move |data| {
+            Box::pin(handler(data))
+        }));
+    }
+    
+    pub async fn serve(self: Arc<Self>) -> Result<()> {
+        let mut shutdown_rx = self.shutdown.subscribe();
+        
+        loop {
+            tokio::select! {
+                _ = shutdown_rx.recv() => {
+                    eprintln!("[SERVER VOLATILE] Shutting down");
+                    return Ok(());
+                }
+                
+                result = async {
+                    // Create eventfd doorbells for this connection
+                    let send_doorbell = EventFdDoorbell::new()?;
+                    let recv_doorbell = EventFdDoorbell::new()?;
+                    
+                    let send_doorbell_fd = send_doorbell.as_raw_fd();
+                    let recv_doorbell_fd = recv_doorbell.as_raw_fd();
+                    
+                    // Allocate slot
+                    let slot_id = self.next_slot_id;
+                    self.next_slot_id += 1;
+                    
+                    let send_shm_name = format!("{}_send", self.base_path);
+                    let recv_shm_name = format!("{}_recv", self.base_path);
+                    
+                    // Create buffers
+                    let mut send_buffer = VolatileSharedMemoryBuffer::create(&send_shm_name, self.ring_capacity)?;
+                    let mut recv_buffer = VolatileSharedMemoryBuffer::create(&recv_shm_name, self.ring_capacity)?;
+                    
+                    // Attach doorbells to buffers
+                    Arc::get_mut(&mut send_buffer).unwrap().attach_doorbell(Arc::new(send_doorbell));
+                    Arc::get_mut(&mut recv_buffer).unwrap().attach_doorbell(Arc::new(recv_doorbell));
+                    
+                    // Accept handshake with doorbell fds
+                    self.control_server.accept_handshake(
+                        slot_id,
+                        &send_shm_name,
+                        &recv_shm_name,
+                        self.ring_capacity,
+                        send_doorbell_fd,
+                        recv_doorbell_fd,
+                    ).await?;
+                    
+                    Ok::<_, anyhow::Error>((slot_id, send_buffer, recv_buffer))
+                } => {
+                    match result {
+                        Ok((slot_id, send_buffer, recv_buffer)) => {
+                            eprintln!("[SERVER VOLATILE] Accepted connection slot {}", slot_id);
+                            eprintln!("[SERVER VOLATILE] Accepted handshake from PID {}", req.client_pid);
+                            
+                            // Allocate slot
+                            let slot_id = self.next_slot_id.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                            
+                            // Create send/recv buffers
+                            let send_name = format!("{}_{}_send", self.base_path, slot_id);
+                            let recv_name = format!("{}_{}_recv", self.base_path, slot_id);
+                            
+                            let send_buffer = VolatileSharedMemoryBuffer::create(&send_name, RING_CAPACITY)?;
+                            let recv_buffer = VolatileSharedMemoryBuffer::create(&recv_name, RING_CAPACITY)?;
+                            
+                            eprintln!("[SERVER VOLATILE] Created buffers for slot {}", slot_id);
+                            
+                            // Send response
+                            let response = HandshakeResponse {
+                                slot_id,
+                                send_shm_name: send_name.clone(),
+                                recv_shm_name: recv_name.clone(),
+                                ring_capacity: RING_CAPACITY,
+                                protocol_version: 1,
+                            };
+                            
+                            ControlServer::send_response(stream, response).await?;
+                            
+                            eprintln!("[SERVER VOLATILE] Sent handshake response");
+                            
+                            // Spawn connection handler
+                            let handlers = self.handlers.clone();
+                            let mut shutdown = self.shutdown.subscribe();
+                            
+                            tokio::spawn(async move {
+                                eprintln!("[HANDLER {}] Starting", slot_id);
+                                
+                                let mut codec = BinaryCodec::new();
+                                let mut buffer = Vec::new();
+                                
+                                loop {
+                                    tokio::select! {
+                                        _ = shutdown.recv() => {
+                                            eprintln!("[HANDLER {}] Shutdown", slot_id);
+                                            break;
+                                        }
+                                        
+                                        _ = tokio::time::sleep(tokio::time::Duration::from_millis(1)) => {
+                                            // Check for incoming data
+                                            eprintln!("[HANDLER {}] Polling for data...", slot_id);
+                                            match recv_buffer.read(&mut buffer, 64 * 1024) {
+                                                Ok(n) if n > 0 => {
+                                                    eprintln!("[HANDLER {}] ✓ READ {} bytes from recv_buffer", slot_id, n);
+                                                    eprintln!("[HANDLER {}] Buffer first 32 bytes: {:?}", slot_id, &buffer[..n.min(32)]);
+                                                    
+                                                    // Decode message
+                                                    eprintln!("[HANDLER {}] Decoding message...", slot_id);
+                                                    match codec.decode(&buffer) {
+                                                        Ok(msg) => {
+                                                            eprintln!("[HANDLER {}] ✓ DECODED msg_type={:?} id={}", slot_id, msg.msg_type, msg.id);
+                                                            
+                                                            // Extract payload bytes
+                                                            let payload_bytes = match &msg.payload {
+                                                                crate::ipc::binary_codec::MessagePayload::CompletionRequest(req) => req.prompt.as_bytes().to_vec(),
+                                                                crate::ipc::binary_codec::MessagePayload::CompletionResponse(resp) => resp.text.as_bytes().to_vec(),
+                                                                _ => vec![],
+                                                            };
+                                                            
+                                                            // Find handler
+                                                            eprintln!("[HANDLER {}] Looking for handler for {:?}...", slot_id, msg.msg_type);
+                                                            if let Some(handler) = handlers.get(&msg.msg_type) {
+                                                                eprintln!("[HANDLER {}] ✓ FOUND handler, calling with {} bytes", slot_id, payload_bytes.len());
+                                                                match handler(Bytes::from(payload_bytes)).await {
+                                                                    Ok(response_data) => {
+                                                                        eprintln!("[HANDLER {}] ✓ HANDLER returned {} bytes", slot_id, response_data.len());
+                                                                        // Encode response - echo back as CompletionRequest
+                                                                        let response_msg = crate::ipc::binary_codec::Message {
+                                                                            id: msg.id,
+                                                                            msg_type: msg.msg_type,
+                                                                            payload: crate::ipc::binary_codec::MessagePayload::CompletionRequest(
+                                                                                crate::ipc::binary_codec::CompletionRequest {
+                                                                                    prompt: String::from_utf8_lossy(&response_data).to_string(),
+                                                                                    model: "echo".to_string(),
+                                                                                    max_tokens: 100,
+                                                                                    temperature: 0.0,
+                                                                                    stream: false,
+                                                                                }
+                                                                            ),
+                                                                            timestamp: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as u64,
+                                                                        };
+                                                                        let response_bytes = codec.encode(&response_msg).unwrap();
+                                                                        eprintln!("[HANDLER {}] ✓ ENCODED response: {} bytes", slot_id, response_bytes.len());
+                                                                        
+                                                                        // Write response
+                                                                        eprintln!("[HANDLER {}] Writing response to send_buffer...", slot_id);
+                                                                        if let Err(e) = send_buffer.write(&response_bytes) {
+                                                                            eprintln!("[HANDLER {}] ✗ WRITE ERROR: {}", slot_id, e);
+                                                                        } else {
+                                                                            eprintln!("[HANDLER {}] ✓ WROTE response to send_buffer", slot_id);
+                                                                        }
+                                                                    }
+                                                                    Err(e) => {
+                                                                        eprintln!("[HANDLER {}] ✗ HANDLER ERROR: {}", slot_id, e);
+                                                                    }
+                                                                }
+                                                            } else {
+                                                                eprintln!("[HANDLER {}] ✗ NO HANDLER for {:?}", slot_id, msg.msg_type);
+                                                            }
+                                                        }
+                                                        Err(e) => {
+                                                            eprintln!("[HANDLER {}] ✗ DECODE ERROR: {}", slot_id, e);
+                                                        }
+                                                    }
+                                                }
+                                                Ok(_) => {} // No data available
+                                                Err(e) => {
+                                                    eprintln!("[HANDLER {}] ✗ READ ERROR: {}", slot_id, e);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                        Err(e) => {
+                            eprintln!("[SERVER VOLATILE] Handshake error: {}", e);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

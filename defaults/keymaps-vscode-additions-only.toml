@@ -1,0 +1,228 @@
+# =====================================================================================
+# VS CODE KEYBINDINGS - ADDITIONS ONLY (No Duplicates)
+# =====================================================================================
+# These are ONLY the VS Code keybindings that don't exist in the original keymaps
+# =====================================================================================
+
+# Navigate Back/Forward (CRITICAL!)
+[[keymaps]]
+key = "alt+left"
+command = "jump_location_backward"
+mode = "i"
+mode = "i"
+
+[[keymaps]]
+key = "alt+right"
+command = "jump_location_forward"
+mode = "i"
+mode = "i"
+
+# Toggle Panels (CRITICAL!)
+[[keymaps]]
+key = "ctrl+b"
+command = "toggle_panel_left_visual"
+mode = "i"
+mode = "i"
+
+[[keymaps]]
+key = "ctrl+j"
+command = "toggle_panel_bottom_visual"
+mode = "i"
+mode = "i"
+
+# Save All
+[[keymaps]]
+key = "ctrl+k s"
+command = "save_all"
+mode = "i"
+mode = "i"
+
+# Replace (opens search for now - no dedicated replace UI yet)
+[[keymaps]]
+key = "ctrl+h"
+command = "search"
+mode = "i"
+mode = "i"
+
+# New Window
+[[keymaps]]
+key = "ctrl+shift+n"
+command = "new_window"
+mode = "i"
+mode = "i"
+
+# Close Window
+[[keymaps]]
+key = "ctrl+shift+w"
+command = "close_window"
+mode = "i"
+mode = "i"
+
+# Reopen Closed Editor (command doesn't exist, using palette as workaround)
+[[keymaps]]
+key = "ctrl+shift+t"
+command = "palette"
+mode = "i"
+mode = "i"
+
+# Focus Editor Groups
+[[keymaps]]
+key = "ctrl+1"
+command = "focus_editor"
+mode = "i"
+
+[[keymaps]]
+key = "ctrl+2"
+command = "focus_editor"
+mode = "i"
+
+[[keymaps]]
+key = "ctrl+3"
+command = "focus_editor"
+mode = "i"
+
+# Close All (maps to close current for now)
+[[keymaps]]
+key = "ctrl+k ctrl+w"
+command = "split_close"
+mode = "i"
+
+# Zoom Reset
+[[keymaps]]
+key = "ctrl+0"
+command = "zoom_reset"
+mode = "i"
+
+# Go to Implementation
+[[keymaps]]
+key = "ctrl+F12"
+command = "go_to_implementation"
+mode = "i"
+
+# Peek Definition (no peek yet, jumps instead)
+[[keymaps]]
+key = "alt+F12"
+command = "goto_definition"
+mode = "i"
+
+# Show Hover
+[[keymaps]]
+key = "ctrl+k ctrl+i"
+command = "show_hover"
+mode = "i"
+
+# Block Comment Toggle (using line comment for now)
+[[keymaps]]
+key = "shift+alt+a"
+command = "toggle_line_comment"
+mode = "i"
+
+# Format Document (no formatter command, using code actions)
+[[keymaps]]
+key = "shift+alt+f"
+command = "show_code_actions"
+mode = "i"
+
+# Format Selection (no formatter command, using code actions)
+[[keymaps]]
+key = "ctrl+k ctrl+f"
+command = "show_code_actions"
+mode = "i"
+
+# Alternative Tab Navigation
+[[keymaps]]
+key = "ctrl+pagedown"
+command = "next_editor_tab"
+mode = "i"
+
+[[keymaps]]
+key = "ctrl+pageup"
+command = "previous_editor_tab"
+mode = "i"
+
+# Alternative Search Navigation
+[[keymaps]]
+key = "F3"
+command = "search_forward"
+mode = "i"
+
+[[keymaps]]
+key = "shift+F3"
+command = "search_backward"
+mode = "i"
+
+# Split Editor with Chord
+[[keymaps]]
+key = "ctrl+k ctrl+\\"
+command = "split_vertical"
+mode = "i"
+
+# Navigate Between Editor Groups
+[[keymaps]]
+key = "ctrl+k ctrl+left"
+command = "split_left"
+mode = "i"
+
+[[keymaps]]
+key = "ctrl+k ctrl+right"
+command = "split_right"
+mode = "i"
+
+# Alternative Go Back/Forward
+[[keymaps]]
+key = "ctrl+alt+minus"
+command = "jump_location_backward"
+mode = "i"
+
+# Delete Line (using delete_forward as workaround)
+[[keymaps]]
+key = "ctrl+shift+k"
+command = "delete_forward"
+mode = "i"
+
+# Alternative Window Close
+[[keymaps]]
+key = "ctrl+k w"
+command = "split_close"
+mode = "i"
+
+# Alternative Find in Files
+[[keymaps]]
+key = "ctrl+shift+h"
+command = "toggle_search_focus"
+mode = "i"
+
+# Fold/Unfold (no folding yet, using indent/outdent as placeholder)
+[[keymaps]]
+key = "ctrl+shift+["
+command = "outdent_line"
+mode = "i"
+
+[[keymaps]]
+key = "ctrl+shift+]"
+command = "indent_line"
+mode = "i"
+
+# New Terminal
+[[keymaps]]
+key = "ctrl+shift+`"
+command = "new_terminal_tab"
+mode = "i"
+
+# Toggle Debug Panel
+[[keymaps]]
+key = "ctrl+shift+d"
+command = "toggle_debug_visual"
+mode = "i"
+
+# Toggle Terminal (alternative)
+[[keymaps]]
+key = "ctrl+shift+y"
+command = "toggle_terminal_focus"
+mode = "i"
+
+# Save As
+[[keymaps]]
+key = "ctrl+shift+s"
+command = "save_as"
+mode = "i"

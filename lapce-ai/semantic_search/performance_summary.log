@@ -1,0 +1,15 @@
+🚀 FULL PERFORMANCE TEST WITH PERSISTENT INDEX
+✅ Connected: AWS Bedrock Titan configured (Tier: Standard, Cache: 0 entries)
+📊 PHASE 1: GENERATING HYBRID DATASET
+⚡ PHASE 4: QUERY PERFORMANCE TESTING
+╔══════════════════════════════════════════════╗
+║       PERFORMANCE METRICS REPORT             ║
+╚══════════════════════════════════════════════╝
+📊 Dataset:
+🏗️ Index Performance:
+⚡ Query Latency:
+💾 Cache Performance:
+🏆 Performance vs Targets:
+✨ KEY ACHIEVEMENTS:
+Index reuse should be >10x faster
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.89s

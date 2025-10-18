@@ -1,0 +1,170 @@
+# MCP Tools Production Configuration
+# As per docs/10-MCP-TOOLS-IMPLEMENTATION.md requirements
+
+[system]
+name = "mcp_tools_production"
+version = "1.0.0"
+environment = "production"
+
+[memory]
+# Target: < 3MB total footprint (vs 25MB Node.js)
+max_total_mb = 3
+tool_registry_kb = 100
+sandbox_overhead_kb = 500
+permission_system_kb = 200
+rate_limiters_kb = 300
+session_management_mb = 1
+cache_mb = 1
+
+[performance]
+# Target: < 10ms dispatch overhead
+max_dispatch_ms = 10
+tool_timeout_sec = 30
+batch_size = 100
+
+[sandboxing]
+# Process isolation settings
+enabled = true
+mode = "best_effort"  # Full sandboxing requires root
+temp_dir = "/tmp/mcp_sandbox"
+max_memory_per_process_mb = 100
+max_cpu_time_sec = 10
+drop_privileges = true
+target_uid = 1000
+target_gid = 1000
+
+[rate_limiting]
+# Token bucket configuration
+enabled = true
+default_capacity = 100.0
+default_refill_rate = 10.0  # tokens per second
+burst_capacity = 200.0
+
+# Per-tool limits
+[rate_limiting.tools.execute_command]
+capacity = 50.0
+refill_rate = 5.0
+
+[rate_limiting.tools.write_file]
+capacity = 100.0
+refill_rate = 20.0
+
+[rate_limiting.tools.http_request]
+capacity = 30.0
+refill_rate = 3.0
+
+[permissions]
+# Role-based access control
+default_role = "user"
+
+[permissions.roles.admin]
+allowed_tools = ["*"]
+denied_operations = []
+
+[permissions.roles.user]
+allowed_tools = [
+    "read_file",
+    "write_file",
+    "list_files",
+    "search_files",
+    "git_status",
+    "git_diff",
+    "parse_json"
+]
+denied_operations = [
+    "execute_command.sudo",
+    "write_file./etc/*",
+    "write_file./sys/*"
+]
+
+[permissions.roles.readonly]
+allowed_tools = [
+    "read_file",
+    "list_files",
+    "search_files",
+    "git_status",
+    "git_diff"
+]
+denied_operations = ["*"]
+
+[tools]
+# All 30 tools configuration
+enabled_tools = [
+    "access_mcp_resource",
+    "apply_diff",
+    "ask_followup_question",
+    "attempt_completion",
+    "browser_action",
+    "codebase_search",
+    "condense",
+    "edit_file",
+    "execute_command",
+    "fetch_instructions",
+    "git_commit",
+    "git_diff",
+    "git_status",
+    "http_request",
+    "insert_content",
+    "list_code_definitions",
+    "list_files",
+    "multi_apply_diff",
+    "new_rule",
+    "new_task",
+    "parse_json",
+    "read_file",
+    "report_bug",
+    "search_and_replace",
+    "search_files",
+    "switch_mode",
+    "update_todo_list",
+    "use_mcp_tool",
+    "write_file"
+]
+
+[xml]
+# XML format settings (CRITICAL: Must match TypeScript)
+enabled = true
+strict_parsing = true
+max_depth = 10
+max_size_kb = 1024
+
+[typescript_compatibility]
+# 1:1 translation requirements
+strict_mode = true
+preserve_quirks = true
+match_error_messages = true
+match_validation = true
+
+[monitoring]
+enabled = true
+metrics_port = 9090
+log_level = "info"
+trace_sampling_rate = 0.1
+
+[security]
+# Security settings
+enable_audit_log = true
+audit_log_path = "/var/log/mcp_tools/audit.log"
+max_log_size_mb = 100
+log_rotation = "daily"
+encrypt_sensitive_data = true
+
+[cache]
+# File cache settings
+enabled = true
+max_entries = 1000
+ttl_seconds = 300
+max_file_size_kb = 1024
+
+[network]
+# HTTP client settings
+timeout_sec = 30
+max_redirects = 5
+user_agent = "MCP-Tools/1.0"
+proxy = ""
+
+[git]
+# Git integration settings
+default_branch = "main"
+auto_fetch = false
+sign_commits = false

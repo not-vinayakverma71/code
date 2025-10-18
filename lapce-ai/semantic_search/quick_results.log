@@ -1,0 +1,43 @@
+warning: unused import: `crate::search::query_cache::QueryCache`
+8 | use crate::search::query_cache::QueryCache;
+467 |     pub fn set_system_state(&self, state: IndexingState, message: Option<String>) {
+467 |     pub fn set_system_state(&self, state: IndexingState, message: Option<String>) {
+200 |     pub fn set_system_state(&self, state: IndexingState, message: Option<String>) {
+200 |     pub fn set_system_state(&self, state: IndexingState, message: Option<String>) {
+warning: type `CodebaseIndexConfigState` is more private than the item `ContextProxy::get_global_state`
+546 |     fn get_global_state(&self, key: &str) -> Option<CodebaseIndexConfigState>;
+note: but type `CodebaseIndexConfigState` is only usable at visibility `pub(self)`
+531 | struct CodebaseIndexConfigState {
+warning: type `IndexAction` is more private than the item `CodeIndexer::queue_file`
+176 |     pub async fn queue_file(&self, path: PathBuf, action: IndexAction) {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method `CodeIndexer::queue_file` is reachable at visibility `pub`
+note: but type `IndexAction` is only usable at visibility `pub(self)`
+30  | enum IndexAction {
+24 | pub struct CodeIndexManager {
+26 |     instances: Arc<Mutex<HashMap<PathBuf, Arc<CodeIndexManager>>>>,
+warning: struct `CacheEntry` is never constructed
+16 | struct CacheEntry {
+119 | impl HierarchicalCache {
+518 |     cache_manager: Arc<CacheManager>,
+544 |     cache_manager: Arc<CacheManager>,
+54 | struct CachedEmbedding {
+   = note: `CachedEmbedding` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+32 |     cache_manager: Arc<dyn ICacheManager>,
+465 |     async fn process_file(&self, path: &Path) -> Result<FileProcessingResult> {
+30 | enum IndexAction {
+   = note: `IndexAction` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+   Cache TTL: 600s
+   Documents: 9
+   Has Index: false
+   Cache Enabled: true
+📝 PHASE 1: ADDING DOCUMENTS
+   Processing batch 1/6...
+   Processing batch 2/6...
+   Processing batch 3/6...
+   Processing batch 4/6...
+   Processing batch 5/6...
+   Processing batch 6/6...
+   ✅ Added 59 documents total
+🏗️ PHASE 2: INDEX BUILDING
+Failed to build index: Runtime { message: "Failed to create IVF_PQ index: lance error: LanceError(Index): Not enough rows to train PQ. Requires 256 rows but only 68 available, /home/verma/.cargo/git/checkouts/lance-8cdf2ec69b3663b6/e842a8f/rust/lance-index/src/vector/pq/builder.rs:177:27" }
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 119.04s

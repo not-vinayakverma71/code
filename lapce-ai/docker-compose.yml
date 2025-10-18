@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  lapce-ipc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lapce-ipc-server
+    restart: unless-stopped
+    user: "1000:1000"
+    ports:
+      - "9090:9090"  # Prometheus metrics
+      - "8080:8080"  # HTTP API
+    volumes:
+      - ./config:/etc/ipc:ro
+      - /tmp/ipc:/var/run/ipc
+      - ipc-logs:/var/log/ipc
+      - ipc-logs:/var/log/lapce
+      - ./lapce-ipc.toml:/etc/lapce/config.toml:ro
+    environment:
+      - RUST_LOG=info
+      - IPC_SOCKET_PATH=/var/run/lapce/ipc.sock
+      - IPC_MAX_CONNECTIONS=2000
+      - IPC_ENABLE_METRICS=true
+    ports:
+      - "9090:9090"  # Metrics port
+    networks:
+      - lapce-network
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/lapce/ipc.sock"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 128M
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: lapce-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: lapce-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana-dashboard.json:/etc/grafana/provisioning/dashboards/dashboard.json
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    restart: unless-stopped
+
+volumes:
+  lance-data:
+  tantivy-data:
+  model-cache:
+  prometheus-data:
+  grafana-data:

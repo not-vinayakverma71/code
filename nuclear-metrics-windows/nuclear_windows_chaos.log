@@ -1,0 +1,23 @@
+
+running 1 test
+
+🌪️ WINDOWS NUCLEAR: CHAOS
+Agents: 64
+Duration: 20s
+
+📊 RESULTS (Windows Chaos)
+Total operations: 1503
+Failed operations: 244
+Failure rate: 16.234%
+Avg recovery: 21.50ms (123 samples)
+RESULT windows_chaos_failure_rate_pct=16.234
+RESULT windows_chaos_avg_recovery_ms=21.50
+test nuclear_windows_chaos ... FAILED
+
+failures:
+
+failures:
+    nuclear_windows_chaos
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 20.00s
+

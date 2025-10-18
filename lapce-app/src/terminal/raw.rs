@@ -14,7 +14,11 @@ use alacritty_terminal::{
 };
 use lapce_rpc::{proxy::ProxyRpcHandler, terminal::TermId};
 
-use super::event::TermNotification;
+use super::{
+    event::TermNotification,
+    capture::CommandCapture,
+    shell_integration::ShellIntegrationMonitor,  // NEW: Import monitor
+};
 
 pub struct EventProxy {
     term_id: TermId,
@@ -26,6 +30,17 @@ impl EventListener for EventProxy {
     fn send_event(&self, event: alacritty_terminal::event::Event) {
         match event {
             alacritty_terminal::event::Event::PtyWrite(s) => {
+                // Send command data to be captured
+                if let Err(err) = self.term_notification_tx.send(
+                    TermNotification::UserInput {
+                        term_id: self.term_id,
+                        data: s.clone(),
+                    }
+                ) {
+                    tracing::error!("Failed to send user input notification: {:?}", err);
+                }
+                
+                // Still send to proxy for actual execution
                 self.proxy.terminal_write(self.term_id, s);
             }
             alacritty_terminal::event::Event::MouseCursorDirty => {
@@ -55,6 +70,8 @@ pub struct RawTerminal {
     pub parser: ansi::Processor,
     pub term: Term<EventProxy>,
     pub scroll_delta: f64,
+    pub command_capture: CommandCapture,
+    pub shell_monitor: ShellIntegrationMonitor,  // NEW: Shell integration monitor
 }
 
 impl RawTerminal {
@@ -62,6 +79,7 @@ impl RawTerminal {
         term_id: TermId,
         proxy: ProxyRpcHandler,
         term_notification_tx: Sender<TermNotification>,
+        cwd: std::path::PathBuf,  // NEW: Need CWD for command tracking
     ) -> Self {
         let config = alacritty_terminal::term::Config {
             semantic_escape_chars: ",│`|\"' ()[]{}<>\t".to_string(),
@@ -76,15 +94,51 @@ impl RawTerminal {
         let size = TermSize::new(50, 30);
         let term = Term::new(config, &size, event_proxy);
         let parser = ansi::Processor::new();
+        let command_capture = CommandCapture::new(cwd);  // NEW: Initialize
+        let shell_monitor = ShellIntegrationMonitor::new();  // NEW: Initialize monitor
 
         Self {
             parser,
             term,
             scroll_delta: 0.0,
+            command_capture,  // NEW: Add to struct
+            shell_monitor,  // NEW: Add to struct
         }
     }
 
     pub fn update_content(&mut self, content: Vec<u8>) {
+        // Convert to string for shell integration parsing
+        let content_str = String::from_utf8_lossy(&content);
+        
+        // Check for shell integration markers
+        if let Some(marker) = ShellIntegrationMonitor::parse_marker(&content_str) {
+            use super::shell_integration::MarkerEvent;
+            
+            let event = self.shell_monitor.process_marker(marker);
+            match event {
+                MarkerEvent::CommandStarted => {
+                    tracing::debug!("Shell integration: command started");
+                }
+                MarkerEvent::CommandCompleted { exit_code, duration, forced } => {
+                    if forced {
+                        tracing::warn!(
+                            "Shell integration: command force-completed after {:?} (exit_code: {})",
+                            duration,
+                            exit_code
+                        );
+                    } else {
+                        tracing::debug!(
+                            "Shell integration: command completed in {:?} (exit_code: {})",
+                            duration,
+                            exit_code
+                        );
+                    }
+                }
+                MarkerEvent::None => {}
+            }
+        }
+        
+        // Process content through terminal
         for byte in content {
             self.parser.advance(&mut self.term, byte);
         }

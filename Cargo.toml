@@ -20,7 +20,8 @@ name = "lapce-proxy"
 path = "lapce-proxy/src/bin/lapce-proxy.rs"
 
 [workspace]
-members = ["lapce-app", "lapce-proxy", "lapce-rpc", "lapce-core"]
+members = ["lapce-app", "lapce-proxy", "lapce-rpc", "lapce-core", "syntax_test"]
+exclude = ["lapce-ai"]  # Separate workspace with different dependency versions
 
 [workspace.package]
 version      = "0.4.5"
@@ -53,7 +54,7 @@ rayon             = { version = "1.10.0" }
 regex             = { version = "1.10.5" }
 remain            = { version = "0.2" }
 semver            = { version = "1.0" }
-reqwest           = { version = "0.11", features = ["blocking", "json", "socks"] }
+reqwest           = { version = "0.11", features = ["blocking", "json", "socks", "stream"] }
 serde             = { version = "1.0" }
 serde_json        = { version = "1.0" }
 smallvec          = { version = "1.15.1" }
@@ -62,6 +63,7 @@ strum_macros      = { version = "0.27.1" }
 tar               = { version = "0.4" }
 tempfile          = { version = "3.10.1" }
 thiserror         = { version = "1.0" }
+tokio             = { version = "1.40", features = ["full"] }
 toml              = { version = "*" }
 toml_edit         = { version = "0.20.2", features = ["serde"] }
 url               = { version = "2.5.0" }
@@ -118,6 +120,10 @@ rev = "cacdb5bb3b72bad2c729227537979d95af75978f"
 [workspace.dependencies.windows-sys]
 version  = "0"
 features = ["Win32_Foundation"]
+
+[profile.release]
+opt-level = 3
+debug = false
 
 [profile.release-lto]
 inherits      = "release"

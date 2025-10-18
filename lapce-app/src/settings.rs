@@ -29,7 +29,7 @@ use serde_json::Value;
 use crate::{
     command::CommandExecuted,
     config::{
-        DropdownInfo, LapceConfig, color::LapceColor, core::CoreConfig,
+        DropdownInfo, LapceConfig, ai::AIConfig, color::LapceColor, core::CoreConfig,
         editor::EditorConfig, icon::LapceIcons, terminal::TerminalConfig,
         ui::UIConfig,
     },
@@ -157,6 +157,12 @@ impl SettingsData {
             let mut data_kinds = im::Vector::new();
             let mut item_height_accum = 0.0;
             for (kind, fields, descs, mut settings_map) in [
+                (
+                    "AI",
+                    &AIConfig::FIELDS[..],
+                    &AIConfig::DESCS[..],
+                    into_settings_map(&config.ai),
+                ),
                 (
                     "Core",
                     &CoreConfig::FIELDS[..],
@@ -832,7 +838,7 @@ fn color_section_list(
         }),
         virtual_stack(
             move || BTreeMapVirtualList(list()),
-            move |(key, _)| (key.to_owned()),
+            move |(key, _)| key.to_owned(),
             move |(key, value)| {
                 let cx = Scope::current();
                 let text_input_view = TextInputBuilder::new()

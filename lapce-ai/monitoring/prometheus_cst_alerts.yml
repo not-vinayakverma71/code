@@ -1,0 +1,170 @@
+groups:
+  - name: cst_cache_alerts
+    interval: 30s
+    rules:
+      - alert: CSTCacheHitRateLow
+        expr: |
+          (rate(cst_cache_hits_total[5m]) / 
+           (rate(cst_cache_hits_total[5m]) + rate(cst_cache_misses_total[5m]))) < 0.70
+        for: 5m
+        labels:
+          severity: warning
+          component: cst_cache
+        annotations:
+          summary: "CST cache hit rate below 70%"
+          description: "Cache hit rate is {{ $value | humanizePercentage }}. Target is >80%."
+
+      - alert: CSTCacheHitRateCritical
+        expr: |
+          (rate(cst_cache_hits_total[5m]) / 
+           (rate(cst_cache_hits_total[5m]) + rate(cst_cache_misses_total[5m]))) < 0.50
+        for: 5m
+        labels:
+          severity: critical
+          component: cst_cache
+        annotations:
+          summary: "CST cache hit rate critically low"
+          description: "Cache hit rate is {{ $value | humanizePercentage }}. Immediate investigation required."
+
+      - alert: CSTCacheLatencyHigh
+        expr: |
+          histogram_quantile(0.99, rate(cst_cache_get_duration_seconds_bucket[5m])) > 0.010
+        for: 2m
+        labels:
+          severity: warning
+          component: cst_cache
+        annotations:
+          summary: "CST cache p99 latency high"
+          description: "p99 latency is {{ $value }}s. Target is <10ms."
+
+      - alert: CSTCacheStoreLatencyHigh
+        expr: |
+          histogram_quantile(0.99, rate(cst_cache_store_duration_seconds_bucket[5m])) > 0.050
+        for: 2m
+        labels:
+          severity: warning
+          component: cst_cache
+        annotations:
+          summary: "CST cache store p99 latency high"
+          description: "Store p99 latency is {{ $value }}s. Target is <50ms."
+
+  - name: semantic_search_alerts
+    interval: 30s
+    rules:
+      - alert: SemanticSearchCacheHitRateLow
+        expr: |
+          (rate(semantic_search_cache_hits_total[5m]) / 
+           (rate(semantic_search_cache_hits_total[5m]) + rate(semantic_search_cache_misses_total[5m]))) < 0.80
+        for: 5m
+        labels:
+          severity: warning
+          component: semantic_search
+        annotations:
+          summary: "Semantic search cache hit rate below 80%"
+          description: "Cache hit rate is {{ $value | humanizePercentage }}."
+
+      - alert: SearchLatencyHigh
+        expr: |
+          histogram_quantile(0.95, rate(semantic_search_latency_seconds_bucket{operation="search"}[5m])) > 1.0
+        for: 3m
+        labels:
+          severity: warning
+          component: semantic_search
+        annotations:
+          summary: "Search p95 latency exceeds 1s"
+          description: "Search latency is {{ $value }}s."
+
+      - alert: ChangeDetectionLatencyHigh
+        expr: |
+          histogram_quantile(0.95, rate(semantic_search_index_latency_seconds_bucket{operation="change_detection"}[5m])) > 0.001
+        for: 2m
+        labels:
+          severity: critical
+          component: cst_pipeline
+        annotations:
+          summary: "Change detection latency exceeds 1ms target"
+          description: "p95 latency is {{ $value }}s. SLO is <1ms per 1000 nodes."
+
+      - alert: EmbeddingReuseRateLow
+        expr: |
+          (rate(semantic_search_cache_hits_total{cache_type="embedding"}[5m]) / 
+           (rate(semantic_search_cache_hits_total{cache_type="embedding"}[5m]) + 
+            rate(semantic_search_cache_misses_total{cache_type="embedding"}[5m]))) < 0.85
+        for: 10m
+        labels:
+          severity: warning
+          component: cst_pipeline
+        annotations:
+          summary: "Embedding reuse rate below 85% target"
+          description: "Reuse rate is {{ $value | humanizePercentage }}."
+
+      - alert: IndexingErrorRateHigh
+        expr: |
+          rate(semantic_search_errors_total{error_type="indexing"}[5m]) > 0.01
+        for: 2m
+        labels:
+          severity: critical
+          component: semantic_search
+        annotations:
+          summary: "Indexing error rate exceeds 1% budget"
+          description: "Error rate is {{ $value | humanizePercentage }}."
+
+  - name: aws_titan_alerts
+    interval: 30s
+    rules:
+      - alert: AWSTitanLatencyHigh
+        expr: |
+          histogram_quantile(0.95, rate(aws_titan_request_latency_seconds_bucket[5m])) > 2.0
+        for: 5m
+        labels:
+          severity: warning
+          component: aws_titan
+        annotations:
+          summary: "AWS Titan p95 latency exceeds 2s"
+          description: "Latency is {{ $value }}s."
+
+      - alert: AWSTitanErrorRateHigh
+        expr: |
+          rate(aws_titan_errors_total[5m]) > 0.02
+        for: 2m
+        labels:
+          severity: critical
+          component: aws_titan
+        annotations:
+          summary: "AWS Titan error rate exceeds 2%"
+          description: "Error rate is {{ $value | humanizePercentage }}. Check credentials and rate limits."
+
+      - alert: AWSTitanThrottling
+        expr: |
+          rate(aws_titan_errors_total{error_type="throttling"}[5m]) > 0.01
+        for: 3m
+        labels:
+          severity: warning
+          component: aws_titan
+        annotations:
+          summary: "AWS Titan throttling detected"
+          description: "Throttle rate is {{ $value | humanizePercentage }}. Consider rate limiting."
+
+  - name: memory_alerts
+    interval: 60s
+    rules:
+      - alert: MemoryUsageHigh
+        expr: semantic_search_memory_rss_bytes > 3221225472
+        for: 5m
+        labels:
+          severity: warning
+          component: memory
+        annotations:
+          summary: "Memory usage exceeds 3GB baseline target"
+          description: "Current RSS is {{ $value | humanize1024 }}B."
+
+      - alert: MemoryLeakSuspected
+        expr: |
+          rate(semantic_search_memory_rss_bytes[30m]) > 10485760
+        for: 10m
+        labels:
+          severity: critical
+          component: memory
+        annotations:
+          summary: "Potential memory leak detected"
+          description: "Memory growing at {{ $value | humanize1024 }}B/s over 30m."

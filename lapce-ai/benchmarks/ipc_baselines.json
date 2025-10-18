@@ -1,0 +1,97 @@
+{
+  "baselines": {
+    "linux": {
+      "connection_bomb": {
+        "min_throughput_msg_sec": 1000000,
+        "max_memory_mb": 3,
+        "max_latency_p99_us": 10,
+        "tolerance_percent": 10
+      },
+      "memory_exhaustion": {
+        "max_memory_growth_mb": 3,
+        "max_peak_memory_mb": 10,
+        "tolerance_percent": 15
+      },
+      "latency_torture": {
+        "max_violations_percent": 1,
+        "max_latency_us": 50,
+        "p99_latency_us": 10,
+        "tolerance_percent": 5
+      },
+      "memory_leak": {
+        "max_growth_per_cycle_kb": 512,
+        "max_total_growth_kb": 256,
+        "tolerance_percent": 20
+      },
+      "chaos_engineering": {
+        "max_recovery_failures_percent": 1,
+        "max_recovery_time_ms": 100,
+        "min_success_rate": 99,
+        "tolerance_percent": 5
+      }
+    },
+    "macos": {
+      "connection_bomb": {
+        "min_throughput_msg_sec": 800000,
+        "max_memory_mb": 5,
+        "max_latency_p99_us": 15,
+        "tolerance_percent": 15
+      },
+      "memory_exhaustion": {
+        "max_memory_growth_mb": 5,
+        "max_peak_memory_mb": 15,
+        "tolerance_percent": 20
+      },
+      "latency_torture": {
+        "max_violations_percent": 2,
+        "max_latency_us": 75,
+        "p99_latency_us": 15,
+        "tolerance_percent": 10
+      },
+      "memory_leak": {
+        "max_growth_per_cycle_kb": 768,
+        "max_total_growth_kb": 512,
+        "tolerance_percent": 25
+      },
+      "chaos_engineering": {
+        "max_recovery_failures_percent": 2,
+        "max_recovery_time_ms": 150,
+        "min_success_rate": 98,
+        "tolerance_percent": 10
+      }
+    },
+    "windows": {
+      "connection_bomb": {
+        "min_throughput_msg_sec": 600000,
+        "max_memory_mb": 8,
+        "max_latency_p99_us": 25,
+        "tolerance_percent": 20
+      },
+      "memory_exhaustion": {
+        "max_memory_growth_mb": 8,
+        "max_peak_memory_mb": 20,
+        "tolerance_percent": 25
+      },
+      "latency_torture": {
+        "max_violations_percent": 3,
+        "max_latency_us": 100,
+        "p99_latency_us": 25,
+        "tolerance_percent": 15
+      },
+      "memory_leak": {
+        "max_growth_per_cycle_kb": 1024,
+        "max_total_growth_kb": 768,
+        "tolerance_percent": 30
+      },
+      "chaos_engineering": {
+        "max_recovery_failures_percent": 3,
+        "max_recovery_time_ms": 200,
+        "min_success_rate": 97,
+        "tolerance_percent": 15
+      }
+    }
+  },
+  "version": "1.0.0",
+  "updated": "2024-10-05T23:00:00Z",
+  "description": "Performance baselines for IPC nuclear stress tests across different operating systems"
+}

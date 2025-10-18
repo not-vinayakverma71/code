@@ -1,0 +1,1107 @@
+warning: /home/verma/lapce/lapce-ai-rust/semantic_search/Cargo.toml: version requirement `=2.0.8+zstd.1.5.5` for dependency `zstd-sys` includes semver metadata which will be ignored, removing the metadata is recommended to avoid confusion
+   Compiling lancedb v0.22.1-beta.1 (/home/verma/lapce/lapce-ai-rust/semantic_search)
+warning: unused import: `std::collections::HashMap`
+ --> src/query/codebase_search.rs:9:5
+  |
+9 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `PathBuf`
+  --> src/query/codebase_search.rs:10:23
+   |
+10 | use std::path::{Path, PathBuf};
+   |                       ^^^^^^^
+
+warning: unused import: `crate::processors::scanner::CodeBlock`
+ --> src/processors/file_watcher.rs:9:5
+  |
+9 | use crate::processors::scanner::CodeBlock;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `TreeCursor`
+ --> src/processors/cst_to_ast_pipeline.rs:6:49
+  |
+6 | use tree_sitter::{Node, Tree, Parser, Language, TreeCursor};
+  |                                                 ^^^^^^^^^^
+
+warning: unused import: `Node`
+  --> src/processors/lapce_integration.rs:10:33
+   |
+10 | use tree_sitter::{Parser, Tree, Node};
+   |                                 ^^^^
+
+warning: unused import: `crate::processors::cst_to_ast_pipeline::AstNodeType`
+   --> src/processors/lapce_integration.rs:275:13
+    |
+275 |         use crate::processors::cst_to_ast_pipeline::AstNodeType;
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Config`
+ --> src/processors/native_file_watcher.rs:6:56
+  |
+6 | use notify::{Watcher, RecursiveMode, Event, EventKind, Config};
+  |                                                        ^^^^^^
+
+warning: unused import: `lance::dataset::Dataset`
+  --> src/search/semantic_search_engine.rs:12:5
+   |
+12 | use lance::dataset::Dataset;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Query as LanceQuery`
+  --> src/search/semantic_search_engine.rs:15:20
+   |
+15 | use crate::query::{Query as LanceQuery, ExecutableQuery, QueryBase};
+   |                    ^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Duration`
+  --> src/search/code_indexer.rs:11:17
+   |
+11 | use std::time::{Duration, Instant};
+   |                 ^^^^^^^^
+
+warning: unused import: `crate::processors::file_watcher::FileWatcher`
+ --> src/search/incremental_indexer.rs:6:5
+  |
+6 | use crate::processors::file_watcher::FileWatcher;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::collections::VecDeque`
+  --> src/search/incremental_indexer.rs:11:5
+   |
+11 | use std::collections::VecDeque;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `lance_index::scalar::FullTextSearchQuery`
+ --> src/search/hybrid_search.rs:7:5
+  |
+7 | use lance_index::scalar::FullTextSearchQuery;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::Table`
+  --> src/search/hybrid_search.rs:10:5
+   |
+10 | use crate::Table;
+   |     ^^^^^^^^^^^^
+
+warning: unused import: `SearchResult`
+ --> src/search/codebase_search_tool.rs:6:67
+  |
+6 | use crate::search::semantic_search_engine::{SemanticSearchEngine, SearchResult, SearchFilters};
+  |                                                                   ^^^^^^^^^^^^
+
+warning: unused import: `crate::error::Result`
+ --> src/search/improved_cache.rs:4:5
+  |
+4 | use crate::error::Result;
+  |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Query as LanceQuery`
+  --> src/search/fully_optimized_storage.rs:10:20
+   |
+10 | use crate::query::{Query as LanceQuery, ExecutableQuery, QueryBase, Select};
+   |                    ^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::path::PathBuf`
+  --> src/search/fully_optimized_storage.rs:18:5
+   |
+18 | use std::path::PathBuf;
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `tokio::sync::RwLock`
+  --> src/search/fully_optimized_storage.rs:19:5
+   |
+19 | use tokio::sync::RwLock;
+   |     ^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `warn`
+  --> src/search/fully_optimized_storage.rs:20:28
+   |
+20 | use tracing::{info, debug, warn};
+   |                            ^^^^
+
+warning: unused imports: `BinaryBuilder` and `Float32Builder`
+  --> src/search/fully_optimized_storage.rs:22:28
+   |
+22 | use arrow_array::builder::{BinaryBuilder, Float32Builder, StringBuilder, UInt32Builder};
+   |                            ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+
+warning: unused imports: `Error` and `Result`
+ --> src/optimization/simd_kernels.rs:8:20
+  |
+8 | use crate::error::{Error, Result};
+  |                    ^^^^^  ^^^^^^
+
+warning: unused import: `l2_distance_squared_simd`
+ --> src/optimization/exact_score.rs:5:45
+  |
+5 | use super::simd_kernels::{dot_product_simd, l2_distance_squared_simd};
+  |                                             ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Context`
+ --> src/embeddings/compression.rs:4:22
+  |
+4 | use anyhow::{Result, Context};
+  |                      ^^^^^^^
+
+warning: unused import: `ValidationResult`
+ --> src/embeddings/openai_embedder.rs:7:69
+  |
+7 |     IEmbedder, EmbeddingResponse, EmbedderInfo, AvailableEmbedders, ValidationResult, EmbeddingUsage
+  |                                                                     ^^^^^^^^^^^^^^^^
+
+warning: unused import: `Serialize`
+  --> src/embeddings/openai_compatible_embedder.rs:11:26
+   |
+11 | use serde::{Deserialize, Serialize};
+   |                          ^^^^^^^^^
+
+warning: unused import: `Mutex`
+  --> src/embeddings/openai_compatible_embedder.rs:14:19
+   |
+14 | use tokio::sync::{Mutex, RwLock};
+   |                   ^^^^^
+
+warning: unused import: `snafu::ResultExt`
+  --> src/database/listing.rs:16:5
+   |
+16 | use snafu::ResultExt;
+   |     ^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::Connection`
+ --> src/database/code_index_manager.rs:6:5
+  |
+6 | use crate::Connection;
+  |     ^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Error`
+ --> src/database/config_manager.rs:5:20
+  |
+5 | use crate::error::{Error, Result};
+  |                    ^^^^^
+
+warning: unused import: `std::collections::HashMap`
+ --> src/database/config_manager.rs:7:5
+  |
+7 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `DeltaOperation`
+ --> src/incremental/fast_updater.rs:5:42
+  |
+5 | use super::delta_encoder::{DeltaEncoder, DeltaOperation, FieldChange};
+  |                                          ^^^^^^^^^^^^^^
+
+warning: use of deprecated function `aws_config::load_from_env`: Use the `aws_config::load_defaults` function. If you don't care about future default behavior changes, you can continue to use this function by enabling the `behavior-version-latest` feature. Doing so will make this deprecation notice go away.
+   --> src/embeddings/service_factory.rs:354:34
+    |
+354 |         let config = aws_config::load_from_env().await;
+    |                                  ^^^^^^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated function `aws_config::from_env`: Use the `aws_config::defaults` function. If you don't care about future default behavior changes, you can continue to use this function by enabling the `behavior-version-latest` feature. Doing so will make this deprecation notice go away.
+   --> src/embeddings/service_factory.rs:367:34
+    |
+367 |         let config = aws_config::from_env()
+    |                                  ^^^^^^^^
+
+warning: use of deprecated function `base64::decode`: Use Engine::decode
+   --> src/embeddings/openai_compatible_embedder.rs:175:53
+    |
+175 | ...                   let bytes = base64::decode(base64_str).unwrap_or_default();
+    |                                           ^^^^^^
+
+warning: use of deprecated function `aws_config::from_env`: Use the `aws_config::defaults` function. If you don't care about future default behavior changes, you can continue to use this function by enabling the `behavior-version-latest` feature. Doing so will make this deprecation notice go away.
+   --> src/embeddings/aws_titan_production.rs:130:34
+    |
+130 |         let config = aws_config::from_env()
+    |                                  ^^^^^^^^
+
+warning: unused variable: `state_manager`
+  --> src/index/orchestrator.rs:71:21
+   |
+71 |                 let state_manager = self.state_manager.clone();
+   |                     ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_state_manager`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `file_paths`
+  --> src/index/orchestrator.rs:74:80
+   |
+74 |                 self.file_watcher.on_did_start_batch_processing(Box::new(move |file_paths| {
+   |                                                                                ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_file_paths`
+
+warning: unused variable: `path`
+   --> src/index/orchestrator.rs:424:9
+    |
+424 |         path: &Path,
+    |         ^^^^ help: if this is intentional, prefix it with an underscore: `_path`
+
+warning: unused variable: `on_batch_error`
+   --> src/index/orchestrator.rs:425:9
+    |
+425 |         on_batch_error: Box<dyn Fn(Error)>,
+    |         ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_on_batch_error`
+
+warning: unused variable: `on_blocks_indexed`
+   --> src/index/orchestrator.rs:426:9
+    |
+426 |         on_blocks_indexed: Box<dyn Fn(usize)>,
+    |         ^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_on_blocks_indexed`
+
+warning: unused variable: `on_file_parsed`
+   --> src/index/orchestrator.rs:427:9
+    |
+427 |         on_file_parsed: Box<dyn Fn(usize)>,
+    |         ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_on_file_parsed`
+
+warning: unused variable: `workspace_path`
+   --> src/query/codebase_search.rs:138:5
+    |
+138 |     workspace_path: &Path,
+    |     ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_workspace_path`
+
+warning: unused variable: `text`
+   --> src/query/codebase_search.rs:220:29
+    |
+220 | async fn generate_embedding(text: &str) -> Result<Vec<f32>> {
+    |                             ^^^^ help: if this is intentional, prefix it with an underscore: `_text`
+
+warning: unused variable: `directory`
+   --> src/processors/scanner.rs:590:21
+    |
+590 | async fn list_files(directory: &Path, recursive: bool, limit: usize) -> Result<Vec<PathBuf>> {
+    |                     ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_directory`
+
+warning: unused variable: `recursive`
+   --> src/processors/scanner.rs:590:39
+    |
+590 | async fn list_files(directory: &Path, recursive: bool, limit: usize) -> Result<Vec<PathBuf>> {
+    |                                       ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_recursive`
+
+warning: unused variable: `limit`
+   --> src/processors/scanner.rs:590:56
+    |
+590 | async fn list_files(directory: &Path, recursive: bool, limit: usize) -> Result<Vec<PathBuf>> {
+    |                                                        ^^^^^ help: if this is intentional, prefix it with an underscore: `_limit`
+
+warning: variable `last_error` is assigned to, but never used
+   --> src/processors/file_watcher.rs:349:29
+    |
+349 |                     let mut last_error = None;
+    |                             ^^^^^^^^^^
+    |
+    = note: consider using `_last_error` instead
+
+warning: value assigned to `last_error` is never read
+   --> src/processors/file_watcher.rs:355:33
+    |
+355 | ...                   last_error = Some(error);
+    |                       ^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+    = note: `#[warn(unused_assignments)]` on by default
+
+warning: value assigned to `processed_count` is never read
+   --> src/processors/file_watcher.rs:447:9
+    |
+447 |         processed_count = processed_count_after_files;
+    |         ^^^^^^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+
+warning: unused variable: `cst`
+  --> src/processors/lapce_integration.rs:41:13
+   |
+41 |         let cst = self.get_cst_from_mega_parser(path).await?;
+   |             ^^^ help: if this is intentional, prefix it with an underscore: `_cst`
+
+warning: unused variable: `filters`
+   --> src/search/semantic_search_engine.rs:410:9
+    |
+410 |         filters: Option<SearchFilters>,
+    |         ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_filters`
+
+warning: unused variable: `watch_path`
+  --> src/search/incremental_indexer.rs:69:31
+   |
+69 |     pub async fn start(&self, watch_path: PathBuf) -> Result<()> {
+   |                               ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_watch_path`
+
+warning: unused variable: `change_buffer`
+  --> src/search/incremental_indexer.rs:71:13
+   |
+71 |         let change_buffer = self.change_buffer.clone();
+   |             ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_change_buffer`
+
+warning: unused variable: `code_indexer`
+  --> src/search/incremental_indexer.rs:72:13
+   |
+72 |         let code_indexer = self.code_indexer.clone();
+   |             ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_code_indexer`
+
+warning: unused variable: `query_cache`
+  --> src/search/incremental_indexer.rs:73:13
+   |
+73 |         let query_cache = self.query_cache.clone();
+   |             ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_query_cache`
+
+warning: unused variable: `rel_dir_path`
+  --> src/search/search_files_tool.rs:88:13
+   |
+88 |         let rel_dir_path = match rel_dir_path {
+   |             ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_rel_dir_path`
+
+warning: unused variable: `orchestrator`
+   --> src/database/code_index_manager.rs:301:21
+    |
+301 |         if let Some(orchestrator) = &self.orchestrator {
+    |                     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_orchestrator`
+
+warning: unused variable: `k`
+  --> src/incremental/delta_encoder.rs:92:61
+   |
+92 |                 changes: metadata_changes.into_iter().map(|(k, v)| v).collect(),
+   |                                                             ^ help: if this is intentional, prefix it with an underscore: `_k`
+
+warning: unused variable: `k`
+   --> src/incremental/delta_encoder.rs:106:61
+    |
+106 |                 changes: metadata_changes.into_iter().map(|(k, v)| v).collect(),
+    |                                                             ^ help: if this is intentional, prefix it with an underscore: `_k`
+
+warning: unused variable: `target_snapshot`
+   --> src/incremental/delta_encoder.rs:192:13
+    |
+192 |         let target_snapshot = history.iter()
+    |             ^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_target_snapshot`
+
+warning: variable does not need to be mutable
+   --> src/incremental/fast_updater.rs:108:13
+    |
+108 |         let mut segment = self.memory_pool.allocate(segment_size)?;
+    |             ----^^^^^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+warning: unused variable: `doc_id`
+   --> src/incremental/fast_updater.rs:216:40
+    |
+216 |     async fn fetch_from_storage(&self, doc_id: &str) -> Result<(Vec<f32>, HashMap<String, String>)> {
+    |                                        ^^^^^^ help: if this is intentional, prefix it with an underscore: `_doc_id`
+
+warning: unused import: `snafu::ResultExt`
+  --> src/catalog/listing.rs:23:5
+   |
+23 | use snafu::ResultExt;
+   |     ^^^^^^^^^^^^^^^^
+
+warning: unused import: `futures::TryStreamExt`
+  --> src/search/semantic_search_engine.rs:11:5
+   |
+11 | use futures::TryStreamExt;
+   |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused variable: `state`
+   --> src/query/search_service.rs:200:36
+    |
+200 |     pub fn set_system_state(&self, state: IndexingState, message: Option<String>) {
+    |                                    ^^^^^ help: if this is intentional, prefix it with an underscore: `_state`
+
+warning: unused variable: `message`
+   --> src/query/search_service.rs:200:58
+    |
+200 |     pub fn set_system_state(&self, state: IndexingState, message: Option<String>) {
+    |                                                          ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_message`
+
+warning: value assigned to `chunk_start_line_index` is never read
+   --> src/processors/parser.rs:182:21
+    |
+182 |                     chunk_start_line_index = i;
+    |                     ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+
+warning: unused variable: `file_hash`
+   --> src/processors/parser.rs:107:9
+    |
+107 |         file_hash: &str,
+    |         ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_file_hash`
+
+warning: unused variable: `chunk_type`
+   --> src/processors/parser.rs:108:9
+    |
+108 |         chunk_type: &str,
+    |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_chunk_type`
+
+warning: unnecessary `unsafe` block
+   --> src/processors/cst_to_ast_pipeline.rs:307:26
+    |
+307 |             "rust" => Ok(unsafe { tree_sitter_rust::language() }),
+    |                          ^^^^^^ unnecessary `unsafe` block
+    |
+    = note: `#[warn(unused_unsafe)]` on by default
+
+warning: unnecessary `unsafe` block
+   --> src/processors/cst_to_ast_pipeline.rs:308:32
+    |
+308 |             "javascript" => Ok(unsafe { tree_sitter_javascript::language() }),
+    |                                ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+   --> src/processors/cst_to_ast_pipeline.rs:309:32
+    |
+309 |             "typescript" => Ok(unsafe { tree_sitter_typescript::language_typescript() }),
+    |                                ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+   --> src/processors/cst_to_ast_pipeline.rs:310:28
+    |
+310 |             "python" => Ok(unsafe { tree_sitter_python::language() }),
+    |                            ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+   --> src/processors/cst_to_ast_pipeline.rs:311:24
+    |
+311 |             "go" => Ok(unsafe { tree_sitter_go::language() }),
+    |                        ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+   --> src/processors/cst_to_ast_pipeline.rs:312:26
+    |
+312 |             "java" => Ok(unsafe { tree_sitter_java::language() }),
+    |                          ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+  --> src/processors/lapce_integration.rs:76:23
+   |
+76 |             "rust" => unsafe { tree_sitter_rust::language() },
+   |                       ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+  --> src/processors/lapce_integration.rs:77:29
+   |
+77 |             "javascript" => unsafe { tree_sitter_javascript::language() },
+   |                             ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+  --> src/processors/lapce_integration.rs:78:29
+   |
+78 |             "typescript" => unsafe { tree_sitter_typescript::language_typescript() },
+   |                             ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+  --> src/processors/lapce_integration.rs:79:25
+   |
+79 |             "python" => unsafe { tree_sitter_python::language() },
+   |                         ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+  --> src/processors/lapce_integration.rs:80:21
+   |
+80 |             "go" => unsafe { tree_sitter_go::language() },
+   |                     ^^^^^^ unnecessary `unsafe` block
+
+warning: unnecessary `unsafe` block
+  --> src/processors/lapce_integration.rs:81:23
+   |
+81 |             "java" => unsafe { tree_sitter_java::language() },
+   |                       ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `block_size`
+  --> src/optimization/exact_score.rs:62:5
+   |
+62 |     block_size: usize,
+   |     ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_block_size`
+
+warning: unused variable: `current_threshold`
+  --> src/optimization/exact_score.rs:63:5
+   |
+63 |     current_threshold: Option<f32>,
+   |     ^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_current_threshold`
+
+warning: unused variable: `q_block_norms`
+  --> src/optimization/exact_score.rs:64:5
+   |
+64 |     q_block_norms: Option<&[f32]>,
+   |     ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_q_block_norms`
+
+warning: unused variable: `x_block_norms`
+  --> src/optimization/exact_score.rs:65:5
+   |
+65 |     x_block_norms: Option<&[f32]>,
+   |     ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_x_block_norms`
+
+warning: variable `total_tokens` is assigned to, but never used
+   --> src/embeddings/service_factory.rs:389:17
+    |
+389 |         let mut total_tokens = 0;
+    |                 ^^^^^^^^^^^^
+    |
+    = note: consider using `_total_tokens` instead
+
+warning: unused variable: `provider`
+   --> src/embeddings/openai_embedder.rs:301:27
+    |
+301 | fn get_model_query_prefix(provider: &str, model: &str) -> Option<String> {
+    |                           ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_provider`
+
+warning: unused variable: `model`
+   --> src/embeddings/openai_embedder.rs:301:43
+    |
+301 | fn get_model_query_prefix(provider: &str, model: &str) -> Option<String> {
+    |                                           ^^^^^ help: if this is intentional, prefix it with an underscore: `_model`
+
+warning: unused variable: `metrics`
+   --> src/embeddings/aws_titan_production.rs:434:21
+    |
+434 |                 let metrics = self.get_metrics().await;
+    |                     ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_metrics`
+
+warning: unused variable: `orchestrator`
+   --> src/database/code_index_manager.rs:257:21
+    |
+257 |         if let Some(orchestrator) = &self.orchestrator {
+    |                     ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_orchestrator`
+
+warning: unused variable: `state`
+   --> src/database/code_index_manager.rs:467:36
+    |
+467 |     pub fn set_system_state(&self, state: IndexingState, message: Option<String>) {
+    |                                    ^^^^^ help: if this is intentional, prefix it with an underscore: `_state`
+
+warning: unused variable: `message`
+   --> src/database/code_index_manager.rs:467:58
+    |
+467 |     pub fn set_system_state(&self, state: IndexingState, message: Option<String>) {
+    |                                                          ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_message`
+
+warning: type `CodebaseIndexConfigState` is more private than the item `ContextProxy::get_global_state`
+   --> src/database/config_manager.rs:546:5
+    |
+546 |     fn get_global_state(&self, key: &str) -> Option<CodebaseIndexConfigState>;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method `ContextProxy::get_global_state` is reachable at visibility `pub`
+    |
+note: but type `CodebaseIndexConfigState` is only usable at visibility `pub(self)`
+   --> src/database/config_manager.rs:531:1
+    |
+531 | struct CodebaseIndexConfigState {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: `#[warn(private_interfaces)]` on by default
+
+warning: variants `BatchStart`, `BatchProgress`, and `BatchFinish` are never constructed
+   --> src/index/orchestrator.rs:395:5
+    |
+394 | enum WatcherSubscription {
+    |      ------------------- variants in this enum
+395 |     BatchStart,
+    |     ^^^^^^^^^^
+396 |     BatchProgress,
+    |     ^^^^^^^^^^^^^
+397 |     BatchFinish,
+    |     ^^^^^^^^^^^
+    |
+    = note: `WatcherSubscription` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` on by default
+
+warning: field `directory` is never read
+   --> src/processors/scanner.rs:570:5
+    |
+569 | struct RooIgnoreController {
+    |        ------------------- field in this struct
+570 |     directory: PathBuf,
+    |     ^^^^^^^^^
+
+warning: constant `QDRANT_CODE_BLOCK_NAMESPACE` is never used
+  --> src/processors/file_watcher.rs:20:7
+   |
+20 | const QDRANT_CODE_BLOCK_NAMESPACE: Uuid = Uuid::from_u128(0x12345678_1234_5678_1234_567812345678);
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MAX_FILE_SIZE_BYTES` is never used
+  --> src/processors/file_watcher.rs:21:7
+   |
+21 | const MAX_FILE_SIZE_BYTES: u64 = 10 * 1024 * 1024;
+   |       ^^^^^^^^^^^^^^^^^^^
+
+warning: constant `BATCH_SEGMENT_THRESHOLD` is never used
+  --> src/processors/file_watcher.rs:22:7
+   |
+22 | const BATCH_SEGMENT_THRESHOLD: usize = 100;
+   |       ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MAX_BATCH_RETRIES` is never used
+  --> src/processors/file_watcher.rs:23:7
+   |
+23 | const MAX_BATCH_RETRIES: usize = 3;
+   |       ^^^^^^^^^^^^^^^^^
+
+warning: constant `INITIAL_RETRY_DELAY_MS` is never used
+  --> src/processors/file_watcher.rs:24:7
+   |
+24 | const INITIAL_RETRY_DELAY_MS: u64 = 1000;
+   |       ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `BATCH_DEBOUNCE_DELAY_MS` is never used
+  --> src/processors/file_watcher.rs:25:7
+   |
+25 | const BATCH_DEBOUNCE_DELAY_MS: u64 = 500;
+   |       ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `FILE_PROCESSING_CONCURRENCY_LIMIT` is never used
+  --> src/processors/file_watcher.rs:26:7
+   |
+26 | const FILE_PROCESSING_CONCURRENCY_LIMIT: usize = 10;
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: multiple fields are never read
+  --> src/processors/file_watcher.rs:30:5
+   |
+29 | pub struct FileWatcher {
+   |            ----------- fields in this struct
+30 |     workspace_path: PathBuf,
+   |     ^^^^^^^^^^^^^^
+31 |     context: Arc<dyn std::any::Any + Send + Sync>,
+   |     ^^^^^^^
+32 |     cache_manager: Arc<dyn ICacheManager>,
+   |     ^^^^^^^^^^^^^
+33 |     embedder: Option<Arc<dyn IEmbedder>>,
+   |     ^^^^^^^^
+34 |     vector_store: Option<Arc<dyn IVectorStore>>,
+   |     ^^^^^^^^^^^^
+35 |     ignore_instance: Option<Arc<dyn Ignore>>,
+   |     ^^^^^^^^^^^^^^^
+36 |     ignore_controller: Option<Arc<RooIgnoreController>>,
+   |     ^^^^^^^^^^^^^^^^^
+
+warning: fields `path` and `event_type` are never read
+  --> src/processors/file_watcher.rs:45:5
+   |
+44 | struct FileEvent {
+   |        --------- fields in this struct
+45 |     path: PathBuf,
+   |     ^^^^
+46 |     event_type: FileEventType,
+   |     ^^^^^^^^^^
+   |
+   = note: `FileEvent` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: variants `Create`, `Change`, and `Delete` are never constructed
+  --> src/processors/file_watcher.rs:51:5
+   |
+50 | enum FileEventType {
+   |      ------------- variants in this enum
+51 |     Create,
+   |     ^^^^^^
+52 |     Change,
+   |     ^^^^^^
+53 |     Delete,
+   |     ^^^^^^
+   |
+   = note: `FileEventType` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: multiple methods are never used
+   --> src/processors/file_watcher.rs:103:14
+    |
+56  | impl FileWatcher {
+    | ---------------- methods in this implementation
+...
+103 |     async fn handle_file_created(&self, path: PathBuf) {
+    |              ^^^^^^^^^^^^^^^^^^^
+...
+115 |     async fn handle_file_changed(&self, path: PathBuf) {
+    |              ^^^^^^^^^^^^^^^^^^^
+...
+127 |     async fn handle_file_deleted(&self, path: PathBuf) {
+    |              ^^^^^^^^^^^^^^^^^^^
+...
+139 |     async fn schedule_batch_processing(&self) {
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+146 |     async fn trigger_batch_processing(&self) {
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^
+...
+167 |     async fn handle_batch_deletions(
+    |              ^^^^^^^^^^^^^^^^^^^^^^
+...
+245 |     async fn process_files_and_prepare_upserts(
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+335 |     async fn execute_batch_upsert_operations(
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+408 |     async fn process_batch(&self, events: HashMap<PathBuf, FileEvent>) {
+    |              ^^^^^^^^^^^^^
+...
+465 |     async fn process_file(&self, path: &Path) -> Result<FileProcessingResult> {
+    |              ^^^^^^^^^^^^
+
+warning: struct `ProcessedFile` is never constructed
+   --> src/processors/file_watcher.rs:598:8
+    |
+598 | struct ProcessedFile {
+    |        ^^^^^^^^^^^^^
+
+warning: field `directory` is never read
+   --> src/processors/file_watcher.rs:610:5
+    |
+609 | pub struct RooIgnoreController {
+    |            ------------------- field in this struct
+610 |     directory: PathBuf,
+    |     ^^^^^^^^^
+
+warning: field `mega_parser_path` is never read
+  --> src/processors/lapce_integration.rs:15:5
+   |
+13 | pub struct LapceTreeSitterBridge {
+   |            --------------------- field in this struct
+14 |     /// Reference to lapce-tree-sitter's MegaParser
+15 |     mega_parser_path: PathBuf,
+   |     ^^^^^^^^^^^^^^^^
+
+warning: field `base_path` is never read
+  --> src/search/true_index_persistence.rs:28:5
+   |
+27 | pub struct TrueIndexPersistence {
+   |            -------------------- field in this struct
+28 |     base_path: PathBuf,
+   |     ^^^^^^^^^
+
+warning: field `compression_level` is never read
+   --> src/embeddings/compression.rs:247:5
+    |
+246 | pub struct BatchCompressor {
+    |            --------------- field in this struct
+247 |     compression_level: i32,
+    |     ^^^^^^^^^^^^^^^^^
+
+warning: field `model` is never read
+   --> src/embeddings/service_factory.rs:348:5
+    |
+343 | pub struct AwsTitanEmbedder {
+    |            ---------------- field in this struct
+...
+348 |     model: String, // fallback type when bedrock feature is disabled
+    |     ^^^^^
+
+warning: fields `workspace_path`, `url`, `vector_size`, and `api_key` are never read
+   --> src/embeddings/service_factory.rs:450:5
+    |
+449 | pub struct LanceDbVectorStore {
+    |            ------------------ fields in this struct
+450 |     workspace_path: PathBuf,
+    |     ^^^^^^^^^^^^^^
+451 |     url: String,
+    |     ^^^
+452 |     vector_size: usize,
+    |     ^^^^^^^^^^^
+453 |     api_key: Option<String>,
+    |     ^^^^^^^
+
+warning: fields `embedder`, `vector_store`, `parser`, `cache_manager`, and `ignore_instance` are never read
+   --> src/embeddings/service_factory.rs:503:5
+    |
+502 | pub struct DirectoryScanner {
+    |            ---------------- fields in this struct
+503 |     embedder: Arc<dyn IEmbedder>,
+    |     ^^^^^^^^
+504 |     vector_store: Arc<dyn IVectorStore>,
+    |     ^^^^^^^^^^^^
+505 |     parser: Arc<dyn ICodeParser>,
+    |     ^^^^^^
+506 |     cache_manager: Arc<CacheManager>,
+    |     ^^^^^^^^^^^^^
+507 |     ignore_instance: Arc<dyn Ignore>,
+    |     ^^^^^^^^^^^^^^^
+
+warning: multiple fields are never read
+   --> src/embeddings/service_factory.rs:530:5
+    |
+529 | pub struct FileWatcher {
+    |            ----------- fields in this struct
+530 |     workspace_path: PathBuf,
+    |     ^^^^^^^^^^^^^^
+531 |     context: Arc<dyn std::any::Any + Send + Sync>,
+    |     ^^^^^^^
+532 |     cache_manager: Arc<CacheManager>,
+    |     ^^^^^^^^^^^^^
+533 |     embedder: Arc<dyn IEmbedder>,
+    |     ^^^^^^^^
+534 |     vector_store: Arc<dyn IVectorStore>,
+    |     ^^^^^^^^^^^^
+535 |     ignore_instance: Arc<dyn Ignore>,
+    |     ^^^^^^^^^^^^^^^
+536 |     roo_ignore_controller: Option<Arc<RooIgnoreController>>,
+    |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `extra` is never read
+  --> src/embeddings/openai_compatible_embedder.rs:24:5
+   |
+21 | struct EmbeddingItem {
+   |        ------------- field in this struct
+...
+24 |     extra: serde_json::Map<String, serde_json::Value>,
+   |     ^^^^^
+   |
+   = note: `EmbeddingItem` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: method `max_tokens_per_minute` is never used
+  --> src/embeddings/aws_titan_production.rs:33:8
+   |
+23 | impl AwsTier {
+   | ------------ method in this implementation
+...
+33 |     fn max_tokens_per_minute(&self) -> usize {
+   |        ^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `text_hash` is never read
+  --> src/embeddings/aws_titan_production.rs:56:5
+   |
+54 | struct CachedEmbedding {
+   |        --------------- field in this struct
+55 |     embedding: Vec<f32>,
+56 |     text_hash: u64,
+   |     ^^^^^^^^^
+   |
+   = note: `CachedEmbedding` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `instances` is never read
+  --> src/database/code_index_manager.rs:26:5
+   |
+24 | pub struct CodeIndexManager {
+   |            ---------------- field in this struct
+25 |     // Line 22: Singleton instances map
+26 |     instances: Arc<Mutex<HashMap<PathBuf, Arc<CodeIndexManager>>>>,
+   |     ^^^^^^^^^
+
+warning: field `storage` is never read
+  --> src/incremental/fast_updater.rs:19:5
+   |
+16 | pub struct FastIncrementalUpdater {
+   |            ---------------------- field in this struct
+...
+19 |     storage: Arc<FullyOptimizedStorage>,
+   |     ^^^^^^^
+
+warning: fields `version` and `last_update` are never read
+  --> src/incremental/fast_updater.rs:29:5
+   |
+26 | struct UpdateEntry {
+   |        ----------- fields in this struct
+...
+29 |     version: u64,
+   |     ^^^^^^^
+30 |     last_update: Instant,
+   |     ^^^^^^^^^^^
+   |
+   = note: `UpdateEntry` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: field `name` is never read
+  --> src/memory/shared_pool.rs:42:5
+   |
+40 | pub struct SharedMemoryPool {
+   |            ---------------- field in this struct
+41 |     /// Pool name for IPC
+42 |     name: String,
+   |     ^^^^
+
+warning: field `connection` is never read
+  --> src/production_system.rs:77:5
+   |
+75 | pub struct ProductionSystem {
+   |            ---------------- field in this struct
+76 |     config: ProductionConfig,
+77 |     connection: Arc<Connection>,
+   |     ^^^^^^^^^^
+
+warning: `lancedb` (lib) generated 124 warnings (run `cargo fix --lib -p lancedb` to apply 33 suggestions)
+    Finished `release` profile [optimized] target(s) in 1m 47s
+     Running `target/release/full_system_aws`
+
+╔═══════════════════════════════════════════════════════════════════════╗
+║    FULL SYSTEM BENCHMARK (AWS TITAN, 100 FILES, PERSISTENT STORAGE)    ║
+╚═══════════════════════════════════════════════════════════════════════╝
+
+🗂️  Run directory: runs/aws_100_files/index/20250929_160203
+
+📁 Phase 1: Collecting real Rust files (target = 100)
+════════════════════════════════════════════════════════
+    1: /home/verma/lapce/lapce-ai-rust/benches/ipc_performance_benchmark.rs (8383 bytes)
+    2: /home/verma/lapce/lapce-ai-rust/benches/zero_copy_benchmark.rs (7703 bytes)
+    3: /home/verma/lapce/lapce-ai-rust/benches/ipc_bench.rs (3423 bytes)
+    4: /home/verma/lapce/lapce-ai-rust/benches/cache_bench.rs (5691 bytes)
+    5: /home/verma/lapce/lapce-ai-rust/benches/shared_memory_bench.rs (5490 bytes)
+    6: /home/verma/lapce/lapce-ai-rust/benches/benchmarks.rs (9175 bytes)
+    7: /home/verma/lapce/lapce-ai-rust/benches/ipc_benchmark.rs (3929 bytes)
+    8: /home/verma/lapce/lapce-ai-rust/benches/performance_benchmark.rs (6605 bytes)
+    9: /home/verma/lapce/lapce-ai-rust/benches/monitoring_benchmark.rs (7827 bytes)
+   10: /home/verma/lapce/lapce-ai-rust/benches/memory_benchmark.rs (9762 bytes)
+   11: /home/verma/lapce/lapce-ai-rust/benches/ipc_server_benchmark.rs (8053 bytes)
+   12: /home/verma/lapce/lapce-ai-rust/benches/lancedb_benchmark.rs (15260 bytes)
+   13: /home/verma/lapce/lapce-ai-rust/semantic_search/simple_bench.rs (1486 bytes)
+   14: /home/verma/lapce/lapce-ai-rust/semantic_search/benches/current_benchmark.rs (5367 bytes)
+   15: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-table-c967b4bad5868c05/out/lance.table.rs (69309 bytes)
+   16: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-table-4b905c83853f860c/out/lance.table.rs (69309 bytes)
+   17: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/fst-3b39d6e285cf53e0/out/crc32_table.rs (85066 bytes)
+   18: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/fst-3b39d6e285cf53e0/out/tag.rs (2477 bytes)
+   19: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-index-8ac1a6957dbe389a/out/lance.index.pb.rs (18143 bytes)
+   20: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/crunchy-12f4e8c3f57fec26/out/lib.rs (25410 bytes)
+   21: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-file-9fadbf341268cce7/out/lance.file.rs (9934 bytes)
+   22: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-file-9fadbf341268cce7/out/lance.encodings21.rs (25030 bytes)
+   23: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-file-9fadbf341268cce7/out/lance.file.v2.rs (5116 bytes)
+   24: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-file-f2928880bbb6f225/out/lance.file.rs (9934 bytes)
+   25: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-file-f2928880bbb6f225/out/lance.encodings21.rs (25030 bytes)
+   26: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-file-f2928880bbb6f225/out/lance.file.v2.rs (5116 bytes)
+   27: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-file-5d01816ca5f5e4c3/out/lance.file.rs (9934 bytes)
+   28: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-file-5d01816ca5f5e4c3/out/lance.encodings21.rs (25030 bytes)
+   29: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-file-5d01816ca5f5e4c3/out/lance.file.v2.rs (5116 bytes)
+   30: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-table-d705df8ba97cb364/out/lance.table.rs (69309 bytes)
+   31: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-index-8a6d7562882c5a57/out/lance.index.pb.rs (18143 bytes)
+   32: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-index-77866e14ab4655ee/out/lance.index.pb.rs (18143 bytes)
+   33: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-file-bf7bf6e421d22453/out/lance.file.rs (9934 bytes)
+   34: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-file-bf7bf6e421d22453/out/lance.encodings21.rs (25030 bytes)
+   35: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-file-bf7bf6e421d22453/out/lance.file.v2.rs (5116 bytes)
+   36: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-encoding-679417e9990c4027/out/lance.encodings21.rs (31460 bytes)
+   37: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-encoding-679417e9990c4027/out/lance.encodings.rs (39704 bytes)
+   38: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-index-185ce4e79be2e7fe/out/lance.index.pb.rs (18143 bytes)
+   39: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-encoding-216b0ef9f6a2e9d3/out/lance.encodings21.rs (31460 bytes)
+   40: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-encoding-216b0ef9f6a2e9d3/out/lance.encodings.rs (39704 bytes)
+   41: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-encoding-fd9278edba7cc980/out/lance.encodings21.rs (31460 bytes)
+   42: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-encoding-fd9278edba7cc980/out/lance.encodings.rs (39704 bytes)
+   43: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-table-a19e2e5191a481f1/out/lance.table.rs (69309 bytes)
+   44: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-encoding-b431ef98486e0e33/out/lance.encodings21.rs (31460 bytes)
+   45: /home/verma/lapce/lapce-ai-rust/semantic_search/target/debug/build/lance-encoding-b431ef98486e0e33/out/lance.encodings.rs (39704 bytes)
+   46: /home/verma/lapce/lapce-ai-rust/semantic_search/target/release/build/lance-index-6b775de5fdb63a33/out/lance.index.pb.rs (18143 bytes)
+   47: /home/verma/lapce/lapce-ai-rust/semantic_search/target/release/build/lance-file-c716269b14eca5d4/out/lance.file.rs (9934 bytes)
+   48: /home/verma/lapce/lapce-ai-rust/semantic_search/target/release/build/lance-file-c716269b14eca5d4/out/lance.encodings21.rs (25030 bytes)
+   49: /home/verma/lapce/lapce-ai-rust/semantic_search/target/release/build/lance-file-c716269b14eca5d4/out/lance.file.v2.rs (5116 bytes)
+   50: /home/verma/lapce/lapce-ai-rust/semantic_search/target/release/build/crunchy-8010f7af89f294f3/out/lib.rs (25410 bytes)
+   51: /home/verma/lapce/lapce-ai-rust/semantic_search/target/release/build/lance-table-1b1c1c49749928e4/out/lance.table.rs (69309 bytes)
+   52: /home/verma/lapce/lapce-ai-rust/semantic_search/target/release/build/lance-index-38a59d5332dbc4b6/out/lance.index.pb.rs (18143 bytes)
+   53: /home/verma/lapce/lapce-ai-rust/semantic_search/target/release/build/lance-file-5bf81bd093a4f1db/out/lance.file.rs (9934 bytes)
+   54: /home/verma/lapce/lapce-ai-rust/semantic_search/target/release/build/lance-file-5bf81bd093a4f1db/out/lance.encodings21.rs (25030 bytes)
+   55: /home/verma/lapce/lapce-ai-rust/semantic_search/target/release/build/lance-file-5bf81bd093a4f1db/out/lance.file.v2.rs (5116 bytes)
+   56: /home/verma/lapce/lapce-ai-rust/semantic_search/target/release/build/lance-table-4a5b6e386e76848f/out/lance.table.rs (69309 bytes)
+   57: /home/verma/lapce/lapce-ai-rust/semantic_search/target/release/build/lance-encoding-437e5398d38d9a70/out/lance.encodings21.rs (31460 bytes)
+   58: /home/verma/lapce/lapce-ai-rust/semantic_search/target/release/build/lance-encoding-437e5398d38d9a70/out/lance.encodings.rs (39704 bytes)
+   59: /home/verma/lapce/lapce-ai-rust/semantic_search/target/release/build/lance-encoding-06e9d5d6bc4282b2/out/lance.encodings21.rs (31460 bytes)
+   60: /home/verma/lapce/lapce-ai-rust/semantic_search/target/release/build/lance-encoding-06e9d5d6bc4282b2/out/lance.encodings.rs (39704 bytes)
+   61: /home/verma/lapce/lapce-ai-rust/semantic_search/target/release/build/crunchy-ed7bb138728c870f/out/lib.rs (25410 bytes)
+   62: /home/verma/lapce/lapce-ai-rust/semantic_search/target/release/build/fst-3cab1f94a6a63b16/out/crc32_table.rs (85066 bytes)
+   63: /home/verma/lapce/lapce-ai-rust/semantic_search/target/release/build/fst-3cab1f94a6a63b16/out/tag.rs (2477 bytes)
+   64: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/ultimate_production_test.rs (7369 bytes)
+   65: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/compression_test.rs (4875 bytes)
+   66: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/real_multi_embedder_test.rs (20175 bytes)
+   67: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/production_optimization_test.rs (6297 bytes)
+   68: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/aws_titan_persistent_test.rs (15829 bytes)
+   69: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/real_aws_titan_test.rs (13920 bytes)
+   70: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/final_system_benchmark.rs (8649 bytes)
+   71: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/ultimate_benchmark.rs (19774 bytes)
+   72: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/optimized_performance_test.rs (18253 bytes)
+   73: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/improved_performance_test.rs (14045 bytes)
+   74: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/production_aws_titan_test.rs (29078 bytes)
+   75: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/real_performance_test.rs (24346 bytes)
+   76: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/persistent_index_test.rs (7543 bytes)
+   77: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/verify_no_mocks_test.rs (5052 bytes)
+   78: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/comprehensive_system_benchmark.rs (13614 bytes)
+   79: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/task5_real_benchmark.rs (10749 bytes)
+   80: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/real_aws_integration_test.rs (12742 bytes)
+   81: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/real_100_file_indexing_test.rs (13677 bytes)
+   82: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/final_performance_test.rs (6420 bytes)
+   83: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/real_aws_no_mocks.rs (13273 bytes)
+   84: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/ultimate_aws_test.rs (9317 bytes)
+   85: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/real_world_performance_test.rs (20045 bytes)
+   86: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/simple_incremental_test.rs (7100 bytes)
+   87: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/full_system_integration_test.rs (8361 bytes)
+   88: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/semantic_search_test.rs (13315 bytes)
+   89: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/embedding_registry_test.rs (11673 bytes)
+   90: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/real_benchmark_aws.rs (18002 bytes)
+   91: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/adaptive_exact_test.rs (7330 bytes)
+   92: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/production_system_test.rs (12238 bytes)
+   93: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/incremental_performance_test.rs (10726 bytes)
+   94: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/complete_system_test.rs (13642 bytes)
+   95: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/aws_titan_full_performance_test.rs (16453 bytes)
+   96: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/final_real_performance_test.rs (12152 bytes)
+   97: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/simd_performance_test.rs (11385 bytes)
+   98: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/optimized_aws_test.rs (12085 bytes)
+   99: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/full_system_test.rs (8376 bytes)
+  100: /home/verma/lapce/lapce-ai-rust/semantic_search/tests/full_system_production_test.rs (18285 bytes)
+
+  ✅ Collected 100 files (total 1.92 MB)
+
+⚙️  Phase 2: Initializing system components
+════════════════════════════════════════════════════════
+  ✅ AWS Titan ready in 33.60038ms
+  ✅ SemanticSearchEngine ready in 3.534891ms
+
+🔥 Phase 3: Indexing with AWS Titan embeddings (rate-limited)
+════════════════════════════════════════════════════════
+  Indexed  10 files (AWS API time: 8.47s)
+  Indexed  20 files (AWS API time: 13.87s)
+  Indexed  30 files (AWS API time: 15.78s)
+  Indexed  40 files (AWS API time: 16.34s)
+  Indexed  50 files (AWS API time: 16.34s)
+  Indexed  60 files (AWS API time: 16.34s)
+  Indexed  70 files (AWS API time: 20.34s)
+  Indexed  80 files (AWS API time: 43.29s)
+  Indexed  90 files (AWS API time: 70.47s)
+  Indexed 100 files (AWS API time: 97.32s)
+
+  📊 Indexing summary:
+  • Files indexed: 100
+  • Total source size: 1.92 MB
+  • Total time: 123.20 s
+  • AWS API time: 97.32 s
+  • Index throughput: 0.81 files/sec
+  • Memory before: 36.38 MB
+  • Memory after: 70.43 MB
+  • Memory used: 34.05 MB
+
+🔍 Phase 4: Query performance evaluation (cold vs warm)
+════════════════════════════════════════════════════════
+
+  Query: 'async error handling future'
+    Cold query time: 3.876031611s (10 results)
+    Warm query time: 10.543µs (cache hit: 10)
+    Improvement: 367640.29x
+
+  Query: 'database connection pool'
+    Cold query time: 3.402775468s (10 results)
+    Warm query time: 21.122µs (cache hit: 10)
+    Improvement: 161101.01x
+
+  Query: 'parse json configuration'
+    Cold query time: 1.433940762s (10 results)
+    Warm query time: 11.887µs (cache hit: 10)
+    Improvement: 120631.01x
+
+  Query: 'cache optimization'
+    Cold query time: 3.533608663s (10 results)
+    Warm query time: 12.778µs (cache hit: 10)
+    Improvement: 276538.48x
+
+  Query: 'concurrent task execution'
+    Cold query time: 3.333265095s (10 results)
+    Warm query time: 15.089µs (cache hit: 10)
+    Improvement: 220906.96x
+
+📈 Query latency summary:
+  • Cold avg: 3.12 s
+  • Cold P50: 3.40 s
+  • Cold P95: 3.88 s
+  • Warm avg: 0.01 ms
+  • Warm P50: 0.01 ms
+  • Warm P95: 0.02 ms
+
+📝 Phase 5: Persisting run summary
+════════════════════════════════════════════════════════
+  ✅ Summary written to runs/aws_100_files/index/20250929_160203/summary.json
+
+╔═══════════════════════════════════════════════════════════════════════╗
+║                  FULL SYSTEM BENCHMARK COMPLETED SUCCESSFULLY         ║
+╚═══════════════════════════════════════════════════════════════════════╝

@@ -1,0 +1,270 @@
+[workspace]
+
+[package]
+name = "lancedb"
+version = "1.1.0"
+edition = "2021"
+description = "LanceDB: A serverless, low-latency vector database with incremental indexing for AI applications"
+license = "Apache-2.0"
+repository = "https://github.com/lancedb/lancedb"
+keywords = ["vector", "database", "lance", "ai", "embeddings"]
+categories = ["database"]
+rust-version = "1.70"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+anyhow = "1.0"
+arrow = { version = "56", features = ["prettyprint", "ffi"] }
+arrow-arith = "56"
+arrow-array = "56"
+arrow-buffer = "56"
+arrow-cast = "56"
+arrow-data = "56"
+arrow-ipc = "56"
+arrow-json = "56"
+arrow-ord = "56"
+arrow-row = "56"
+arrow-schema = "56"
+arrow-select = "56"
+async-trait = "0.1"
+aws-config = "1.5"
+aws-sdk-bedrockruntime = "1.49"
+prometheus = { version = "0.13", features = ["process"] }
+lazy_static = "1.4"
+regex = "1.10"
+uuid = { version = "1.6", features = ["v4"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+datafusion-common = { version = "50.0", default-features = false }
+datafusion-execution = "50.0"
+datafusion-expr = "50.0"
+datafusion-physical-plan = "50.0"
+datafusion-catalog = "50.0"
+chrono = "0.4"
+object_store = "0.12.0"
+snafu = "0.8"
+half = { version = "2.6.0", default-features = false, features = ["num-traits", "use-intrinsics", "std"] }
+lance = { version = "0.38.2", default-features = false, features = ["dynamodb"] }
+lance-datafusion = { version = "0.38.2" }
+lance-io = { version = "0.38.2", default-features = false }
+lance-index = { version = "0.38.2" }
+lance-table = { version = "0.38.2" }
+lance-linalg = { version = "0.38.2" }
+lance-testing = { version = "0.38.2" }
+lance-encoding = { version = "0.38.2" }
+moka = { version = "0.12", features = ["future"] }
+pin-project = "1.0.7"
+tokio = { version = "1.23", features = ["rt-multi-thread"] }
+log = "0.4"
+bytes = "1"
+futures = "0.3.25"
+itertools = "0.12"
+http = { version = "1.2.1" }
+prost = "0.13"
+rand = { version = "0.8" }
+serde = { version = "^1", features = ["derive"] }
+serde_json = { version = "1" }
+sha2 = "0.10"
+base64 = "0.22"
+blake3 = "1.5"
+num-traits = "0.2"
+url = "2"
+
+# Optional integration with CST-tree-sitter for canonical kind mapping
+lapce-tree-sitter = { path = "../CST-tree-sitter", optional = true }
+
+# Memory optimization dependencies (Task 1)
+zstd = { version = "0.13.2", features = ["zstdmt"] }
+lz4 = "1.24"
+memmap2 = "0.9"
+bloom = "0.3"
+bincode = "1.3"
+crc32fast = "1.4"
+# AWS SDK for Titan embeddings (replacing OpenAI from Codex)
+async-openai = { version = "0.20.0", optional = false }
+serde_with = { version = "3.8.1" }
+walkdir = "2"
+dotenv = "0.15"
+# For remote feature
+reqwest = { version = "0.12.0", default-features = false, features = [
+    "charset",
+    "gzip",
+    "http2",
+    "json",
+    "macos-system-configuration",
+    "stream",
+] }
+# rand moved to main dependencies section above
+# http already defined above
+polars-arrow = { version = ">=0.37,<0.40.0", optional = true }
+polars = { version = ">=0.37,<0.40.0", optional = true }
+hf-hub = { version = "0.4.1", optional = false, default-features = false, features = [
+    "rustls-tls",
+    "tokio",
+    "ureq",
+] }
+candle-core = { version = "0.9.1", optional = false }
+candle-transformers = { version = "0.9.1", optional = false }
+candle-nn = { version = "0.9.1", optional = false }
+tokenizers = { version = "0.19.1", optional = false }
+semver = "1.0.25"
+
+# For a workaround, see workspace Cargo.toml
+crunchy = "0.2.4"
+bytemuck = "1.14"
+bytemuck_derive = ">=1.8.1, <1.9.0"
+
+# Tree-sitter for AST parsing (aligned with CST-tree-sitter)
+tree-sitter = "=0.23.2"
+tree-sitter-rust = "=0.23.0"  
+tree-sitter-python = "=0.23.0"
+tree-sitter-javascript = "=0.23.0"
+tree-sitter-typescript = "=0.23.0"
+tree-sitter-go = "=0.23.0"
+tree-sitter-java = "=0.23.0"
+tree-sitter-cpp = "=0.23.0"
+tree-sitter-c = "=0.23.0"
+tree-sitter-c-sharp = "=0.23.0"
+
+# Note: All 67 languages are provided by lapce-tree-sitter (CST-tree-sitter) via cst_ts feature
+# We keep only the core dependencies here that semantic_search uses directly
+# For full language support, use the cst_ts feature which provides all languages via CST-tree-sitter
+tree-sitter-ruby = "=0.23.0"
+tree-sitter-php = "=0.23.0"
+tree-sitter-lua = "=0.2.0"
+tree-sitter-bash = "=0.23.0"
+tree-sitter-css = "=0.23.0"
+tree-sitter-json = "=0.23.0"
+tree-sitter-swift = "=0.6.0"
+tree-sitter-scala = "0.23"
+tree-sitter-elixir = "=0.3.1"
+tree-sitter-html = "=0.23.0"
+tree-sitter-ocaml = "=0.23.2"
+tree-sitter-nix = "=0.3.0"
+tree-sitter-make = "=1.1.1"
+tree-sitter-cmake = "=0.7.1"
+tree-sitter-verilog = "=1.0.3"
+tree-sitter-erlang = "=0.14.0"
+tree-sitter-d = "=0.8.2"
+tree-sitter-pascal = "=0.10.0"
+tree-sitter-commonlisp = "=0.4.1"
+tree-sitter-objc = "=3.0.2"
+tree-sitter-groovy = "0.1.1"
+tree-sitter-embedded-template = "=0.23.2"
+
+# File watching
+notify = "6.1"
+crossbeam-channel = "0.5"
+parking_lot = "0.12"
+
+# For CST/AST pipeline integration
+dashmap = "6.1"
+
+# For lock-free cache LRU implementation
+hashlink = "0.8"
+
+# Full-text search
+tantivy = "0.22"
+
+# For demo binaries
+tempfile = "3.8"
+
+[[bench]]
+name = "current_benchmark"
+harness = false
+
+[dev-dependencies]
+criterion = "0.5"
+proptest = "1.4.0"
+tempfile = "3.8"
+fake = "2.9.2"
+hyper = { version = "1", features = ["server"] }
+itertools = "0.13"
+lance-test-macros = { version = "0.38.2" }
+datafusion-comet-spark-expr = "0.10"
+pyo3 = { version = "0.22", features = ["auto-initialize"] }
+rand = "0.8.5"
+serial_test = "3.0.0"
+approx = "0.5"
+anyhow = "1.0"
+float-ord = "0.3"
+rstest = "0.18.2"
+aws-sdk-sts = "1.13"
+aws-sdk-kms = { version = "1.48.0" }
+aws-config = "1.5.10"
+aws-credential-types = "1.2.1"
+aws-sdk-bedrockruntime = "1.58.0"
+aws-smithy-runtime-api = "1.7.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+async-trait = "0.1.83"
+
+# Memory optimization dependencies (duplicates removed)
+datafusion = { version = "50.0", default-features = false }
+http-body = "1"                                        # Matching reqwest
+http = "1.1"                                           # For remote client
+
+
+[features]
+# Default features
+default = ["remote"]
+remote = []
+aws = ["lance/aws", "lance-io/aws"]
+oss = ["lance/oss", "lance-io/oss"]
+gcs = ["lance/gcp", "lance-io/gcp"]
+azure = ["lance/azure", "lance-io/azure"]
+dynamodb = ["lance/dynamodb", "aws"]
+# fp16kernels removed - required modern compiler (Clang >= 14 or GCC >= 12 with AVX2)
+# Can be re-added if FP16 quantization is needed in the future
+# Enable CST-tree-sitter integration (canonical AST kinds, parser manager, caching)
+cst_ts = ["dep:lapce-tree-sitter"]
+s3-test = []
+bedrock = []
+openai = []
+polars = ["dep:polars-arrow", "dep:polars"]
+sentence-transformers = []
+
+[[example]]
+name = "openai"
+required-features = ["openai"]
+
+[[example]]
+name = "sentence_transformers"
+required-features = ["sentence-transformers"]
+
+[[example]]
+name = "bedrock"
+required-features = ["bedrock"]
+
+[[example]]
+name = "simple"
+
+[[example]]
+name = "full_text_search"
+
+[[example]]
+name = "ivf_pq"
+
+[[example]]
+name = "hybrid_search"
+required-features = ["sentence-transformers"]
+
+[[bench]]
+name = "cst_performance"
+harness = false
+required-features = ["cst_ts"]
+
+[[bench]]
+name = "cst_incremental"
+harness = false
+required-features = ["cst_ts"]
+
+[[bench]]
+name = "cst_memory"
+harness = false
+required-features = ["cst_ts"]
+
+[[bench]]
+name = "massive_codebase_benchmark"
+harness = false
+required-features = ["cst_ts"]

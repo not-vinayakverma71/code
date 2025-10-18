@@ -1,6 +1,19 @@
+pub mod capture;
+pub mod concurrency;
 pub mod data;
 pub mod event;
+pub mod injection;
+pub mod observability;
 pub mod panel;
+pub mod persistence;
 pub mod raw;
+pub mod restore;
+pub mod shell_integration;
+pub mod streaming;
 pub mod tab;
+pub mod types;
+pub mod ui_helpers;
 pub mod view;
+
+#[cfg(test)]
+mod integration_tests;

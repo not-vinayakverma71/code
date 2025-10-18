@@ -534,6 +534,10 @@ impl WindowTabData {
                             TermNotification::RequestPaint => {
                                 view_id.get_untracked().request_paint();
                             }
+                            TermNotification::UserInput { term_id, data } => {
+                                // Process user input for command capture
+                                terminal.process_user_input(term_id, data);
+                            }
                         }
                     }
                 });
@@ -2076,6 +2080,108 @@ impl WindowTabData {
             InternalCommand::CallHierarchyIncoming { item_id } => {
                 self.call_hierarchy_incoming(item_id);
             }
+            // P0-3: Tool execution handlers
+            InternalCommand::ToolExecutionStarted {
+                execution_id,
+                tool_name,
+            } => {
+                tracing::info!("Tool execution started: {} ({})", tool_name, execution_id);
+                // Show notification to user
+                self.common.internal_command.send(InternalCommand::ShowAlert {
+                    title: "Tool Started".to_string(),
+                    msg: format!("Running: {}", tool_name),
+                    buttons: vec![],
+                });
+            }
+            InternalCommand::ToolExecutionCompleted {
+                execution_id,
+                success,
+            } => {
+                let status = if success { "completed" } else { "failed" };
+                tracing::info!("Tool execution {}: {}", status, execution_id);
+            }
+            InternalCommand::ShowToolApprovalDialog {
+                execution_id,
+                tool_name,
+                operation,
+                target,
+                details,
+            } => {
+                // Show approval dialog
+                use crate::alert::AlertButton;
+                
+                let msg = format!(
+                    "Tool '{}' wants to {}:\n\nTarget: {}\n\nDetails: {}\n\nAllow this operation?",
+                    tool_name, operation, target, details
+                );
+                
+                let execution_id_clone = execution_id.clone();
+                let internal_command = self.common.internal_command.clone();
+                
+                self.common.internal_command.send(InternalCommand::ShowAlert {
+                    title: "Tool Approval Required".to_string(),
+                    msg,
+                    buttons: vec![
+                        AlertButton {
+                            text: "Allow".to_string(),
+                            action: Rc::new(move || {
+                                internal_command.send(InternalCommand::HandleToolApprovalResponse {
+                                    execution_id: execution_id_clone.clone(),
+                                    approved: true,
+                                    reason: None,
+                                });
+                            }),
+                        },
+                        AlertButton {
+                            text: "Deny".to_string(),
+                            action: Rc::new(move || {
+                                internal_command.send(InternalCommand::HandleToolApprovalResponse {
+                                    execution_id: execution_id.clone(),
+                                    approved: false,
+                                    reason: Some("User denied the operation".to_string()),
+                                });
+                            }),
+                        },
+                    ],
+                });
+            }
+            InternalCommand::HandleToolApprovalResponse {
+                execution_id,
+                approved,
+                reason,
+            } => {
+                tracing::info!(
+                    "Tool approval response: {} - approved: {}",
+                    execution_id,
+                    approved
+                );
+                // Here we would send the response back to the tool handler
+                // via a channel or callback
+            }
+            InternalCommand::OpenTerminalForCommand {
+                command,
+                args,
+                cwd,
+                execution_id,
+            } => {
+                // Open a new terminal with the command
+                use lapce_rpc::terminal::TerminalProfile;
+                
+                let profile = TerminalProfile {
+                    name: format!("Tool: {}", &execution_id[..8]),
+                    command: Some(command),
+                    arguments: Some(args),
+                    workdir: cwd.and_then(|p| url::Url::from_file_path(p).ok()),
+                    environment: None,
+                };
+                
+                self.common.internal_command.send(InternalCommand::NewTerminal {
+                    profile: Some(profile),
+                });
+                
+                // Show terminal panel
+                self.panel.show_panel(&PanelKind::Terminal);
+            }
         }
     }
 
@@ -2622,7 +2728,23 @@ impl WindowTabData {
         if self.panel.is_panel_visible(&kind) {
             self.hide_panel(kind);
         } else {
-            self.show_panel(kind);
+            let should_hide = match kind {
+                PanelKind::Terminal => false,
+                PanelKind::FileExplorer => false,
+                PanelKind::SourceControl => false,
+                PanelKind::Plugin => false,
+                PanelKind::Search => false,
+                PanelKind::Problem => false,
+                PanelKind::Debug => false,
+                PanelKind::CallHierarchy => false,
+                PanelKind::DocumentSymbol => false,
+                PanelKind::References => false,
+                PanelKind::Implementation => false,
+                PanelKind::AIChat => false,
+            };
+            if !should_hide {
+                self.show_panel(kind);
+            }
         }
     }
 
@@ -2636,7 +2758,8 @@ impl WindowTabData {
             | PanelKind::CallHierarchy
             | PanelKind::DocumentSymbol
             | PanelKind::References
-            | PanelKind::Implementation => {
+            | PanelKind::Implementation
+            | PanelKind::AIChat => {
                 // Some panels don't accept focus (yet). Fall back to visibility check
                 // in those cases.
                 self.panel.is_panel_visible(&kind)

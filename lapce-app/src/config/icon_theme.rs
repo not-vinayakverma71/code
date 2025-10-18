@@ -37,6 +37,18 @@ impl IconThemeConfig {
     /// extension), and there is an icon associated with that file type, returns the path of the
     /// icon.
     pub fn resolve_path_to_icon(&self, paths: &[&Path]) -> Option<PathBuf> {
+        // First check if it's a directory and has a folder name icon
+        let folder_names = paths
+            .iter()
+            .map(|path| path.file_name().and_then(OsStr::to_str));
+        let folder_name_icon = try_all_equal_value(folder_names)
+            .and_then(|folder_name| self.foldername.get(folder_name));
+
+        if let Some(icon) = folder_name_icon {
+            return Some(self.path.join(icon));
+        }
+
+        // Then check filename
         let file_names = paths
             .iter()
             .map(|path| path.file_name().and_then(OsStr::to_str));

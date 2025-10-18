@@ -1,0 +1,50 @@
+   |                                           help: remove this `mut`
+
+error[E0308]: mismatched types
+   --> src/handler_registration.rs:153:70
+    |
+--
+    |                     ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+error[E0308]: arguments to this method are incorrect
+   --> src/mcp_tools/core.rs:246:26
+    |
+--
+    |
+
+error[E0308]: mismatched types
+   --> src/streaming_response.rs:143:29
+    |
+--
+               found enum `std::option::Option<u32>`
+
+error[E0308]: mismatched types
+   --> src/streaming_response.rs:180:24
+    |
+--
+               found enum `ApiStreamChunk`
+
+error[E0308]: mismatched types
+   --> src/streaming_response.rs:186:33
+    |
+--
+   --> /rustc/1159e78c4747b02ef996e55082b704c09b970588/library/alloc/src/vec/mod.rs:2521:12
+
+error[E0308]: mismatched types
+   --> src/streaming_response.rs:187:31
+    |
+--
+               found enum `ApiStreamChunk`
+
+error[E0308]: mismatched types
+   --> src/streaming_response.rs:190:33
+    |
+--
+    |                     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_provider`
+
+error[E0308]: mismatched types
+   --> src/task_connection_handling.rs:232:23
+    |
+--
+    = note: required for `anyhow::Error` to implement `std::convert::From<RunError<anyhow::Error>>`
+

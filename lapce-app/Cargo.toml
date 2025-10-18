@@ -40,6 +40,7 @@ regex              = { workspace = true }
 tar                = { workspace = true }
 tempfile           = { workspace = true }
 thiserror          = { workspace = true }
+tokio              = { workspace = true }
 toml               = { workspace = true }
 toml_edit          = { workspace = true }
 tracing            = { workspace = true }
@@ -49,6 +50,9 @@ tracing-appender   = { workspace = true }
 url                = { workspace = true }
 zstd               = { workspace = true }
 floem              = { workspace = true }
+
+# AI Backend IPC - platform-agnostic dependency
+lapce-ai-rust = { path = "../lapce-ai" }
 
 pulldown-cmark   = { version = "0.11.0" }
 Inflector        = { version = "0.11.4" }
@@ -76,9 +80,12 @@ default        = ["updater", "vendored-fonts"]
 portable       = ["lapce-core/portable"]
 updater        = []
 vendored-fonts = []
+lsp_gateway    = ["lapce-ai-rust/lsp_gateway"]
 
 [dev-dependencies]
 criterion = "0.5"
+tokio = { version = "1.40", features = ["full"] }
+futures-util = "0.3"
 
 [[bench]]
 name    = "visual_line"

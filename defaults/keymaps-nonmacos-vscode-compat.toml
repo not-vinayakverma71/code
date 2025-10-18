@@ -1,0 +1,187 @@
+# =====================================================================================
+# VS Code Compatible Keybindings for Lapce (Windows/Linux)
+# =====================================================================================
+# This file adds critical VS Code keybindings to Lapce for seamless transition
+# Priority: 🔴 HIGH = Daily use, 🟡 MEDIUM = Regular use, 🟢 LOW = Occasional use
+#
+# To use: Copy contents to keymaps-nonmacos.toml or merge with existing keybindings
+# =====================================================================================
+
+# ================================== 🔴 PRIORITY 1: CRITICAL ===================================
+
+# Toggle Sidebar (Ctrl+B) - One of the most used VS Code shortcuts
+[[keymaps]]
+key = "ctrl+b"
+command = "toggle_panel_left_visual"
+mode = "i"
+
+# Toggle Bottom Panel (Ctrl+J) - Essential UI control
+[[keymaps]]
+key = "ctrl+j"
+command = "toggle_panel_bottom_visual"
+mode = "i"
+
+# Navigate Back/Forward (Alt+Left/Right) - Critical for code navigation
+[[keymaps]]
+key = "alt+left"
+command = "jump_location_backward"
+mode = "i"
+
+[[keymaps]]
+key = "alt+right"
+command = "jump_location_forward"
+mode = "i"
+
+# Replace (Ctrl+H) - Essential editing feature
+# Note: This conflicts with vim mode's ctrl+h for delete_backward
+# We bind it ONLY in insert mode to preserve vim compatibility
+[[keymaps]]
+key = "ctrl+h"
+command = "search"  # Opens search, user can switch to replace tab
+mode = "i"
+# TODO: Once "replace" command is implemented, change to: command = "replace"
+
+# Reopen Closed Editor (Ctrl+Shift+T) - Highly requested feature
+# [[keymaps]]
+# key = "ctrl+shift+t"
+# command = "reopen_closed_editor"
+# TODO: Implement this command in Lapce
+
+# Format Document (Shift+Alt+F) - Code formatting
+# [[keymaps]]
+# key = "shift+alt+f"
+# command = "format_document"
+# mode = "i"
+# TODO: Implement this command or map to existing format command
+
+# ================================== 🟡 PRIORITY 2: MEDIUM ===================================
+
+# Delete Line (Ctrl+Shift+K)
+# [[keymaps]]
+# key = "ctrl+shift+k"
+# command = "delete_line"
+# mode = "i"
+# TODO: Check if this command exists or use "delete_to_beginning_of_line" + "delete_forward_line"
+
+# Replace in Files (Ctrl+Shift+H)
+# [[keymaps]]
+# key = "ctrl+shift+h"
+# command = "global_search_replace"
+# TODO: Implement global search and replace
+
+# Focus Editor Group 1-4 (Ctrl+1/2/3/4)
+[[keymaps]]
+key = "ctrl+1"
+command = "focus_editor"
+when = "!list_focus"
+
+# Note: Ctrl+2/3/4 for multiple groups not yet supported
+# Will need implementation in split editor management
+
+# Fold/Unfold (Ctrl+Shift+[ and ])
+# [[keymaps]]
+# key = "ctrl+shift+["
+# command = "fold"
+# [[keymaps]]
+# key = "ctrl+shift+]"
+# command = "unfold"
+# TODO: Implement code folding commands
+
+# Peek Definition (Alt+F12)
+# [[keymaps]]
+# key = "alt+F12"
+# command = "peek_definition"
+# TODO: Implement peek definition feature
+
+# Show Hover (Ctrl+K Ctrl+I)
+# [[keymaps]]
+# key = "ctrl+k ctrl+i"
+# command = "show_hover"
+# TODO: Implement or map to existing hover command
+
+# Save All (Ctrl+K S)
+[[keymaps]]
+key = "ctrl+k s"
+command = "save_all"
+
+# Close All Editors (Ctrl+K Ctrl+W)
+# [[keymaps]]
+# key = "ctrl+k ctrl+w"
+# command = "close_all_editors"
+# TODO: Implement close_all_editors command
+
+# Expand/Shrink Selection (Shift+Alt+Right/Left)
+# [[keymaps]]
+# key = "shift+alt+right"
+# command = "expand_selection"
+# [[keymaps]]
+# key = "shift+alt+left"
+# command = "shrink_selection"
+# TODO: Implement smart selection expand/shrink
+
+# ================================== 🟢 PRIORITY 3: LOW ===================================
+
+# New Window (Ctrl+Shift+N)
+[[keymaps]]
+key = "ctrl+shift+n"
+command = "new_window"
+
+# Toggle Word Wrap (Alt+Z)
+# [[keymaps]]
+# key = "alt+z"
+# command = "toggle_word_wrap"
+# TODO: Implement word wrap toggle
+
+# Fold All / Unfold All
+# [[keymaps]]
+# key = "ctrl+k ctrl+0"
+# command = "fold_all"
+# [[keymaps]]
+# key = "ctrl+k ctrl+j"
+# command = "unfold_all"
+# TODO: Implement when folding is available
+
+# ================================== ENHANCEMENTS ===================================
+
+# Go to Symbol in Workspace (Ctrl+T) - Already correctly mapped
+# Lapce already has: palette.workspace_symbol which is correct
+
+# Go to Symbol in File (Ctrl+Shift+O) - Already correctly mapped
+# Lapce already has: palette.symbol which is correct
+
+# Quick Fix / Code Actions (Ctrl+.) - Already correctly mapped
+# Lapce already has: show_code_actions which is correct
+
+# Trigger Suggestion (Ctrl+Space) - Already correctly mapped  
+# Lapce already has: get_completion which is correct
+
+# ================================== NOTES ===================================
+# 
+# Commands that need implementation:
+# 1. reopen_closed_editor - Track and reopen recently closed tabs
+# 2. format_document - Apply code formatter to entire file
+# 3. delete_line - Delete entire line (may exist as combination)
+# 4. global_search_replace - Search and replace across workspace
+# 5. close_all_editors - Close all open editor tabs
+# 6. fold/unfold/fold_all/unfold_all - Code folding
+# 7. peek_definition - Show definition in hover window
+# 8. show_hover - Show hover information programmatically
+# 9. expand_selection/shrink_selection - Smart selection
+# 10. toggle_word_wrap - Toggle line wrapping
+# 11. replace - Dedicated replace UI (currently uses search)
+#
+# Existing commands that work perfectly:
+# - All palette commands (Ctrl+P, Ctrl+Shift+P, Ctrl+G, etc.)
+# - Panel toggles (Ctrl+`, Ctrl+Shift+E/F/M/X)
+# - Multi-cursor (Ctrl+D, Ctrl+Shift+L, Alt+Click)
+# - Line manipulation (Alt+Up/Down, Alt+Shift+Up/Down)
+# - Split editor (Ctrl+\)
+# - Navigation (F12, F2, F8, Shift+F8)
+# - Save/Open/New (Ctrl+S/O/N)
+# - Undo/Redo (Ctrl+Z/Y)
+# - Cut/Copy/Paste (Ctrl+X/C/V)
+# - Find (Ctrl+F)
+# - Comment toggle (Ctrl+/)
+# - Jump history (Ctrl+- and Ctrl+Shift+-)
+#
+# =====================================================================================

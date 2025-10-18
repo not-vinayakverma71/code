@@ -1,0 +1,8 @@
+# Cargo configuration for coverage and profiling
+
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-C", "link-arg=-fuse-ld=lld"]
+
+[build]
+# Use LLD linker for faster builds
+# rustflags = ["-C", "link-arg=-fuse-ld=lld"]

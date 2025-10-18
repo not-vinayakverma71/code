@@ -1,0 +1,266 @@
+{
+  "dashboard": {
+    "title": "CST Pipeline Observability",
+    "tags": ["cst", "semantic-search", "performance"],
+    "timezone": "browser",
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Cache Hit Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(cst_cache_hits_total[5m]) / (rate(cst_cache_hits_total[5m]) + rate(cst_cache_misses_total[5m])) * 100",
+            "legendFormat": "Hit Rate %"
+          }
+        ],
+        "gridPos": {"h": 6, "w": 6, "x": 0, "y": 0},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 70, "color": "yellow"},
+                {"value": 80, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Cache Operations Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(cst_cache_hits_total[1m])",
+            "legendFormat": "Hits/s"
+          },
+          {
+            "expr": "rate(cst_cache_misses_total[1m])",
+            "legendFormat": "Misses/s"
+          }
+        ],
+        "gridPos": {"h": 6, "w": 12, "x": 6, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Cache Latency (p50, p95, p99)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(cst_cache_get_duration_seconds_bucket[5m]))",
+            "legendFormat": "p50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(cst_cache_get_duration_seconds_bucket[5m]))",
+            "legendFormat": "p95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(cst_cache_get_duration_seconds_bucket[5m]))",
+            "legendFormat": "p99"
+          }
+        ],
+        "gridPos": {"h": 6, "w": 12, "x": 0, "y": 6},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Tier Distribution",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "cst_cache_tier_size{tier=\"hot\"}",
+            "legendFormat": "Hot"
+          },
+          {
+            "expr": "cst_cache_tier_size{tier=\"warm\"}",
+            "legendFormat": "Warm"
+          },
+          {
+            "expr": "cst_cache_tier_size{tier=\"cold\"}",
+            "legendFormat": "Cold"
+          },
+          {
+            "expr": "cst_cache_tier_size{tier=\"frozen\"}",
+            "legendFormat": "Frozen"
+          }
+        ],
+        "gridPos": {"h": 6, "w": 6, "x": 12, "y": 6}
+      },
+      {
+        "id": 5,
+        "title": "Promotions vs Demotions",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(cst_cache_promotions_total[5m])",
+            "legendFormat": "Promotions/s"
+          },
+          {
+            "expr": "rate(cst_cache_demotions_total[5m])",
+            "legendFormat": "Demotions/s"
+          }
+        ],
+        "gridPos": {"h": 6, "w": 12, "x": 0, "y": 12}
+      },
+      {
+        "id": 6,
+        "title": "Semantic Search - Cache Hit Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(semantic_search_cache_hits_total[5m]) / (rate(semantic_search_cache_hits_total[5m]) + rate(semantic_search_cache_misses_total[5m])) * 100",
+            "legendFormat": "Hit Rate %"
+          }
+        ],
+        "gridPos": {"h": 6, "w": 6, "x": 12, "y": 12},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 70, "color": "yellow"},
+                {"value": 80, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "Search Latency (p95)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(semantic_search_latency_seconds_bucket{operation=\"search\"}[5m]))",
+            "legendFormat": "Search p95"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(semantic_search_index_latency_seconds_bucket{operation=\"index\"}[5m]))",
+            "legendFormat": "Index p95"
+          }
+        ],
+        "gridPos": {"h": 6, "w": 12, "x": 0, "y": 18},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "AWS Titan Request Latency",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(aws_titan_request_latency_seconds_bucket[5m]))",
+            "legendFormat": "p95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(aws_titan_request_latency_seconds_bucket[5m]))",
+            "legendFormat": "p99"
+          }
+        ],
+        "gridPos": {"h": 6, "w": 12, "x": 12, "y": 18},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 9,
+        "title": "Error Rates",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(semantic_search_errors_total[5m])",
+            "legendFormat": "{{error_type}}"
+          },
+          {
+            "expr": "rate(aws_titan_errors_total[5m])",
+            "legendFormat": "AWS {{error_type}}"
+          }
+        ],
+        "gridPos": {"h": 6, "w": 12, "x": 0, "y": 24}
+      },
+      {
+        "id": 10,
+        "title": "Memory Usage (RSS)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "semantic_search_memory_rss_bytes / 1024 / 1024",
+            "legendFormat": "RSS MB"
+          }
+        ],
+        "gridPos": {"h": 6, "w": 12, "x": 12, "y": 24},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "decmbytes"
+          }
+        }
+      },
+      {
+        "id": 11,
+        "title": "CST Change Detection Latency",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(semantic_search_index_latency_seconds_bucket{operation=\"change_detection\"}[5m])) * 1000",
+            "legendFormat": "p95 ms"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 30},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 1, "color": "yellow"},
+                {"value": 5, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 12,
+        "title": "Embedding Reuse Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(semantic_search_cache_hits_total{cache_type=\"embedding\"}[5m]) / (rate(semantic_search_cache_hits_total{cache_type=\"embedding\"}[5m]) + rate(semantic_search_cache_misses_total{cache_type=\"embedding\"}[5m])) * 100",
+            "legendFormat": "Reuse %"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 30},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 75, "color": "yellow"},
+                {"value": 85, "color": "green"}
+              ]
+            }
+          }
+        }
+      }
+    ]
+  }
+}

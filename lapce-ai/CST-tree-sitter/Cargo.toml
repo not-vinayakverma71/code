@@ -1,0 +1,284 @@
+[package]
+name = "lapce-tree-sitter"
+version = "0.1.0"
+edition = "2021"
+build = "build.rs"
+
+[[bin]]
+name = "test_multi_tier"
+path = "src/bin/test_multi_tier.rs"
+
+[[bin]]
+name = "test_retrieval_fix"
+path = "src/bin/test_retrieval_fix.rs"
+
+[[bin]]
+name = "test_tier_transitions"
+path = "src/bin/test_tier_transitions.rs"
+
+[[bin]]
+name = "test_tier_transitions_debug"
+path = "src/bin/test_tier_transitions_debug.rs"
+
+[[bin]]
+name = "benchmark_codex_complete"
+path = "src/bin/benchmark_codex_complete.rs"
+
+[[bin]]
+name = "benchmark_all_phases"
+path = "src/bin/benchmark_all_phases.rs"
+
+[[bin]]
+name = "test_all_phases"
+path = "src/bin/test_all_phases.rs"
+
+[[bin]]
+name = "benchmark_codex_extensive"
+path = "src/bin/benchmark_codex_extensive.rs"
+
+[[bin]]
+name = "benchmark_performance"
+path = "src/bin/benchmark_performance.rs"
+
+[[bin]]
+name = "debug_bytecode"
+path = "src/bin/debug_bytecode.rs"
+
+[[bin]]
+name = "test_crash_recovery"
+path = "src/bin/test_crash_recovery.rs"
+
+[[bin]]
+name = "test_large_codebase"
+path = "src/bin/test_large_codebase.rs"
+
+[[bin]]
+name = "test_promotions"
+path = "src/bin/test_promotions.rs"
+
+[workspace]
+
+[features]
+default = ["core-langs"]
+core-langs = []  # 30 languages from crates.io
+strict-perf = []  # Enable strict performance assertions for CI
+
+# Meta-feature for all languages
+all-langs = [
+    "lang-javascript", "lang-typescript", "lang-toml", "lang-dockerfile",
+    "lang-elm", "lang-kotlin", "lang-yaml", "lang-r", "lang-matlab",
+    "lang-perl", "lang-dart", "lang-julia", "lang-haskell", "lang-graphql",
+    "lang-sql", "lang-zig", "lang-vim", "lang-abap", "lang-nim",
+    "lang-clojure", "lang-crystal", "lang-fortran", "lang-vhdl", "lang-racket",
+    "lang-ada", "lang-prolog", "lang-gradle", "lang-xml", "lang-markdown",
+    "lang-svelte", "lang-scheme", "lang-fennel", "lang-gleam", "lang-hcl",
+    "lang-solidity", "lang-fsharp", "lang-cobol", "lang-systemverilog", "lang-objc"
+]
+
+# Individual external grammar features (37 languages)
+lang-javascript = ["tree-sitter-javascript"]
+lang-typescript = ["tree-sitter-typescript"]
+lang-toml = ["tree-sitter-toml"]
+lang-dockerfile = ["tree-sitter-dockerfile"]
+lang-elm = ["tree-sitter-elm"]
+lang-kotlin = ["tree-sitter-kotlin"]
+lang-yaml = ["tree-sitter-yaml"]
+lang-r = ["tree-sitter-r"]
+lang-matlab = ["tree-sitter-matlab"]
+lang-perl = ["tree-sitter-perl"]
+lang-dart = ["tree-sitter-dart"]
+lang-julia = ["tree-sitter-julia"]
+lang-haskell = ["tree-sitter-haskell"]
+lang-graphql = ["tree-sitter-graphql"]
+lang-sql = ["tree-sitter-sql"]
+lang-zig = ["tree-sitter-zig"]
+lang-vim = ["tree-sitter-vim"]
+lang-abap = ["tree-sitter-abap"]
+lang-nim = ["tree-sitter-nim"]
+lang-clojure = ["tree-sitter-clojure"]
+lang-crystal = ["tree-sitter-crystal"]
+lang-fortran = ["tree-sitter-fortran"]
+lang-vhdl = ["tree-sitter-vhdl"]
+lang-racket = ["tree-sitter-racket"]
+lang-ada = ["tree-sitter-ada"]
+lang-prolog = ["tree-sitter-prolog"]
+lang-gradle = ["tree-sitter-gradle"]
+lang-xml = ["tree-sitter-xml"]
+lang-markdown = ["tree-sitter-md"]
+lang-svelte = ["tree-sitter-svelte"]
+lang-scheme = ["tree-sitter-scheme"]
+lang-fennel = ["tree-sitter-fennel"]
+lang-gleam = ["tree-sitter-gleam"]
+lang-hcl = ["tree-sitter-hcl"]
+lang-solidity = ["tree-sitter-solidity"]
+lang-fsharp = ["tree-sitter-fsharp"]
+lang-cobol = ["tree-sitter-cobol"]
+lang-systemverilog = ["tree-sitter-systemverilog"]
+lang-objc = ["tree-sitter-objc"]
+
+# Other features
+compact-cst = []
+global-string-interning = ["lasso"]
+unsafe-send-sync = []
+demo-example = []
+phase4-cache-tests = []
+phase2-tests = []
+phase3-tests = []
+integration-tests = []
+
+[dependencies]
+tree-sitter = "=0.23.2"
+tree-sitter-highlight = "=0.23.2"
+streaming-iterator = "0.1"
+once_cell = "1.18"
+regex = "1.9"
+rayon = "1.10"
+anyhow = "1.0"
+thiserror = "2.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+log = "0.4"
+futures = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+dashmap = { version = "5.5", optional = false }
+parking_lot = "0.12"
+lazy_static = "1.4"
+bytes = "1.5"
+moka = { version = "0.12", features = ["sync"] }
+arc-swap = "1.7"
+ignore = "0.4"  # For gitignore support in directory traversal
+sha2 = "0.10"  # For cache key generation
+tokio = { version = "1.35", features = ["fs", "rt", "rt-multi-thread", "macros", "time"] }
+sysinfo = "0.30"  # For memory monitoring
+zstd = "0.13"  # For tree compression
+lz4 = "1.24"  # For tree compression
+rand = "0.8"  # For benchmark simulation
+lasso = { version = "0.7", optional = true, features = ["multi-threaded"] }  # For global string interning
+bincode = "1.3"  # For frozen tier serialization
+crc32fast = "1.4"  # For CRC32 checksums and validation
+axum = "0.7"  # For metrics server
+prometheus = "0.13"  # For metrics collection
+clap = { version = "4.0", features = ["derive"] }  # For CLI tools
+walkdir = "2.3"  # For directory traversal
+tempfile = "3.8"  # For testing frozen tier
+memmap2 = "0.9"  # For memory-mapped files
+num_cpus = "1.16"  # For CPU detection
+libc = "0.2"  # For system calls
+mimalloc = { version = "0.1", default-features = false }  # High-performance allocator
+lru = "0.12"  # LRU cache for tier management
+
+# Logging and metrics
+slog = "2.7"
+slog-term = "2.9"
+slog-async = "2.8"
+slog-json = "2.6"
+indicatif = "0.17"  # Progress bars for benchmarks
+# === CORE LANGUAGES (30) - From crates.io ===
+# Pinned to exact versions for reproducible builds
+tree-sitter-rust = "=0.23.0"
+tree-sitter-python = "=0.23.0"
+tree-sitter-go = "=0.23.0"
+tree-sitter-java = "=0.23.0"
+tree-sitter-c = "=0.24.1"
+tree-sitter-cpp = "=0.23.0"
+tree-sitter-c-sharp = "=0.23.0"
+tree-sitter-ruby = "=0.23.0"
+tree-sitter-php = "=0.23.0"
+tree-sitter-lua = "=0.2.0"
+tree-sitter-bash = "=0.23.0"
+tree-sitter-css = "=0.23.0"
+tree-sitter-json = "=0.23.0"
+tree-sitter-swift = "=0.6.0"
+tree-sitter-scala = "0.23"
+tree-sitter-elixir = "=0.3.1"
+tree-sitter-html = "=0.23.0"
+tree-sitter-ocaml = "=0.23.2"
+tree-sitter-nix = "=0.3.0"
+tree-sitter-make = "=1.1.1"
+tree-sitter-cmake = "=0.7.1"
+tree-sitter-verilog = "=1.0.3"
+tree-sitter-erlang = "=0.14.0"
+tree-sitter-d = "=0.8.2"
+tree-sitter-pascal = "=0.10.0"
+tree-sitter-commonlisp = "=0.4.1"
+tree-sitter-objc = { version = "=3.0.2", optional = true }
+tree-sitter-groovy = "0.1.1"
+tree-sitter-embedded-template = "=0.23.2"
+
+# === EXTERNAL GRAMMAR LANGUAGES (37) - From external-grammars ===
+tree-sitter-javascript = { path = "external-grammars/tree-sitter-javascript", optional = true }
+tree-sitter-typescript = { path = "external-grammars/tree-sitter-typescript", optional = true }
+tree-sitter-toml = { path = "external-grammars/tree-sitter-toml", optional = true }
+tree-sitter-dockerfile = { path = "external-grammars/tree-sitter-dockerfile", optional = true }
+tree-sitter-elm = { path = "external-grammars/tree-sitter-elm", optional = true }
+tree-sitter-kotlin = { path = "external-grammars/tree-sitter-kotlin", optional = true }
+tree-sitter-yaml = { path = "external-grammars/tree-sitter-yaml", optional = true }
+tree-sitter-r = { path = "external-grammars/tree-sitter-r", optional = true }
+tree-sitter-matlab = { path = "external-grammars/tree-sitter-matlab", optional = true }
+tree-sitter-perl = { path = "external-grammars/tree-sitter-perl", optional = true }
+tree-sitter-dart = { path = "external-grammars/tree-sitter-dart", optional = true }
+tree-sitter-julia = { path = "external-grammars/tree-sitter-julia", optional = true }
+tree-sitter-haskell = { path = "external-grammars/tree-sitter-haskell", optional = true }
+tree-sitter-graphql = { path = "external-grammars/tree-sitter-graphql", optional = true }
+tree-sitter-sql = { path = "external-grammars/tree-sitter-sql", optional = true }
+tree-sitter-zig = { path = "external-grammars/tree-sitter-zig", optional = true }
+tree-sitter-vim = { path = "external-grammars/tree-sitter-vim", optional = true }
+tree-sitter-abap = { path = "external-grammars/tree-sitter-abap", optional = true }
+tree-sitter-nim = { path = "external-grammars/tree-sitter-nim", optional = true }
+tree-sitter-clojure = { path = "external-grammars/tree-sitter-clojure", optional = true }
+tree-sitter-crystal = { path = "external-grammars/tree-sitter-crystal", optional = true }
+tree-sitter-fortran = { path = "external-grammars/tree-sitter-fortran", optional = true }
+tree-sitter-vhdl = { path = "external-grammars/tree-sitter-vhdl", optional = true }
+tree-sitter-racket = { path = "external-grammars/tree-sitter-racket", optional = true }
+tree-sitter-ada = { path = "external-grammars/tree-sitter-ada", optional = true }
+tree-sitter-prolog = { path = "external-grammars/tree-sitter-prolog", optional = true }
+tree-sitter-gradle = { path = "external-grammars/tree-sitter-gradle", optional = true }
+tree-sitter-xml = { path = "external-grammars/tree-sitter-xml", optional = true }
+tree-sitter-md = { path = "external-grammars/tree-sitter-markdown", package = "tree-sitter-md", optional = true }
+tree-sitter-svelte = { path = "external-grammars/tree-sitter-svelte", optional = true }
+tree-sitter-scheme = { path = "external-grammars/tree-sitter-scheme", optional = true }
+tree-sitter-fennel = { path = "external-grammars/tree-sitter-fennel", optional = true }
+tree-sitter-gleam = { path = "external-grammars/tree-sitter-gleam", optional = true }
+tree-sitter-hcl = { path = "external-grammars/tree-sitter-hcl", optional = true }
+tree-sitter-solidity = { path = "external-grammars/tree-sitter-solidity", optional = true }
+tree-sitter-fsharp = { path = "external-grammars/tree-sitter-fsharp", optional = true }
+tree-sitter-cobol = { path = "external-grammars/tree-sitter-cobol", optional = true }
+tree-sitter-systemverilog = { path = "external-grammars/tree-sitter-systemverilog", optional = true }
+
+# Additional utilities
+crossbeam = "0.8"
+async-trait = "0.1"
+glob = "0.3"
+chrono = "0.4"
+pathdiff = "0.2"
+
+[build-dependencies]
+cc = "1.2"
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
+tempfile = "3.8"
+tokio-test = "0.4"
+proptest = "1.4"
+pretty_assertions = "1.4"
+
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+
+[profile.bench]
+inherits = "release"
+
+# Limit examples to required features
+[[example]]
+name = "real_parse_test"
+required-features = ["lang-javascript", "lang-typescript"]
+
+[[example]]
+name = "demo"
+required-features = ["demo-example"]
+
+

@@ -1,0 +1,76 @@
+# Lapce IPC Server Configuration File
+# This file configures the IPC server for AI provider communication
+
+[server]
+# Unix socket path for IPC communication (must match UI default)
+socket_path = "/tmp/lapce_ai.sock"
+# Maximum number of concurrent connections
+max_connections = 1000
+# Idle connection timeout in seconds
+idle_timeout_secs = 300
+# Maximum message size in bytes (10MB)
+max_message_size = 10485760
+# Size of buffer pool for zero-copy operations
+buffer_pool_size = 100
+# Enable automatic reconnection on connection loss
+enable_auto_reconnect = true
+# Delay between reconnection attempts in milliseconds
+reconnect_delay_ms = 50
+
+[providers]
+# List of enabled AI providers
+enabled_providers = ["openai", "anthropic", "gemini", "xai"]
+# Default provider to use
+default_provider = "openai"
+# Enable fallback to other providers on failure
+fallback_enabled = true
+# Order of providers to try on fallback
+fallback_order = ["openai", "anthropic", "gemini"]
+# Enable load balancing across providers
+load_balance = false
+# Enable circuit breaker to prevent cascading failures
+circuit_breaker_enabled = true
+# Number of failures before circuit breaker trips
+circuit_breaker_threshold = 5
+
+[performance]
+# Enable message compression for large payloads
+enable_compression = false
+# Minimum message size to trigger compression (bytes)
+compression_threshold = 1024
+# Use binary protocol instead of JSON
+enable_binary_protocol = true
+# Number of worker threads (0 = CPU cores)
+worker_threads = 4
+# Maximum concurrent requests
+max_concurrent_requests = 100
+# Request timeout in seconds
+request_timeout_secs = 30
+
+[security]
+# Enable TLS encryption for IPC connections
+enable_tls = false
+# Path to TLS certificate (if enable_tls = true)
+tls_cert_path = ""
+# Path to TLS private key (if enable_tls = true)
+tls_key_path = ""
+# List of allowed origins ("*" = allow all)
+allowed_origins = ["*"]
+# Maximum requests per second per client (0 = unlimited)
+rate_limit_per_second = 1000
+# Maximum request size in bytes (10MB)
+max_request_size = 10485760
+
+[monitoring]
+# Enable metrics collection and export
+enable_metrics = true
+# Port for metrics endpoint (Prometheus format)
+metrics_port = 9090
+# Endpoint path for metrics
+metrics_endpoint = "/metrics"
+# Enable distributed tracing
+enable_tracing = false
+# Log level (trace, debug, info, warn, error)
+log_level = "info"
+# Health check interval in seconds
+health_check_interval_secs = 5

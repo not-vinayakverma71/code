@@ -12,24 +12,13 @@ use lapce_proxy::plugin::wasi::find_all_volts;
 use lapce_rpc::plugin::VoltID;
 use lsp_types::{CompletionItemKind, SymbolKind};
 use once_cell::sync::Lazy;
-use parking_lot::RwLock;
 use serde::Deserialize;
 use strum::VariantNames;
 use tracing::error;
 
-use self::{
-    color::LapceColor,
-    color_theme::{ColorThemeConfig, ThemeColor, ThemeColorPreference},
-    core::CoreConfig,
-    editor::{EditorConfig, SCALE_OR_SIZE_LIMIT, WrapStyle},
-    icon::LapceIcons,
-    icon_theme::IconThemeConfig,
-    svg::SvgStore,
-    terminal::TerminalConfig,
-    ui::UIConfig,
-};
 use crate::workspace::{LapceWorkspace, LapceWorkspaceType};
 
+pub mod ai;
 pub mod color;
 pub mod color_theme;
 pub mod core;
@@ -41,10 +30,28 @@ pub mod terminal;
 pub mod ui;
 pub mod watcher;
 
+use self::{
+    ai::AIConfig,
+    color::LapceColor,
+    color_theme::{ColorThemeConfig, ThemeColor, ThemeColorPreference},
+    core::CoreConfig,
+    editor::{EditorConfig, SCALE_OR_SIZE_LIMIT, WrapStyle},
+    icon::LapceIcons,
+    icon_theme::IconThemeConfig,
+    svg::SvgStore,
+    terminal::TerminalConfig,
+    ui::UIConfig,
+};
+
+use parking_lot::RwLock;
+
 pub const LOGO: &str = include_str!("../../extra/images/logo.svg");
 const DEFAULT_SETTINGS: &str = include_str!("../../defaults/settings.toml");
 const DEFAULT_LIGHT_THEME: &str = include_str!("../../defaults/light-theme.toml");
 const DEFAULT_DARK_THEME: &str = include_str!("../../defaults/dark-theme.toml");
+const DEFAULT_LIGHT_MODERN_THEME: &str = include_str!("../../defaults/light-modern-theme.toml");
+const DEFAULT_DARK_HC_THEME: &str = include_str!("../../defaults/dark-highcontrast-theme.toml");
+const DEFAULT_LIGHT_HC_THEME: &str = include_str!("../../defaults/light-highcontrast-theme.toml");
 const DEFAULT_ICON_THEME: &str = include_str!("../../defaults/icon-theme.toml");
 
 static DEFAULT_CONFIG: Lazy<config::Config> = Lazy::new(LapceConfig::default_config);
@@ -96,6 +103,8 @@ pub struct DropdownInfo {
 pub struct LapceConfig {
     #[serde(skip)]
     pub id: u64,
+    #[serde(default)]
+    pub ai: AIConfig,
     pub core: CoreConfig,
     pub ui: UIConfig,
     pub editor: EditorConfig,
@@ -294,7 +303,23 @@ impl LapceConfig {
             self.color_theme = new.color_theme;
             self.icon_theme = new.icon_theme;
             if let Some(icon_theme_path) = icon_theme_path {
-                self.icon_theme.path = icon_theme_path.clone().unwrap_or_default();
+                self.icon_theme.path = icon_theme_path.clone().unwrap_or_else(|| {
+                    // Use the embedded codicons directory as fallback
+                    std::env::current_exe()
+                        .ok()
+                        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+                        .map(|p| p.join("../../icons/codicons"))
+                        .and_then(|p| p.canonicalize().ok())
+                        .unwrap_or_else(|| PathBuf::from("./icons/codicons"))
+                });
+            } else {
+                // For embedded default theme, use the icons directory relative to executable
+                self.icon_theme.path = std::env::current_exe()
+                    .ok()
+                    .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+                    .map(|p| p.join("../../icons/codicons"))
+                    .and_then(|p| p.canonicalize().ok())
+                    .unwrap_or_else(|| PathBuf::from("./icons/codicons"));
             }
             self.plugins = new.plugins;
         }
@@ -319,6 +344,15 @@ impl LapceConfig {
         themes.insert(name.to_lowercase(), (name, theme));
         let (name, theme) =
             Self::load_color_theme_from_str(DEFAULT_DARK_THEME).unwrap();
+        themes.insert(name.to_lowercase(), (name, theme));
+        let (name, theme) =
+            Self::load_color_theme_from_str(DEFAULT_LIGHT_MODERN_THEME).unwrap();
+        themes.insert(name.to_lowercase(), (name, theme));
+        let (name, theme) =
+            Self::load_color_theme_from_str(DEFAULT_DARK_HC_THEME).unwrap();
+        themes.insert(name.to_lowercase(), (name, theme));
+        let (name, theme) =
+            Self::load_color_theme_from_str(DEFAULT_LIGHT_HC_THEME).unwrap();
         themes.insert(name.to_lowercase(), (name, theme));
 
         themes
@@ -613,12 +647,8 @@ impl LapceConfig {
             .and_then(|p| self.svg_store.write().get_svg_on_disk(&p));
 
         if let Some(svg) = svg {
-            let color = if self.icon_theme.use_editor_color.unwrap_or(false) {
-                Some(self.color(LapceColor::LAPCE_ICON_ACTIVE))
-            } else {
-                None
-            };
-            (svg, color)
+            // Return None for color to preserve SVG's natural colors
+            (svg, None)
         } else {
             (
                 self.ui_svg(LapceIcons::FILE),
@@ -629,6 +659,16 @@ impl LapceConfig {
 
     pub fn file_svg(&self, path: &Path) -> (String, Option<Color>) {
         self.files_svg(slice::from_ref(&path))
+    }
+
+    pub fn folder_svg(&self, path: &Path) -> Option<(String, Option<Color>)> {
+        // Check if folder has custom icon in theme
+        let folder_name = path.file_name()?.to_str()?;
+        let icon_file = self.icon_theme.foldername.get(folder_name)?;
+        let icon_path = self.icon_theme.path.join(icon_file);
+        let svg = self.svg_store.write().get_svg_on_disk(&icon_path)?;
+        // Return None for color to preserve SVG's natural colors
+        Some((svg, None))
     }
 
     pub fn symbol_svg(&self, kind: &SymbolKind) -> Option<String> {

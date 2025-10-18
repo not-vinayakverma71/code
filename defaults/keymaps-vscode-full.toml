@@ -1,0 +1,454 @@
+# =====================================================================================
+# COMPLETE VS CODE KEYBINDINGS FOR LAPCE (Windows/Linux)
+# =====================================================================================
+# This is a COMPLETE replacement/addition for VS Code users
+# These work in ALL modes unless specifically restricted
+# =====================================================================================
+
+# ================================== FILE OPERATIONS ==================================
+
+[[keymaps]]
+key = "ctrl+n"
+command = "new_file"
+
+[[keymaps]]
+key = "ctrl+o"
+command = "open_file"
+
+[[keymaps]]
+key = "ctrl+s"
+command = "save"
+
+[[keymaps]]
+key = "ctrl+shift+s"
+command = "save_as"
+
+[[keymaps]]
+key = "ctrl+k s"
+command = "save_all"
+
+[[keymaps]]
+key = "ctrl+w"
+command = "split_close"
+
+[[keymaps]]
+key = "ctrl+k w"
+command = "split_close"
+
+[[keymaps]]
+key = "ctrl+shift+t"
+command = "palette"  # Reopen closed editor - no command yet, using palette as workaround
+
+[[keymaps]]
+key = "ctrl+k ctrl+w"
+command = "split_close"  # Close all editors - maps to close current for now
+
+# ================================== EDITING ==================================
+
+[[keymaps]]
+key = "ctrl+z"
+command = "undo"
+
+[[keymaps]]
+key = "ctrl+shift+z"
+command = "redo"
+
+[[keymaps]]
+key = "ctrl+y"
+command = "redo"
+
+[[keymaps]]
+key = "ctrl+x"
+command = "clipboard_cut"
+
+[[keymaps]]
+key = "ctrl+c"
+command = "clipboard_copy"
+
+[[keymaps]]
+key = "ctrl+v"
+command = "clipboard_paste"
+
+[[keymaps]]
+key = "ctrl+a"
+command = "select_all"
+
+# ================================== SEARCH & REPLACE ==================================
+
+[[keymaps]]
+key = "ctrl+f"
+command = "search"
+
+[[keymaps]]
+key = "ctrl+h"
+command = "search"  # Replace - opens search for now, needs dedicated replace
+
+[[keymaps]]
+key = "ctrl+shift+f"
+command = "toggle_search_focus"
+
+[[keymaps]]
+key = "ctrl+shift+h"
+command = "toggle_search_focus"  # Global replace - using search panel for now
+
+[[keymaps]]
+key = "F3"
+command = "search_forward"
+
+[[keymaps]]
+key = "shift+F3"
+command = "search_backward"
+
+# ================================== NAVIGATION ==================================
+
+[[keymaps]]
+key = "ctrl+p"
+command = "palette"
+
+[[keymaps]]
+key = "ctrl+shift+p"
+command = "palette.command"
+
+[[keymaps]]
+key = "ctrl+g"
+command = "palette.line"
+
+[[keymaps]]
+key = "ctrl+shift+o"
+command = "palette.symbol"
+
+[[keymaps]]
+key = "ctrl+t"
+command = "palette.workspace_symbol"
+
+[[keymaps]]
+key = "F12"
+command = "goto_definition"
+
+[[keymaps]]
+key = "ctrl+F12"
+command = "go_to_implementation"
+
+[[keymaps]]
+key = "shift+F12"
+command = "find_references"
+
+[[keymaps]]
+key = "alt+F12"
+command = "goto_definition"  # Peek definition - no peek yet, jumps instead
+
+# ================================== GO BACK/FORWARD ==================================
+
+[[keymaps]]
+key = "alt+left"
+command = "jump_location_backward"
+
+[[keymaps]]
+key = "alt+right"
+command = "jump_location_forward"
+
+[[keymaps]]
+key = "ctrl+alt+minus"
+command = "jump_location_backward"
+
+# ================================== PANELS & VIEWS ==================================
+
+[[keymaps]]
+key = "ctrl+b"
+command = "toggle_panel_left_visual"
+
+[[keymaps]]
+key = "ctrl+j"
+command = "toggle_panel_bottom_visual"
+
+[[keymaps]]
+key = "ctrl+shift+e"
+command = "toggle_file_explorer_focus"
+
+[[keymaps]]
+key = "ctrl+shift+f"
+command = "toggle_search_focus"
+
+[[keymaps]]
+key = "ctrl+shift+x"
+command = "toggle_plugin_focus"
+
+[[keymaps]]
+key = "ctrl+shift+m"
+command = "toggle_problem_focus"
+
+[[keymaps]]
+key = "ctrl+shift+d"
+command = "toggle_debug_visual"
+
+[[keymaps]]
+key = "ctrl+shift+y"
+command = "toggle_terminal_focus"
+
+[[keymaps]]
+key = "ctrl+`"
+command = "toggle_terminal_focus"
+
+# ================================== EDITOR MANAGEMENT ==================================
+
+[[keymaps]]
+key = "ctrl+\\"
+command = "split_vertical"
+
+[[keymaps]]
+key = "ctrl+k ctrl+\\"
+command = "split_vertical"
+
+[[keymaps]]
+key = "ctrl+1"
+command = "focus_editor"
+
+[[keymaps]]
+key = "ctrl+2"
+command = "focus_editor"  # Focus group 2 - limited support
+
+[[keymaps]]
+key = "ctrl+3"
+command = "focus_editor"  # Focus group 3 - limited support
+
+[[keymaps]]
+key = "ctrl+tab"
+command = "next_editor_tab"
+
+[[keymaps]]
+key = "ctrl+shift+tab"
+command = "previous_editor_tab"
+
+[[keymaps]]
+key = "ctrl+pagedown"
+command = "next_editor_tab"
+
+[[keymaps]]
+key = "ctrl+pageup"
+command = "previous_editor_tab"
+
+[[keymaps]]
+key = "ctrl+k ctrl+left"
+command = "split_left"
+
+[[keymaps]]
+key = "ctrl+k ctrl+right"
+command = "split_right"
+
+# ================================== LINE OPERATIONS ==================================
+
+[[keymaps]]
+key = "ctrl+enter"
+command = "new_line_below"
+
+[[keymaps]]
+key = "ctrl+shift+enter"
+command = "new_line_above"
+
+[[keymaps]]
+key = "alt+up"
+command = "move_line_up"
+
+[[keymaps]]
+key = "alt+down"
+command = "move_line_down"
+
+[[keymaps]]
+key = "shift+alt+up"
+command = "duplicate_line_up"
+
+[[keymaps]]
+key = "shift+alt+down"
+command = "duplicate_line_down"
+
+[[keymaps]]
+key = "ctrl+shift+k"
+command = "delete_forward"  # Delete line - needs proper delete_line command
+
+[[keymaps]]
+key = "ctrl+l"
+command = "select_current_line"
+
+# ================================== MULTI-CURSOR ==================================
+
+[[keymaps]]
+key = "ctrl+d"
+command = "select_next_current"
+
+[[keymaps]]
+key = "ctrl+k ctrl+d"
+command = "select_skip_current"
+
+[[keymaps]]
+key = "ctrl+shift+l"
+command = "select_all_current"
+
+[[keymaps]]
+key = "ctrl+u"
+command = "select_undo"
+
+[[keymaps]]
+key = "ctrl+alt+up"
+command = "insert_cursor_above"
+
+[[keymaps]]
+key = "ctrl+alt+down"
+command = "insert_cursor_below"
+
+[[keymaps]]
+key = "shift+alt+i"
+command = "insert_cursor_end_of_line"
+
+# ================================== CODE ACTIONS ==================================
+
+[[keymaps]]
+key = "ctrl+."
+command = "show_code_actions"
+
+[[keymaps]]
+key = "ctrl+space"
+command = "get_completion"
+
+[[keymaps]]
+key = "ctrl+shift+space"
+command = "get_signature"
+
+[[keymaps]]
+key = "F2"
+command = "rename_symbol"
+
+[[keymaps]]
+key = "ctrl+k ctrl+i"
+command = "show_hover"
+
+# ================================== COMMENTING ==================================
+
+[[keymaps]]
+key = "ctrl+/"
+command = "toggle_line_comment"
+
+[[keymaps]]
+key = "shift+alt+a"
+command = "toggle_line_comment"  # Block comment - using line for now
+
+# ================================== INDENTATION ==================================
+
+[[keymaps]]
+key = "ctrl+]"
+command = "indent_line"
+
+[[keymaps]]
+key = "ctrl+["
+command = "outdent_line"
+
+[[keymaps]]
+key = "ctrl+shift+["
+command = "outdent_line"  # Fold - no folding yet, using outdent
+
+[[keymaps]]
+key = "ctrl+shift+]"
+command = "indent_line"  # Unfold - no folding yet, using indent
+
+# ================================== WORD NAVIGATION ==================================
+
+[[keymaps]]
+key = "ctrl+right"
+command = "word_end_forward"
+
+[[keymaps]]
+key = "ctrl+left"
+command = "word_backward"
+
+[[keymaps]]
+key = "ctrl+backspace"
+command = "delete_word_backward"
+
+[[keymaps]]
+key = "ctrl+delete"
+command = "delete_word_forward"
+
+# ================================== BRACKET MATCHING ==================================
+
+[[keymaps]]
+key = "ctrl+shift+\\"
+command = "match_pairs"
+
+# ================================== ERRORS & PROBLEMS ==================================
+
+[[keymaps]]
+key = "F8"
+command = "next_error"
+
+[[keymaps]]
+key = "shift+F8"
+command = "previous_error"
+
+# ================================== SETTINGS & CONFIG ==================================
+
+[[keymaps]]
+key = "ctrl+,"
+command = "open_settings"
+
+[[keymaps]]
+key = "ctrl+k ctrl+s"
+command = "open_keyboard_shortcuts"
+
+# ================================== ZOOM ==================================
+
+[[keymaps]]
+key = "ctrl+="
+command = "zoom_in"
+
+[[keymaps]]
+key = "ctrl+-"
+command = "zoom_out"
+
+[[keymaps]]
+key = "ctrl+0"
+command = "zoom_reset"
+
+# ================================== WINDOW ==================================
+
+[[keymaps]]
+key = "ctrl+shift+n"
+command = "new_window"
+
+[[keymaps]]
+key = "ctrl+shift+w"
+command = "close_window"
+
+[[keymaps]]
+key = "alt+F4"
+command = "close_window"
+
+[[keymaps]]
+key = "ctrl+k f"
+command = "close_folder"
+
+# ================================== TERMINAL ==================================
+
+[[keymaps]]
+key = "ctrl+shift+`"
+command = "new_terminal_tab"
+
+# ================================== FORMAT ==================================
+
+[[keymaps]]
+key = "shift+alt+f"
+command = "show_code_actions"  # Format document - no dedicated command, using code actions
+
+[[keymaps]]
+key = "ctrl+k ctrl+f"
+command = "show_code_actions"  # Format selection - no dedicated command
+
+# ================================== NOTES ==================================
+# Commands that don't exist yet but are mapped to workarounds:
+# - reopen_closed_editor (ctrl+shift+t) → using palette
+# - replace (ctrl+h) → using search
+# - global_search_replace (ctrl+shift+h) → using search panel
+# - delete_line (ctrl+shift+k) → using delete_forward
+# - close_all_editors (ctrl+k ctrl+w) → using split_close
+# - peek_definition (alt+F12) → using goto_definition
+# - format_document (shift+alt+f) → using show_code_actions
+# - fold/unfold (ctrl+shift+[/]) → using indent/outdent
+# - show_hover (ctrl+k ctrl+i) → command exists but may need verification

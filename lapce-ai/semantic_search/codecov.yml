@@ -1,0 +1,74 @@
+# Codecov configuration for semantic_search
+# https://docs.codecov.com/docs/codecov-yaml
+
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+
+  status:
+    project:
+      default:
+        target: 80%
+        threshold: 2%
+        if_ci_failed: error
+    
+    patch:
+      default:
+        target: 75%
+        threshold: 5%
+        if_ci_failed: error
+
+  flags:
+    unittests:
+      target: 85%
+      paths:
+        - src/indexing/
+    
+    integration:
+      target: 75%
+      paths:
+        - tests/
+    
+    stable_id_cache:
+      target: 90%
+      paths:
+        - src/indexing/stable_id_cache.rs
+    
+    incremental_detector:
+      target: 90%
+      paths:
+        - src/indexing/incremental_detector.rs
+    
+    cached_embedder:
+      target: 85%
+      paths:
+        - src/indexing/cached_embedder.rs
+    
+    async_indexer:
+      target: 85%
+      paths:
+        - src/indexing/async_indexer.rs
+    
+    indexing_metrics:
+      target: 85%
+      paths:
+        - src/indexing/indexing_metrics.rs
+    
+    feature_flags:
+      target: 90%
+      paths:
+        - src/indexing/feature_flags.rs
+
+comment:
+  layout: "diff, flags, files"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+
+ignore:
+  - "benches/**"
+  - "examples/**"
+  - "docs/**"
+  - "scripts/**"

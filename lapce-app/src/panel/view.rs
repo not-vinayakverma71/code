@@ -17,6 +17,7 @@ use floem::{
 };
 
 use super::{
+    ai_chat_view::ai_chat_panel,
     debug_view::debug_panel,
     global_search_view::global_search_panel,
     kind::PanelKind,
@@ -66,7 +67,7 @@ pub fn foldable_panel_section(
                 .padding_vert(6.0)
                 .width_pct(100.0)
                 .cursor(CursorStyle::Pointer)
-                .background(config.get().color(LapceColor::EDITOR_BACKGROUND))
+                .background(config.get().color(LapceColor::PANEL_BACKGROUND))
         })
         .on_click_stop(move |_| {
             open.update(|open| *open = !*open);
@@ -426,6 +427,7 @@ pub fn panel_container_view(
         s.apply_if(!panel.is_container_shown(&position, true), |s| s.hide())
             .apply_if(position == PanelContainerPosition::Bottom, |s| {
                 s.width_pct(100.0)
+                    .background(config.color(LapceColor::PANEL_BACKGROUND))
                     .apply_if(!is_maximized, |s| {
                         s.border_top(1.0).height(size as f32)
                     })
@@ -445,7 +447,9 @@ pub fn panel_container_view(
             })
             .apply_if(!is_bottom, |s| s.flex_col())
             .border_color(config.color(LapceColor::LAPCE_BORDER))
-            .color(config.color(LapceColor::PANEL_FOREGROUND))
+            // Default to dim foreground for side panels, override for bottom panel
+            .color(config.color(LapceColor::PANEL_FOREGROUND_DIM))
+            .apply_if(is_bottom, |s| s.color(config.color(LapceColor::PANEL_FOREGROUND)))
     })
     .debug_name(format!("{:?} Pannel Container View", position))
 }
@@ -507,6 +511,9 @@ fn panel_view(
                     implementation_panel(window_tab_data.clone(), position)
                         .into_any()
                 }
+                PanelKind::AIChat => {
+                    ai_chat_panel(window_tab_data.clone()).into_any()
+                }
             };
             view.style(|s| s.size_pct(100.0, 100.0))
         },
@@ -528,7 +535,7 @@ pub fn panel_header(
         s.padding_horiz(10.0)
             .padding_vert(6.0)
             .width_pct(100.0)
-            .background(config.get().color(LapceColor::EDITOR_BACKGROUND))
+            .background(config.get().color(LapceColor::PANEL_BACKGROUND))
     })
 }
 
@@ -563,6 +570,7 @@ fn panel_picker(
                 PanelKind::DocumentSymbol => "Document Symbol",
                 PanelKind::References => "References",
                 PanelKind::Implementation => "Implementation",
+                PanelKind::AIChat => "AI Chat",
             };
             let icon = p.svg_name();
             let is_active = {
@@ -635,11 +643,17 @@ fn panel_picker(
                         )
                 }),
             )))
-            .style(|s| s.padding(6.0))
+            .style(|s| s.padding(0.0))
         },
     )
     .style(move |s| {
         s.border_color(config.get().color(LapceColor::LAPCE_BORDER))
+            .apply_if(!is_bottom, |s| {
+                s.width_pct(100.0)
+                    .height(35.0)
+                    .items_center()
+                    .justify_center()
+            })
             .apply_if(
                 panels.with(|p| {
                     p.get(&position).map(|p| p.is_empty()).unwrap_or(true)
@@ -649,7 +663,9 @@ fn panel_picker(
             .apply_if(is_bottom, |s| s.flex_col())
             .apply_if(is_bottom && is_first, |s| s.border_right(1.0))
             .apply_if(is_bottom && !is_first, |s| s.border_left(1.0))
-            .apply_if(!is_bottom && is_first, |s| s.border_bottom(1.0))
+            .apply_if(!is_bottom && is_first, |s| {
+                s.border_bottom(1.0).padding_left(4.0).padding_right(6.0)
+            })
             .apply_if(!is_bottom && !is_first, |s| s.border_top(1.0))
     })
 }

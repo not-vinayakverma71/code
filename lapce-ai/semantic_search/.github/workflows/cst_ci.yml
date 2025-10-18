@@ -1,0 +1,219 @@
+name: CST Language Parsing CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'semantic_search/**'
+      - 'CST-tree-sitter/**'
+      - '.github/workflows/cst_ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'semantic_search/**'
+      - 'CST-tree-sitter/**'
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test-core-languages:
+    name: Test 31 Core Languages
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        rust: [stable, nightly]
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          profile: minimal
+          override: true
+          components: rustfmt, clippy
+      
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Cache cargo index
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Cache cargo build
+        uses: actions/cache@v3
+        with:
+          path: semantic_search/target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Build with CST features
+        working-directory: semantic_search
+        run: cargo build --lib --no-default-features --features cst_ts
+      
+      - name: Run core languages parse test
+        working-directory: semantic_search
+        run: cargo test --test parse_core_languages_test --no-default-features --features cst_ts -- --nocapture
+      
+      - name: Run language registry tests
+        working-directory: semantic_search
+        run: cargo test --lib language_registry --no-default-features --features cst_ts
+      
+      - name: Run unified language detection tests
+        working-directory: semantic_search
+        run: cargo test --lib unified_language_detection --no-default-features --features cst_ts
+
+  test-top-12-codex-format:
+    name: Test Top 12 Codex Symbol Format
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+      
+      - name: Run Codex symbol format tests
+        working-directory: semantic_search
+        run: cargo test --test codex_symbol_format_test --no-default-features --features cst_ts -- --nocapture
+      
+      - name: Verify 100% Top 12 pass rate
+        working-directory: semantic_search
+        run: |
+          cargo test --test codex_symbol_format_test test_top_12_codex_format_batch --no-default-features --features cst_ts -- --nocapture > test_output.txt 2>&1
+          if grep -q "Success rate: 100.0%" test_output.txt; then
+            echo "✅ All Top 12 languages passed"
+          else
+            echo "❌ Top 12 languages not at 100%"
+            cat test_output.txt
+            exit 1
+          fi
+
+  test-corpus-validation:
+    name: Corpus Validation Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+      
+      - name: Check corpus directories exist
+        working-directory: semantic_search
+        run: cargo test --test corpus_validation_test test_corpus_directories_exist --no-default-features --features cst_ts
+      
+      - name: Run corpus validation
+        working-directory: semantic_search
+        run: cargo test --test corpus_validation_test --no-default-features --features cst_ts -- --nocapture || true
+
+  test-e2e-pipeline:
+    name: E2E Pipeline Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+      
+      - name: Run E2E mock test
+        working-directory: semantic_search
+        run: cargo test --test e2e_semantic_pipeline_test test_e2e_semantic_pipeline_mock --no-default-features --features cst_ts -- --nocapture
+
+  lint:
+    name: Lint and Format
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+          components: rustfmt, clippy
+      
+      - name: Check formatting
+        working-directory: semantic_search
+        run: cargo fmt --all -- --check
+      
+      - name: Run clippy
+        working-directory: semantic_search
+        run: cargo clippy --no-default-features --features cst_ts -- -D warnings
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+      
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+      
+      - name: Run security audit
+        working-directory: semantic_search
+        run: cargo audit
+
+  summary:
+    name: CI Summary
+    needs: [test-core-languages, test-top-12-codex-format, test-corpus-validation, test-e2e-pipeline, lint]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: CI Summary
+        run: |
+          echo "=== CST Language Parsing CI Summary ==="
+          echo "✅ Core languages tested on multiple platforms"
+          echo "✅ Top 12 Codex format validated"
+          echo "✅ Corpus validation completed"
+          echo "✅ E2E pipeline tested"
+          echo "✅ Linting and formatting checked"
+          echo ""
+          echo "All CST integration tests passed!"

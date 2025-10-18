@@ -1,0 +1,33 @@
+[package]
+name = "optimized-ipc"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Core dependencies for high performance
+tokio = { version = "1.40", features = ["full", "io-util"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+hex = "0.4"
+rand = "0.8"
+libc = "0.2"
+bytes = "1.7"
+crossbeam = "0.8"
+
+# Performance optimizations
+parking_lot = "0.12"  # Faster than std::sync::Mutex
+ahash = "0.8"  # Faster hasher
+rkyv = "0.7"  # Zero-copy serialization
+zerocopy = { version = "0.7", features = ["derive"] }
+memmap2 = "0.9"  # Memory-mapped files
+arc-swap = "1.7"  # Lock-free Arc swapping
+
+[dev-dependencies]
+criterion = "0.5"
+tempfile = "3.10"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+opt-level = 3
+debug = false
