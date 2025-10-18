@@ -20,10 +20,12 @@ use crate::ipc::errors::IpcResult;
 const RING_CAPACITY: u32 = 1024 * 1024; // 1MB per ring
 
 type Handler = Box<dyn Fn(Bytes) -> std::pin::Pin<Box<dyn std::future::Future<Output = IpcResult<Bytes>> + Send>> + Send + Sync>;
+type StreamingHandler = Box<dyn Fn(Bytes, tokio::sync::mpsc::Sender<Bytes>) -> std::pin::Pin<Box<dyn std::future::Future<Output = IpcResult<()>> + Send>> + Send + Sync>;
 
 pub struct IpcServerVolatile {
     control_server: Arc<Mutex<ControlServer>>,
     handlers: Arc<DashMap<MessageType, Handler>>,
+    streaming_handlers: Arc<DashMap<MessageType, StreamingHandler>>,
     shutdown: broadcast::Sender<()>,
     base_path: String,
     next_slot_id: AtomicU32,
@@ -39,6 +41,7 @@ impl IpcServerVolatile {
         Ok(Arc::new(Self {
             control_server: Arc::new(Mutex::new(control_server)),
             handlers: Arc::new(DashMap::new()),
+            streaming_handlers: Arc::new(DashMap::new()),
             shutdown: shutdown_tx,
             base_path: base_path.to_string(),
             next_slot_id: AtomicU32::new(0),
@@ -158,9 +161,10 @@ impl IpcServerVolatile {
         
         // Spawn handler
         let handlers = self.handlers.clone();
+        let streaming_handlers = self.streaming_handlers.clone();
         let shutdown = self.shutdown.subscribe();
         tokio::spawn(async move {
-            if let Err(e) = Self::handle_connection(slot_id, send_buffer, recv_buffer, handlers, shutdown).await {
+            if let Err(e) = Self::handle_connection(slot_id, send_buffer, recv_buffer, handlers, streaming_handlers, shutdown).await {
                 eprintln!("[HANDLER {}] Error: {}", slot_id, e);
             }
         });
@@ -173,6 +177,7 @@ impl IpcServerVolatile {
         send_buffer: Arc<SharedMemoryBuffer>,
         recv_buffer: Arc<SharedMemoryBuffer>,
         handlers: Arc<DashMap<MessageType, Handler>>,
+        streaming_handlers: Arc<DashMap<MessageType, StreamingHandler>>,
         mut shutdown: broadcast::Receiver<()>,
     ) -> Result<()> {
         let mut codec = BinaryCodec::new();
@@ -218,9 +223,121 @@ impl IpcServerVolatile {
             match recv_buffer.read(&mut buffer, 64 * 1024) {
                                 Ok(n) if n > 0 => {
                                     last_activity = std::time::Instant::now();
+                                    eprintln!("[HANDLER {}] Received {} bytes: {:?}", slot_id, n, &buffer[..std::cmp::min(n, 100)]);
                                     
-                                    // Decode message
-                                    match codec.decode(&buffer) {
+                                    // Try binary codec first (only the bytes actually read)
+                                    let decoded_result = codec.decode(&buffer[..n]);
+                                    eprintln!("[HANDLER {}] Binary decode result: {:?}", slot_id, decoded_result.as_ref().map(|_| "Ok").unwrap_or("Err"));
+                                    
+                                    // For ChatMessage type, the UI sends JSON directly (not binary codec)
+                                    // So if binary decode fails, try to handle as raw JSON for streaming
+                                    if decoded_result.is_err() {
+                                        eprintln!("[HANDLER {}] Binary decode failed, trying JSON...", slot_id);
+                                        
+                                        // Check if this is CPAL protocol (magic bytes: [67, 80, 65, 76])
+                                        if n >= 24 && buffer[0] == 67 && buffer[1] == 80 && buffer[2] == 65 && buffer[3] == 76 {
+                                            // CPAL header structure:
+                                            // 0-3: magic "CPAL"
+                                            // 4-5: version
+                                            // 6-7: flags
+                                            // 8-11: payload length (little-endian u32)
+                                            let payload_len = u32::from_le_bytes([buffer[8], buffer[9], buffer[10], buffer[11]]) as usize;
+                                            let total_len = 24 + payload_len; // header + payload
+                                            
+                                            eprintln!("[HANDLER {}] CPAL detected: payload_len={}, total_len={}, received={}", slot_id, payload_len, total_len, n);
+                                            
+                                            // Read more data if needed
+                                            let mut full_message = buffer[..n].to_vec();
+                                            while full_message.len() < total_len {
+                                                match recv_buffer.read(&mut buffer, 64 * 1024) {
+                                                    Ok(more_n) if more_n > 0 => {
+                                                        full_message.extend_from_slice(&buffer[..more_n]);
+                                                        eprintln!("[HANDLER {}] Read {} more bytes, total now {}", slot_id, more_n, full_message.len());
+                                                    }
+                                                    Ok(_) => {
+                                                        eprintln!("[HANDLER {}] No more data available", slot_id);
+                                                        break;
+                                                    }
+                                                    Err(e) => {
+                                                        eprintln!("[HANDLER {}] Error reading more data: {}", slot_id, e);
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                            
+                                            if full_message.len() >= total_len {
+                                                // Extract JSON payload (skip 24-byte CPAL header)
+                                                let json_payload = &full_message[24..total_len];
+                                                eprintln!("[HANDLER {}] Extracted JSON payload: {} bytes", slot_id, json_payload.len());
+                                                
+                                                // Debug: print the JSON string
+                                                if let Ok(json_str) = std::str::from_utf8(json_payload) {
+                                                    eprintln!("[HANDLER {}] JSON string: {}", slot_id, json_str);
+                                                } else {
+                                                    eprintln!("[HANDLER {}] JSON payload is not valid UTF-8", slot_id);
+                                                }
+                                                
+                                                // Try to deserialize as ProviderChatStreamRequest JSON
+                                                if let Ok(json_req) = serde_json::from_slice::<serde_json::Value>(json_payload) {
+                                                eprintln!("[HANDLER {}] JSON parsed: model={}, messages={}", 
+                                                    slot_id, 
+                                                    json_req.get("model").and_then(|v| v.as_str()).unwrap_or("?"),
+                                                    json_req.get("messages").map(|m| m.as_array().map(|a| a.len()).unwrap_or(0)).unwrap_or(0)
+                                                );
+                                                
+                                                if json_req.get("model").is_some() && json_req.get("messages").is_some() {
+                                                    // This is a provider chat stream request
+                                                    let payload_bytes = json_payload.to_vec();
+                                                
+                                                // Use ChatMessage type for routing
+                                                let msg_type = crate::ipc::binary_codec::MessageType::ChatMessage;
+                                                
+                                                if let Some(streaming_handler) = streaming_handlers.get(&msg_type) {
+                                                    // Create channel for streaming responses
+                                                    let (tx, mut rx) = tokio::sync::mpsc::channel(100);
+                                                    
+                                                    // Spawn streaming task
+                                                    let handler_fut = streaming_handler(Bytes::from(payload_bytes), tx);
+                                                    tokio::spawn(async move {
+                                                        if let Err(e) = handler_fut.await {
+                                                            eprintln!("[STREAMING] Error: {}", e);
+                                                        }
+                                                    });
+                                                    
+                                                    // Read chunks and send them
+                                                    while let Some(chunk) = rx.recv().await {
+                                                        // Write chunk to send buffer
+                                                        if let Err(e) = send_buffer.write(&chunk) {
+                                                            eprintln!("[HANDLER {}] Failed to write chunk: {}", slot_id, e);
+                                                            break;
+                                                        }
+                                                    }
+                                                    
+                                                        last_activity = std::time::Instant::now();
+                                                        continue; // Continue to next message
+                                                    } else {
+                                                        eprintln!("[HANDLER {}] ✗ NO HANDLER for ChatMessage", slot_id);
+                                                        continue;
+                                                    }
+                                                    } else {
+                                                        eprintln!("[HANDLER {}] JSON missing required fields", slot_id);
+                                                    }
+                                                } else {
+                                                    eprintln!("[HANDLER {}] JSON parse failed", slot_id);
+                                                }
+                                            } else {
+                                                eprintln!("[HANDLER {}] Incomplete CPAL message: got {}, need {}", slot_id, full_message.len(), total_len);
+                                            }
+                                        } else {
+                                            eprintln!("[HANDLER {}] Not CPAL format", slot_id);
+                                        }
+                                        // Unknown format
+                                        eprintln!("[HANDLER {}] ✗ DECODE ERROR: binary decode failed and not valid JSON", slot_id);
+                                        continue;
+                                    }
+                                    
+                                    // Binary codec decode succeeded
+                                    match decoded_result {
                                         Ok(msg) => {
                                             // Extract payload bytes
                                             let payload_bytes = match &msg.payload {
@@ -229,8 +346,30 @@ impl IpcServerVolatile {
                                                 _ => vec![],
                                             };
                                             
-                                            // Find and call handler
-                                            if let Some(handler) = handlers.get(&msg.msg_type) {
+                                            // Check if streaming handler first
+                                            if let Some(streaming_handler) = streaming_handlers.get(&msg.msg_type) {
+                                                // Create channel for streaming responses
+                                                let (tx, mut rx) = tokio::sync::mpsc::channel(100);
+                                                
+                                                // Spawn streaming task
+                                                let handler_fut = streaming_handler(Bytes::from(payload_bytes.clone()), tx);
+                                                tokio::spawn(async move {
+                                                    if let Err(e) = handler_fut.await {
+                                                        eprintln!("[STREAMING] Error: {}", e);
+                                                    }
+                                                });
+                                                
+                                                // Read chunks and send them
+                                                while let Some(chunk) = rx.recv().await {
+                                                    // Write chunk to send buffer
+                                                    if let Err(e) = send_buffer.write(&chunk) {
+                                                        eprintln!("[HANDLER {}] Failed to write chunk: {}", slot_id, e);
+                                                        break;
+                                                    }
+                                                }
+                                                
+                                                last_activity = std::time::Instant::now();
+                                            } else if let Some(handler) = handlers.get(&msg.msg_type) {
                                                 match handler(Bytes::from(payload_bytes)).await {
                                                     Ok(response_data) => {
                                                         // Encode response
@@ -280,5 +419,35 @@ impl IpcServerVolatile {
         }
         
         Ok(())
+    }
+    
+    /// Register a streaming message handler (for provider streaming)
+    pub fn register_streaming_handler<F, Fut>(&self, msg_type: MessageType, handler: F)
+    where
+        F: Fn(Bytes, tokio::sync::mpsc::Sender<Bytes>) -> Fut + Send + Sync + 'static,
+        Fut: std::future::Future<Output = IpcResult<()>> + Send + 'static,
+    {
+        self.streaming_handlers.insert(msg_type, Box::new(move |data, sender| {
+            Box::pin(handler(data, sender))
+        }));
+    }
+    
+    /// Get metrics (stub for compatibility)
+    pub fn metrics(&self) -> Arc<DummyMetrics> {
+        Arc::new(DummyMetrics {})
+    }
+    
+    /// Shutdown the server
+    pub fn shutdown(&self) {
+        let _ = self.shutdown.send(());
+    }
+}
+
+/// Dummy metrics for compatibility with IpcServer interface
+pub struct DummyMetrics {}
+
+impl DummyMetrics {
+    pub fn export_prometheus(&self) -> String {
+        "# IpcServerVolatile metrics (not yet implemented)\n".to_string()
     }
 }

@@ -90,7 +90,8 @@ pub fn chat_view(
                                 config,
                             )
                         },
-                    ),
+                    )
+                    .style(|s| s.width_full().flex_col().gap(12.0)),
                     
                     // Streaming text display (live assistant response)
                     container({
@@ -105,15 +106,14 @@ pub fn chat_view(
                     })
                     .style(|s| s.width_full().padding(8.0))
                 ))
-                .style(|s| s.padding(12.0).width_full().flex_col())
+                .style(|s| s.padding(12.0).width_full().flex_col().gap(12.0))
             )
             .style(|s| s.flex_grow(1.0).width_full())
         )
         .style(move |s| {
-            let cfg = config();
             s.flex_grow(1.0)
                 .width_full()
-                .background(cfg.color("editor.background"))
+                .background(floem::peniko::Color::from_rgb8(0x1a, 0x1a, 0x1a))
         }),
         
         // Clean Windsurf input bar with model/mode selection

@@ -8,7 +8,7 @@ use floem::{
     reactive::{
         ReadSignal, RwSignal, SignalGet, SignalUpdate, SignalWith, create_rw_signal,
     },
-    style::{AlignItems, CursorStyle, Position, Style},
+    style::{AlignItems, CursorStyle, OverflowX, OverflowY, Position, Style},
     text::Style as FontStyle,
     views::{
         Container, Decorators, container, dyn_stack, label, scroll, stack, svg,
@@ -144,12 +144,10 @@ fn file_node_text_color(
     });
 
     let color = match diff {
-        Some(FileDiffKind::Modified | FileDiffKind::Renamed) => {
-            LapceColor::SOURCE_CONTROL_MODIFIED
-        }
-        Some(FileDiffKind::Added) => LapceColor::SOURCE_CONTROL_ADDED,
+        // Only deleted files get red color
         Some(FileDiffKind::Deleted) => LapceColor::SOURCE_CONTROL_REMOVED,
-        None => LapceColor::PANEL_FOREGROUND,
+        // All other files (modified, renamed, added) are white
+        _ => LapceColor::EDITOR_FOREGROUND,
     };
 
     config.get().color(color)
@@ -180,6 +178,7 @@ fn file_node_text_view(
                                 node.clone(),
                                 source_control.clone(),
                             ))
+                            .font_size(13.0)
                             .padding_right(5.0)
                             .selectable(false)
                     }),
@@ -209,6 +208,7 @@ fn file_node_text_view(
                                 node.clone(),
                                 source_control.clone(),
                             ))
+                            .font_size(13.0)
                             .selectable(false)
                     }),
                 )
@@ -390,7 +390,7 @@ fn file_explorer_view(
                         .style(move |s| {
                             let config = config.get();
                             let base_size = config.ui.icon_size() as f32;
-                            // Directories: 1.0x, Custom language icons: 1.7x, Default generic icon: 0.8x
+                            // Directories: 1.0x, Custom language icons: 1.5x, Default generic icon: 0.8x
                             let size = if is_dir {
                                 base_size * 1.0
                             } else if let Some(path) = kind_for_size.path() {
@@ -398,7 +398,7 @@ fn file_explorer_view(
                                 let (svg_content, _) = config.file_svg(path);
                                 let default_file_svg = config.ui_svg(LapceIcons::FILE);
                                 let is_default_icon = svg_content == default_file_svg;
-                                if is_default_icon { base_size * 0.8 } else { base_size * 1.7 }
+                                if is_default_icon { base_size * 0.8 } else { base_size * 1.5 }
                             } else {
                                 base_size * 0.8 // Default icon = 0.8x
                             };
@@ -499,7 +499,13 @@ fn file_explorer_view(
         .item_size_fixed(move || ui_line_height.get())
         .style(|s| s.absolute().flex_col().min_width_full()),
     )
-    .style(|s| s.absolute().size_full().line_height(1.8))
+    .style(|s| {
+        s.absolute()
+            .size_full()
+            .line_height(1.8)
+            .set(OverflowX, floem::taffy::Overflow::Hidden)
+            .set(OverflowY, floem::taffy::Overflow::Scroll)
+    })
     .on_secondary_click_stop(move |_| {
         if let Naming::None = naming.get_untracked() {
             if let Some(path) = &secondary_click_data.common.workspace.path {

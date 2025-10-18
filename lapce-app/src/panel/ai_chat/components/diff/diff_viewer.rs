@@ -4,7 +4,7 @@
 use std::sync::Arc;
 use floem::{
     reactive::{create_rw_signal, SignalGet, SignalUpdate},
-    views::{container, h_stack, label, scroll, v_stack, Decorators},
+    views::{container, dyn_stack, h_stack, label, scroll, v_stack, Decorators},
     View,
 };
 use crate::config::LapceConfig;
@@ -103,59 +103,103 @@ pub fn diff_viewer(
         }),
         
         // Diff content
-        scroll(
-            container(
-                label({
-                    let lines = data.lines.clone();
-                    let show_ctx = show_context;
-                    move || {
-                        lines.iter()
-                            .filter(|line| {
-                                if show_ctx.get() {
-                                    true
-                                } else {
-                                    line.line_type != DiffLineType::Context
+        scroll({
+            let lines = data.lines.clone();
+            dyn_stack(
+                move || {
+                    let show_ctx_val = show_context.get();
+                    lines.iter()
+                        .filter(|line| {
+                            if show_ctx_val {
+                                true
+                            } else {
+                                line.line_type != DiffLineType::Context
+                            }
+                        })
+                        .cloned()
+                        .enumerate()
+                        .collect::<Vec<_>>()
+                },
+                |(idx, _line)| *idx,
+                move |(_, line)| {
+                            let line_type = line.line_type;
+                            let old_num = line.old_line_num
+                                .map(|n| format!("{:4}", n))
+                                .unwrap_or_else(|| "    ".to_string());
+                            
+                            let new_num = line.new_line_num
+                                .map(|n| format!("{:4}", n))
+                                .unwrap_or_else(|| "    ".to_string());
+                            
+                            let prefix = match line_type {
+                                DiffLineType::Addition => "+",
+                                DiffLineType::Deletion => "-",
+                                DiffLineType::Context => " ",
+                                DiffLineType::Separator => "@",
+                            };
+                            
+                            let content = line.content.clone();
+                            
+                    h_stack((
+                        // Line numbers
+                        label(move || format!("{} {}", old_num, new_num))
+                            .style(move |s| {
+                                let cfg = config();
+                                s.font_family("monospace".to_string())
+                                    .font_size(12.0)
+                                    .color(cfg.color("editor.dim"))
+                                    .margin_right(8.0)
+                                    .min_width(70.0)
+                            }),
+                        // Diff content
+                        label(move || format!("{} {}", prefix, content))
+                            .style(move |s| {
+                                let cfg = config();
+                                let mut style = s
+                                    .font_family("monospace".to_string())
+                                    .font_size(12.0)
+                                    .flex_grow(1.0)
+                                    .min_width(0.0);
+                                
+                                match line_type {
+                                    DiffLineType::Addition => {
+                                        style = style
+                                            .background(cfg.color("diff.inserted.background"))
+                                            .color(cfg.color("diff.inserted.foreground"));
+                                    }
+                                    DiffLineType::Deletion => {
+                                        style = style
+                                            .background(cfg.color("diff.removed.background"))
+                                            .color(cfg.color("diff.removed.foreground"));
+                                    }
+                                    DiffLineType::Separator => {
+                                        style = style
+                                            .color(cfg.color("editor.dim"))
+                                            .font_bold();
+                                    }
+                                    DiffLineType::Context => {
+                                        style = style.color(cfg.color("editor.foreground"));
+                                    }
                                 }
-                            })
-                            .map(|line| {
-                                let prefix = match line.line_type {
-                                    DiffLineType::Addition => "+",
-                                    DiffLineType::Deletion => "-",
-                                    DiffLineType::Context => " ",
-                                    DiffLineType::Separator => "@",
-                                };
-                                
-                                let old_num = line.old_line_num
-                                    .map(|n| format!("{:4}", n))
-                                    .unwrap_or_else(|| "    ".to_string());
-                                
-                                let new_num = line.new_line_num
-                                    .map(|n| format!("{:4}", n))
-                                    .unwrap_or_else(|| "    ".to_string());
-                                
-                                format!("{} {} {} {}", old_num, new_num, prefix, line.content)
-                            })
-                            .collect::<Vec<_>>()
-                            .join("\n")
-                    }
-                })
-                .style(move |s| {
-                    let cfg = config();
-                    s.font_family("monospace".to_string())
-                        .font_size(12.0)
-                        .line_height(1.4)
-                        .color(cfg.color("editor.foreground"))
-                        .width_full()
-                })
+                                style
+                            }),
+                    ))
+                    .style(|s| s.width_full().min_width(0.0))
+                },
             )
             .style(move |s| {
                 let cfg = config();
                 s.padding(12.0)
                     .background(cfg.color("terminal.background"))
                     .width_full()
+                    .min_width(0.0)
             })
-        )
-        .style(|s| s.flex_grow(1.0).width_full()),
+        })
+        .style(|s| {
+            s.flex_grow(1.0)
+                .width_full()
+                .min_width(0.0)
+        }),
         
         // Action bar
         container(

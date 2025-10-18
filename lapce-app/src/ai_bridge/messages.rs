@@ -106,6 +106,33 @@ pub enum OutboundMessage {
         max_tokens: Option<u32>,
         temperature: Option<f32>,
     },
+    
+    // ============================================================================
+    // LSP Gateway Operations (Native Tree-Sitter Based)
+    // ============================================================================
+    
+    /// Send LSP request to native gateway
+    LspRequest {
+        id: String,
+        method: String,
+        uri: String,
+        language_id: String,
+        params: JsonValue,
+    },
+    
+    /// Cancel an LSP request
+    LspCancel { request_id: String },
+    
+    // ============================================================================
+    // Tool Execution Operations
+    // ============================================================================
+    
+    /// Send approval response for tool execution
+    ToolApprovalResponse {
+        execution_id: String,
+        approved: bool,
+        reason: Option<String>,
+    },
 }
 
 /// Response types for ask interactions
@@ -303,12 +330,124 @@ pub enum InboundMessage {
     
     /// Provider error
     ProviderError { message: String },
-}
+    
+    // ============================================================================
+    // LSP Gateway Responses (Native Tree-Sitter Based)
+    // ============================================================================
+    
+    /// LSP request response (success or error)
+    LspResponse {
+        id: String,
+        ok: bool,
+        result: Option<JsonValue>,
+        error: Option<String>,
+        error_code: Option<i32>,
+    },
+    
+    /// LSP diagnostics notification
+    LspDiagnostics {
+        uri: String,
+        version: Option<i32>,
+        diagnostics: Vec<LspDiagnostic>,
+    },
+    
+    /// LSP progress notification
+    LspProgress {
+        token: String,
+        kind: LspProgressKind,
+        title: Option<String>,
+        message: Option<String>,
+        percentage: Option<u32>,
+    },
+    
+    // ============================================================================
+    // Tool Execution Lifecycle Events
+    // ============================================================================
+    
+    /// Tool execution started
+    ToolExecutionStarted {
+        execution_id: String,
+        tool_name: String,
+        timestamp: u64,
+    },
+    
+    /// Tool execution progress update
+    ToolExecutionProgress {
+        execution_id: String,
+        message: String,
+        percentage: Option<u8>,
+    },
+    
+    /// Tool execution completed successfully
+    ToolExecutionCompleted {
+        execution_id: String,
+        output: ToolExecutionOutput,
+        duration_ms: u64,
+    },
+    
+    /// Tool execution failed
+    ToolExecutionFailed {
+        execution_id: String,
+        error: String,
+        duration_ms: u64,
+    },
+    
+    /// Approval required    /// Tool approval request
+    ToolApprovalRequest {
+        execution_id: String,
+        tool_name: String,
+        operation: String,
+        target: String,
+        risk_level: ApprovalRiskLevel,
+        approval_id: String,
+    },
+    
+    // ============================================================================
+    // Command Execution Streaming
+    // ============================================================================
+    
+    /// Command execution started
+    CommandExecutionStarted {
+        command: String,
+        args: Vec<String>,
+        correlation_id: String,
+    },
+    
+    /// Command output chunk received
+    CommandExecutionOutput {
+        correlation_id: String,
+        chunk: String,
+        stream_type: CommandStreamType,
+    },
+    
+    /// Command execution completed
+    CommandExecutionExit {
+        correlation_id: String,
+        exit_code: i32,
+        duration_ms: u64,
+    },
+    
+    // ============================================================================
+    // Diff Streaming
+    // ============================================================================
+    
+    /// Diff operation progress update
+    DiffStreamUpdate {
+        correlation_id: String,
+        file_path: String,
+        hunk_index: usize,
+        total_hunks: usize,
+        lines_added: usize,
+        lines_removed: usize,
+        status: DiffStreamStatus,
+        preview: Option<String>,
+    },
 
 /// Chat message structure (mirrors Codex ClineMessage)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClineMessage {
+{{ ... }}
     pub ts: u64,
     #[serde(rename = "type")]
     pub msg_type: MessageType,
@@ -577,4 +716,160 @@ pub struct ToolCall {
     pub id: String,
     pub name: String,
     pub arguments: String,
+}
+
+// ============================================================================
+// Tool Execution Types
+// ============================================================================
+
+/// Tool execution output
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolExecutionOutput {
+    pub success: bool,
+    pub result: JsonValue,
+    pub error: Option<String>,
+    pub metadata: HashMap<String, JsonValue>,
+}
+
+/// Approval risk level
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ApprovalRiskLevel {
+    Low,
+    Medium,
+    High,
+    Critical,
+}
+
+/// Command output stream type
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum CommandStreamType {
+    Stdout,
+    Stderr,
+}
+
+/// Diff operation status
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum DiffStreamStatus {
+    Analyzing,
+    ApplyingHunk,
+    HunkApplied,
+    HunkFailed,
+    Complete,
+    RolledBack,
+}
+
+// ============================================================================
+// LSP Types (matching lsp-types spec)
+// ============================================================================
+
+/// LSP diagnostic (error, warning, info, hint)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LspDiagnostic {
+    pub range: LspRange,
+    pub severity: Option<LspDiagnosticSeverity>,
+    pub code: Option<String>,
+    pub source: Option<String>,
+    pub message: String,
+    pub related_information: Option<Vec<LspDiagnosticRelatedInformation>>,
+}
+
+/// LSP range (start/end positions)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LspRange {
+    pub start: LspPosition,
+    pub end: LspPosition,
+}
+
+/// LSP position (line, character)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LspPosition {
+    pub line: u32,
+    pub character: u32,
+}
+
+/// LSP diagnostic severity
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[repr(u8)]
+pub enum LspDiagnosticSeverity {
+    Error = 1,
+    Warning = 2,
+    Information = 3,
+    Hint = 4,
+}
+
+/// LSP diagnostic related information
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LspDiagnosticRelatedInformation {
+    pub location: LspLocation,
+    pub message: String,
+}
+
+/// LSP location (uri + range)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LspLocation {
+    pub uri: String,
+    pub range: LspRange,
+}
+
+/// LSP progress kind
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum LspProgressKind {
+    Begin,
+    Report,
+    End,
+}
+
+// ============================================================================
+// Error Code Mapping (Backend -> UI)
+// ============================================================================
+
+/// Error codes for tool execution (matches backend ToolErrorCode)
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ToolErrorCode {
+    NotFound = 1000,
+    InvalidArguments = 2000,
+    InvalidInput = 2001,
+    PermissionDenied = 3000,
+    SecurityViolation = 3001,
+    RooIgnoreBlocked = 3002,
+    ApprovalRequired = 4000,
+    ExecutionFailed = 5000,
+    Timeout = 5001,
+    IoError = 5002,
+    Unknown = 9000,
+}
+
+impl ToolErrorCode {
+    /// Check if error is recoverable
+    pub fn is_recoverable(&self) -> bool {
+        !matches!(self,
+            ToolErrorCode::NotFound
+            | ToolErrorCode::PermissionDenied
+            | ToolErrorCode::SecurityViolation
+            | ToolErrorCode::RooIgnoreBlocked
+        )
+    }
+    
+    /// Get user-friendly category name
+    pub fn category(&self) -> &'static str {
+        match self {
+            ToolErrorCode::NotFound => "Not Found",
+            ToolErrorCode::InvalidArguments | ToolErrorCode::InvalidInput => "Invalid Input",
+            ToolErrorCode::PermissionDenied | ToolErrorCode::SecurityViolation | ToolErrorCode::RooIgnoreBlocked => "Permission Denied",
+            ToolErrorCode::ApprovalRequired => "Approval Required",
+            ToolErrorCode::ExecutionFailed | ToolErrorCode::Timeout | ToolErrorCode::IoError => "Execution Error",
+            ToolErrorCode::Unknown => "Unknown Error",
+        }
+    }
 }

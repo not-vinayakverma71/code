@@ -48,6 +48,14 @@ pub enum MessageType {
     ExecuteTool = 0x0107,
     ToolProgress = 0x0108,
     Ack = 0x0109,
+    
+    // LSP Gateway messages (native tree-sitter based)
+    LspRequest = 0x0200,
+    LspResponse = 0x0201,
+    LspNotification = 0x0202,
+    LspDiagnostics = 0x0203,
+    LspProgress = 0x0204,
+    Cancel = 0x0205,
 }
 
 impl TryFrom<u16> for MessageType {
@@ -73,6 +81,12 @@ impl TryFrom<u16> for MessageType {
             0x0107 => Ok(MessageType::ExecuteTool),
             0x0108 => Ok(MessageType::ToolProgress),
             0x0109 => Ok(MessageType::Ack),
+            0x0200 => Ok(MessageType::LspRequest),
+            0x0201 => Ok(MessageType::LspResponse),
+            0x0202 => Ok(MessageType::LspNotification),
+            0x0203 => Ok(MessageType::LspDiagnostics),
+            0x0204 => Ok(MessageType::LspProgress),
+            0x0205 => Ok(MessageType::Cancel),
             _ => bail!("Unknown message type: {:#x}", value),
         }
     }
@@ -158,6 +172,14 @@ pub enum MessagePayload {
     ExecuteTool { tool_name: String, params: String, workspace_path: String, user_id: String, correlation_id: String, require_approval: bool },
     ToolProgress { correlation_id: String, message: String, percentage: Option<u8> },
     Ack,
+    
+    // LSP Gateway payloads
+    LspRequest(LspRequestPayload),
+    LspResponse(LspResponsePayload),
+    LspNotification(LspNotificationPayload),
+    LspDiagnostics(LspDiagnosticsPayload),
+    LspProgress(LspProgressPayload),
+    Cancel { request_id: String },
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone)]
@@ -276,6 +298,96 @@ pub struct ToolResult {
     pub tool_call_id: String,
     pub result: String,
     pub error: Option<String>,
+}
+
+// ============================================================================
+// LSP Gateway Payload Structures
+// ============================================================================
+
+/// LSP Request payload
+/// Wraps LSP protocol requests (textDocument/*, workspace/*, etc.)
+#[derive(Archive, Deserialize, Serialize, Debug, Clone)]
+#[archive(check_bytes)]
+pub struct LspRequestPayload {
+    /// LSP request ID (for request-response correlation)
+    pub id: String,
+    
+    /// LSP method name (e.g., "textDocument/documentSymbol", "textDocument/hover")
+    pub method: String,
+    
+    /// Document URI (e.g., "file:///path/to/file.rs")
+    pub uri: String,
+    
+    /// Language identifier (e.g., "rust", "typescript", "python")
+    pub language_id: String,
+    
+    /// LSP request parameters as JSON
+    /// Stored as String to work with rkyv serialization
+    pub params_json: String,
+}
+
+/// LSP Response payload
+#[derive(Archive, Deserialize, Serialize, Debug, Clone)]
+#[archive(check_bytes)]
+pub struct LspResponsePayload {
+    /// Request ID this response corresponds to
+    pub id: String,
+    
+    /// Success flag
+    pub ok: bool,
+    
+    /// Response result as JSON (when ok=true)
+    pub result_json: String,
+    
+    /// Error message (when ok=false)
+    pub error: Option<String>,
+    
+    /// Error code (when ok=false)
+    pub error_code: Option<i32>,
+}
+
+/// LSP Notification payload
+/// For server-initiated notifications (no response expected)
+#[derive(Archive, Deserialize, Serialize, Debug, Clone)]
+#[archive(check_bytes)]
+pub struct LspNotificationPayload {
+    /// Method name (e.g., "textDocument/didOpen", "textDocument/didChange")
+    pub method: String,
+    
+    /// Document URI
+    pub uri: String,
+    
+    /// Notification parameters as JSON
+    pub params_json: String,
+}
+
+/// LSP Diagnostics payload
+/// For streaming publishDiagnostics notifications
+#[derive(Archive, Deserialize, Serialize, Debug, Clone)]
+#[archive(check_bytes)]
+pub struct LspDiagnosticsPayload {
+    /// Document URI these diagnostics belong to
+    pub uri: String,
+    
+    /// Version number of the document (for ordering)
+    pub version: Option<i32>,
+    
+    /// Diagnostics array as JSON
+    /// Each diagnostic has: range, severity, code, source, message
+    pub diagnostics_json: String,
+}
+
+/// LSP Progress notification payload
+/// For long-running operations (indexing, scanning, etc.)
+#[derive(Archive, Deserialize, Serialize, Debug, Clone)]
+#[archive(check_bytes)]
+pub struct LspProgressPayload {
+    /// Progress token (identifies the operation)
+    pub token: String,
+    
+    /// Progress value as JSON
+    /// Can be WorkDoneProgressBegin, WorkDoneProgressReport, or WorkDoneProgressEnd
+    pub value_json: String,
 }
 
 /// Binary codec for encoding/decoding messages
@@ -399,6 +511,12 @@ impl BinaryCodec {
     pub fn decode(&mut self, data: &[u8]) -> Result<Message> {
         if data.len() < HEADER_SIZE {
             bail!("Message too small: {} bytes, need at least {}", data.len(), HEADER_SIZE);
+        }
+        
+        // Reject CPAL protocol explicitly (UI sends CPAL-wrapped JSON for streaming)
+        // CPAL magic: [67, 80, 65, 76] = "CPAL" in ASCII
+        if data[0] == 67 && data[1] == 80 && data[2] == 65 && data[3] == 76 {
+            bail!("CPAL protocol detected - not binary codec format");
         }
         
         // Read header - all Little-Endian as per spec

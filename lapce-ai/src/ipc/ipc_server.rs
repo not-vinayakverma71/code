@@ -448,6 +448,35 @@ impl IpcServer {
         }));
     }
     
+    /// Register LSP gateway handlers (LSP-004)
+    pub fn register_lsp_handlers(&self) {
+        use crate::lsp_gateway::LspGateway;
+        
+        let gateway = Arc::new(LspGateway::new());
+        
+        // Register LSP request handler
+        let gateway_for_request = gateway.clone();
+        self.register_handler(MessageType::LspRequest, move |data| {
+            let gateway = gateway_for_request.clone();
+            async move {
+                gateway.handle_request(data).await
+            }
+        });
+        
+        // Register LSP notification handler (didOpen, didChange, didClose)
+        let gateway_for_notification = gateway.clone();
+        self.register_handler(MessageType::LspNotification, move |data| {
+            let gateway = gateway_for_notification.clone();
+            async move {
+                gateway.handle_notification(data).await?;
+                // Notifications don't return responses, send empty acknowledgment
+                Ok(Bytes::new())
+            }
+        });
+        
+        info!("LSP gateway handlers registered");
+    }
+    
     /// Start serving connections
     pub async fn serve(self: Arc<Self>) -> IpcResult<()> {
         let semaphore = Arc::new(Semaphore::new(MAX_CONNECTIONS)); // Now supports 1000+ connections

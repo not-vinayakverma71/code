@@ -192,23 +192,51 @@ jobs:
           echo "=== TEST RESULTS ===" | tee -a $GITHUB_STEP_SUMMARY
           grep -E "(Messages succeeded|Success rate|Throughput|Avg latency)" /tmp/stress_test.log | tee -a $GITHUB_STEP_SUMMARY
       
-      - name: Build Windows IPC stress test
+      - name: Build Windows IPC binaries
         if: matrix.platform == 'windows'
         working-directory: lapce-ai
-        run: cargo build --release --bin windows_ipc_stress_test
+        run: |
+          cargo build --release --bin windows_ipc_server
+          cargo build --release --bin windows_ipc_stress_test
       
       - name: Run IPC stress test (Windows)
         if: matrix.platform == 'windows'
         working-directory: lapce-ai
-        timeout-minutes: 15
+        timeout-minutes: 10
         shell: pwsh
         run: |
-          # Run Windows-specific stress test
+          # Start server in separate process (CRITICAL for shared memory atomics)
+          Write-Host "[CI] Starting server in background process..."
+          $serverProcess = Start-Process -FilePath ".\target\release\windows_ipc_server.exe" -ArgumentList "LapceAI_StressTest" -PassThru -RedirectStandardOutput "server.log" -RedirectStandardError "server_err.log" -NoNewWindow
+          Write-Host "[CI] Server PID: $($serverProcess.Id)"
+          
+          # Wait for server initialization
+          Start-Sleep -Milliseconds 1000
+          
+          # Verify server is running
+          if ($serverProcess.HasExited) {
+            Write-Error "[CI] Server died immediately!"
+            Get-Content server.log
+            Get-Content server_err.log
+            exit 1
+          }
+          
+          # Run client stress test
           & ".\target\release\windows_ipc_stress_test.exe" 2>&1 | Tee-Object -FilePath "stress_test.log"
+          
+          # Kill server
+          Stop-Process -Id $serverProcess.Id -Force
           
           # Extract metrics
           Write-Host "=== TEST RESULTS ===" | Tee-Object -Append -FilePath $env:GITHUB_STEP_SUMMARY
           Select-String -Path "stress_test.log" -Pattern "(Messages succeeded|Success rate|Throughput|Avg latency)" | Tee-Object -Append -FilePath $env:GITHUB_STEP_SUMMARY
+          
+          # Check for minimum success
+          $succeeded = Select-String -Path "stress_test.log" -Pattern "Messages succeeded:\s+(\d+)" | ForEach-Object { $_.Matches.Groups[1].Value }
+          if ([int]$succeeded -lt 900000) {
+            Write-Error "Not enough messages succeeded: $succeeded"
+            exit 1
+          }
       
       # Validation Phase
       - name: Parse and validate results

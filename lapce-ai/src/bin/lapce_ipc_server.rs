@@ -8,12 +8,12 @@ use tracing::{info, error};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use lapce_ai_rust::{
-    IpcServer,
     IpcConfig,
     IpcError,
     StreamToken,
     AutoReconnectionManager, ReconnectionStrategy,
 };
+use lapce_ai_rust::ipc::ipc_server_volatile::IpcServerVolatile;
 use lapce_ai_rust::ipc::provider_config::{load_provider_configs_from_env, validate_provider_configs};
 use lapce_ai_rust::ipc::provider_routes::ProviderRouteHandler;
 use lapce_ai_rust::ai_providers::provider_manager::{ProviderManager, ProvidersConfig, ProviderConfig};
@@ -79,8 +79,8 @@ async fn main() -> Result<()> {
     
     info!("Provider manager initialized with {} providers", providers_map.len());
     
-    // Create IPC server
-    let server = IpcServer::new(&config.server.socket_path).await
+    // Create IPC server (volatile version with control socket)
+    let server = IpcServerVolatile::new(&config.server.socket_path).await
         .context("Failed to create IPC server")?;
     
     info!("IPC server created at: {}", config.server.socket_path);
@@ -183,8 +183,7 @@ async fn main() -> Result<()> {
     
     info!("Provider streaming handler registered");
     
-    // Wrap server in Arc early for sharing
-    let server = Arc::new(server);
+    // Server is already Arc from IpcServerVolatile::new()
     
     // Setup auto-reconnection if enabled
     let reconnection_manager = if config.server.enable_auto_reconnect {
@@ -205,13 +204,10 @@ async fn main() -> Result<()> {
     };
     
     // Setup metrics server if enabled
+    // Note: IpcServerVolatile doesn't have full metrics yet
     if config.monitoring.enable_metrics {
-        start_metrics_server(
-            config.monitoring.metrics_port,
-            config.monitoring.metrics_endpoint.clone(),
-            server.metrics(),
-        ).await?;
-        info!("Metrics server started on port {}", config.monitoring.metrics_port);
+        info!("Metrics server requested but not available with IpcServerVolatile");
+        // TODO: Implement metrics for IpcServerVolatile
     }
     
     // Setup graceful shutdown

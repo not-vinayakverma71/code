@@ -295,44 +295,89 @@ pub struct ProcessListToolV2;
 #[async_trait]
 impl Tool for ProcessListToolV2 {
     async fn execute(&self, args: Value, _context: ToolContext) -> ToolResult {
-        use sysinfo::System;
+        use sysinfo::{System, ProcessRefreshKind, CpuRefreshKind};
         
         let filter = args["filter"].as_str();
         let sort_by = args["sort_by"].as_str().unwrap_or("cpu");
         let limit = args["limit"].as_u64().unwrap_or(20) as usize;
         
+        // Create system with specific refresh settings for performance
         let mut system = System::new_all();
-        system.refresh_processes();
         
-        let mut processes: Vec<_> = Vec::new();
+        // Refresh all processes
+        system.refresh_processes_specifics(
+            ProcessRefreshKind::everything()
+        );
         
-        // Simple process listing without detailed info for now
-        // TODO: Update when sysinfo API stabilizes
-        processes.push(json!({
-            "pid": 1,
-            "name": "init",
-            "cpu_usage": 0.0,
-            "memory": 0,
-            "status": "Running",
-        }));
+        // Also refresh CPU for accurate usage stats
+        system.refresh_cpu_specifics(CpuRefreshKind::everything());
+        std::thread::sleep(std::time::Duration::from_millis(200)); // Let CPU stats settle
+        system.refresh_cpu_specifics(CpuRefreshKind::everything());
+        
+        let mut processes: Vec<Value> = system
+            .processes()
+            .iter()
+            .filter_map(|(pid, process)| {
+                let name = process.name().to_string();
+                
+                // Apply filter if specified
+                if let Some(filter_str) = filter {
+                    if !name.to_lowercase().contains(&filter_str.to_lowercase()) {
+                        return None;
+                    }
+                }
+                
+                Some(json!({
+                    "pid": pid.as_u32(),
+                    "name": name,
+                    "cpu_usage": process.cpu_usage(),
+                    "memory": process.memory(),
+                    "virtual_memory": process.virtual_memory(),
+                    "status": format!("{:?}", process.status()),
+                    "parent_pid": process.parent().map(|p| p.as_u32()),
+                }))
+            })
+            .collect();
         
         // Sort by requested field
         processes.sort_by(|a, b| {
             match sort_by {
-                "cpu" => b["cpu_usage"].as_f64().partial_cmp(&a["cpu_usage"].as_f64()).unwrap(),
-                "memory" => b["memory"].as_u64().cmp(&a["memory"].as_u64()),
-                "name" => a["name"].as_str().cmp(&b["name"].as_str()),
+                "cpu" => {
+                    let a_cpu = a["cpu_usage"].as_f64().unwrap_or(0.0);
+                    let b_cpu = b["cpu_usage"].as_f64().unwrap_or(0.0);
+                    b_cpu.partial_cmp(&a_cpu).unwrap_or(std::cmp::Ordering::Equal)
+                },
+                "memory" => {
+                    let a_mem = a["memory"].as_u64().unwrap_or(0);
+                    let b_mem = b["memory"].as_u64().unwrap_or(0);
+                    b_mem.cmp(&a_mem)
+                },
+                "name" => {
+                    let a_name = a["name"].as_str().unwrap_or("");
+                    let b_name = b["name"].as_str().unwrap_or("");
+                    a_name.cmp(b_name)
+                },
+                "pid" => {
+                    let a_pid = a["pid"].as_u64().unwrap_or(0);
+                    let b_pid = b["pid"].as_u64().unwrap_or(0);
+                    a_pid.cmp(&b_pid)
+                },
                 _ => std::cmp::Ordering::Equal,
             }
         });
         
+        let total_count = processes.len();
         processes.truncate(limit);
         
         Ok(ToolOutput {
             success: true,
             result: json!({
                 "processes": processes,
-                "total_processes": system.processes().len(),
+                "total_processes": total_count,
+                "returned": processes.len(),
+                "filter": filter,
+                "sort_by": sort_by,
+                "limit": limit,
             }),
             error: None,
             metadata: Default::default(),
@@ -340,7 +385,7 @@ impl Tool for ProcessListToolV2 {
     }
     
     fn name(&self) -> &'static str { "process_list" }
-    fn description(&self) -> &'static str { "List running processes with resource usage" }
+    fn description(&self) -> &'static str { "List running processes with CPU and memory usage, supports filtering and sorting" }
     
 }
 

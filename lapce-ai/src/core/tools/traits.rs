@@ -1,7 +1,7 @@
 // Core traits for tool system - P0-0: Scaffold core layer
 
-use crate::core::tools::permissions::rooignore::RooIgnore;
 use crate::core::tools::permissions::PermissionManager;
+use crate::core::tools::rooignore_unified::{UnifiedRooIgnore, RooIgnoreConfig};
 use crate::core::tools::config::ToolConfig;
 use crate::core::tools::logging::{LogContext, log_tool_start, log_tool_complete, log_approval_request, log_file_operation};
 use crate::core::permissions::Permission;
@@ -69,8 +69,8 @@ pub struct ToolContext {
     /// Tool permissions
     pub permissions: ToolPermissions,
     
-    /// RooIgnore for path filtering
-    pub rooignore: Option<Arc<RooIgnore>>,
+    /// Unified RooIgnore enforcer for path filtering with hot reload
+    pub rooignore: Option<Arc<UnifiedRooIgnore>>,
     
     /// Permission manager for enforcing permissions
     pub permission_manager: Option<Arc<PermissionManager>>,
@@ -93,8 +93,20 @@ pub struct ToolContext {
 
 impl ToolContext {
     pub fn new(workspace: PathBuf, user_id: String) -> Self {
-        // Create RooIgnore for the workspace
-        let rooignore = Arc::new(RooIgnore::new(workspace.clone()));
+        // Create UnifiedRooIgnore with default config
+        let rooignore_config = RooIgnoreConfig {
+            workspace: workspace.clone(),
+            rooignore_path: workspace.join(".rooignore"),
+            enable_hot_reload: true,
+            cache_ttl: std::time::Duration::from_secs(300),
+            max_cache_size: 10000,
+            default_patterns: vec![],
+            strict_mode: true,
+        };
+        
+        let rooignore = UnifiedRooIgnore::new(rooignore_config)
+            .ok()
+            .map(Arc::new);
         
         // Get global config
         let config = Arc::new(crate::core::tools::config::get_config().clone());
@@ -115,7 +127,7 @@ impl ToolContext {
             allow_local_network: false,
             metadata: HashMap::new(),
             permissions: ToolPermissions::default(),
-            rooignore: Some(rooignore),
+            rooignore,
             permission_manager: None,
             config,
             log_context: Some(log_context),
@@ -157,7 +169,20 @@ impl ToolContext {
     
     /// Create context with custom config
     pub fn with_config(workspace: PathBuf, user_id: String, config: ToolConfig) -> Self {
-        let rooignore = Arc::new(RooIgnore::new(workspace.clone()));
+        // Create UnifiedRooIgnore with default config
+        let rooignore_config = RooIgnoreConfig {
+            workspace: workspace.clone(),
+            rooignore_path: workspace.join(".rooignore"),
+            enable_hot_reload: true,
+            cache_ttl: std::time::Duration::from_secs(300),
+            max_cache_size: 10000,
+            default_patterns: vec![],
+            strict_mode: true,
+        };
+        
+        let rooignore = UnifiedRooIgnore::new(rooignore_config)
+            .ok()
+            .map(Arc::new);
         let config = Arc::new(config);
         
         let session_id = uuid::Uuid::new_v4().to_string();
@@ -174,7 +199,7 @@ impl ToolContext {
             allow_local_network: false,
             metadata: HashMap::new(),
             permissions: ToolPermissions::default(),
-            rooignore: Some(rooignore),
+            rooignore,
             permission_manager: None,
             config,
             log_context: Some(log_context),
@@ -187,9 +212,19 @@ impl ToolContext {
     /// Check if a path is allowed by .rooignore
     pub fn is_path_allowed(&self, path: &PathBuf) -> bool {
         if let Some(ref rooignore) = self.rooignore {
-            rooignore.is_allowed(path.as_path())
+            rooignore.check_allowed(path.as_path()).is_ok()
         } else {
             true
+        }
+    }
+    
+    /// Check if path is allowed and get detailed error if blocked
+    pub fn check_path_allowed(&self, path: &Path) -> Result<(), ToolError> {
+        if let Some(ref rooignore) = self.rooignore {
+            rooignore.check_allowed(path)
+                .map_err(|e| ToolError::RooIgnoreBlocked(e.to_string()))
+        } else {
+            Ok(())
         }
     }
     
@@ -421,24 +456,49 @@ pub trait Tool: Send + Sync {
     /// Execute the tool with given arguments
     async fn execute(&self, args: Value, context: ToolContext) -> ToolResult;
     
-    /// Execute with automatic logging
+    /// Execute with automatic logging and observability
     async fn execute_with_logging(&self, args: Value, context: ToolContext) -> ToolResult {
         let tool_name = self.name();
+        let correlation_id = context.execution_id.clone();
         
-        // Log start
+        // Record tool call start via observability
+        let _span = crate::core::tools::observability::OBSERVABILITY.log_tool_call(
+            tool_name,
+            &correlation_id,
+            &args,
+            Some(context.user_id.clone()),
+            Some(context.workspace.to_string_lossy().to_string()),
+        );
+        
+        // Log start (legacy)
         context.log_start(tool_name);
         
         // Execute tool
         let start = Instant::now();
         let result = self.execute(args, context.clone()).await;
+        let duration_ms = start.elapsed().as_millis() as u64;
         
-        // Log completion
+        // Record result via observability
         match &result {
             Ok(_) => {
+                crate::core::tools::observability::OBSERVABILITY.record_tool_result(
+                    tool_name,
+                    &correlation_id,
+                    duration_ms,
+                    true,
+                    None,
+                );
                 context.log_complete(tool_name, true, None);
             }
             Err(e) => {
                 let error_msg = format!("{:?}", e);
+                crate::core::tools::observability::OBSERVABILITY.record_tool_result(
+                    tool_name,
+                    &correlation_id,
+                    duration_ms,
+                    false,
+                    Some(&error_msg),
+                );
                 context.log_complete(tool_name, false, Some(&error_msg));
             }
         }

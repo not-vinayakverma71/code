@@ -9,13 +9,14 @@ use anyhow::Result;
 use tokio::sync::{mpsc, broadcast};
 use tokio::time::{Duration, Instant};
 use futures::stream::Stream;
+use crate::ipc::ipc_messages::{CommandExecutionStatus, StreamType};
 
 // Streaming event types
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum StreamEvent {
     ToolExecutionProgress(ToolExecutionProgress),
-    CommandExecutionStatus(CommandExecutionStatus),
+    CommandExecution(CommandExecutionStatus),
     DiffStreamUpdate(DiffStreamUpdate),
     SearchProgress(SearchProgress),
     FileProgress(FileProgress),
@@ -46,11 +47,13 @@ pub enum ExecutionPhase {
     Failed,
 }
 
+// CommandExecutionStatus now imported from ipc_messages for consistency
+// This summary struct can be used for aggregated status reporting
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CommandExecutionStatus {
+pub struct CommandExecutionSummary {
     pub command: String,
     pub correlation_id: String,
-    pub status: CommandStatus,
+    pub status: CommandStatusSummary,
     pub stdout: Vec<String>,
     pub stderr: Vec<String>,
     pub exit_code: Option<i32>,
@@ -58,7 +61,7 @@ pub struct CommandExecutionStatus {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum CommandStatus {
+pub enum CommandStatusSummary {
     Started,
     Running,
     OutputReceived,
@@ -296,23 +299,51 @@ impl UnifiedStreamEmitter {
         Ok(())
     }
     
-    // Emit command status
-    pub async fn emit_command_status(
+    // Emit command started event
+    pub async fn emit_command_started(
         &self,
         command: &str,
+        args: Vec<String>,
         correlation_id: &str,
-        status: CommandStatus,
-        stdout: Vec<String>,
-        stderr: Vec<String>,
     ) -> Result<()> {
-        let event = StreamEvent::CommandExecutionStatus(CommandExecutionStatus {
+        let event = StreamEvent::CommandExecution(CommandExecutionStatus::Started {
             command: command.to_string(),
+            args,
             correlation_id: correlation_id.to_string(),
-            status,
-            stdout,
-            stderr,
-            exit_code: None,
-            timestamp: chrono::Utc::now(),
+        });
+        
+        self.internal_tx.send(event)?;
+        Ok(())
+    }
+    
+    // Emit command output chunk
+    pub async fn emit_command_output(
+        &self,
+        correlation_id: &str,
+        chunk: String,
+        stream_type: StreamType,
+    ) -> Result<()> {
+        let event = StreamEvent::CommandExecution(CommandExecutionStatus::OutputChunk {
+            correlation_id: correlation_id.to_string(),
+            chunk,
+            stream_type,
+        });
+        
+        self.internal_tx.send(event)?;
+        Ok(())
+    }
+    
+    // Emit command exit event
+    pub async fn emit_command_exit(
+        &self,
+        correlation_id: &str,
+        exit_code: i32,
+        duration_ms: u64,
+    ) -> Result<()> {
+        let event = StreamEvent::CommandExecution(CommandExecutionStatus::Exit {
+            correlation_id: correlation_id.to_string(),
+            exit_code,
+            duration_ms,
         });
         
         self.internal_tx.send(event)?;
@@ -435,12 +466,23 @@ mod tests {
             "Processing...".to_string(),
         ).await.unwrap();
         
-        emitter.emit_command_status(
+        // Emit command execution events
+        emitter.emit_command_started(
             "echo test",
-            "corr-124",
-            CommandStatus::Completed,
-            vec!["test".to_string()],
             vec![],
+            "corr-124",
+        ).await.unwrap();
+        
+        emitter.emit_command_output(
+            "corr-124",
+            "test".to_string(),
+            StreamType::Stdout,
+        ).await.unwrap();
+        
+        emitter.emit_command_exit(
+            "corr-124",
+            0,
+            100,
         ).await.unwrap();
         
         // Give consumer time to process

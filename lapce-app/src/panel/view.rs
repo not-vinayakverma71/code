@@ -643,11 +643,17 @@ fn panel_picker(
                         )
                 }),
             )))
-            .style(|s| s.padding(6.0))
+            .style(|s| s.padding(0.0))
         },
     )
     .style(move |s| {
         s.border_color(config.get().color(LapceColor::LAPCE_BORDER))
+            .apply_if(!is_bottom, |s| {
+                s.width_pct(100.0)
+                    .height(35.0)
+                    .items_center()
+                    .justify_center()
+            })
             .apply_if(
                 panels.with(|p| {
                     p.get(&position).map(|p| p.is_empty()).unwrap_or(true)
@@ -657,7 +663,9 @@ fn panel_picker(
             .apply_if(is_bottom, |s| s.flex_col())
             .apply_if(is_bottom && is_first, |s| s.border_right(1.0))
             .apply_if(is_bottom && !is_first, |s| s.border_left(1.0))
-            .apply_if(!is_bottom && is_first, |s| s.border_bottom(1.0))
+            .apply_if(!is_bottom && is_first, |s| {
+                s.border_bottom(1.0).padding_left(4.0).padding_right(6.0)
+            })
             .apply_if(!is_bottom && !is_first, |s| s.border_top(1.0))
     })
 }

@@ -188,35 +188,16 @@ async fn main() -> Result<()> {
 
 #[cfg(windows)]
 async fn test_windows_ipc() -> Result<()> {
-    use lapce_ai_rust::ipc::windows_shared_memory::{SharedMemoryListener, SharedMemoryStream};
+    use lapce_ai_rust::ipc::windows_shared_memory::SharedMemoryStream;
     
     let stats = Arc::new(TestStats::new());
     let socket_path = "LapceAI_StressTest";
     
-    // Start server in background
-    let server_stats = stats.clone();
-    let server_handle = tokio::spawn(async move {
-        let listener = SharedMemoryListener::bind(socket_path)
-            .expect("Failed to bind listener");
-        
-        // Accept 100 connections
-        for _ in 0..MAX_CONCURRENT {
-            if let Ok((stream, _)) = listener.accept().await {
-                let stats = server_stats.clone();
-                tokio::spawn(async move {
-                    // Echo server: read and send back
-                    for _ in 0..10_000 {
-                        if let Ok(Some(data)) = stream.recv().await {
-                            let _ = stream.send(&data).await;
-                        }
-                    }
-                });
-            }
-        }
-    });
+    // NOTE: Server MUST run in separate process for shared memory atomics to work
+    // CI runs: windows_ipc_server.exe LapceAI_StressTest
     
-    // Wait for server to fully initialize (create control buffer and start accept loop)
-    tokio::time::sleep(Duration::from_millis(500)).await;
+    // Give server time to initialize (if just started)
+    tokio::time::sleep(Duration::from_millis(200)).await;
     
     let start = Instant::now();
     

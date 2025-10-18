@@ -51,12 +51,14 @@ pub fn ai_chat_panel(
     let ai_state_clone = ai_state.clone();
     let on_send = Rc::new(move || {
         let msg = input_value.get();
+        eprintln!("[AI CHAT] on_send called with message: {}", msg);
         if !msg.trim().is_empty() {
             let model = selected_model.get();
             let mode = selected_mode.get();
             println!("[AI Chat] Sending: {} (model: {}, mode: {})", msg, model, mode);
             
             // Add user message to state
+            eprintln!("[AI CHAT] Adding user message to UI...");
             ai_state_clone.messages.update(|msgs| {
                 msgs.push(crate::ai_state::ChatMessage {
                     ts: std::time::SystemTime::now()
@@ -68,6 +70,7 @@ pub fn ai_chat_panel(
                     partial: false,
                 });
             });
+            eprintln!("[AI CHAT] User message added to UI");
             
             // Send via IPC bridge - REAL STREAMING
             let bridge = ai_state_clone.bridge.clone();
@@ -81,14 +84,27 @@ pub fn ai_chat_panel(
                 },
             ];
             
+            // Map UI model names to backend model IDs
+            let backend_model = match model.trim() {
+                "Claude Sonnet 4.5 Thinking" => "claude-3-5-sonnet-20241022",
+                "Claude Sonnet 4" => "claude-3-opus-20240229",
+                "GPT-4" => "gpt-4",
+                "Gemini Pro" => "gemini-1.5-flash",
+                _ => "gemini-1.5-flash", // Default to Gemini
+            }.to_string();
+            
             // Send streaming request to backend
+            eprintln!("[AI CHAT] Sending ProviderChatStream to backend...");
+            eprintln!("[AI CHAT] UI Model: {}, Backend Model: {}, Messages: {}", model, backend_model, provider_messages.len());
             if let Err(e) = bridge.send(OutboundMessage::ProviderChatStream {
-                model,
+                model: backend_model,
                 messages: provider_messages,
                 max_tokens: Some(2048),
                 temperature: Some(0.7),
             }) {
-                eprintln!("[AI Chat] Failed to send message: {}", e);
+                eprintln!("[AI CHAT] ❌ Failed to send message: {}", e);
+            } else {
+                eprintln!("[AI CHAT] ✅ Message sent successfully!");
             }
             
             input_value.set(String::new());

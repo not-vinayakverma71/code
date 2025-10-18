@@ -3,7 +3,7 @@
 use crate::mcp_tools::core::ToolContext as McpToolContext;
 use crate::mcp_tools::config::McpServerConfig;
 use crate::core::tools::traits::{ToolContext as CoreToolContext, ToolPermissions};
-use crate::core::tools::RooIgnore;
+use crate::core::tools::{UnifiedRooIgnore, RooIgnoreConfig};
 use crate::core::tools::adapters::ipc::IpcAdapter;
 use crate::core::tools::adapters::context_tracker_adapter::ContextTrackerAdapter;
 use std::sync::Arc;
@@ -62,8 +62,17 @@ pub fn to_core_context_with_adapters(
     ctx.permissions = permissions;
     ctx.require_approval = true;
     
-    // Attach RooIgnore
-    ctx.rooignore = Some(Arc::new(RooIgnore::new(mcp_ctx.workspace.clone())));
+    // Attach UnifiedRooIgnore
+    let rooignore_config = RooIgnoreConfig {
+        workspace: mcp_ctx.workspace.clone(),
+        rooignore_path: mcp_ctx.workspace.join(".rooignore"),
+        enable_hot_reload: true,
+        cache_ttl: std::time::Duration::from_secs(300),
+        max_cache_size: 10000,
+        default_patterns: vec![],
+        strict_mode: true,
+    };
+    ctx.rooignore = UnifiedRooIgnore::new(rooignore_config).ok().map(Arc::new);
     
     // Store MCP metadata in context metadata field
     if let Some(mcp_metadata) = mcp_ctx.metadata {

@@ -17,11 +17,13 @@ use crate::core::tools::fs::{
     search_and_replace_v2::SearchAndReplaceToolV2,
     insert_content::InsertContentTool,
     edit_file::EditFileTool,
+    search_files_v2::SearchFilesToolV2,
 };
-use crate::core::tools::search::search_files_v2::SearchFilesToolV2;
 use crate::core::tools::diff_engine_v2::apply_diff_tool::ApplyDiffToolV2;
 use crate::core::tools::terminal::terminal_tool::TerminalTool;
 use crate::core::tools::list_files::ListFilesTool;
+use crate::core::tools::observability_tool::ObservabilityTool;
+use crate::core::tools::streaming_v2::{UnifiedStreamEmitter, BackpressureConfig};
 
 /// Complete tool registry with all production tools
 pub struct ExpandedToolRegistry {
@@ -46,6 +48,7 @@ impl ExpandedToolRegistry {
         registry.register_diff_tools();
         registry.register_compression_tools();
         registry.register_terminal_tools();
+        registry.register_debug_tools();
         
         registry
     }
@@ -73,8 +76,9 @@ impl ExpandedToolRegistry {
     }
     
     fn register_search_tools(&mut self) {
+        let emitter = Arc::new(UnifiedStreamEmitter::new(BackpressureConfig::default()));
         let tools: Vec<Arc<dyn Tool>> = vec![
-            Arc::new(SearchFilesToolV2::new()),
+            Arc::new(SearchFilesToolV2::new(emitter)),
         ];
         
         let mut names = Vec::new();
@@ -151,8 +155,11 @@ impl ExpandedToolRegistry {
     }
     
     fn register_diff_tools(&mut self) {
+        // Create emitter for diff streaming
+        let emitter = Arc::new(UnifiedStreamEmitter::new(BackpressureConfig::default()));
+        
         let tools: Vec<Arc<dyn Tool>> = vec![
-            Arc::new(ApplyDiffToolV2::new()),
+            Arc::new(ApplyDiffToolV2::with_emitter(emitter)),
         ];
         
         let mut names = Vec::new();
@@ -193,6 +200,21 @@ impl ExpandedToolRegistry {
         }
         
         self.categories.insert("terminal".to_string(), names);
+    }
+    
+    fn register_debug_tools(&mut self) {
+        let tools: Vec<Arc<dyn Tool>> = vec![
+            Arc::new(ObservabilityTool::new()),
+        ];
+        
+        let mut names = Vec::new();
+        for tool in tools {
+            let name = tool.name().to_string();
+            names.push(name.clone());
+            self.tools.insert(name, tool);
+        }
+        
+        self.categories.insert("debug".to_string(), names);
     }
     
     /// Get a tool by name
@@ -315,6 +337,78 @@ mod tests {
         // Check that tool info is populated
         assert!(!info.description.is_empty());
         assert_eq!(info.category, Some("network".to_string()));
+    }
+    
+    #[test]
+    fn test_registry_correctness_codex_parity() {
+        let registry = ExpandedToolRegistry::new();
+        
+        // Core FS tools (camelCase for Codex parity)
+        assert!(registry.get_tool("readFile").is_some(), "readFile not registered");
+        assert!(registry.get_tool("writeFile").is_some(), "writeFile not registered");
+        assert!(registry.get_tool("editFile").is_some(), "editFile not registered");
+        assert!(registry.get_tool("insertContent").is_some(), "insertContent not registered");
+        assert!(registry.get_tool("searchAndReplace").is_some(), "searchAndReplace not registered");
+        assert!(registry.get_tool("listFiles").is_some(), "listFiles not registered");
+        
+        // Search tools (camelCase for Codex parity)
+        assert!(registry.get_tool("searchFiles").is_some(), "searchFiles not registered");
+        
+        // Diff tools (camelCase for Codex parity)
+        assert!(registry.get_tool("applyDiff").is_some(), "applyDiff not registered");
+        
+        // Terminal tool
+        assert!(registry.get_tool("terminal").is_some(), "terminal not registered");
+        
+        // Expanded tools (snake_case - utility tools)
+        assert!(registry.get_tool("git_status").is_some(), "git_status not registered");
+        assert!(registry.get_tool("git_diff").is_some(), "git_diff not registered");
+        assert!(registry.get_tool("base64").is_some(), "base64 not registered");
+        assert!(registry.get_tool("json_format").is_some(), "json_format not registered");
+        assert!(registry.get_tool("environment").is_some(), "environment not registered");
+        assert!(registry.get_tool("process_list").is_some(), "process_list not registered");
+        assert!(registry.get_tool("file_size").is_some(), "file_size not registered");
+        assert!(registry.get_tool("count_lines").is_some(), "count_lines not registered");
+        assert!(registry.get_tool("zip").is_some(), "zip not registered");
+        assert!(registry.get_tool("curl").is_some(), "curl not registered");
+        
+        // Verify total count (19 tools)
+        assert_eq!(registry.tool_count(), 19, "Expected 19 tools in registry");
+        
+        // Verify all tools have descriptions
+        for tool_name in registry.list_tools() {
+            let info = registry.get_tool_info(&tool_name).unwrap();
+            assert!(!info.description.is_empty(), "Tool {} has empty description", tool_name);
+        }
+    }
+    
+    #[test]
+    fn test_registry_tool_names_codex_parity() {
+        let registry = ExpandedToolRegistry::new();
+        
+        // Verify core tool names match Codex (camelCase)
+        let core_tools = vec![
+            "readFile", "writeFile", "editFile", "insertContent",
+            "searchAndReplace", "listFiles", "searchFiles", "applyDiff"
+        ];
+        
+        for tool_name in core_tools {
+            assert!(
+                registry.get_tool(tool_name).is_some(),
+                "Core tool {} not found (should use camelCase)",
+                tool_name
+            );
+        }
+        
+        // Verify no underscore variants of core tools exist
+        let invalid_names = vec!["read_file", "write_file", "apply_diff", "search_files"];
+        for tool_name in invalid_names {
+            assert!(
+                registry.get_tool(tool_name).is_none(),
+                "Tool {} should use camelCase for Codex parity, found snake_case",
+                tool_name
+            );
+        }
     }
 }
 

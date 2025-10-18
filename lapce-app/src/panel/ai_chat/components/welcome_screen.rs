@@ -10,26 +10,15 @@ use floem::{
 
 use crate::config::LapceConfig;
 
-/// Welcome screen shown when chat is empty - Clean centered style
+/// Welcome screen shown when chat is empty - Completely clean
 pub fn welcome_screen(
     config: impl Fn() -> Arc<LapceConfig> + 'static + Copy,
 ) -> impl View {
-    container(
-        // Just the title, centered
-        label(|| "TESTING - BUILD WORKS!".to_string())
-            .style(move |s| {
-                let cfg = config();
-                s.font_size(32.0)
-                    .color(cfg.color("editor.foreground"))
-            })
-    )
-    .style(move |s| {
-        let cfg = config();
+    container(label(|| "".to_string()))
+    .style(|s| {
         s.width_full()
             .height_full()
-            .items_center()
-            .justify_center()
-            .background(cfg.color("editor.background"))
+            .background(floem::peniko::Color::from_rgb8(0x1a, 0x1a, 0x1a))
     })
 }
 

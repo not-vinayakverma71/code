@@ -408,20 +408,26 @@ where
             container(
                 v_stack((
                     // Input field with placeholder
-                    container(
-                        {
-                            let on_send = on_send.clone();
-                            text_input(input_value)
-                                .placeholder("Ask anything (Ctrl+L)".to_string())
-                                .on_event_cont(floem::event::EventListener::KeyDown, move |e| {
-                                    if let floem::event::Event::KeyDown(key) = e {
-                                        if key.key.logical_key == floem::keyboard::Key::Named(floem::keyboard::NamedKey::Enter) 
-                                            && !key.modifiers.shift() {
+                    {
+                        let on_send = on_send.clone();
+                        text_input(input_value)
+                            .placeholder("Ask anything (Ctrl+L)".to_string())
+                            .on_event_cont(floem::event::EventListener::KeyDown, move |e| {
+                                if let floem::event::Event::KeyDown(key) = e {
+                                    println!("[INPUT] KeyDown event: {:?}, shift={}", key.key.logical_key, key.modifiers.shift());
+                                    if key.key.logical_key == floem::keyboard::Key::Named(floem::keyboard::NamedKey::Enter) 
+                                        && !key.modifiers.shift() {
+                                        let current_text = input_value.get();
+                                        if !current_text.trim().is_empty() {
+                                            println!("[INPUT] Sending message: '{}'", current_text);
                                             on_send();
+                                            input_value.set(String::new());
+                                        } else {
+                                            println!("[INPUT] Enter pressed but text empty");
                                         }
                                     }
-                                })
-                        }
+                                }
+                            })
                             .style(|s| {
                                 s.width_full()
                                     .min_height(32.0)
@@ -430,7 +436,7 @@ where
                                     .border(0.0)
                                     .color(Color::from_rgb8(0xcc, 0xcc, 0xcc))
                             })
-                    )
+                    }
                     .style(|s| {
                         s.width_full()
                             .padding_left(3.0)
@@ -508,7 +514,9 @@ where
                         let on_send = on_send.clone();
                         move |_| {
                             if !sending_disabled {
+                                println!("[INPUT] Send button clicked");
                                 on_send();
+                                input_value.set(String::new());
                             }
                         }
                     })

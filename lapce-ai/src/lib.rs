@@ -1,6 +1,10 @@
 /// Lapce AI Rust Implementation
 /// High-performance semantic code search and analysis
 
+// External crates for LSP gateway
+#[cfg(feature = "cst_integration")]
+extern crate lapce_tree_sitter;
+
 pub fn init() {
     println!("Lapce AI Rust - Semantic Search initialized");
 }
@@ -45,6 +49,7 @@ pub mod handler_registration_types;
 pub mod ipc_config;
 pub mod lancedb_semantic_search;
 pub mod ipc;
+pub mod lsp_gateway;
 pub mod ipc_messages;
 pub mod ipc_server_complete;
 pub mod lapce_plugin;

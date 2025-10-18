@@ -205,6 +205,9 @@ pub use compact::bytecode::{
     Opcode,
 };
 
+// Re-export language registry
+pub use language::registry::LanguageRegistry;
+
 use tree_sitter::{Parser, Tree};
 use std::path::Path;
 use std::collections::HashMap;

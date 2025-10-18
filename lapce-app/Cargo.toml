@@ -80,6 +80,7 @@ default        = ["updater", "vendored-fonts"]
 portable       = ["lapce-core/portable"]
 updater        = []
 vendored-fonts = []
+lsp_gateway    = ["lapce-ai-rust/lsp_gateway"]
 
 [dev-dependencies]
 criterion = "0.5"

@@ -24,10 +24,11 @@ pub mod rooignore_unified;
 pub mod streaming_v2;
 pub mod security_hardening;
 pub mod approval_v2;
+pub mod observability_tool;
 pub mod diff_engine_v2;
-pub mod search;
 pub mod list_files;
 pub mod observability;
+pub mod error_mapping;
 
 pub mod traits;
 pub mod registry;
@@ -35,6 +36,7 @@ pub mod xml_util;
 
 pub use traits::{Tool, ToolContext, ToolOutput, ToolResult, ToolError, ApprovalRequired};
 pub use registry::{ToolRegistry, ToolMetadata};
+pub use error_mapping::{ToolErrorCode, ToolErrorEnvelope};
 
 // Re-export adapters for convenient access
 pub use adapters::{
@@ -45,7 +47,7 @@ pub use adapters::{
 
 // Re-export permissions
 pub use permissions::rooignore::RooIgnore;
-pub use rooignore_unified::UnifiedRooIgnore;
+pub use rooignore_unified::{UnifiedRooIgnore, RooIgnoreBlocked, RooIgnoreConfig};
 pub use security_hardening::{validate_path_security, validate_command_security};
 pub use error_recovery_v2::{ErrorRecoveryV2, ErrorCode};
 pub use streaming_v2::{UnifiedStreamEmitter, StreamEvent};

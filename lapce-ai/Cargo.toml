@@ -28,6 +28,9 @@ jemalloc = ["jemallocator"]
 nuclear-tests = []
 # Feature only available on Unix platforms - used to exclude Unix-only binaries on Windows
 unix-bins = []
+# LSP Gateway - Native multi-language LSP support
+lsp_gateway = ["cst_integration", "lapce-tree-sitter"]
+cst_integration = ["lapce-tree-sitter"]
 
 [[bin]]
 name = "cli_tools"
@@ -88,8 +91,14 @@ required-features = ["unix-bins"]
 
 # Windows-only binaries
 [[bin]]
+name = "windows_ipc_server"
+path = "src/bin/windows_ipc_server.rs"
+required-features = []
+
+[[bin]]
 name = "windows_ipc_stress_test"
 path = "src/bin/windows_ipc_stress_test.rs"
+required-features = []
 
 [[bench]]
 name = "benchmarks"
@@ -328,6 +337,7 @@ mlua = { version = "0.10", features = ["lua54", "vendored", "async", "send"] }
 
 # Tree-sitter parsers
 tree-sitter = "0.23"
+lapce-tree-sitter = { path = "./CST-tree-sitter", optional = true }
 
 # JSON Schema validation
 jsonschema = "0.18"
@@ -339,7 +349,7 @@ tree-sitter-go = "0.23"
 tree-sitter-cpp = "0.23"
 tree-sitter-c = "0.23"
 tree-sitter-java = "0.23"
-tree-sitter-c-sharp = "0.23.1"
+tree-sitter-c-sharp = "0.23.0"
 
 # Other
 heed = "0.20"

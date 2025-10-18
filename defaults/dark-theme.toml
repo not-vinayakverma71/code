@@ -178,6 +178,12 @@ dim-text = "#E4E4E48C"
 "source_control.removed" = "#FF5266CC"
 "source_control.modified" = "#0184BCCC"
 
+# Diff viewer colors
+"diff.inserted.background" = "#50A14F20"  # Green with 12% opacity
+"diff.inserted.foreground" = "#6A9955"    # Green text
+"diff.removed.background" = "#FF526620"   # Red with 12% opacity
+"diff.removed.foreground" = "#F48771"     # Red text
+
 "tooltip.background" = "#252526"
 "tooltip.foreground" = "$text"
 
