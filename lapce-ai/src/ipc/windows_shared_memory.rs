@@ -86,6 +86,8 @@ impl SharedMemoryBuffer {
         let object_name = Self::sanitize_name(path);
         let wide_name = Self::to_wide_string(&object_name);
         
+        eprintln!("[WIN_SHM] Creating mapping '{}' size={}", object_name, total_size);
+        
         unsafe {
             // Create file mapping object
             let mapping_handle = CreateFileMappingW(
@@ -98,8 +100,12 @@ impl SharedMemoryBuffer {
             );
             
             if mapping_handle.is_null() {
-                bail!("Failed to create file mapping: {}", object_name);
+                let err = std::io::Error::last_os_error();
+                eprintln!("[WIN_SHM] CreateFileMappingW FAILED: {}", err);
+                bail!("Failed to create file mapping '{}': {}", object_name, err);
             }
+            
+            eprintln!("[WIN_SHM] Created mapping handle successfully");
             
             // Map view of file into process address space
             let ptr = MapViewOfFile(
@@ -306,8 +312,11 @@ struct AcceptRequest {
 
 impl SharedMemoryListener {
     pub fn bind(path: &str) -> Result<Self> {
+        eprintln!("[WIN_LISTENER] Binding to path: {}", path);
         let control_path = format!("{}_control", path);
+        eprintln!("[WIN_LISTENER] Creating control buffer: {}", control_path);
         let control_buffer = Arc::new(RwLock::new(SharedMemoryBuffer::create(&control_path, CONTROL_SIZE)?));
+        eprintln!("[WIN_LISTENER] Control buffer created successfully");
         
         let (accept_tx, accept_rx) = mpsc::unbounded_channel();
         
@@ -404,17 +413,27 @@ impl SharedMemoryStream {
         let control_path = format!("{}_control", path);
         
         // Open control channel with retries (server may still be initializing)
+        eprintln!("[WIN_CLIENT] Connecting to control_path: {}", control_path);
         let mut control = {
             let mut retries = 0;
             loop {
                 match SharedMemoryBuffer::open(&control_path, CONTROL_SIZE) {
-                    Ok(buf) => break buf,
+                    Ok(buf) => {
+                        eprintln!("[WIN_CLIENT] Successfully opened control buffer after {} retries", retries);
+                        break buf
+                    },
                     Err(e) if retries < 50 => {
+                        if retries % 10 == 0 {
+                            eprintln!("[WIN_CLIENT] Retry {}/50: {}", retries, e);
+                        }
                         retries += 1;
                         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
                         continue;
                     }
-                    Err(e) => bail!("Failed to open control buffer after {} retries: {}", retries, e),
+                    Err(e) => {
+                        eprintln!("[WIN_CLIENT] FATAL: Failed after {} retries: {}", retries, e);
+                        bail!("Failed to open control buffer after {} retries: {}", retries, e)
+                    },
                 }
             }
         };
