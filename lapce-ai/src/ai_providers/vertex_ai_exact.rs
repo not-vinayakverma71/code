@@ -535,7 +535,12 @@ impl AiProvider for VertexAiProvider {
                             if let Some(candidates) = json["candidates"].as_array() {
                                 for candidate in candidates {
                                     if let Some(content) = candidate["content"]["parts"][0]["text"].as_str() {
-                                        tokens.push(Ok(StreamToken::Delta { content: content.to_string() }));
+                                        use crate::streaming_pipeline::stream_token::TextDelta;
+                                        tokens.push(Ok(StreamToken::Delta(TextDelta {
+                                            content: content.to_string(),
+                                            index: 0,
+                                            logprob: None,
+                                        })));
                                     }
                                 }
                             }

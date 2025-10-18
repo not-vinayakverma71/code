@@ -12,9 +12,10 @@ use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 
 use crate::ai_providers::core_trait::{
     AiProvider, CompletionRequest, CompletionResponse, ChatRequest, ChatResponse,
-    StreamToken, HealthStatus, Model, ProviderCapabilities, RateLimits, Usage,
+    HealthStatus, Model, ProviderCapabilities, RateLimits, Usage,
     ChatMessage, ChatChoice
 };
+use crate::streaming_pipeline::StreamToken;
 use crate::ai_providers::sse_decoder::JsonStreamParser;
 
 /// Gemini configuration
@@ -447,12 +448,12 @@ impl AiProvider for GeminiProvider {
                     Ok(chunk) => {
                         if let Ok(chunk_str) = std::str::from_utf8(&chunk) {
                             let tokens = parsers::parse_gemini_stream(chunk_str);
-                            futures::stream::iter(tokens.into_iter().map(Ok))
+                            futures::stream::iter(tokens.into_iter().map(Ok)).boxed()
                         } else {
-                            futures::stream::iter(vec![Err(anyhow::anyhow!("Invalid UTF-8 in stream"))])
+                            futures::stream::iter(vec![Err(anyhow::anyhow!("Invalid UTF-8 in stream"))]).boxed()
                         }
                     }
-                    Err(e) => futures::stream::iter(vec![Err(e)]),
+                    Err(e) => futures::stream::iter(vec![Err(e)]).boxed(),
                 }
             });
         

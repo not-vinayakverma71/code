@@ -243,9 +243,12 @@ fn parse_openai_sse(event: &SseEvent) -> Option<StreamToken> {
             // Handle chat completion deltas
             if let Some(delta) = choice.get("delta") {
                 if let Some(content) = delta["content"].as_str() {
-                    return Some(StreamToken::Delta { 
-                        content: content.to_string() 
-                    });
+                    use crate::streaming_pipeline::stream_token::TextDelta;
+                    return Some(StreamToken::Delta(TextDelta { 
+                        content: content.to_string(),
+                        index: 0,
+                        logprob: None,
+                    }));
                 }
             }
             

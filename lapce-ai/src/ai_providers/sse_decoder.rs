@@ -201,7 +201,8 @@ impl JsonStreamParser {
 /// Provider-specific SSE parsers
 pub mod parsers {
     use super::*;
-    use crate::ai_providers::core_trait::StreamToken;
+    use crate::streaming_pipeline::StreamToken;
+    use crate::streaming_pipeline::stream_token::{TextDelta, FunctionCall, ToolCall};
     
     /// Parse OpenAI SSE format
     pub fn parse_openai_sse(event: &SseEvent) -> Option<StreamToken> {
@@ -219,19 +220,21 @@ pub mod parsers {
             if let Some(choice) = choices.first() {
                 if let Some(delta) = choice.get("delta") {
                     if let Some(content) = delta["content"].as_str() {
-                        return Some(StreamToken::Delta { 
-                            content: content.to_string() 
-                        });
+                        return Some(StreamToken::Delta(TextDelta { 
+                            content: content.to_string(),
+                            index: 0,
+                            logprob: None,
+                        }));
                     }
                     
                     // Function call
                     if let Some(function_call) = delta.get("function_call") {
                         if let Some(name) = function_call["name"].as_str() {
                             let arguments = function_call["arguments"].as_str().unwrap_or("");
-                            return Some(StreamToken::FunctionCall {
+                            return Some(StreamToken::FunctionCall(FunctionCall {
                                 name: name.to_string(),
                                 arguments: arguments.to_string(),
-                            });
+                            }));
                         }
                     }
                     
@@ -239,11 +242,14 @@ pub mod parsers {
                     if let Some(tool_calls) = delta.get("tool_calls") {
                         if let Some(tool_call) = tool_calls.as_array()?.first() {
                             if let Some(function) = tool_call.get("function") {
-                                return Some(StreamToken::ToolCall {
+                                return Some(StreamToken::ToolCall(ToolCall {
                                     id: tool_call["id"].as_str().unwrap_or("").to_string(),
-                                    name: function["name"].as_str().unwrap_or("").to_string(),
-                                    arguments: function["arguments"].as_str().unwrap_or("").to_string(),
-                                });
+                                    r#type: "function".to_string(),
+                                    function: FunctionCall {
+                                        name: function["name"].as_str().unwrap_or("").to_string(),
+                                        arguments: function["arguments"].as_str().unwrap_or("").to_string(),
+                                    },
+                                }));
                             }
                         }
                     }
@@ -273,9 +279,11 @@ pub mod parsers {
                 // Content delta
                 if let Some(delta) = json.get("delta") {
                     if let Some(text) = delta["text"].as_str() {
-                        return Some(StreamToken::Delta {
-                            content: text.to_string()
-                        });
+                        return Some(StreamToken::Delta(TextDelta {
+                            content: text.to_string(),
+                            index: 0,
+                            logprob: None,
+                        }));
                     }
                 }
                 None

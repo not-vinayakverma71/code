@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use floem::{
     reactive::{RwSignal, SignalGet, create_rw_signal},
-    views::{Decorators, container, dyn_stack, scroll, v_stack},
+    views::{Decorators, container, dyn_stack, label, scroll, v_stack},
     View,
 };
 
@@ -25,6 +25,7 @@ pub struct ChatViewProps {
     pub sending_disabled: bool,
     pub on_send: Rc<dyn Fn()>,
     pub messages_signal: RwSignal<Vec<crate::ai_state::ChatMessage>>,
+    pub streaming_signal: RwSignal<String>,  // Live streaming text
     pub selected_model: RwSignal<String>,
     pub selected_mode: RwSignal<String>,
 }
@@ -43,6 +44,7 @@ pub fn chat_view(
 ) -> impl View {
     let input_value = props.input_value;
     let messages_signal = props.messages_signal;
+    let streaming_signal = props.streaming_signal;
     
     // Windsurf-style model selector state
     let current_model = create_rw_signal("GPT-4".to_string());
@@ -88,7 +90,20 @@ pub fn chat_view(
                                 config,
                             )
                         },
-                    )
+                    ),
+                    
+                    // Streaming text display (live assistant response)
+                    container({
+                        let text = streaming_signal.get();
+                        if text.is_empty() {
+                            container(label(|| "".to_string()))
+                                .style(|s| s.height(0.0))
+                        } else {
+                            container(windsurf_ui::ai_message(text, false))
+                                .style(|s| s.width_full())
+                        }
+                    })
+                    .style(|s| s.width_full().padding(8.0))
                 ))
                 .style(|s| s.padding(12.0).width_full().flex_col())
             )

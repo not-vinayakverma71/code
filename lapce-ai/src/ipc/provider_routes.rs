@@ -72,7 +72,6 @@ impl ProviderRouteHandler {
             stop: None,
             n: None,
             stream: Some(true),
-            logprobs: None,
             echo: None,
             best_of: None,
             logit_bias: None,
@@ -107,18 +106,19 @@ impl ProviderRouteHandler {
             max_tokens,
             temperature,
             top_p: None,
-            n: None,
             stream: Some(true),
             stop: None,
             presence_penalty: None,
             frequency_penalty: None,
-            logit_bias: None,
             user: None,
             functions: None,
             function_call: None,
             tools: None,
             tool_choice: None,
             response_format: None,
+            seed: None,
+            logprobs: None,
+            top_logprobs: None,
         };
         
         let manager = self.manager.read().await;
@@ -145,7 +145,6 @@ impl ProviderRouteHandler {
             stop,
             n: None,
             stream: Some(false),
-            logprobs: None,
             echo: None,
             best_of: None,
             logit_bias: None,
@@ -162,7 +161,7 @@ impl ProviderRouteHandler {
                 let text = response
                     .choices
                     .first()
-                    .and_then(|c| c.text.clone())
+                    .map(|c| c.text.clone())
                     .unwrap_or_default();
                 
                 ProviderResponse::Complete {
@@ -192,24 +191,33 @@ impl ProviderRouteHandler {
             .filter_map(|msg| serde_json::from_value(msg).ok())
             .collect();
         
+        // Convert tools from Value to Tool
+        let converted_tools = tools.map(|tool_values| {
+            tool_values
+                .into_iter()
+                .filter_map(|v| serde_json::from_value(v).ok())
+                .collect()
+        });
+        
         let request = ChatRequest {
             model,
             messages: chat_messages,
             max_tokens,
             temperature,
             top_p: None,
-            n: None,
             stream: Some(false),
             stop: None,
             presence_penalty: None,
             frequency_penalty: None,
-            logit_bias: None,
             user: None,
             functions: None,
             function_call: None,
-            tools,
+            tools: converted_tools,
             tool_choice: None,
             response_format: None,
+            seed: None,
+            logprobs: None,
+            top_logprobs: None,
         };
         
         let manager = self.manager.read().await;
@@ -226,8 +234,12 @@ impl ProviderRouteHandler {
                 let tool_calls = response
                     .choices
                     .first()
-                    .and_then(|c| c.message.tool_calls.clone())
-                    .and_then(|calls| serde_json::to_value(calls).ok());
+                    .and_then(|c| c.message.tool_calls.as_ref())
+                    .map(|tc| {
+                        tc.iter()
+                            .filter_map(|call| serde_json::to_value(call).ok())
+                            .collect()
+                    });
                 
                 ProviderResponse::Chat {
                     id: response.id,

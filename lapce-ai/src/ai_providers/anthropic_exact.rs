@@ -12,9 +12,10 @@ use tokio::sync::RwLock;
 
 use crate::ai_providers::core_trait::{
     AiProvider, CompletionRequest, CompletionResponse, ChatRequest, ChatResponse,
-    StreamToken, HealthStatus, Model, ProviderCapabilities, RateLimits, Usage,
+    HealthStatus, Model, ProviderCapabilities, RateLimits, Usage,
     ChatMessage, ChatChoice
 };
+use crate::streaming_pipeline::StreamToken;
 use crate::ai_providers::sse_decoder::SseEvent;
 
 /// Anthropic configuration
@@ -258,9 +259,12 @@ fn parse_anthropic_sse(event: &SseEvent) -> Option<StreamToken> {
                     if let Ok(json) = serde_json::from_str::<serde_json::Value>(data_str) {
                         if let Some(delta) = json.get("delta") {
                             if let Some(text) = delta["text"].as_str() {
-                                return Some(StreamToken::Delta {
-                                    content: text.to_string()
-                                });
+                                use crate::streaming_pipeline::stream_token::TextDelta;
+                                return Some(StreamToken::Delta(TextDelta {
+                                    content: text.to_string(),
+                                    index: 0,
+                                    logprob: None,
+                                }));
                             }
                         }
                     }

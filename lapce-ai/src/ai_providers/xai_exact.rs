@@ -8,8 +8,9 @@ use serde_json::json;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
 use crate::ai_providers::core_trait::{
     AiProvider, CompletionRequest, CompletionResponse, ChatRequest, ChatResponse,
-    StreamToken, HealthStatus, Model, ProviderCapabilities, RateLimits
+    HealthStatus, Model, ProviderCapabilities, RateLimits
 };
+use crate::streaming_pipeline::StreamToken;
 use crate::ai_providers::sse_decoder::SseDecoder;
 
 #[derive(Debug, Clone)]

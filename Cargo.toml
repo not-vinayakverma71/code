@@ -20,9 +20,8 @@ name = "lapce-proxy"
 path = "lapce-proxy/src/bin/lapce-proxy.rs"
 
 [workspace]
-# Temporarily excluding lapce-ai until tree-sitter version conflict is resolved
-# (lapce-ai uses tree-sitter 0.23, syntax_test uses 0.22.6)
 members = ["lapce-app", "lapce-proxy", "lapce-rpc", "lapce-core", "syntax_test"]
+exclude = ["lapce-ai"]  # Separate workspace with different dependency versions
 
 [workspace.package]
 version      = "0.4.5"

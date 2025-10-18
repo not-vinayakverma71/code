@@ -724,7 +724,12 @@ impl AiProvider for BedrockProvider {
                                     };
                                     
                                     if !text.is_empty() {
-                                        return stream::iter(vec![Ok(StreamToken::Delta { content: text })]);
+                                        use crate::streaming_pipeline::stream_token::TextDelta;
+                                        return stream::iter(vec![Ok(StreamToken::Delta(TextDelta {
+                                            content: text,
+                                            index: 0,
+                                            logprob: None,
+                                        }))]);
                                     }
                                 }
                             }

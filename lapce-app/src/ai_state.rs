@@ -4,7 +4,7 @@
 
 use std::sync::Arc;
 
-use floem::reactive::{RwSignal, SignalUpdate, create_rw_signal};
+use floem::reactive::{RwSignal, SignalUpdate, SignalGet, create_rw_signal};
 use serde::{Deserialize, Serialize};
 
 use crate::ai_bridge::{BridgeClient, ConnectionState, InboundMessage};
@@ -22,6 +22,7 @@ pub struct AIChatState {
     // Messages
     pub messages: RwSignal<Vec<ChatMessage>>,
     pub message_queue: RwSignal<Vec<QueuedMessage>>,
+    pub streaming_text: RwSignal<String>,  // Live streaming response
     
     // Auto-approval toggles
     pub auto_approval_enabled: RwSignal<bool>,
@@ -65,6 +66,7 @@ impl AIChatState {
             
             messages: create_rw_signal(Vec::new()),
             message_queue: create_rw_signal(Vec::new()),
+            streaming_text: create_rw_signal(String::new()),
             
             // Defaults from ExtensionStateContext lines 244-245
             auto_approval_enabled: create_rw_signal(true),
@@ -143,8 +145,52 @@ impl AIChatState {
                         crate::ai_bridge::messages::ConnectionStatusType::Connected => {
                             ConnectionState::Connected
                         }
+                        crate::ai_bridge::messages::ConnectionStatusType::Error => {
+                            ConnectionState::Disconnected // Treat error as disconnected
+                        }
                     };
                 });
+            }
+            
+            // Provider streaming responses
+            InboundMessage::ProviderStreamChunk { content, .. } => {
+                // Append chunk to streaming text signal
+                self.streaming_text.update(|text| {
+                    text.push_str(&content);
+                });
+            }
+            
+            InboundMessage::ProviderStreamDone { usage } => {
+                // Move streaming text to messages
+                let final_text = self.streaming_text.get();
+                if !final_text.is_empty() {
+                    let ts = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_millis() as u64;
+                    
+                    self.messages.update(|msgs| {
+                        msgs.push(ChatMessage {
+                            ts,
+                            content: final_text.clone(),
+                            message_type: crate::ai_bridge::messages::MessageType::Say,
+                            partial: false,
+                        });
+                    });
+                    
+                    self.streaming_text.set(String::new());
+                }
+                
+                if let Some(usage_info) = usage {
+                    eprintln!("[AI Chat] Stream complete - tokens: {} prompt + {} completion = {} total",
+                        usage_info.prompt_tokens, usage_info.completion_tokens, usage_info.total_tokens);
+                }
+            }
+            
+            InboundMessage::ProviderError { message } => {
+                eprintln!("[AI Chat] Provider error: {}", message);
+                // Clear streaming text on error
+                self.streaming_text.set(String::new());
             }
             
             _ => {

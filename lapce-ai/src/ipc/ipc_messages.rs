@@ -563,6 +563,8 @@ pub enum MessageType {
     Cancel = 3,
     Heartbeat = 4,
     Shutdown = 5,
+    ProviderChat = 10,        // Non-streaming provider chat
+    ProviderChatStream = 11,  // Streaming provider chat
     Custom = 99,
 }
 
@@ -579,6 +581,8 @@ impl MessageType {
             3 => Ok(MessageType::Cancel),
             4 => Ok(MessageType::Heartbeat),
             5 => Ok(MessageType::Shutdown),
+            10 => Ok(MessageType::ProviderChat),
+            11 => Ok(MessageType::ProviderChatStream),
             99 => Ok(MessageType::Custom),
             _ => Err(anyhow::anyhow!("Unknown message type: {}", value)),
         }
@@ -987,4 +991,68 @@ mod tests {
             assert_eq!(cmd, deserialized);
         }
     }
+}
+
+// ============================================================================
+// Provider Chat Messages (Phase C - UI Streaming)
+// ============================================================================
+
+/// Provider chat request (non-streaming)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderChatRequest {
+    pub model: String,
+    pub messages: Vec<ProviderMessage>,
+    pub max_tokens: Option<u32>,
+    pub temperature: Option<f32>,
+}
+
+/// Provider chat streaming request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderChatStreamRequest {
+    pub model: String,
+    pub messages: Vec<ProviderMessage>,
+    pub max_tokens: Option<u32>,
+    pub temperature: Option<f32>,
+}
+
+/// Provider message
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderMessage {
+    pub role: String,  // "user", "assistant", "system"
+    pub content: String,
+}
+
+/// Provider chat response (non-streaming)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderChatResponse {
+    pub id: String,
+    pub content: String,
+    pub usage: Option<ProviderUsageStats>,
+}
+
+/// Provider streaming chunk
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderStreamChunk {
+    pub content: String,
+}
+
+/// Provider streaming done
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderStreamDone {
+    pub usage: Option<ProviderUsageStats>,
+}
+
+/// Provider usage statistics
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderUsageStats {
+    pub prompt_tokens: u32,
+    pub completion_tokens: u32,
+    pub total_tokens: u32,
 }

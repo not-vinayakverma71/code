@@ -10,6 +10,8 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use lapce_ai_rust::{
     IpcServer,
     IpcConfig,
+    IpcError,
+    StreamToken,
     AutoReconnectionManager, ReconnectionStrategy,
 };
 use lapce_ai_rust::ipc::provider_config::{load_provider_configs_from_env, validate_provider_configs};
@@ -88,10 +90,101 @@ async fn main() -> Result<()> {
         Arc::new(RwLock::new(provider_manager))
     ));
     
-    // Register provider routes
-    // TODO: Register handlers for ProviderCommand messages
-    // This requires MessageType enum to have provider-specific variants
-    info!("Provider route handler created (registration pending MessageType support)");
+    // Register provider chat streaming handler
+    let provider_handler_stream = provider_handler.clone();
+    use lapce_ai_rust::ipc::binary_codec::MessageType;
+    server.register_streaming_handler(
+        MessageType::ChatMessage,  // Use ChatMessage for provider streaming
+        move |data, tx| {
+            let handler = provider_handler_stream.clone();
+            async move {
+                use lapce_ai_rust::ipc::ipc_messages::{ProviderChatStreamRequest, ProviderStreamChunk, ProviderStreamDone};
+                use futures::StreamExt;
+                
+                // Deserialize request
+                let request: ProviderChatStreamRequest = serde_json::from_slice(&data)
+                    .map_err(|e| IpcError::Protocol {
+                        message: format!("Failed to parse ProviderChatStreamRequest: {}", e)
+                    })?;
+                
+                info!("[Provider] Streaming chat request: model={}, {} messages", 
+                      request.model, request.messages.len());
+                
+                // Convert messages to JSON values for handler
+                let json_messages: Vec<serde_json::Value> = request.messages.iter()
+                    .map(|m| serde_json::json!({
+                        "role": m.role,
+                        "content": m.content,
+                    }))
+                    .collect();
+                
+                // Get streaming response
+                let mut stream = handler.handle_chat_stream(
+                    request.model,
+                    json_messages,
+                    request.max_tokens,
+                    request.temperature,
+                ).await
+                    .map_err(|e| IpcError::Internal {
+                        context: format!("Provider streaming failed: {}", e)
+                    })?;
+                
+                // Stream chunks
+                while let Some(token_result) = stream.next().await {
+                    match token_result {
+                        Ok(token) => {
+                            // Use StreamToken from root export
+                            match token {
+                                StreamToken::Text(text) => {
+                                    let chunk = ProviderStreamChunk { content: text };
+                                    let chunk_bytes = serde_json::to_vec(&chunk)
+                                        .map_err(|e| IpcError::Protocol {
+                                            message: format!("Failed to serialize chunk: {}", e)
+                                        })?;
+                                    tx.send(bytes::Bytes::from(chunk_bytes)).await
+                                        .map_err(|_| IpcError::Internal {
+                                            context: "Channel closed".to_string()
+                                        })?;
+                                }
+                                StreamToken::Done => {
+                                    let done = ProviderStreamDone { usage: None };
+                                    let done_bytes = serde_json::to_vec(&done)
+                                        .map_err(|e| IpcError::Protocol {
+                                            message: format!("Failed to serialize done: {}", e)
+                                        })?;
+                                    tx.send(bytes::Bytes::from(done_bytes)).await
+                                        .map_err(|_| IpcError::Internal {
+                                            context: "Channel closed".to_string()
+                                        })?;
+                                    break;
+                                }
+                                StreamToken::Error(err) => {
+                                    error!("[Provider] Stream error: {}", err);
+                                    return Err(IpcError::Internal {
+                                        context: format!("Stream error: {}", err)
+                                    });
+                                }
+                                _ => {} // Ignore other token types for now
+                            }
+                        }
+                        Err(e) => {
+                            error!("[Provider] Token error: {}", e);
+                            return Err(IpcError::Internal {
+                                context: format!("Token error: {}", e)
+                            });
+                        }
+                    }
+                }
+                
+                Ok(())
+            }
+        },
+    );
+    
+    info!("Provider streaming handler registered");
+    
+    // Wrap server in Arc early for sharing
+    let server = Arc::new(server);
     
     // Setup auto-reconnection if enabled
     let reconnection_manager = if config.server.enable_auto_reconnect {
@@ -122,7 +215,6 @@ async fn main() -> Result<()> {
     }
     
     // Setup graceful shutdown
-    let server = Arc::new(server);
     let shutdown_server = server.clone();
     
     tokio::spawn(async move {

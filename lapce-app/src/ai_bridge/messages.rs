@@ -86,6 +86,26 @@ pub enum OutboundMessage {
 
     /// Get list of stale files
     GetStaleFiles { task_id: String },
+    
+    // ============================================================================
+    // Provider Chat Operations (Phase C - UI Streaming)
+    // ============================================================================
+    
+    /// Send chat message to AI provider (streaming)
+    ProviderChatStream {
+        model: String,
+        messages: Vec<ProviderChatMessage>,
+        max_tokens: Option<u32>,
+        temperature: Option<f32>,
+    },
+    
+    /// Send chat message to AI provider (non-streaming)
+    ProviderChat {
+        model: String,
+        messages: Vec<ProviderChatMessage>,
+        max_tokens: Option<u32>,
+        temperature: Option<f32>,
+    },
 }
 
 /// Response types for ask interactions
@@ -257,6 +277,32 @@ pub enum InboundMessage {
 
     /// Context operation error
     ContextError { operation: String, message: String },
+    
+    // ============================================================================
+    // Provider Streaming Responses (Phase C - UI Streaming)
+    // ============================================================================
+    
+    /// Provider streaming chunk
+    ProviderStreamChunk {
+        content: String,
+        tool_call: Option<ToolCallChunk>,
+    },
+    
+    /// Provider streaming complete
+    ProviderStreamDone {
+        usage: Option<ProviderUsage>,
+    },
+    
+    /// Provider chat response (non-streaming)
+    ProviderChatResponse {
+        id: String,
+        content: String,
+        usage: Option<ProviderUsage>,
+        tool_calls: Vec<ToolCall>,
+    },
+    
+    /// Provider error
+    ProviderError { message: String },
 }
 
 /// Chat message structure (mirrors Codex ClineMessage)
@@ -337,18 +383,18 @@ pub struct TaskSummary {
 }
 
 /// Connection status
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum ConnectionStatusType {
     Disconnected,
     Connecting,
     Connected,
+    Error,
 }
 
 // ============================================================================
 // Tool-specific payloads (parsed from ClineMessage.text as JSON)
 // ============================================================================
-
 /// Tool payload for "say: tool" messages
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "tool", rename_all = "camelCase")]
@@ -492,4 +538,43 @@ pub struct TodoItem {
     pub id: String,
     pub text: String,
     pub completed: bool,
+}
+
+// ============================================================================
+// Provider Types (Phase C - UI Streaming)
+// ============================================================================
+
+/// Provider chat message
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderChatMessage {
+    pub role: String,  // "user" or "assistant" or "system"
+    pub content: String,
+}
+
+/// Provider usage statistics
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderUsage {
+    pub prompt_tokens: u32,
+    pub completion_tokens: u32,
+    pub total_tokens: u32,
+}
+
+/// Tool call chunk (streaming)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolCallChunk {
+    pub id: String,
+    pub name: Option<String>,
+    pub arguments: Option<String>,
+}
+
+/// Tool call (complete)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolCall {
+    pub id: String,
+    pub name: String,
+    pub arguments: String,
 }

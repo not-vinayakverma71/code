@@ -2,10 +2,10 @@
 /// Phase 1, Task 2: Create SseEvent type
 
 use bytes::Bytes;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 /// Server-Sent Event structure
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct SseEvent {
     /// Event type field (optional)
     pub event_type: Option<String>,

@@ -41,6 +41,8 @@ pub struct SearchResultFormatted {
 }
 
 // Direct translation of codebaseSearchTool function
+// TODO: Re-enable when semantic_engine module is available
+/*
 pub async fn codebase_search_tool(
     params: SearchToolParams,
     search_engine: &crate::semantic_engine::SemanticSearchEngine,
@@ -97,6 +99,7 @@ pub async fn codebase_search_tool(
         results: formatted_results,
     })
 }
+*/
 
 // Ranking algorithm from TypeScript (exact translation)
 pub fn rank_search_results(
@@ -208,6 +211,8 @@ pub fn format_search_results_for_ai(results: &[SearchResultFormatted]) -> String
 }
 
 // Cache key computation (same as TypeScript)
+// TODO: Re-enable when semantic_engine is available
+/*
 pub fn compute_cache_key(query: &str, filters: &Option<crate::semantic_engine::SearchFilters>) -> String {
     use blake3::Hasher;
     
@@ -220,6 +225,7 @@ pub fn compute_cache_key(query: &str, filters: &Option<crate::semantic_engine::S
     
     hasher.finalize().to_string()
 }
+*/
 
 #[cfg(test)]
 mod tests {

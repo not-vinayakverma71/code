@@ -13,9 +13,10 @@ use tokio::sync::RwLock;
 
 use crate::ai_providers::core_trait::{
     AiProvider, CompletionRequest, CompletionResponse, ChatRequest, ChatResponse,
-    StreamToken, HealthStatus, Model, ProviderCapabilities, RateLimits, Usage,
+    HealthStatus, Model, ProviderCapabilities, RateLimits, Usage,
     ChatMessage, ChatChoice
 };
+use crate::streaming_pipeline::StreamToken;
 use crate::ai_providers::sse_decoder::{SseDecoder, SseEvent};
 
 /// Default headers from constants.ts
@@ -319,19 +320,23 @@ fn parse_openai_sse(event: &SseEvent) -> Option<StreamToken> {
             // Handle chat completion deltas
             if let Some(delta) = choice.get("delta") {
                 if let Some(content) = delta["content"].as_str() {
-                    return Some(StreamToken::Delta { 
-                        content: content.to_string() 
-                    });
+                    use crate::streaming_pipeline::stream_token::TextDelta;
+                    return Some(StreamToken::Delta(TextDelta { 
+                        content: content.to_string(),
+                        index: 0,
+                        logprob: None,
+                    }));
                 }
                 
                 // Handle function calls
                 if let Some(function_call) = delta.get("function_call") {
                     if let Some(name) = function_call["name"].as_str() {
+                        use crate::streaming_pipeline::stream_token::FunctionCall;
                         let arguments = function_call["arguments"].as_str().unwrap_or("");
-                        return Some(StreamToken::FunctionCall {
+                        return Some(StreamToken::FunctionCall(FunctionCall {
                             name: name.to_string(),
                             arguments: arguments.to_string(),
-                        });
+                        }));
                     }
                 }
                 
@@ -339,11 +344,15 @@ fn parse_openai_sse(event: &SseEvent) -> Option<StreamToken> {
                 if let Some(tool_calls) = delta.get("tool_calls") {
                     if let Some(tool_call) = tool_calls.as_array()?.first() {
                         if let Some(function) = tool_call.get("function") {
-                            return Some(StreamToken::ToolCall {
+                            use crate::streaming_pipeline::stream_token::{ToolCall, FunctionCall};
+                            return Some(StreamToken::ToolCall(ToolCall {
                                 id: tool_call["id"].as_str().unwrap_or("").to_string(),
-                                name: function["name"].as_str().unwrap_or("").to_string(),
-                                arguments: function["arguments"].as_str().unwrap_or("").to_string(),
-                            });
+                                r#type: "function".to_string(),
+                                function: FunctionCall {
+                                    name: function["name"].as_str().unwrap_or("").to_string(),
+                                    arguments: function["arguments"].as_str().unwrap_or("").to_string(),
+                                },
+                            }));
                         }
                     }
                 }

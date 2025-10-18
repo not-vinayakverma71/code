@@ -316,10 +316,11 @@ impl AiProvider for UltraOptimizedGeminiProvider {
         use futures::stream::{self, StreamExt};
         
         
+        use crate::streaming_pipeline::stream_token::TextDelta;
         let tokens = vec![
-            StreamToken::Delta { content: "Ultra ".to_string() },
-            StreamToken::Delta { content: "optimized ".to_string() },
-            StreamToken::Delta { content: "response".to_string() },
+            StreamToken::Delta(TextDelta { content: "Ultra ".to_string(), index: 0, logprob: None }),
+            StreamToken::Delta(TextDelta { content: "optimized ".to_string(), index: 0, logprob: None }),
+            StreamToken::Delta(TextDelta { content: "response".to_string(), index: 0, logprob: None }),
             StreamToken::Done,
         ];
         
@@ -333,10 +334,11 @@ impl AiProvider for UltraOptimizedGeminiProvider {
         use futures::stream::{self, StreamExt};
         
         
+        use crate::streaming_pipeline::stream_token::TextDelta;
         let tokens = vec![
-            StreamToken::Delta { content: "Ultra ".to_string() },
-            StreamToken::Delta { content: "optimized ".to_string() },
-            StreamToken::Delta { content: "chat".to_string() },
+            StreamToken::Delta(TextDelta { content: "Ultra ".to_string(), index: 0, logprob: None }),
+            StreamToken::Delta(TextDelta { content: "optimized ".to_string(), index: 0, logprob: None }),
+            StreamToken::Delta(TextDelta { content: "chat".to_string(), index: 0, logprob: None }),
             StreamToken::Done,
         ];
         

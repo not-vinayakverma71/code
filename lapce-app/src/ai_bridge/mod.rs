@@ -11,6 +11,9 @@ pub mod context_bridge;
 #[cfg(feature = "examples")]
 pub mod examples;
 
+#[cfg(test)]
+mod integration_test;
+
 pub use bridge::{BridgeClient, BridgeError, ConnectionState};
 pub use messages::{InboundMessage, OutboundMessage, CommandSource, TerminalOp, FileContextSource};
 pub use transport::{NoTransport, Transport};

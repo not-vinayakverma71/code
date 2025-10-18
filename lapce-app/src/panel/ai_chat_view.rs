@@ -1,16 +1,18 @@
-// AI Chat Panel View
 // Phase 0-6: Full chat UI with state integration
 
 use std::{rc::Rc, sync::Arc};
 
 use floem::{
-    reactive::{create_rw_signal, SignalGet, SignalUpdate},
+    reactive::{create_effect, create_rw_signal, SignalGet, SignalUpdate},
     views::{container, v_stack, Decorators},
     IntoView,
 };
 
 use crate::{
-    ai_bridge::{BridgeClient, ShmTransport, default_socket_path, transport::Transport},
+    ai_bridge::{
+        BridgeClient, ShmTransport, default_socket_path, transport::Transport,
+        messages::{OutboundMessage, ProviderChatMessage},
+    },
     ai_state::AIChatState,
     panel::ai_chat::components::{
         chat_view::{ChatViewProps, chat_view},
@@ -67,20 +69,41 @@ pub fn ai_chat_panel(
                 });
             });
             
-            // TODO: Send via IPC bridge when ready
-            // ai_state.bridge.send(OutboundMessage::NewTask { 
-            //     text: msg, 
-            //     images: vec![], 
-            //     model: Some(model),
-            //     mode: Some(mode),
-            // });
+            // Send via IPC bridge - REAL STREAMING
+            let bridge = ai_state_clone.bridge.clone();
+            let prompt = msg.clone();
+            
+            // Build provider chat messages (just user message for now)
+            let provider_messages = vec![
+                ProviderChatMessage {
+                    role: "user".to_string(),
+                    content: prompt,
+                },
+            ];
+            
+            // Send streaming request to backend
+            if let Err(e) = bridge.send(OutboundMessage::ProviderChatStream {
+                model,
+                messages: provider_messages,
+                max_tokens: Some(2048),
+                temperature: Some(0.7),
+            }) {
+                eprintln!("[AI Chat] Failed to send message: {}", e);
+            }
             
             input_value.set(String::new());
         }
     });
     
+    // Poll for incoming messages (including streaming chunks)
+    // TODO: Implement proper async polling or callback-based message handling
+    // For now, polling would need to be triggered manually or via IPC callbacks
+    // Floem's reactive signals (RwSignal) are not Send, so we can't use tokio::spawn
+    // In production, the IPC layer would trigger updates directly via callbacks
+    
     // Convert state messages to chat row messages
     let messages_signal = ai_state.messages;
+    let streaming_signal = ai_state.streaming_text;
     
     // Main chat area (no sidebar)
     v_stack((
@@ -92,6 +115,7 @@ pub fn ai_chat_panel(
                         sending_disabled,
                         on_send,
                         messages_signal,
+                        streaming_signal,
                         selected_model,
                         selected_mode,
                     },

@@ -455,51 +455,29 @@ impl OpenRouterProvider {
                             tokens.push(Ok(StreamToken::Error(error_msg.to_string())));
                         }
 
-                        if let Some(usage) = json.get("usage") {
-                            tokens.push(Ok(StreamToken::Event {
-                                event_type: "usage".to_string(),
-                                data: usage.clone(),
-                            }));
-                        }
+                        // Skip usage metadata event
 
                         if let Some(choices) = json["choices"].as_array() {
                             if let Some(choice) = choices.first() {
                                 if let Some(delta) = choice.get("delta") {
-                                    if let Some(reasoning) = delta.get("reasoning") {
-                                        tokens.push(Ok(StreamToken::Event {
-                                            event_type: "reasoning".to_string(),
-                                            data: reasoning.clone(),
-                                        }));
-                                    }
-
-                                    if let Some(reasoning_content) = delta.get("reasoning_content") {
-                                        tokens.push(Ok(StreamToken::Event {
-                                            event_type: "reasoning".to_string(),
-                                            data: reasoning_content.clone(),
-                                        }));
-                                    }
+                                    // Skip reasoning metadata events
 
                                     if let Some(content) = delta.get("content") {
                                         if let Some(text) = content.as_str() {
-                                            tokens.push(Ok(StreamToken::Delta {
+                                            use crate::streaming_pipeline::stream_token::TextDelta;
+                                            tokens.push(Ok(StreamToken::Delta(TextDelta {
                                                 content: text.to_string(),
-                                            }));
+                                                index: 0,
+                                                logprob: None,
+                                            })));
                                         }
                                     }
 
-                                    if let Some(tool_calls) = delta.get("tool_calls") {
-                                        tokens.push(Ok(StreamToken::Event {
-                                            event_type: "tool_calls".to_string(),
-                                            data: tool_calls.clone(),
-                                        }));
-                                    }
+                                    // Tool calls handled separately
                                 }
 
-                                if let Some(finish_reason) = choice.get("finish_reason") {
-                                    tokens.push(Ok(StreamToken::Event {
-                                        event_type: "finish_reason".to_string(),
-                                        data: finish_reason.clone(),
-                                    }));
+                                if let Some(_finish_reason) = choice.get("finish_reason") {
+                                    // Finish handled by StreamToken::Done
                                 }
                             }
                         }

@@ -6,18 +6,8 @@ use futures::stream::BoxStream;
 use serde::{Deserialize, Serialize};
 use anyhow::Result;
 
-/// Stream token types for exact SSE compatibility
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum StreamToken {
-    Text(String),
-    Delta { content: String },
-    Event { event_type: String, data: serde_json::Value },
-    FunctionCall { name: String, arguments: String },
-    ToolCall { id: String, name: String, arguments: String },
-    Citation { text: String, sources: Vec<String> },
-    Done,
-    Error(String),
-}
+// Import StreamToken from streaming_pipeline module
+pub use crate::streaming_pipeline::StreamToken;
 
 /// Health status for providers
 #[derive(Debug, Clone, Serialize, Deserialize)]

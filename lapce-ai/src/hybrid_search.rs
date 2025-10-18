@@ -1,7 +1,8 @@
 /// Hybrid Search Implementation - Semantic + Keyword with Reciprocal Rank Fusion
 /// Following docs/06-SEMANTIC-SEARCH-LANCEDB.md specification
 
-use crate::semantic_engine::{SemanticSearchEngine, SearchResult, SearchFilters};
+// TODO: Re-enable when semantic_engine module is available
+// use crate::semantic_engine::{SemanticSearchEngine, SearchResult, SearchFilters};
 use std::sync::Arc;
 use std::collections::HashMap;
 use anyhow::Result;

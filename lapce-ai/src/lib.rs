@@ -13,7 +13,7 @@ pub mod assistant_message_parser;
 pub mod buffer_management;
 pub mod core;
 pub mod dispatcher;  // Message dispatcher for IPC bridge
-pub mod integration; // Tool and provider bridges
+// pub mod integration; // Temporarily disabled - provider_bridge compilation issues
 pub mod handlers;  // P1-1: Tool execution handlers
 pub mod auto_reconnection;
 pub mod backoff_util;
@@ -25,8 +25,8 @@ pub mod caching_strategy;
 pub mod circuit_breaker;
 pub mod code_chunker;
 pub mod code_parser;
-pub mod complete_engine;
-pub mod concurrent_handler;
+// pub mod complete_engine; // Temporarily disabled - RecordBatchReader trait issues
+// pub mod concurrent_handler; // Disabled - depends on semantic_engine
 // pub mod connection_pool_complete; // Module file doesn't exist
 pub mod cross_platform_ipc;
 pub mod distributed_search;
@@ -41,7 +41,7 @@ pub mod global_sled;
 pub mod global_settings_exact_translation;
 pub mod handler_registration;
 pub mod handler_registration_types;
-pub mod hybrid_search;
+// pub mod hybrid_search; // Disabled - depends on semantic_engine
 pub mod ipc_config;
 pub mod lancedb_semantic_search;
 pub mod ipc;
@@ -76,7 +76,7 @@ pub mod register_terminal_actions;
 pub mod roo_controllers;
 pub mod search_files_tool;
 pub mod search_tools;
-pub mod semantic_engine;
+// pub mod semantic_engine; // Temporarily disabled - RecordBatchReader trait issues
 pub mod services;
 // pub mod shared_memory_complete; // Moved to ipc module
 // pub mod shared_memory_nuclear; // Module file doesn't exist
@@ -138,7 +138,9 @@ pub mod adaptive_scaler;
 // pub use crate::ai_completion::*;
 // pub use crate::ai_providers::*;
 pub use crate::ipc::ipc_server::IpcServer;
+pub use crate::ipc::errors::IpcError;
 pub use crate::ipc_config::IpcConfig;
 pub use ipc_messages::{ClineMessage, ClineAsk, ClineAskResponse};
 pub use circuit_breaker::{CircuitBreaker, CircuitBreakerConfig};
 pub use auto_reconnection::{AutoReconnectionManager, ReconnectionStrategy, ConnectionState};
+pub use streaming_pipeline::StreamToken;

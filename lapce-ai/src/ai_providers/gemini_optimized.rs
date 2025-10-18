@@ -301,9 +301,10 @@ impl AiProvider for OptimizedGeminiProvider {
         self.ensure_initialized().await?;
         use futures::stream::{self, StreamExt};
         
+        use crate::streaming_pipeline::stream_token::TextDelta;
         let tokens = vec![
-            StreamToken::Delta { content: "Optimized ".to_string() },
-            StreamToken::Delta { content: "response".to_string() },
+            StreamToken::Delta(TextDelta { content: "Optimized ".to_string(), index: 0, logprob: None }),
+            StreamToken::Delta(TextDelta { content: "response".to_string(), index: 0, logprob: None }),
             StreamToken::Done,
         ];
         
@@ -365,10 +366,11 @@ impl AiProvider for OptimizedGeminiProvider {
         // Streaming with buffer pool
         use futures::stream::{self, StreamExt};
         
+        use crate::streaming_pipeline::stream_token::TextDelta;
         let tokens = vec![
-            StreamToken::Delta { content: "Optimized ".to_string() },
-            StreamToken::Delta { content: "streaming ".to_string() },
-            StreamToken::Delta { content: "response".to_string() },
+            StreamToken::Delta(TextDelta { content: "Optimized ".to_string(), index: 0, logprob: None }),
+            StreamToken::Delta(TextDelta { content: "streaming ".to_string(), index: 0, logprob: None }),
+            StreamToken::Delta(TextDelta { content: "response".to_string(), index: 0, logprob: None }),
             StreamToken::Done,
         ];
         
