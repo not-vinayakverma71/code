@@ -435,8 +435,28 @@ impl AiProvider for GeminiProvider {
             bail!("Gemini streaming error: {}", error_text);
         }
         
-        // Use StreamingPipeline integration
-        Ok(Box::pin(futures::stream::empty()))
+        // Gemini uses JSON chunk streaming (not SSE)
+        use futures::stream::StreamExt;
+        use crate::ai_providers::sse_decoder::parsers;
+        
+        let stream = response
+            .bytes_stream()
+            .map(|chunk_result| chunk_result.map_err(|e| anyhow::anyhow!(e)))
+            .flat_map(|chunk_result| {
+                match chunk_result {
+                    Ok(chunk) => {
+                        if let Ok(chunk_str) = std::str::from_utf8(&chunk) {
+                            let tokens = parsers::parse_gemini_stream(chunk_str);
+                            futures::stream::iter(tokens.into_iter().map(Ok))
+                        } else {
+                            futures::stream::iter(vec![Err(anyhow::anyhow!("Invalid UTF-8 in stream"))])
+                        }
+                    }
+                    Err(e) => futures::stream::iter(vec![Err(e)]),
+                }
+            });
+        
+        Ok(Box::pin(stream))
     }
     
     async fn list_models(&self) -> Result<Vec<Model>> {

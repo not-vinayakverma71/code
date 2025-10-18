@@ -27,8 +27,11 @@ use super::circuit_breaker::CircuitBreaker;
 const MAX_CONNECTIONS: usize = 1000; // Fixed to support 1000+ connections
 const BUFFER_POOL_SIZE: usize = 100;
 
-/// Handler function type
+/// Handler function type (single response)
 type Handler = Box<dyn Fn(Bytes) -> std::pin::Pin<Box<dyn std::future::Future<Output = IpcResult<Bytes>> + Send>> + Send + Sync>;
+
+/// Streaming handler function type (multiple responses)
+type StreamingHandler = Box<dyn Fn(Bytes, tokio::sync::mpsc::Sender<Bytes>) -> std::pin::Pin<Box<dyn std::future::Future<Output = IpcResult<()>> + Send>> + Send + Sync>;
 
 /// Connection ID type
 type ConnectionId = u64;
@@ -196,6 +199,7 @@ struct ConnectionHandler {
     stream: SharedMemoryStream,
     codec: BinaryCodec,
     handlers: Arc<DashMap<MessageType, Handler>>,
+    streaming_handlers: Arc<DashMap<MessageType, StreamingHandler>>,
     metrics: Arc<Metrics>,
     semaphore: Arc<Semaphore>,
     shutdown_rx: broadcast::Receiver<()>,
@@ -211,6 +215,7 @@ impl ConnectionHandler {
         eprintln!("[HANDLER {}] Stream conn_id={}", id, stream_conn_id);
         let codec = self.codec;
         let handlers = self.handlers;
+        let streaming_handlers = self.streaming_handlers;
         let metrics = self.metrics;
         let mut shutdown_rx = self.shutdown_rx;
         
@@ -227,7 +232,7 @@ impl ConnectionHandler {
                     match result {
                         Ok(data) => {
                             eprintln!("[HANDLER {}] Got message: {} bytes", id, data.len());
-                            if let Err(e) = Self::process_message_static(&mut stream, codec.clone(), handlers.clone(), metrics.clone(), data).await {
+                            if let Err(e) = Self::process_message_static(&mut stream, codec.clone(), handlers.clone(), streaming_handlers.clone(), metrics.clone(), data).await {
                                 eprintln!("[HANDLER {}] ERROR processing: {}", id, e);
                                 error!("Error processing message on connection {}: {}", id, e);
                                 e.log_error();
@@ -280,6 +285,7 @@ impl ConnectionHandler {
         stream: &mut SharedMemoryStream, 
         mut codec: BinaryCodec, 
         handlers: Arc<DashMap<MessageType, Handler>>,
+        streaming_handlers: Arc<DashMap<MessageType, StreamingHandler>>,
         metrics: Arc<Metrics>, 
         data: Bytes
     ) -> IpcResult<()> {
@@ -288,7 +294,32 @@ impl ConnectionHandler {
         // Decode using binary codec
         let msg = codec.decode(&data)?;
         
-        // Look up handler for message type
+        // Check if this is a streaming handler first
+        if let Some(streaming_handler) = streaming_handlers.get(&msg.msg_type) {
+            // Create channel for streaming chunks
+            let (tx, mut rx) = tokio::sync::mpsc::channel::<Bytes>(100);
+            
+            // Spawn streaming handler task
+            let handler_future = streaming_handler(data.clone(), tx);
+            tokio::spawn(async move {
+                if let Err(e) = handler_future.await {
+                    error!("Streaming handler error: {}", e);
+                }
+            });
+            
+            // Send each chunk as it arrives
+            while let Some(chunk) = rx.recv().await {
+                stream.write_all(&chunk).await?;
+            }
+            
+            // Record metrics
+            let duration = start.elapsed();
+            metrics.record(msg.msg_type, duration);
+            
+            return Ok(());
+        }
+        
+        // Look up regular handler for message type
         let response = if let Some(handler) = handlers.get(&msg.msg_type) {
             // Call the registered handler
             handler(data).await?
@@ -328,6 +359,7 @@ impl ConnectionHandler {
 pub struct IpcServer {
     listener: Arc<tokio::sync::Mutex<Option<SharedMemoryListener>>>,
     handlers: Arc<DashMap<MessageType, Handler>>,
+    streaming_handlers: Arc<DashMap<MessageType, StreamingHandler>>,
     connection_pool: Arc<ConnectionPoolManager>,
     buffer_pool: Arc<BufferPool>,
     metrics: Arc<Metrics>,
@@ -382,6 +414,7 @@ impl IpcServer {
         Ok(Self {
             listener: Arc::new(tokio::sync::Mutex::new(Some(listener))),
             handlers: Arc::new(DashMap::new()),
+            streaming_handlers: Arc::new(DashMap::new()),
             connection_pool,
             buffer_pool: Arc::new(BufferPool::new()),
             metrics: Arc::new(Metrics::new()),
@@ -393,7 +426,7 @@ impl IpcServer {
         })
     }
     
-    /// Register a message handler
+    /// Register a message handler (single response)
     pub fn register_handler<F, Fut>(&self, msg_type: MessageType, handler: F)
     where
         F: Fn(Bytes) -> Fut + Send + Sync + 'static,
@@ -401,6 +434,17 @@ impl IpcServer {
     {
         self.handlers.insert(msg_type, Box::new(move |data| {
             Box::pin(handler(data))
+        }));
+    }
+    
+    /// Register a streaming message handler (multiple responses)
+    pub fn register_streaming_handler<F, Fut>(&self, msg_type: MessageType, handler: F)
+    where
+        F: Fn(Bytes, tokio::sync::mpsc::Sender<Bytes>) -> Fut + Send + Sync + 'static,
+        Fut: std::future::Future<Output = IpcResult<()>> + Send + 'static,
+    {
+        self.streaming_handlers.insert(msg_type, Box::new(move |data, sender| {
+            Box::pin(handler(data, sender))
         }));
     }
     
@@ -462,6 +506,7 @@ impl IpcServer {
                                 stream,
                                 codec,
                                 handlers: self.handlers.clone(),
+                                streaming_handlers: self.streaming_handlers.clone(),
                                 metrics: self.metrics.clone(),
                                 semaphore: semaphore.clone(),
                                 shutdown_rx: self.shutdown.subscribe(),

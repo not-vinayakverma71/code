@@ -7,7 +7,6 @@ pub mod provider_manager;
 pub mod provider_registry;  // Core infrastructure for managing providers
 pub mod sse_decoder;
 pub mod message_converters;
-pub mod traits;
 pub mod streaming_integration;  // NEW: Connect StreamingPipeline to providers
 
 // 7 Provider implementations (EXACT ports from TypeScript)

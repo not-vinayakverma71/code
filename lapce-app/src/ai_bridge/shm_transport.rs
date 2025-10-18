@@ -8,11 +8,12 @@ use super::messages::{ConnectionStatusType, InboundMessage, OutboundMessage};
 use super::transport::Transport;
 
 // Platform-specific IPC clients - internal to ShmTransport only
-#[cfg(unix)]
-use lapce_ai_rust::ipc::ipc_client_volatile::IpcClientVolatile;
-
-#[cfg(windows)]
-use lapce_ai_rust::ipc::windows_shared_memory::SharedMemoryStream;
+// TODO: Enable when lapce-ai-rust dependency is resolved
+// #[cfg(unix)]
+// use lapce_ai_rust::ipc::ipc_client_volatile::IpcClientVolatile;
+// 
+// #[cfg(windows)]
+// use lapce_ai_rust::ipc::windows_shared_memory::SharedMemoryStream;
 
 /// ShmTransport: Real IPC connection to lapce-ai backend
 pub struct ShmTransport {
@@ -25,11 +26,8 @@ pub struct ShmTransport {
 
 /// Handle to IPC client with runtime (platform-agnostic wrapper)
 struct IpcClientHandle {
-    #[cfg(unix)]
-    client: IpcClientVolatile,
-    
-    #[cfg(windows)]
-    client: SharedMemoryStream,
+    // TODO: Enable when lapce-ai-rust dependency is resolved
+    _placeholder: (),
 }
 
 impl ShmTransport {
@@ -63,49 +61,10 @@ impl Transport for ShmTransport {
         let client_guard = self.client.lock().unwrap();
         let handle = client_guard.as_ref().ok_or(BridgeError::Disconnected)?;
 
-        #[cfg(unix)]
-        {
-            // Clone the IPC client (cheap; it holds Arcs internally)
-            let ipc_client = handle.client.clone();
-            // Send bytes to backend; backend echoes or responds per BinaryCodec handlers
-            let response = runtime
-                .block_on(async move { ipc_client.send_bytes(&serialized).await })
-                .map_err(|e| BridgeError::SendFailed(e.to_string()))?;
-
-            // If backend returned a UI message, enqueue it
-            if !response.is_empty() {
-                if let Ok(msg) = serde_json::from_slice::<InboundMessage>(&response) {
-                    self.inbound_queue.lock().unwrap().push_back(msg);
-                }
-            }
-            Ok(())
-        }
-
-        #[cfg(windows)]
-        {
-            let ipc_client = handle.client.clone();
-            let response = runtime
-                .block_on(async move { 
-                    ipc_client.send(&serialized).await
-                        .and_then(|_| ipc_client.recv().await)
-                        .map(|opt| opt.unwrap_or_default())
-                })
-                .map_err(|e| BridgeError::SendFailed(format!("Windows IPC error: {}", e)))?;
-
-            if !response.is_empty() {
-                if let Ok(msg) = serde_json::from_slice::<InboundMessage>(&response) {
-                    self.inbound_queue.lock().unwrap().push_back(msg);
-                }
-            }
-            Ok(())
-        }
-
-        #[cfg(not(any(unix, windows)))]
-        {
-            Err(BridgeError::SendFailed(
-                "IPC transport not available on this platform".into(),
-            ))
-        }
+        // TODO: Enable when lapce-ai-rust dependency is resolved
+        Err(BridgeError::SendFailed(
+            "IPC transport temporarily disabled - lapce-ai-rust dependency not enabled".into(),
+        ))
     }
     
     fn try_receive(&self) -> Option<InboundMessage> {
@@ -123,39 +82,10 @@ impl Transport for ShmTransport {
         
         eprintln!("[SHM_TRANSPORT] Connecting to: {}", socket_path);
 
-        #[cfg(unix)]
-        {
-            // Real IPC connection to lapce-ai backend
-            let ipc_client = runtime
-                .block_on(async { IpcClientVolatile::connect(&socket_path).await })
-                .map_err(|e| BridgeError::ConnectionFailed(e.to_string()))?;
-
-            let handle = IpcClientHandle { client: ipc_client };
-            *self.client.lock().unwrap() = Some(handle);
-            *self.status.lock().unwrap() = ConnectionStatusType::Connected;
-            eprintln!("[SHM_TRANSPORT] Connected via real IPC");
-            Ok(())
-        }
-
-        #[cfg(windows)]
-        {
-            let ipc_client = runtime
-                .block_on(async { SharedMemoryStream::connect(&socket_path).await })
-                .map_err(|e| BridgeError::ConnectionFailed(e.to_string()))?;
-
-            let handle = IpcClientHandle { client: ipc_client };
-            *self.client.lock().unwrap() = Some(handle);
-            *self.status.lock().unwrap() = ConnectionStatusType::Connected;
-            eprintln!("[SHM_TRANSPORT] Connected via Windows IPC");
-            Ok(())
-        }
-
-        #[cfg(not(any(unix, windows)))]
-        {
-            Err(BridgeError::ConnectionFailed(
-                "IPC transport not available on this platform".into(),
-            ))
-        }
+        // TODO: Enable when lapce-ai-rust dependency is resolved
+        Err(BridgeError::ConnectionFailed(
+            "IPC transport temporarily disabled - lapce-ai-rust dependency not enabled".into(),
+        ))
     }
     
     fn disconnect(&mut self) -> Result<(), BridgeError> {

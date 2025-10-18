@@ -166,7 +166,8 @@ impl AiProvider for XaiProvider {
                             }
                         }
                         
-                        futures::stream::empty().boxed()
+                        // Return parsed tokens instead of empty stream
+                        futures::stream::iter(tokens).boxed()
                     }
                     Err(e) => futures::stream::iter(vec![Err(e)]).boxed(),
                 }
@@ -209,9 +210,30 @@ impl AiProvider for XaiProvider {
     
     async fn chat_stream(&self, request: ChatRequest) 
         -> Result<BoxStream<'static, Result<StreamToken>>> {
-        let response = self.chat(request).await?;
-        let tokens = vec![Ok(StreamToken::Done)];
-        Ok(Box::pin(futures::stream::iter(tokens)))
+        let config = self.config.read().await;
+        let url = format!("{}/chat/completions", 
+                         config.base_url.as_deref().unwrap_or("https://api.x.ai/v1"));
+        
+        let body = json!({
+            "model": request.model,
+            "messages": request.messages,
+            "temperature": request.temperature,
+            "max_tokens": request.max_tokens,
+            "stream": true,
+        });
+        
+        let response = self.client.post(&url).json(&body).send().await?;
+        
+        if !response.status().is_success() {
+            let error = response.text().await?;
+            bail!("xAI streaming error: {}", error);
+        }
+        
+        // Use OpenAI-compatible SSE streaming
+        use crate::ai_providers::streaming_integration::{process_sse_response, ProviderType};
+        use crate::ai_providers::sse_decoder::parsers;
+        
+        process_sse_response(response, ProviderType::XAI, parsers::parse_openai_sse).await
     }
     
     async fn list_models(&self) -> Result<Vec<Model>> {

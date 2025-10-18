@@ -59,6 +59,33 @@ pub enum OutboundMessage {
 
     /// MCP server enable/disable
     McpServerToggle { server_name: String, enabled: bool },
+
+    // ============================================================================
+    // Context System Operations
+    // ============================================================================
+    
+    /// Request conversation truncation with sliding window
+    TruncateConversation {
+        messages: Vec<JsonValue>,
+        model_id: String,
+        context_window: usize,
+        max_tokens: Option<usize>,
+    },
+
+    /// Request conversation condense/summarization
+    CondenseConversation {
+        messages: Vec<JsonValue>,
+        model_id: String,
+    },
+
+    /// Track file context (read/write/edit)
+    TrackFileContext {
+        file_path: String,
+        source: FileContextSource,
+    },
+
+    /// Get list of stale files
+    GetStaleFiles { task_id: String },
 }
 
 /// Response types for ask interactions
@@ -108,6 +135,18 @@ pub enum TerminalOp {
 pub enum CommandSource {
     User,
     Cascade,
+}
+
+/// File context source (how file entered context)
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FileContextSource {
+    Read,
+    Write,
+    DiffApply,
+    Mention,
+    UserEdit,
+    RooEdit,
 }
 
 // ============================================================================
@@ -186,6 +225,38 @@ pub enum InboundMessage {
 
     /// Connection status change
     ConnectionStatus { status: ConnectionStatusType },
+
+    // ============================================================================
+    // Context System Responses
+    // ============================================================================
+    
+    /// Truncate conversation response
+    TruncateConversationResponse {
+        messages: Vec<JsonValue>,
+        summary: String,
+        cost: f64,
+        new_context_tokens: Option<usize>,
+        prev_context_tokens: usize,
+    },
+
+    /// Condense conversation response
+    CondenseConversationResponse {
+        summary: String,
+        messages_condensed: usize,
+        cost: f64,
+    },
+
+    /// Track file context response
+    TrackFileContextResponse {
+        success: bool,
+        error: Option<String>,
+    },
+
+    /// Stale files response
+    StaleFilesResponse { stale_files: Vec<String> },
+
+    /// Context operation error
+    ContextError { operation: String, message: String },
 }
 
 /// Chat message structure (mirrors Codex ClineMessage)

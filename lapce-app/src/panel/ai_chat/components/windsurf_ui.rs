@@ -546,6 +546,7 @@ where
             .border_color(Color::from_rgb8(0x45, 0x45, 0x45))
             .border_radius(15.0)
             .margin(16.0)
+            .margin_right(16.0)
     })
     .on_click_stop(|_| {
         println!("[INPUT_BAR] *** OUTER CONTAINER CLICKED ***");

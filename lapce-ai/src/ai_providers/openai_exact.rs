@@ -475,8 +475,11 @@ impl AiProvider for OpenAiHandler {
             bail!("OpenAI streaming error: {}", error_text);
         }
         
-        // Use StreamingPipeline integration
-        Ok(Box::pin(futures::stream::empty()))
+        // Use SSE streaming with OpenAI parser
+        use crate::ai_providers::streaming_integration::{process_sse_response, ProviderType};
+        use crate::ai_providers::sse_decoder::parsers;
+        
+        process_sse_response(response, ProviderType::OpenAI, parsers::parse_openai_sse).await
     }
     
     async fn chat(&self, request: ChatRequest) -> Result<ChatResponse> {
@@ -581,8 +584,11 @@ impl AiProvider for OpenAiHandler {
             bail!("OpenAI streaming error: {}", error_text);
         }
         
-        // Use StreamingPipeline integration
-        Ok(Box::pin(futures::stream::empty()))
+        // Use SSE streaming with OpenAI parser
+        use crate::ai_providers::streaming_integration::{process_sse_response, ProviderType};
+        use crate::ai_providers::sse_decoder::parsers;
+        
+        process_sse_response(response, ProviderType::OpenAI, parsers::parse_openai_sse).await
     }
     
     async fn list_models(&self) -> Result<Vec<Model>> {

@@ -12,7 +12,12 @@ use lapce_ai_rust::{
     IpcConfig,
     AutoReconnectionManager, ReconnectionStrategy,
 };
-use lapce_ai_rust::provider_pool::{ProviderPool, ProviderPoolConfig};
+use lapce_ai_rust::ipc::provider_config::{load_provider_configs_from_env, validate_provider_configs};
+use lapce_ai_rust::ipc::provider_routes::ProviderRouteHandler;
+use lapce_ai_rust::ai_providers::provider_manager::{ProviderManager, ProvidersConfig, ProviderConfig};
+use lapce_ai_rust::ai_providers::provider_registry::ProviderRegistry;
+use std::collections::HashMap;
+use tokio::sync::RwLock;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -37,22 +42,56 @@ async fn main() -> Result<()> {
     
     info!("Configuration loaded from: {}", config_path);
     
-    // Initialize provider pool
-    let provider_config = ProviderPoolConfig::default();
+    // Validate and load provider configs from environment
+    validate_provider_configs()
+        .context("Failed to validate provider configuration")?;
     
-    let provider_pool = Arc::new(ProviderPool::new());
-    info!("Provider pool initialized with {} providers", 
-          config.providers.enabled_providers.len());
+    let provider_configs = load_provider_configs_from_env()
+        .context("Failed to load provider configs")?;
+    
+    // Build ProviderManager config
+    let mut providers_map = HashMap::new();
+    for (name, init_config) in provider_configs {
+        let provider_config = ProviderConfig {
+            name: name.clone(),
+            api_key: init_config.api_key.unwrap_or_default(),
+            base_url: init_config.base_url,
+            max_retries: 3,
+            timeout: std::time::Duration::from_secs(60),
+            rate_limit_override: None,
+        };
+        providers_map.insert(name, provider_config);
+    }
+    
+    let providers_config = ProvidersConfig {
+        providers: providers_map.clone(),
+        default_provider: "openai".to_string(),
+        health_check_interval: std::time::Duration::from_secs(30),
+        circuit_breaker_threshold: 5,
+        circuit_breaker_timeout: std::time::Duration::from_secs(60),
+    };
+    
+    // Initialize ProviderManager
+    let provider_manager = ProviderManager::new(providers_config).await
+        .context("Failed to create ProviderManager")?;
+    
+    info!("Provider manager initialized with {} providers", providers_map.len());
     
     // Create IPC server
-    let mut server = IpcServer::new(&config.server.socket_path).await
+    let server = IpcServer::new(&config.server.socket_path).await
         .context("Failed to create IPC server")?;
     
     info!("IPC server created at: {}", config.server.socket_path);
     
-    // Register provider pool handlers
-    // server.register_provider_pool(provider_pool); // Method doesn't exist
-    info!("Provider handlers registered");
+    // Create provider route handler
+    let provider_handler = Arc::new(ProviderRouteHandler::new(
+        Arc::new(RwLock::new(provider_manager))
+    ));
+    
+    // Register provider routes
+    // TODO: Register handlers for ProviderCommand messages
+    // This requires MessageType enum to have provider-specific variants
+    info!("Provider route handler created (registration pending MessageType support)");
     
     // Setup auto-reconnection if enabled
     let reconnection_manager = if config.server.enable_auto_reconnect {

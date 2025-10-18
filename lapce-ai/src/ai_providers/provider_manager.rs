@@ -9,8 +9,9 @@ use dashmap::DashMap;
 use tokio::sync::RwLock;
 
 use super::core_trait::{
-    AiProvider, CompletionRequest, CompletionResponse, ChatRequest, ChatResponse, HealthStatus
+    AiProvider, CompletionRequest, CompletionResponse, ChatRequest, ChatResponse, HealthStatus, StreamToken
 };
+use futures::stream::BoxStream;
 
 /// Provider configuration
 #[derive(Debug, Clone)]
@@ -380,6 +381,32 @@ impl ProviderManager {
         result
     }
     
+    /// Route completion streaming request to provider
+    pub async fn complete_stream(&self, request: CompletionRequest) 
+        -> Result<BoxStream<'static, Result<StreamToken>>> {
+        let provider_name = self.get_provider_for_request(&request).await?;
+        
+        // Check rate limit
+        if let Some(limiter) = self.rate_limiters.get(&provider_name) {
+            limiter.value().acquire(1).await?;
+        }
+        
+        // Get provider
+        let provider = self.providers
+            .get(&provider_name)
+            .ok_or_else(|| anyhow::anyhow!("Provider not found: {}", provider_name))?
+            .clone();
+        
+        // Record streaming request metrics (tokens will be counted during streaming)
+        let start = Instant::now();
+        self.metrics.record_request(0, 0, true);
+        
+        // Execute streaming (circuit breaker skipped for streams - complex to implement)
+        let stream = provider.complete_stream(request).await?;
+        
+        Ok(stream)
+    }
+    
     /// Route chat request to provider
     pub async fn chat(&self, request: ChatRequest) -> Result<ChatResponse> {
         let provider_name = self.get_provider_for_chat(&request).await?;
@@ -414,6 +441,32 @@ impl ProviderManager {
         self.metrics.record_request(latency_ms, tokens, result.is_ok());
         
         result
+    }
+    
+    /// Route chat streaming request to provider
+    pub async fn chat_stream(&self, request: ChatRequest) 
+        -> Result<BoxStream<'static, Result<StreamToken>>> {
+        let provider_name = self.get_provider_for_chat(&request).await?;
+        
+        // Check rate limit
+        if let Some(limiter) = self.rate_limiters.get(&provider_name) {
+            limiter.value().acquire(1).await?;
+        }
+        
+        // Get provider
+        let provider = self.providers
+            .get(&provider_name)
+            .ok_or_else(|| anyhow::anyhow!("Provider not found: {}", provider_name))?
+            .clone();
+        
+        // Record streaming request metrics
+        let start = Instant::now();
+        self.metrics.record_request(0, 0, true);
+        
+        // Execute streaming (circuit breaker skipped for streams)
+        let stream = provider.chat_stream(request).await?;
+        
+        Ok(stream)
     }
     
     /// Get provider for request (with fallback logic)

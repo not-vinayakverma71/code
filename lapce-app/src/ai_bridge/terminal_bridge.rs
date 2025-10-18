@@ -31,7 +31,7 @@ impl TerminalBridge {
         };
         
         let msg = InboundMessage::TerminalCommandStarted {
-            terminal_id: term_id.to_string(),
+            terminal_id: format!("{}", term_id.0),
             command,
             source: ipc_source,
             cwd,
@@ -53,7 +53,7 @@ impl TerminalBridge {
         forced_exit: bool,
     ) -> Result<(), String> {
         let msg = InboundMessage::TerminalCommandCompleted {
-            terminal_id: term_id.to_string(),
+            terminal_id: format!("{}", term_id.0),
             command,
             exit_code,
             duration_ms,
@@ -71,7 +71,7 @@ impl TerminalBridge {
         data: String,
     ) -> Result<(), String> {
         let msg = InboundMessage::TerminalOutput {
-            terminal_id: term_id.to_string(),
+            terminal_id: format!("{}", term_id.0),
             data,
             markers: Vec::new(), // OSC markers would be parsed from data
         };
@@ -88,7 +88,7 @@ impl TerminalBridge {
         error: Option<String>,
     ) -> Result<(), String> {
         let msg = InboundMessage::TerminalCommandInjected {
-            terminal_id: term_id.to_string(),
+            terminal_id: format!("{}", term_id.0),
             command,
             success,
             error,

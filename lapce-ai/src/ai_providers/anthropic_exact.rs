@@ -474,8 +474,11 @@ impl AiProvider for AnthropicProvider {
             bail!("Anthropic streaming error: {}", error_text);
         }
         
-        // Use StreamingPipeline integration with event-based SSE
-        Ok(Box::pin(futures::stream::empty()))
+        // Use event-based SSE streaming with Anthropic parser
+        use crate::ai_providers::streaming_integration::{process_sse_response, ProviderType};
+        use crate::ai_providers::sse_decoder::parsers;
+        
+        process_sse_response(response, ProviderType::Anthropic, parsers::parse_anthropic_sse).await
     }
     
     async fn list_models(&self) -> Result<Vec<Model>> {

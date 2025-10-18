@@ -3,17 +3,21 @@
 
 use anyhow::Result;
 use std::sync::Arc;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, RwLock};
+use crate::ai_providers::provider_manager::ProviderManager;
+use crate::ai_providers::core_trait::{ChatRequest, ChatMessage, CompletionRequest, StreamToken};
+use futures::stream::StreamExt;
 
 /// Bridge between dispatcher and AI provider system
 pub struct ProviderBridge {
-    // TODO Phase C: Wire to actual provider manager
-    // provider_manager: Arc<crate::providers::ProviderManager>,
+    provider_manager: Arc<RwLock<ProviderManager>>,
 }
 
 impl ProviderBridge {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(provider_manager: Arc<RwLock<ProviderManager>>) -> Self {
+        Self {
+            provider_manager,
+        }
     }
     
     /// Send a completion request to AI provider
@@ -29,36 +33,75 @@ impl ProviderBridge {
         
         let (tx, rx) = mpsc::channel(100);
         
-        // TODO Phase C: Connect to actual provider
-        // let provider = self.provider_manager.get_provider(model).await?;
-        // let stream = provider.complete_stream(prompt, system_prompt).await?;
+        // Build completion request with system prompt
+        let full_prompt = if let Some(sys) = system_prompt {
+            format!("{}\n\n{}", sys, prompt)
+        } else {
+            prompt.to_string()
+        };
         
-        // Stub: Send example chunks
-        let prompt_copy = prompt.to_string();
+        let request = CompletionRequest {
+            model: model.to_string(),
+            prompt: full_prompt,
+            max_tokens: Some(2048),
+            temperature: Some(0.7),
+            top_p: None,
+            stop: None,
+            n: None,
+            stream: Some(true),
+            logprobs: None,
+            echo: None,
+            best_of: None,
+            logit_bias: None,
+            user: None,
+            suffix: None,
+            presence_penalty: None,
+            frequency_penalty: None,
+        };
+        
+        // Get streaming response from provider manager
+        let manager = self.provider_manager.read().await;
+        let mut stream = manager.complete_stream(request).await?;
+        drop(manager);
+        
+        // Spawn task to convert StreamTokens to StreamChunks
         tokio::spawn(async move {
-            // Simulate streaming response
-            let response = format!("AI response to: {}", prompt_copy);
-            
-            for (i, chunk) in response.chars().collect::<Vec<_>>().chunks(10).enumerate() {
-                let text: String = chunk.iter().collect();
-                
-                if tx.send(StreamChunk {
-                    text,
-                    index: i as u64,
-                    is_final: false,
-                }).await.is_err() {
-                    break;
+            let mut index = 0;
+            while let Some(token_result) = stream.next().await {
+                match token_result {
+                    Ok(token) => {
+                        match token {
+                            StreamToken::Text(text) => {
+                                if tx.send(StreamChunk {
+                                    text,
+                                    index,
+                                    is_final: false,
+                                }).await.is_err() {
+                                    break;
+                                }
+                                index += 1;
+                            }
+                            StreamToken::Done => {
+                                let _ = tx.send(StreamChunk {
+                                    text: String::new(),
+                                    index,
+                                    is_final: true,
+                                }).await;
+                                break;
+                            }
+                            StreamToken::Error(err) => {
+                                eprintln!("[PROVIDER BRIDGE] Stream error: {}", err);
+                                break;
+                            }
+                            _ => {} // Ignore other token types
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("[PROVIDER BRIDGE] Stream error: {}", e);
+                        break;
+                    }
                 }
-                
-                tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
             }
-            
-            // Send final chunk
-            let _ = tx.send(StreamChunk {
-                text: String::new(),
-                index: 0,
-                is_final: true,
-            }).await;
         });
         
         Ok(rx)
@@ -73,11 +116,43 @@ impl ProviderBridge {
     ) -> Result<String> {
         eprintln!("[PROVIDER BRIDGE] Completion: model={}", model);
         
-        // TODO Phase C: Connect to actual provider
-        // let provider = self.provider_manager.get_provider(model).await?;
-        // let response = provider.complete(prompt, system_prompt).await?;
+        // Build completion request
+        let full_prompt = if let Some(sys) = system_prompt {
+            format!("{}\n\n{}", sys, prompt)
+        } else {
+            prompt.to_string()
+        };
         
-        Ok(format!("AI response to: {}", prompt))
+        let request = CompletionRequest {
+            model: model.to_string(),
+            prompt: full_prompt,
+            max_tokens: Some(2048),
+            temperature: Some(0.7),
+            top_p: None,
+            stop: None,
+            n: None,
+            stream: Some(false),
+            logprobs: None,
+            echo: None,
+            best_of: None,
+            logit_bias: None,
+            user: None,
+            suffix: None,
+            presence_penalty: None,
+            frequency_penalty: None,
+        };
+        
+        // Get response from provider manager
+        let manager = self.provider_manager.read().await;
+        let response = manager.complete(request).await?;
+        
+        // Extract text from first choice
+        let text = response.choices
+            .first()
+            .and_then(|c| c.text.clone())
+            .unwrap_or_default();
+        
+        Ok(text)
     }
     
     /// List available models

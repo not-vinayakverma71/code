@@ -20,7 +20,9 @@ name = "lapce-proxy"
 path = "lapce-proxy/src/bin/lapce-proxy.rs"
 
 [workspace]
-members = ["lapce-app", "lapce-proxy", "lapce-rpc", "lapce-core", "syntax_test", "lapce-ai", "lapce-ai/optimized_ipc"]
+# Temporarily excluding lapce-ai until git2/tree-sitter version conflicts are resolved
+members = ["lapce-app", "lapce-proxy", "lapce-rpc", "lapce-core", "syntax_test"]
+# members = ["lapce-app", "lapce-proxy", "lapce-rpc", "lapce-core", "syntax_test", "lapce-ai", "lapce-ai/optimized_ipc"]
 
 [workspace.package]
 version      = "0.4.5"

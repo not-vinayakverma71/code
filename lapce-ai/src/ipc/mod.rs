@@ -81,6 +81,8 @@ pub mod protocol_fuzz;
 pub mod handshake_control;
 pub mod tool_router;
 pub mod context_routes;
+pub mod provider_routes;
+pub mod provider_config;
 
 // Re-export commonly used types
 pub use ipc_server::IpcServer;

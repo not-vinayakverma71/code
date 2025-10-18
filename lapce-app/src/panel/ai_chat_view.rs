@@ -10,7 +10,7 @@ use floem::{
 };
 
 use crate::{
-    ai_bridge::{BridgeClient, ShmTransport, default_socket_path},
+    ai_bridge::{BridgeClient, ShmTransport, default_socket_path, transport::Transport},
     ai_state::AIChatState,
     panel::ai_chat::components::{
         chat_view::{ChatViewProps, chat_view},
@@ -29,7 +29,7 @@ pub fn ai_chat_panel(
     let mut transport = ShmTransport::new(socket_path.clone());
     
     // Attempt connection to backend (non-blocking, will retry on send if needed)
-    if let Err(e) = transport.connect() {
+    if let Err(e) = Transport::connect(&mut transport) {
         eprintln!("[AI Chat] Failed to connect to backend at {}: {}", socket_path, e);
         eprintln!("[AI Chat] Messages will be queued until connection succeeds");
     }

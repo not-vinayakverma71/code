@@ -708,6 +708,102 @@ pub enum ContextResponse {
     Error { message: String },
 }
 
+// ============================================================================
+// PROVIDER SYSTEM COMMANDS & RESPONSES
+// ============================================================================
+
+/// Provider command - unified enum for all AI provider operations
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum ProviderCommand {
+    /// Non-streaming completion request
+    Complete {
+        model: String,
+        prompt: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        max_tokens: Option<u32>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        temperature: Option<f32>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        top_p: Option<f32>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        stop: Option<Vec<String>>,
+    },
+    
+    /// Non-streaming chat request
+    Chat {
+        model: String,
+        messages: Vec<serde_json::Value>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        max_tokens: Option<u32>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        temperature: Option<f32>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        tools: Option<Vec<serde_json::Value>>,
+    },
+    
+    /// Streaming completion request
+    CompleteStream {
+        model: String,
+        prompt: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        max_tokens: Option<u32>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        temperature: Option<f32>,
+    },
+    
+    /// Streaming chat request
+    ChatStream {
+        model: String,
+        messages: Vec<serde_json::Value>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        max_tokens: Option<u32>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        temperature: Option<f32>,
+    },
+}
+
+/// Provider response - unified enum for AI provider responses
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum ProviderResponse {
+    /// Non-streaming completion response
+    Complete {
+        id: String,
+        text: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        usage: Option<serde_json::Value>,
+    },
+    
+    /// Non-streaming chat response
+    Chat {
+        id: String,
+        content: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        usage: Option<serde_json::Value>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        tool_calls: Option<Vec<serde_json::Value>>,
+    },
+    
+    /// Streaming token chunk
+    StreamChunk {
+        content: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        tool_call: Option<serde_json::Value>,
+    },
+    
+    /// Stream done marker
+    StreamDone {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        usage: Option<serde_json::Value>,
+    },
+    
+    /// Error response
+    Error {
+        message: String,
+    },
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
