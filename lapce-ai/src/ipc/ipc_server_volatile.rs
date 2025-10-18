@@ -87,6 +87,7 @@ impl IpcServerVolatile {
                 // CRITICAL: Don't hold lock across .await to prevent macOS deadlock
                 result = self.accept_connection() => {
                     eprintln!("[SERVER] accept_connection() returned: {:?}", result.as_ref().map(|_| "Ok").map_err(|e| e.to_string()));
+                    eprintln!("[SERVER] About to match on result...");
                     match result {
                         Ok((stream, _addr)) => {
                             accept_count += 1;
@@ -94,18 +95,20 @@ impl IpcServerVolatile {
                             // Spawn task to handle this connection
                             // This allows us to immediately accept the NEXT client
                             let server = self.clone();
+                            eprintln!("[SERVER] About to spawn handler task...");
                             let handle = tokio::spawn(async move {
-                                eprintln!("[SERVER] Spawned task started");
+                                eprintln!("[SERVER] Spawned task #{} ENTERED", accept_count);
                                 match server.handle_new_connection(stream).await {
                                     Ok(_) => {
                                         eprintln!("[SERVER] Connection setup successful");
                                     }
                                     Err(e) => {
-                                        eprintln!("[SERVER] Connection setup error: {:?}", e);
+                                        eprintln!("[SERVER] Task: Connection setup error: {:?}", e);
                                     }
                                 }
+                                eprintln!("[SERVER] Task exiting");
                             });
-                            eprintln!("[SERVER] Task spawned: {:?}", handle);
+                            eprintln!("[SERVER] Task spawned successfully, continuing to next accept");
                         }
                         Err(e) => {
                             eprintln!("[SERVER VOLATILE] Accept error: {}", e);
@@ -118,9 +121,10 @@ impl IpcServerVolatile {
     
     /// Handle a new connection: create resources, perform handshake, spawn handler
     async fn handle_new_connection(&self, mut stream: tokio::net::UnixStream) -> Result<()> {
+        eprintln!("[SERVER] handle_new_connection: ENTERED");
         // Allocate slot
         let slot_id = self.next_slot_id.fetch_add(1, Ordering::Relaxed);
-        eprintln!("[SERVER] Slot {}: client connected", slot_id);
+        eprintln!("[SERVER] Slot {}: client connected, allocating resources...", slot_id);
         
         // POSIX shm names must start with / and have no other slashes
         let base_name = std::path::Path::new(&self.base_path)
@@ -171,14 +175,20 @@ impl IpcServerVolatile {
         eprintln!("[SERVER] Slot {}: handshake complete", slot_id);
         
         // Spawn handler
+        eprintln!("[SERVER] Slot {}: About to spawn handle_connection task", slot_id);
         let handlers = self.handlers.clone();
         let streaming_handlers = self.streaming_handlers.clone();
         let shutdown = self.shutdown.subscribe();
-        tokio::spawn(async move {
+        eprintln!("[SERVER] Slot {}: Calling tokio::spawn...", slot_id);
+        let task_handle = tokio::spawn(async move {
+            eprintln!("[HANDLER {}] SPAWN CALLBACK ENTERED", slot_id);
+            eprintln!("[HANDLER {}] Calling handle_connection...", slot_id);
             if let Err(e) = Self::handle_connection(slot_id, send_buffer, recv_buffer, handlers, streaming_handlers, shutdown).await {
                 eprintln!("[HANDLER {}] Error: {}", slot_id, e);
             }
+            eprintln!("[HANDLER {}] Task completed", slot_id);
         });
+        eprintln!("[SERVER] Slot {}: Task handle created: {:?}", slot_id, task_handle);
         
         Ok(())
     }
@@ -191,17 +201,21 @@ impl IpcServerVolatile {
         streaming_handlers: Arc<DashMap<MessageType, StreamingHandler>>,
         mut shutdown: broadcast::Receiver<()>,
     ) -> Result<()> {
+        eprintln!("[HANDLER {}] ENTERED handle_connection", slot_id);
         let mut codec = BinaryCodec::new();
         let mut buffer = Vec::new();
         let idle_timeout = std::time::Duration::from_secs(30); // 30 second idle timeout
         let mut last_activity = std::time::Instant::now();
+        eprintln!("[HANDLER {}] Starting message loop", slot_id);
         
         loop {
+            eprintln!("[HANDLER {}] Loop iteration, waiting for doorbell...", slot_id);
             // Wait on doorbell with timeout (blocking call in separate task)
             let recv_buf_clone = recv_buffer.clone();
             let wait_task = tokio::task::spawn_blocking(move || {
                 recv_buf_clone.wait_doorbell(5000)
             });
+            eprintln!("[HANDLER {}] Spawned wait_doorbell task", slot_id);
             
             tokio::select! {
                 _ = shutdown.recv() => {

@@ -2,12 +2,15 @@
 /// End-to-end tests for Rust/TS/Python - NO MOCKS
 /// Tests: documentSymbol, hover, definition, references, folding, semanticTokens, diagnostics
 
+mod common;
+
 #[cfg(test)]
 mod lsp_e2e_tests {
     use std::path::PathBuf;
-    use std::time::Duration;
     use tempfile::TempDir;
     use tokio::fs;
+    use serde_json::json;
+    use crate::common::{E2eHarness, IpcTestClient};
     
     // Test fixtures
     const RUST_CODE: &str = r#"
@@ -108,19 +111,70 @@ pub fn main() {
         let ctx = TestContext::new().await;
         let file_path = ctx.write_file("test.rs", RUST_CODE).await;
         
-        // TODO: Initialize LSP gateway
-        // TODO: Open document
-        // TODO: Request documentSymbol
-        // TODO: Verify symbols: TestStruct, new, get_field, main
+        // Start IPC server with LSP gateway enabled
+        let harness = E2eHarness::start().await
+            .expect("Failed to start IPC server");
         
-        // Expected symbols:
-        // - struct TestStruct
-        // - fn new()
-        // - fn get_field()
-        // - fn main()
+        // Create IPC client
+        let mut client = IpcTestClient::connect(harness.shm_prefix()).await
+            .expect("Failed to connect to IPC server");
         
-        // Performance budget: < 100ms for small file
-        println!("E2E Rust documentSymbol: {}", file_path.display());
+        // Send textDocument/didOpen
+        let uri = format!("file://{}", file_path.display());
+        let did_open_params = json!({
+            "textDocument": {
+                "uri": uri,
+                "languageId": "rust",
+                "version": 0,
+                "text": RUST_CODE
+            }
+        });
+        
+        client.send_lsp_request("textDocument/didOpen", did_open_params).await
+            .expect("didOpen failed");
+        
+        // Request documentSymbol
+        let start = std::time::Instant::now();
+        let document_symbol_params = json!({
+            "textDocument": {
+                "uri": uri
+            }
+        });
+        
+        let response = client.send_lsp_request("textDocument/documentSymbol", document_symbol_params).await
+            .expect("documentSymbol request failed");
+        let elapsed = start.elapsed();
+        
+        // Debug: print actual response
+        println!("Response type: {:?}", response);
+        println!("Response JSON: {}", serde_json::to_string_pretty(&response).unwrap_or_default());
+        
+        // Verify performance budget: < 100ms
+        assert!(elapsed.as_millis() < 100, 
+            "documentSymbol took {}ms, expected < 100ms", elapsed.as_millis());
+        
+        // Verify symbols are present
+        let symbols = response.as_array().unwrap_or_else(|| {
+            panic!("Expected array of symbols, got: {}", serde_json::to_string_pretty(&response).unwrap_or_default())
+        });
+        assert!(symbols.len() >= 4, "Expected at least 4 symbols, got {}", symbols.len());
+        
+        // Verify specific symbols exist
+        let symbol_names: Vec<String> = symbols.iter()
+            .filter_map(|s| s.get("name").and_then(|n| n.as_str()).map(String::from))
+            .collect();
+        
+        assert!(symbol_names.contains(&"TestStruct".to_string()), 
+            "Expected TestStruct in symbols: {:?}", symbol_names);
+        assert!(symbol_names.contains(&"new".to_string()), 
+            "Expected new in symbols: {:?}", symbol_names);
+        assert!(symbol_names.contains(&"get_field".to_string()), 
+            "Expected get_field in symbols: {:?}", symbol_names);
+        assert!(symbol_names.contains(&"main".to_string()), 
+            "Expected main in symbols: {:?}", symbol_names);
+        
+        println!("✓ E2E Rust documentSymbol: {} ({:?}, {} symbols)", 
+                 file_path.display(), elapsed, symbols.len());
     }
     
     #[tokio::test]

@@ -33,15 +33,15 @@ impl E2eHarness {
         println!("Socket path: {}", ipc_socket_path.display());
         println!("SHM prefix: {}", shm_prefix);
         
-        // Launch server process
+        // Launch server process - use environment variables since server doesn't accept CLI args
         let mut cmd = Command::new(&server_binary);
-        cmd.arg("--enable-lsp-gateway")
-            .arg("--socket")
-            .arg(&ipc_socket_path)
-            .arg("--shm-prefix")
-            .arg(&shm_prefix)
-            .env("RUST_LOG", "lapce_ai=debug")
+        cmd.env("RUST_LOG", "lapce_ai=debug,info")
             .env("RUST_BACKTRACE", "1")
+            .env("LAPCE_IPC_SOCKET", &ipc_socket_path)
+            .env("LAPCE_SHM_PREFIX", &shm_prefix)
+            .env("LAPCE_ENABLE_LSP_GATEWAY", "true")
+            // Mock provider API key for E2E tests (not used by LSP gateway)
+            .env("OPENAI_API_KEY", "test-key-for-e2e")
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
         
@@ -51,20 +51,43 @@ impl E2eHarness {
         let server_pid = server_process.id();
         println!("IPC server started with PID: {}", server_pid);
         
-        // Wait for server to be ready (check socket exists)
-        let mut attempts = 0;
-        while !ipc_socket_path.exists() && attempts < 50 {
-            sleep(Duration::from_millis(100)).await;
-            attempts += 1;
-            
-            // Check if process died
-            if let Ok(Some(status)) = server_process.try_wait() {
-                anyhow::bail!("IPC server died during startup with status: {}", status);
-            }
-        }
+        // Capture stderr for diagnostics
+        let mut stderr_handle = server_process.stderr.take();
         
-        if !ipc_socket_path.exists() {
-            anyhow::bail!("IPC server failed to create socket after 5 seconds");
+        // Wait for server to be ready (check socket exists)
+        let socket_path = ipc_socket_path.clone();
+        let max_wait = Duration::from_secs(5);
+        let start = std::time::Instant::now();
+        
+        while start.elapsed() < max_wait {
+            // Check if server is still running
+            match server_process.try_wait() {
+                Ok(Some(status)) => {
+                    // Capture any stderr output
+                    let mut stderr_output = String::new();
+                    if let Some(ref mut stderr) = stderr_handle {
+                        use std::io::Read;
+                        let _ = stderr.read_to_string(&mut stderr_output);
+                    }
+                    return Err(anyhow::anyhow!(
+                        "IPC server died during startup with status: {}\nStderr: {}", 
+                        status, stderr_output
+                    ));
+                }
+                Ok(None) => {
+                    // Still running, check for socket
+                    if socket_path.exists() {
+                        // Put stderr back for later cleanup
+                        server_process.stderr = stderr_handle;
+                        break;
+                    }
+                }
+                Err(e) => {
+                    return Err(anyhow::anyhow!("Failed to check server status: {}", e));
+                }
+            }
+            
+            sleep(Duration::from_millis(100)).await;
         }
         
         println!("IPC server ready");
@@ -206,11 +229,16 @@ impl E2eHarness {
         sleep(Duration::from_millis(500)).await;
         
         // Start new instance
-        let new_harness = Self::start().await?;
+        let mut new_harness = Self::start().await?;
         
-        // Replace our state
-        self.server_process = new_harness.server_process;
+        // Replace our state (use mem::replace to avoid move out of Drop type)
+        self.server_process = std::mem::replace(&mut new_harness.server_process, None);
         self.server_pid = new_harness.server_pid;
+        self.ipc_socket_path = new_harness.ipc_socket_path.clone();
+        self.shm_prefix = new_harness.shm_prefix.clone();
+        
+        // Prevent new_harness from killing the process in its Drop
+        std::mem::forget(new_harness);
         
         Ok(())
     }

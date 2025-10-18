@@ -9,7 +9,20 @@ use lapce_ai_rust::ipc::windows_shared_memory::SharedMemoryListener;
 #[cfg(windows)]
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Install panic hook to capture panics before any logging
+    std::panic::set_hook(Box::new(|panic_info| {
+        eprintln!("[PANIC] {}", panic_info);
+        if let Some(location) = panic_info.location() {
+            eprintln!("[PANIC] Location: {}:{}:{}", location.file(), location.line(), location.column());
+        }
+    }));
+    
+    eprintln!("[SERVER] Windows IPC server starting...");
+    eprintln!("[SERVER] Process ID: {}", std::process::id());
+    
     let args: Vec<String> = std::env::args().collect();
+    eprintln!("[SERVER] Args: {:?}", args);
+    
     if args.len() < 2 {
         eprintln!("Usage: {} <path>", args[0]);
         std::process::exit(1);

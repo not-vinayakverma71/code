@@ -392,7 +392,7 @@ pub enum InboundMessage {
         duration_ms: u64,
     },
     
-    /// Approval required    /// Tool approval request
+    /// Tool approval request
     ToolApprovalRequest {
         execution_id: String,
         tool_name: String,
@@ -442,12 +442,12 @@ pub enum InboundMessage {
         status: DiffStreamStatus,
         preview: Option<String>,
     },
+}
 
 /// Chat message structure (mirrors Codex ClineMessage)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClineMessage {
-{{ ... }}
     pub ts: u64,
     #[serde(rename = "type")]
     pub msg_type: MessageType,

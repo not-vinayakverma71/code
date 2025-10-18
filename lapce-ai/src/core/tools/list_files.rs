@@ -12,7 +12,7 @@ pub struct ListFilesTool;
 #[async_trait]
 impl Tool for ListFilesTool {
     fn name(&self) -> &'static str {
-        "list_files"
+        "listFiles"
     }
     
     fn description(&self) -> &'static str {

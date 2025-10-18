@@ -44,7 +44,7 @@ pub fn ai_chat_panel(
     let sending_disabled = false;
     
     // Model and mode selection state
-    let selected_model = create_rw_signal("Claude Sonnet 4.5 Thinking ".to_string());
+    let selected_model = create_rw_signal("Gemini Pro".to_string());
     let selected_mode = create_rw_signal("Code".to_string());
     
     // Message handler
@@ -89,8 +89,8 @@ pub fn ai_chat_panel(
                 "Claude Sonnet 4.5 Thinking" => "claude-3-5-sonnet-20241022",
                 "Claude Sonnet 4" => "claude-3-opus-20240229",
                 "GPT-4" => "gpt-4",
-                "Gemini Pro" => "gemini-1.5-flash",
-                _ => "gemini-1.5-flash", // Default to Gemini
+                "Gemini Pro" => "gemini-2.5-flash",
+                _ => "gemini-2.5-flash", // Default to Gemini
             }.to_string();
             
             // Send streaming request to backend

@@ -2,14 +2,19 @@
 /// NO MOCKS - Uses actual shared memory and doorbells for cross-process communication
 
 use std::time::Duration;
-use anyhow::{Context, Result};
+use std::sync::Arc;
+use anyhow::{Context, Result, anyhow};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
+use lapce_ai_rust::ipc::ipc_client::IpcClient;
+use lapce_ai_rust::ipc::binary_codec::{MessageType, LspRequestPayload, Message, MessagePayload};
+use bytes::Bytes;
 
 /// Test client for IPC communication with LSP gateway
 pub struct IpcTestClient {
     connection_id: String,
     shm_prefix: String,
+    client: Arc<IpcClient>,
 }
 
 impl IpcTestClient {
@@ -20,12 +25,14 @@ impl IpcTestClient {
         println!("Connecting IPC test client: {}", connection_id);
         println!("SHM prefix: {}", shm_prefix);
         
-        // TODO: Open shared memory connection
-        // For now, just store the connection info
+        // Connect to IPC server using real client
+        let client = IpcClient::connect(shm_prefix).await
+            .context("Failed to connect to IPC server")?;
         
         Ok(Self {
             connection_id,
             shm_prefix: shm_prefix.to_string(),
+            client: Arc::new(client),
         })
     }
     
@@ -39,13 +46,38 @@ impl IpcTestClient {
         
         println!("Sending LSP request: method={}, id={}", method, request_id);
         
-        // TODO: Encode and send via shared memory IPC
-        // TODO: Wait for response with timeout
+        // Create LSP request payload
+        let lsp_request = LspRequestPayload {
+            id: request_id.clone(),
+            method: method.to_string(),
+            params_json: serde_json::to_string(&params)
+                .context("Failed to serialize params")?,
+        };
         
-        // Placeholder
-        tokio::time::sleep(Duration::from_millis(10)).await;
+        // Serialize request
+        let request_bytes = serde_json::to_vec(&lsp_request)
+            .context("Failed to serialize LSP request")?;
         
-        Ok(JsonValue::Null)
+        // Send request and wait for response with timeout
+        let response_bytes = self.client.send_with_timeout(
+            MessageType::LspRequest,
+            &request_bytes,
+            Duration::from_secs(5),
+        ).await
+            .context("Failed to send LSP request or receive response")?;
+        
+        // Deserialize response
+        let response_json: JsonValue = serde_json::from_slice(&response_bytes)
+            .context("Failed to deserialize response")?;
+        
+        // Extract result from LSP response format
+        if let Some(result) = response_json.get("result") {
+            Ok(result.clone())
+        } else if let Some(error) = response_json.get("error") {
+            Err(anyhow!("LSP error: {:?}", error))
+        } else {
+            Ok(response_json)
+        }
     }
     
     /// Send didOpen notification

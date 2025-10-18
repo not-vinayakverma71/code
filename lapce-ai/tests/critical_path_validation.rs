@@ -5,9 +5,19 @@ use lapce_ai_rust::core::tools::{
     traits::{Tool, ToolContext},
     expanded_tools_registry::ExpandedToolRegistry,
 };
-use serde_json::json;
+use serde_json::{json, Value};
 use std::fs;
 use tempfile::TempDir;
+
+// Helper to build XML args: <tool><k>v</k>...</tool>
+fn xml_args(fields: &[(&str, &str)]) -> Value {
+    let mut xml = String::from("<tool>");
+    for (k, v) in fields {
+        xml.push_str(&format!("<{}>{}</{}>", k, v, k));
+    }
+    xml.push_str("</tool>");
+    Value::String(xml)
+}
 
 // ============================================================================
 // T8: Registry Critical Tests - MUST PASS
@@ -15,7 +25,9 @@ use tempfile::TempDir;
 
 #[test]
 fn test_critical_registry_all_tools_present() {
-    let registry = ExpandedToolRegistry::new();
+    // Ensure tokio runtime exists for any streaming components
+    let runtime = tokio::runtime::Runtime::new().unwrap();
+    let registry = runtime.block_on(async { ExpandedToolRegistry::new() });
     let tools = registry.list_tools();
     
     println!("Total tools registered: {}", tools.len());
@@ -40,8 +52,8 @@ fn test_critical_registry_all_tools_present() {
     println!("✅ All critical tools present");
 }
 
-#[test]
-fn test_critical_registry_tool_instantiation() {
+#[tokio::test]
+async fn test_critical_registry_tool_instantiation() {
     let registry = ExpandedToolRegistry::new();
     
     // Verify we can actually get tools, not just list them
@@ -59,10 +71,11 @@ fn test_critical_registry_tool_instantiation() {
 
 #[test]
 fn test_critical_registry_categories_exist() {
-    let registry = ExpandedToolRegistry::new();
+    let runtime = tokio::runtime::Runtime::new().unwrap();
+    let registry = runtime.block_on(async { ExpandedToolRegistry::new() });
     
-    let fs_tools = registry.list_by_category("fs");
-    assert!(!fs_tools.is_empty(), "fs category must have tools");
+    let fs_tools = registry.list_by_category("file_system");
+    assert!(!fs_tools.is_empty(), "file_system category must have tools");
     
     let search_tools = registry.list_by_category("search");
     assert!(!search_tools.is_empty(), "search category must have tools");
@@ -92,10 +105,7 @@ async fn test_critical_search_files_basic_operation() {
         "test_user".to_string()
     );
     
-    let args = json!({
-        "path": ".",
-        "regex": "findme"
-    });
+    let args = xml_args(&[("path", "."), ("query", "findme")]);
     
     let result = tool.execute(args, context).await;
     
@@ -172,16 +182,16 @@ async fn test_critical_write_read_cycle() {
     let write_tool = registry.get_tool("writeFile")
         .expect("writeFile must exist");
     
-    let write_context = ToolContext::new(
+    let mut write_context = ToolContext::new(
         temp_dir.path().to_path_buf(),
         "test_user".to_string()
     );
+    // Allow writes and disable approvals for automated test
+    write_context.permissions.file_write = true;
+    write_context.require_approval = false;
     
     let test_content = "Critical test content";
-    let write_args = json!({
-        "path": "test.txt",
-        "content": test_content
-    });
+    let write_args = xml_args(&[("path", "test.txt"), ("content", test_content)]);
     
     let write_result = write_tool.execute(write_args, write_context).await;
     assert!(
@@ -203,9 +213,7 @@ async fn test_critical_write_read_cycle() {
         "test_user".to_string()
     );
     
-    let read_args = json!({
-        "path": "test.txt"
-    });
+    let read_args = xml_args(&[("path", "test.txt")]);
     
     let read_result = read_tool.execute(read_args, read_context).await;
     assert!(
@@ -256,7 +264,7 @@ async fn test_critical_concurrent_tool_execution() {
                 .expect("readFile must exist");
             
             let context = ToolContext::new(temp_path, format!("user{}", i));
-            let args = json!({"path": format!("file{}.txt", i)});
+            let args = xml_args(&[("path", &format!("file{}.txt", i))]);
             
             tool.execute(args, context).await
         });
@@ -298,7 +306,7 @@ async fn test_critical_nonexistent_file_handling() {
         "test_user".to_string()
     );
     
-    let args = json!({"path": "does_not_exist.txt"});
+    let args = xml_args(&[("path", "does_not_exist.txt")]);
     let result = tool.execute(args, context).await;
     
     // Must fail gracefully, not panic
@@ -321,8 +329,8 @@ async fn test_critical_invalid_arguments_handling() {
         "test_user".to_string()
     );
     
-    // Missing required argument
-    let args = json!({});
+    // Invalid XML
+    let args = Value::String("not valid xml <<>>".to_string());
     let result = tool.execute(args, context).await;
     
     // Must fail gracefully
@@ -357,10 +365,7 @@ async fn test_critical_performance_reasonable_latency() {
         "perf_user".to_string()
     );
     
-    let args = json!({
-        "path": ".",
-        "regex": "performance"
-    });
+    let args = xml_args(&[("path", "."), ("query", "performance")]);
     
     let start = std::time::Instant::now();
     let result = tool.execute(args, context).await;
@@ -382,8 +387,8 @@ async fn test_critical_performance_reasonable_latency() {
 // Production Readiness Summary Test
 // ============================================================================
 
-#[test]
-fn test_production_readiness_checklist() {
+#[tokio::test]
+async fn test_production_readiness_checklist() {
     let registry = ExpandedToolRegistry::new();
     let tools = registry.list_tools();
     
@@ -405,7 +410,7 @@ fn test_production_readiness_checklist() {
     assert!(all_present, "All critical tools must be present");
     
     // 3. Categories
-    let categories = vec!["fs", "search", "diff", "terminal"];
+    let categories = vec!["file_system", "search", "diff", "terminal"];
     for cat in categories {
         let cat_tools = registry.list_by_category(cat);
         println!("2. Category '{}': {} tools ✅", cat, cat_tools.len());

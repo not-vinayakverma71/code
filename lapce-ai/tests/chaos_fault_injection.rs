@@ -7,8 +7,8 @@ use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::time::{Duration, Instant};
 use tokio::time::{sleep, timeout};
 use lapce_ai_rust::ipc::{IpcServer, MessageType};
-use lapce_ai_rust::ipc::shared_memory_complete::{SharedMemoryBuffer, SharedMemoryListener};
-use lapce_ai_rust::ipc::binary_codec::BinaryCodec;
+use lapce_ai_rust::ipc::shared_memory_complete::{SharedMemoryBuffer, SharedMemoryListener, cleanup_shared_memory};
+use lapce_ai_rust::ipc::binary_codec::{BinaryCodec, Message, MessagePayload};
 use bytes::Bytes;
 use anyhow::Result;
 
@@ -20,7 +20,7 @@ async fn test_buffer_saturation_recovery() -> Result<()> {
     let saturation_count = buffer_size / message_size + 5; // Overflow by 5 messages
     
     // Create shared memory buffer
-    let buffer = Arc::new(SharedMemoryBuffer::new("/test_saturation", buffer_size)?);
+    let buffer = Arc::new(SharedMemoryBuffer::create("/test_saturation", buffer_size).await?);
     let recovery_start = Arc::new(AtomicBool::new(false));
     let messages_dropped = Arc::new(AtomicU32::new(0));
     
@@ -62,7 +62,7 @@ async fn test_buffer_saturation_recovery() -> Result<()> {
     let recovery_signal2 = recovery_start.clone();
     
     let consumer = tokio::spawn(async move {
-        let mut read_buf = vec![0; message_size];
+        // Read loop drains messages (API now returns Option<Vec<u8>>)
         let mut messages_read = 0;
         
         // Wait for saturation
@@ -75,15 +75,13 @@ async fn test_buffer_saturation_recovery() -> Result<()> {
         
         // Drain buffer quickly
         loop {
-            match buffer_consumer.read(&mut read_buf) {
-                Ok(n) if n > 0 => {
+            match buffer_consumer.read().await {
+                Some(_data) => {
                     messages_read += 1;
                     println!("Drained message {}", messages_read);
                 }
-                _ => {
-                    if messages_read > 0 {
-                        break;
-                    }
+                None => {
+                    if messages_read > 0 { break; }
                     sleep(Duration::from_millis(1)).await;
                 }
             }
@@ -103,8 +101,7 @@ async fn test_buffer_saturation_recovery() -> Result<()> {
     producer.await?;
     let recovery_duration = consumer.await?;
     
-    // Cleanup
-    buffer.cleanup();
+    // No explicit cleanup (namespaced path); rely on OS GC
     
     // Verify some messages were dropped during saturation
     let dropped = messages_dropped.load(Ordering::Relaxed);
@@ -127,12 +124,12 @@ async fn test_shm_unlink_midstream() -> Result<()> {
     let buffer_size = 64 * 1024; // 64KB
     
     // Create initial buffer
-    let buffer = Arc::new(SharedMemoryBuffer::new(shm_path, buffer_size)?);
+    let buffer = Arc::new(SharedMemoryBuffer::create(shm_path, buffer_size).await?);
     let data = vec![0x42; 1024];
     
     // Write initial data
     for _ in 0..10 {
-        buffer.write(&data)?;
+        buffer.write(&data).await?;
     }
     
     // Simulate unlink mid-stream
@@ -146,7 +143,7 @@ async fn test_shm_unlink_midstream() -> Result<()> {
     let recovery_start = Instant::now();
     
     // Attempt to recover - recreate buffer
-    let recovered_buffer = match SharedMemoryBuffer::new(shm_path, buffer_size) {
+    let recovered_buffer = match SharedMemoryBuffer::create(shm_path, buffer_size).await {
         Ok(buf) => {
             println!("Successfully recreated buffer after unlink");
             buf
@@ -154,20 +151,17 @@ async fn test_shm_unlink_midstream() -> Result<()> {
         Err(e) => {
             println!("Failed to recreate buffer: {:?}, attempting fallback", e);
             // Fallback: Create with new name
-            SharedMemoryBuffer::new(&format!("{}_recovery", shm_path), buffer_size)?
+            SharedMemoryBuffer::create(&format!("{}_recovery", shm_path), buffer_size).await?
         }
     };
     
     let recovery_time = recovery_start.elapsed();
     
     // Verify recovery and continue operations
-    recovered_buffer.write(&data)?;
-    let mut read_buf = vec![0; 1024];
-    recovered_buffer.read(&mut read_buf)?;
+    recovered_buffer.write(&data).await?;
+    let _ = recovered_buffer.read().await;
     
-    // Cleanup
-    buffer.cleanup();
-    recovered_buffer.cleanup();
+    // No explicit cleanup; rely on OS GC
     
     // Assert recovery within 100ms
     assert!(recovery_time < Duration::from_millis(100),
@@ -259,9 +253,17 @@ fn main() {
     let new_server = Arc::new(IpcServer::new("/tmp/test_crash_recovery_2.sock").await?);
     
     // Verify recovery
-    let test_data = Bytes::from("recovery_test");
-    let codec = BinaryCodec::new();
-    let encoded = codec.encode(MessageType::Request, test_data).await?;
+    let mut codec = BinaryCodec::new();
+    let msg = Message {
+        id: 1,
+        msg_type: MessageType::Heartbeat,
+        payload: MessagePayload::Heartbeat,
+        timestamp: std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs(),
+    };
+    let _encoded = codec.encode(&msg)?;
     
     let recovery_time = recovery_start.elapsed();
     
@@ -282,7 +284,6 @@ fn main() {
 #[tokio::test]
 async fn test_connection_pool_chaos() -> Result<()> {
     use lapce_ai_rust::connection_pool_manager::{ConnectionPoolManager, PoolConfig};
-    use rand::Rng;
     
     let config = PoolConfig {
         max_connections: 20,
@@ -302,9 +303,8 @@ async fn test_connection_pool_chaos() -> Result<()> {
     // Task 1: Random connection failures
     let pool1 = pool.clone();
     chaos_tasks.push(tokio::spawn(async move {
-        let mut rng = rand::thread_rng();
         while start_time.elapsed() < chaos_duration {
-            if rng.gen_bool(0.3) {
+            if rand::random::<f64>() < 0.3 {
                 // Simulate connection failure
                 let stats = pool1.get_stats();
                 stats.failed_connections.fetch_add(1, Ordering::Relaxed);
@@ -343,7 +343,7 @@ async fn test_connection_pool_chaos() -> Result<()> {
     sleep(Duration::from_millis(50)).await;
     
     // Check pool health
-    let health_result = pool.health_check().await?;
+    let _ = pool.health_check().await?;
     let recovery_time = recovery_start.elapsed();
     
     // Get final stats
@@ -366,11 +366,11 @@ async fn test_connection_pool_chaos() -> Result<()> {
 #[tokio::test]
 async fn test_memory_corruption_recovery() -> Result<()> {
     let buffer_size = 4096;
-    let buffer = Arc::new(SharedMemoryBuffer::new("/test_corruption", buffer_size)?);
+    let buffer = Arc::new(SharedMemoryBuffer::create("/test_corruption", buffer_size).await?);
     
     // Write valid data with CRC
     let valid_data = vec![0x55; 256];
-    buffer.write(&valid_data)?;
+    buffer.write(&valid_data).await?;
     
     // Simulate corruption by direct memory manipulation
     // (In real scenario, this would be detected via CRC mismatch)
@@ -378,30 +378,23 @@ async fn test_memory_corruption_recovery() -> Result<()> {
     let recovery_start = Instant::now();
     
     // Attempt to read and detect corruption
-    let mut read_buf = vec![0; 256];
-    match buffer.read(&mut read_buf) {
-        Ok(_) => {
-            // Calculate CRC and detect mismatch
-            let calculated_crc = crc32fast::hash(&read_buf);
-            let expected_crc = crc32fast::hash(&valid_data);
-            
-            if calculated_crc != expected_crc {
-                println!("CRC mismatch detected: corruption found");
-                
-                // Recovery: Reinitialize buffer
-                let _ = SharedMemoryBuffer::new("/test_corruption_recovery", buffer_size)?;
-            }
+    if let Some(read_buf) = buffer.read().await {
+        // Calculate CRC and detect mismatch
+        let calculated_crc = crc32fast::hash(&read_buf);
+        let expected_crc = crc32fast::hash(&valid_data);
+        
+        if calculated_crc != expected_crc {
+            println!("CRC mismatch detected: corruption found");
+            // Recovery: Reinitialize buffer
+            let _ = SharedMemoryBuffer::create("/test_corruption_recovery", buffer_size).await?;
         }
-        Err(e) => {
-            println!("Read error, likely corruption: {:?}", e);
-            // Recovery handled
-        }
+    } else {
+        println!("Read returned None; likely empty or corrupted state");
     }
     
     let recovery_time = recovery_start.elapsed();
     
-    // Cleanup
-    buffer.cleanup();
+    // No explicit cleanup
     
     assert!(recovery_time < Duration::from_millis(100),
             "Corruption recovery took {:?}, exceeds 100ms requirement", recovery_time);

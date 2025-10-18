@@ -234,9 +234,9 @@ impl IpcReconnectionHandler {
     }
     
     /// Attempt to reconnect with exponential backoff
-    pub async fn reconnect<F, Fut>(&self, connect_fn: F) -> Result<()>
+    pub async fn reconnect<F, Fut>(&self, mut connect_fn: F) -> Result<()>
     where
-        F: Fn() -> Fut,
+        F: FnMut() -> Fut,
         Fut: std::future::Future<Output = Result<()>>,
     {
         let mut attempt = 0;
@@ -334,6 +334,8 @@ impl DocumentRehydrationManager {
 mod tests {
     use super::*;
     use tempfile::TempDir;
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicUsize, Ordering};
     
     #[tokio::test]
     async fn test_recovery_manager_save_load() {
@@ -384,14 +386,17 @@ mod tests {
     #[tokio::test]
     async fn test_ipc_reconnection_success() {
         let handler = IpcReconnectionHandler::new(3, 10, 1.5);
-        
-        let mut attempt = 0;
-        let result = handler.reconnect(|| async {
-            attempt += 1;
-            if attempt >= 2 {
-                Ok(())
-            } else {
-                Err(anyhow!("Connection failed"))
+        let attempts = Arc::new(AtomicUsize::new(0));
+        let attempts_c = attempts.clone();
+        let result = handler.reconnect(move || {
+            let attempts_c2 = attempts_c.clone();
+            async move {
+                let prev = attempts_c2.fetch_add(1, Ordering::Relaxed);
+                if prev + 1 >= 2 {
+                    Ok(())
+                } else {
+                    Err(anyhow!("Connection failed"))
+                }
             }
         }).await;
         
@@ -402,7 +407,7 @@ mod tests {
     async fn test_ipc_reconnection_failure() {
         let handler = IpcReconnectionHandler::new(2, 10, 1.5);
         
-        let result = handler.reconnect(|| async {
+        let result = handler.reconnect(|| async move {
             Err(anyhow!("Connection failed"))
         }).await;
         

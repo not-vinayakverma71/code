@@ -183,6 +183,50 @@ async fn main() -> Result<()> {
     
     info!("Provider streaming handler registered");
     
+    // Register LSP gateway handler if enabled
+    #[cfg(feature = "lsp_gateway")]
+    {
+        use lapce_ai_rust::lsp_gateway::native::LspGateway;
+        use lapce_ai_rust::ipc::binary_codec::LspRequestPayload;
+        
+        let lsp_gateway = Arc::new(LspGateway::new());
+        info!("LSP Gateway initialized");
+        
+        let gateway_handler = lsp_gateway.clone();
+        server.register_streaming_handler(
+            MessageType::LspRequest,
+            move |data, tx| {
+                let gateway = gateway_handler.clone();
+                async move {
+                    info!("[LSP] Received request, {} bytes", data.len());
+                    
+                    // Handle request through gateway (expects Bytes, returns Bytes)
+                    let response_bytes = gateway.handle_request(data).await
+                        .map_err(|e| IpcError::Internal {
+                            context: format!("LSP gateway error: {}", e)
+                        })?;
+                    
+                    info!("[LSP] Sending response, {} bytes", response_bytes.len());
+                    
+                    // Send response
+                    tx.send(response_bytes).await
+                        .map_err(|_| IpcError::Internal {
+                            context: "Channel closed".to_string()
+                        })?;
+                    
+                    Ok(())
+                }
+            },
+        );
+        
+        info!("LSP Gateway handler registered");
+    }
+    
+    #[cfg(not(feature = "lsp_gateway"))]
+    {
+        info!("LSP Gateway disabled (lsp_gateway feature not enabled)");
+    }
+    
     // Server is already Arc from IpcServerVolatile::new()
     
     // Setup auto-reconnection if enabled
