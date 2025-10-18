@@ -1,11 +1,12 @@
 /// Windows IPC server binary for cross-process testing
 /// Separate process is required for shared memory atomics to work correctly
 
-#![cfg(windows)]
-
+#[cfg(windows)]
 use anyhow::Result;
+#[cfg(windows)]
 use lapce_ai_rust::ipc::windows_shared_memory::SharedMemoryListener;
 
+#[cfg(windows)]
 #[tokio::main]
 async fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
@@ -47,4 +48,10 @@ async fn main() -> Result<()> {
     }
     
     Ok(())
+}
+
+#[cfg(not(windows))]
+fn main() {
+    eprintln!("windows_ipc_server: This binary is Windows-only");
+    std::process::exit(1);
 }

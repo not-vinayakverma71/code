@@ -60,26 +60,37 @@ impl IpcServerVolatile {
     
     /// Accept a connection without holding lock across await (prevents macOS deadlock)
     async fn accept_connection(&self) -> Result<(tokio::net::UnixStream, tokio::net::unix::SocketAddr)> {
+        eprintln!("[SERVER] accept_connection: waiting for lock...");
         let mut guard = self.control_server.lock().await;
-        guard.listener.accept().await.map_err(|e| e.into())
+        eprintln!("[SERVER] accept_connection: lock acquired, calling listener.accept()...");
+        let result = guard.listener.accept().await;
+        eprintln!("[SERVER] accept_connection: accept returned {:?}", result.as_ref().map(|_| "Ok").map_err(|e| e.to_string()));
+        result.map_err(|e| e.into())
     }
     
     pub async fn serve(self: Arc<Self>) -> Result<()> {
         let mut shutdown_rx = self.shutdown.subscribe();
+        let mut accept_count = 0u32;
+        
+        eprintln!("[SERVER] Entering accept loop...");
         
         loop {
+            eprintln!("[SERVER] Loop iteration {}, waiting for event...", accept_count);
+            
             tokio::select! {
                 _ = shutdown_rx.recv() => {
-                    eprintln!("[SERVER VOLATILE] Shutting down");
+                    eprintln!("[SERVER VOLATILE] Shutting down after {} accepts", accept_count);
                     return Ok(());
                 }
                 
                 // Accept connection (fast, just TCP accept)
                 // CRITICAL: Don't hold lock across .await to prevent macOS deadlock
                 result = self.accept_connection() => {
+                    eprintln!("[SERVER] accept_connection() returned: {:?}", result.as_ref().map(|_| "Ok").map_err(|e| e.to_string()));
                     match result {
                         Ok((stream, _addr)) => {
-                            eprintln!("[SERVER] Accepted connection from client");
+                            accept_count += 1;
+                            eprintln!("[SERVER] Accept #{}: connection from client", accept_count);
                             // Spawn task to handle this connection
                             // This allows us to immediately accept the NEXT client
                             let server = self.clone();
@@ -269,16 +280,51 @@ impl IpcServerVolatile {
                                                 // Extract JSON payload (skip 24-byte CPAL header)
                                                 let json_payload = &full_message[24..total_len];
                                                 eprintln!("[HANDLER {}] Extracted JSON payload: {} bytes", slot_id, json_payload.len());
-                                                
-                                                // Debug: print the JSON string
-                                                if let Ok(json_str) = std::str::from_utf8(json_payload) {
-                                                    eprintln!("[HANDLER {}] JSON string: {}", slot_id, json_str);
-                                                } else {
-                                                    eprintln!("[HANDLER {}] JSON payload is not valid UTF-8", slot_id);
+
+                                                // Robustly locate the end of the top-level JSON object by
+                                                // scanning for matching braces while respecting strings/escapes.
+                                                let mut start_idx = match json_payload.iter().position(|&b| b == b'{') {
+                                                    Some(i) => i,
+                                                    None => {
+                                                        eprintln!("[HANDLER {}] No opening '{{' in JSON payload", slot_id);
+                                                        0
+                                                    }
+                                                };
+                                                let mut depth: i32 = 0;
+                                                let mut in_string = false;
+                                                let mut escape = false;
+                                                let mut end_idx: Option<usize> = None;
+                                                for (i, &ch) in json_payload.iter().enumerate() {
+                                                    if i < start_idx { continue; }
+                                                    if escape { escape = false; continue; }
+                                                    match ch {
+                                                        b'\\' if in_string => { escape = true; }
+                                                        b'"' => { in_string = !in_string; }
+                                                        b'{' if !in_string => { depth += 1; }
+                                                        b'}' if !in_string => {
+                                                            depth -= 1;
+                                                            if depth == 0 { end_idx = Some(i); break; }
+                                                        }
+                                                        _ => {}
+                                                    }
                                                 }
-                                                
+
+                                                let json_slice = if let Some(end) = end_idx {
+                                                    &json_payload[start_idx..=end]
+                                                } else {
+                                                    eprintln!("[HANDLER {}] Could not find balanced JSON braces; attempting full payload parse", slot_id);
+                                                    json_payload
+                                                };
+
+                                                // Debug: print the JSON slice we're about to parse
+                                                if let Ok(json_str) = std::str::from_utf8(json_slice) {
+                                                    eprintln!("[HANDLER {}] JSON slice ({} bytes): {}", slot_id, json_slice.len(), json_str);
+                                                } else {
+                                                    eprintln!("[HANDLER {}] JSON slice is not valid UTF-8 ({} bytes)", slot_id, json_slice.len());
+                                                }
+
                                                 // Try to deserialize as ProviderChatStreamRequest JSON
-                                                if let Ok(json_req) = serde_json::from_slice::<serde_json::Value>(json_payload) {
+                                                if let Ok(json_req) = serde_json::from_slice::<serde_json::Value>(json_slice) {
                                                 eprintln!("[HANDLER {}] JSON parsed: model={}, messages={}", 
                                                     slot_id, 
                                                     json_req.get("model").and_then(|v| v.as_str()).unwrap_or("?"),
@@ -287,7 +333,7 @@ impl IpcServerVolatile {
                                                 
                                                 if json_req.get("model").is_some() && json_req.get("messages").is_some() {
                                                     // This is a provider chat stream request
-                                                    let payload_bytes = json_payload.to_vec();
+                                                    let payload_bytes = json_slice.to_vec();
                                                 
                                                 // Use ChatMessage type for routing
                                                 let msg_type = crate::ipc::binary_codec::MessageType::ChatMessage;

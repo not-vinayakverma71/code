@@ -1,4 +1,8 @@
 // Complete GraphQL Server Implementation
+// DISABLED: Not needed for Lapce AI core functionality
+// Missing dependencies: async-graphql, async-graphql-axum
+#![cfg(feature = "graphql_server")]
+
 use async_graphql::{Context, EmptySubscription, Object, Schema, SimpleObject};
 use async_graphql_axum::GraphQL;
 use axum::{

@@ -272,12 +272,14 @@ async fn test_streaming_pipeline(
                     match result {
                         Ok(token) => {
                             match token {
-                                StreamToken::Text(text) | StreamToken::Delta { content: text } => {
-                                    // Process through our pipeline
+                                StreamToken::Text(text) => {
+                                    // Process text token
                                     let chunk_size = text.len();
                                     
                                     // Record zero-copy operation
-                                    metrics.record_zero_copy();
+                                    metrics.tokens_processed.fetch_add(1, Ordering::Relaxed);
+                                    metrics.bytes_processed.fetch_add(chunk_size, Ordering::Relaxed);
+                                    metrics.chunks_processed.fetch_add(1, Ordering::Relaxed);
                                     
                                     // Simulate processing
                                     let token_count = text.len() / 4; // Approximate

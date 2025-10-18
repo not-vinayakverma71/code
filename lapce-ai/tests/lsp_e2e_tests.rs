@@ -98,8 +98,8 @@ pub fn main() {
             path
         }
         
-        fn temp_path(&self) -> &PathBuf {
-            self.temp_dir.path().into()
+        fn temp_path(&self) -> &std::path::Path {
+            self.temp_dir.path()
         }
     }
     
